@@ -1,0 +1,21 @@
+To build this package CommonAPI and a version of libdbus patched with the marshaling patch must be available.
+
+Instructions for making a patched version of libdbus available in /usr/local:
+
+$ wget http://dbus.freedesktop.org/releases/dbus/dbus-1.4.16.tar.gz
+
+$ tar -xzf dbus-1.4.16.tar.gz
+
+$ cd dbus-1.4.16
+
+$ patch -p1 <
+/path/to/dbus-DBusMessage-add-support-for-custom-marshaling.patch
+
+$ ./configure --prefix=/usr/local
+
+$ make -C dbus 
+
+$ sudo make -C dbus install
+$ sudo make install-pkgconfigDATA
+
+The path to CommonAPI and patched libdbus pkgconfig files must be added to the PKG_CONFIG_PATH for the entire build process.
