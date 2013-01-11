@@ -85,73 +85,10 @@ TestInterfaceSources = \
 		src/test/commonapi/tests/TestInterfaceStubDefault.cpp
 
 check_PROGRAMS = \
-		DBusCommunicationTest \
-		DBusMultipleConnectionTest \
-		DBusDaemonProxyTest \
-		DBusInputStreamTest \
-		DBusOutputStreamTest \
-		DBusRuntimeTest \
-		DBusFactoryTest \
-		DBusProxyTest \
-		DBusVariantTest \
-		DBusBenchmarkingTest
+		DBusVariantTest
+
 
 TESTS =	${check_PROGRAMS}
-
-DBusBenchmarkingTest_SOURCES = src/test/DBusBenchmarkingTest.cpp
-DBusBenchmarkingTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusBenchmarkingTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusBenchmarkingTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusCommunicationTest_SOURCES = \
-		src/test/DBusCommunicationTest.cpp \
-		${TestInterfaceSources}
-DBusCommunicationTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusCommunicationTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusCommunicationTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusDaemonProxyTest_SOURCES = src/test/DBusDaemonProxyTest.cpp
-DBusDaemonProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusDaemonProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusDaemonProxyTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusInputStreamTest_SOURCES = src/test/DBusInputStreamTest.cpp
-DBusInputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusInputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusInputStreamTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusOutputStreamTest_SOURCES = src/test/DBusOutputStreamTest.cpp
-DBusOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusOutputStreamTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusFactoryTest_SOURCES = \
-		src/test/DBusFactoryTest.cpp \
-		${TestInterfaceSources}
-DBusFactoryTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusFactoryTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusFactoryTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusRuntimeTest_SOURCES = src/test/DBusRuntimeTest.cpp
-DBusRuntimeTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusRuntimeTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusRuntimeTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-#DBusStubAdapterTest_SOURCES = src/test/DBusStubAdapterTest.cpp
-#DBusStubAdapterTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-#DBusStubAdapterTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-#DBusStubAdapterTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusMultipleConnectionTest_SOURCES = src/test/DBusMultipleConnectionTest.cpp \
-									 ${TestInterfaceSources}
-DBusMultipleConnectionTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusMultipleConnectionTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusMultipleConnectionTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
-
-DBusProxyTest_SOURCES = src/test/DBusProxyTest.cpp
-DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusProxyTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
 
 DBusVariantTest_SOURCES = src/test/DBusVariantTest.cpp
 DBusVariantTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}

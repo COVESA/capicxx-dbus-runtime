@@ -1,0 +1,333 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#include <iostream>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <cassert>
+
+template<class Visitor, class Variant, typename ... Ts>
+struct apply_void_visitor;
+
+template<class Visitor, class Variant>
+struct apply_void_visitor<Visitor, Variant> {
+	static const unsigned int index = 0;
+
+	static
+	void visit(Visitor&, Variant&) {
+		//won't be called
+		assert(false);
+		throw "";
+	}
+};
+
+template<class Visitor, class Variant, typename T, typename ... Ts>
+struct apply_void_visitor<Visitor, Variant, T, Ts...> {
+	static const unsigned int index = apply_void_visitor<Visitor, Variant,
+			Ts...>::index + 1;
+
+	static
+	void visit(Visitor& visitor, Variant& var) {
+		if (var.getValueType() == index) {
+			bool b;
+			visitor(var.template get<T>(b));
+		} else {
+			apply_void_visitor<Visitor, Variant, Ts...>::visit(visitor,	var);
+		}
+	}
+};
+
+/*template<typename ... Ts>
+struct assign_visitor {
+public:
+	assign_visitor(Variant<Ts...>& lhs, const bool clear = true) :
+			lhs_(lhs), clear_(clear) {
+	}
+
+	template<typename T>
+	void operator()(const T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+	template<typename T>
+	void operator()(T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+private:
+	Variant<Ts...>& lhs_;
+	const bool clear_;
+};*/
+
+template<unsigned int size>
+struct clear_visitor {
+public:
+	clear_visitor(typename std::aligned_storage<size>::type& storage) :
+			storage_(storage) {
+	}
+
+	template<typename _Type>
+	void operator()(const _Type&) const {
+		(reinterpret_cast<const _Type *>(&storage_))->~_Type();
+	}
+
+	private:
+	typename std::aligned_storage<size>::type& storage_;
+};
+
+template<typename U, typename ... Ts>
+struct select_type;
+
+template<typename U>
+struct select_type<U> {
+};
+
+//U == T
+template<typename T, typename ... Ts>
+struct select_type<T, T, Ts...> {
+	typedef T type;
+};
+
+//U& == T
+template<typename T, typename ... Ts>
+struct select_type<T, T&, Ts...> {
+	typedef T& type;
+};
+
+//U == T&
+template<typename T, typename ... Ts>
+struct select_type<T&, T, Ts...> {
+	typedef T type;
+};
+
+//const U& == T
+template<typename T, typename ... Ts>
+struct select_type<T, const T&, Ts...> {
+	typedef const T& type;
+};
+
+//U == const T&
+template<typename T, typename ... Ts>
+struct select_type<const T&, T, Ts...> {
+	typedef T type;
+};
+
+//U == X*
+//T == const X*
+template<typename T, typename ... Ts>
+struct select_type<T*, const T*, Ts...> {
+	typedef const T* type;
+};
+
+//U == X&
+//T == const X&
+template<typename T, typename ... Ts>
+struct select_type<T&, const T&, Ts...> {
+	typedef const T& type;
+};
+
+//U != T, let's try to find U among Ts
+template<typename U, typename T, typename ... Ts>
+struct select_type<U, T, Ts...> {
+	typedef typename select_type<U, Ts...>::type type;
+};
+
+template<typename ... Ts>
+struct type_index_getter;
+
+template<>
+struct type_index_getter<> {
+	static const unsigned int index = 0;
+
+	template<typename U>
+	static
+	unsigned int get() {
+		return 0;
+	}
+};
+
+template<typename T, typename ... Ts>
+struct type_index_getter<T, Ts...> {
+	static const unsigned int index = type_index_getter<Ts...>::index + 1;
+
+	template<typename U>
+	static
+	unsigned int get(
+			typename std::enable_if<std::is_same<T, U>::value >::type* = 0) {
+		return index;
+	}
+
+	template<typename U>
+	static
+	unsigned int get(typename std::enable_if<!std::is_same<T, U>::value >::type* = 0) {
+		return type_index_getter<Ts...>::template get<U>();
+	}
+};
+
+template<typename ... Ts>
+struct max_size;
+
+template<>
+struct max_size<> {
+	static const unsigned int value = 0;
+};
+
+template<typename T, typename ... Ts>
+struct max_size<T, Ts...> {
+	static const unsigned int current_type_size = sizeof(T);
+	static const unsigned int next_type_size = max_size<Ts...>::value;
+	static const unsigned int value =
+			current_type_size > next_type_size ?
+					current_type_size : next_type_size;
+};
+
+template<typename _SearchType, typename _CurrentType, typename ... _RestTypes>
+struct VariantTypeSelector: VariantTypeSelector<_SearchType, _RestTypes...> {
+};
+
+template <typename _SearchType, typename... _RestTypes>
+struct VariantTypeSelector<_SearchType, _SearchType, _RestTypes...> {
+    typedef _SearchType type;
+};
+
+template <typename... _Types>
+class Variant {
+ private:
+    typedef std::tuple_size<std::tuple<_Types...>> TypesTupleSize;
+
+ public:
+
+    static const unsigned int maxSize = max_size<_Types...>::value;
+
+
+    Variant(): valueType_(TypesTupleSize::value) {
+    }
+
+    Variant(const Variant& fromVariant):
+        valueType_(fromVariant.valueType_),
+        valueStorage_(fromVariant.valueStorage_) {
+    }
+
+    Variant(Variant&& fromVariant):
+        valueType_(std::move(fromVariant.valueType_)),
+        valueStorage_(std::move(fromVariant.valueStorage_)) {
+        fromVariant.valueType_ = TypesTupleSize::value;
+    }
+
+    ~Variant() {
+        if (hasValue()) {
+            clear_visitor<maxSize> visitor(valueStorage_);
+            apply_void_visitor<clear_visitor<maxSize>, Variant<_Types...>, _Types...>::visit(visitor, *this);
+        }
+    }
+
+    Variant& operator=(const Variant& fromVariant) {
+        // TODO
+        return *this;
+    }
+
+    Variant& operator=(Variant&& fromVariant) {
+        // TODO
+        return *this;
+    }
+
+    template <typename _Type>
+	const bool& isType() const {
+		typedef typename select_type<_Type, _Types...>::type selected_type_t;
+		unsigned int cType = type_index_getter<_Types...>::template get<selected_type_t>();
+		if(cType == valueType_) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+    // TODO use std::enable_if
+    template <typename _Type>
+    Variant(const _Type& value) {
+    	typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+        new (&valueStorage_) _Type(value);
+    }
+
+    // TODO use std::enable_if
+    template <typename _Type>
+    Variant(_Type && value) {
+    	typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+        new (&valueStorage_) typename std::remove_reference<_Type>::type(std::move(value));
+    }
+
+	template <typename _Type>
+	const typename VariantTypeSelector<_Type, _Types...>::type & get(bool& success) const {
+		typedef typename select_type<_Type, _Types...>::type selected_type_t;
+		unsigned int cType = type_index_getter<_Types...>::template get<selected_type_t>();
+		if(cType == valueType_) {
+			success = true;
+			return *(reinterpret_cast<const _Type *>(&valueStorage_));
+		} else {
+			success = false;
+			//TODO: Fix return temporary
+			return _Type();
+		}
+	}
+
+	inline size_t getValueType() {
+		return valueType_;
+	}
+
+	template<typename U>
+	void set( const U& value, const bool clear)	{
+		typedef typename select_type<U, _Types...>::type selected_type_t;
+
+		const selected_type_t& type_value = value;
+		if(hasValue()) {
+			clear_visitor<maxSize> visitor(valueStorage_);
+			apply_void_visitor<clear_visitor<maxSize>, Variant<_Types...>, _Types...>::visit(visitor, *this);
+		}
+		new (&valueStorage_) selected_type_t(std::move(value));
+		valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+	}
+
+ private:
+    inline bool hasValue() const {
+        return valueType_ < TypesTupleSize::value;
+    }
+
+    size_t valueType_;
+    typename std::aligned_storage<maxSize>::type valueStorage_;
+
+};
+
+
+
+int main(int argc, char** argv) {
+    int fromInt = 5;
+    double fromDouble = 12.344d;
+    std::string fromString = "123abc!";
+    Variant<int, double, double, std::string> myVariant(fromInt);
+    Variant<int, double, double, std::string> myVariantf(fromDouble);
+
+    Variant<int, double, double, std::string>* myVariants = new Variant<int, double, double, std::string>(fromString);
+    bool success;
+
+    const int& myInt = myVariant.get<int>(success);
+    std::cout << "myInt = " << myInt << " (" << std::boolalpha << success << ")\n";
+
+    const int& myFake = myVariant.get<double>(success);
+    std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
+
+    std::cout << "myInt is int = " << " (" << std::boolalpha << myVariant.isType<int>() << ")\n";
+    std::cout << "myInt is std::string = " << " (" << std::boolalpha << myVariant.isType<std::string>() << ")\n";
+
+    const int& myDouble = myVariantf.get<double>(success);
+    std::cout << "myDouble = " << myDouble << " (" << std::boolalpha << success << ")\n";
+
+    const std::string& myString = myVariants->get<std::string>(success);
+    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
+
+    delete myVariants;
+
+    return 0;
+}
