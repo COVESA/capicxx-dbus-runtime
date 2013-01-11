@@ -1,0 +1,85 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#include "DBusFunctionalHash.h"
+
+#include <murmurhash/MurmurHash3.h>
+
+#include <cassert>
+#include <cstring>
+
+
+/*
+ * @see http://code.google.com/p/smhasher/
+ */
+#define SMHASHER_SEED_VALUE			0xc70f6907UL
+
+
+namespace std {
+
+size_t hash< pair<const char*, const char*> >::operator()(const pair<const char*, const char*>& t) const {
+	const char* a = t.first;
+	const char* b = t.second;
+
+	assert(a);
+	assert(b);
+
+	uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
+	MurmurHash3_x86_32(a, strlen(a), seed, &seed);
+	MurmurHash3_x86_32(b, strlen(b), seed, &seed);
+
+	return static_cast<size_t>(seed);
+}
+
+
+size_t hash< pair<string, string> >::operator()(const pair<string, string>& t) const {
+	const string& a = t.first;
+	const string& b = t.second;
+
+	uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
+	MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
+	MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
+
+	return static_cast<size_t>(seed);
+}
+
+
+size_t hash< tuple<string, string, string> >::operator()(const tuple<string, string, string>& t) const {
+	const string& a = get<0>(t);
+	const string& b = get<1>(t);
+	const string& c = get<2>(t);
+
+	uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
+	MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
+	MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
+	MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+
+	return static_cast<size_t>(seed);
+}
+
+
+size_t hash< tuple<string, string, string, string> >::operator()(const tuple<string, string, string, string>& t) const {
+	const string& a = get<0>(t);
+	const string& b = get<1>(t);
+	const string& c = get<2>(t);
+	const string& d = get<3>(t);
+
+	uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
+	MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
+	MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
+	MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+	MurmurHash3_x86_32(d.c_str(), d.length(), seed, &seed);
+
+	return static_cast<size_t>(seed);
+}
+
+
+bool equal_to< pair<const char*, const char*> >::operator()(const pair<const char*, const char*>& a,
+															const pair<const char*, const char*>& b) const {
+	if (a.first == b.first && a.second == b.second)
+		return true;
+
+	return !strcmp(a.first, b.first) && !strcmp(a.second, b.second);
+}
+
+}  // namespace std

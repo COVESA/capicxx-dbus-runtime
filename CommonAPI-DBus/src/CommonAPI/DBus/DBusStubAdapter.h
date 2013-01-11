@@ -1,0 +1,69 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#ifndef COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_
+#define COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_
+
+#include "DBusConnection.h"
+
+#include <CommonAPI/Stub.h>
+#include <CommonAPI/DBus/DBusMessage.h>
+
+#include <string>
+#include <memory>
+
+namespace CommonAPI {
+namespace DBus {
+
+class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
+ public:
+    DBusStubAdapter(const std::string& dbusBusName,
+                    const std::string& dbusObjectPath,
+                    const std::string& interfaceName,
+                    const std::shared_ptr<DBusProxyConnection>& dbusConnection);
+
+    virtual ~DBusStubAdapter();
+
+    virtual void init();
+
+    virtual const std::string getAddress() const;
+    virtual const std::string& getDomain() const;
+    virtual const std::string& getServiceId() const;
+    virtual const std::string& getInstanceId() const;
+
+    inline const std::string& getObjectPath() const;
+
+    inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
+
+ protected:
+    virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
+    virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
+
+ private:
+    bool onIntrospectionInterfaceDBusMessage(const DBusMessage& dbusMessage);
+
+    const std::string dbusBusName_;
+    const std::string dbusObjectPath_;
+    const std::string interfaceName_;
+    const std::shared_ptr<DBusProxyConnection> dbusConnection_;
+
+    bool isInitialized_;
+
+    DBusInterfaceHandlerToken dbusIntrospectionInterfaceHandlerToken_;
+    DBusInterfaceHandlerToken dbusInterfaceHandlerToken_;
+
+    static const std::string domain_;
+};
+
+const std::string& DBusStubAdapter::getObjectPath() const {
+    return dbusObjectPath_;
+}
+
+const std::shared_ptr<DBusProxyConnection>& DBusStubAdapter::getDBusConnection() const {
+    return dbusConnection_;
+}
+
+} // namespace dbus
+} // namespace CommonAPI
+
+#endif // COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_

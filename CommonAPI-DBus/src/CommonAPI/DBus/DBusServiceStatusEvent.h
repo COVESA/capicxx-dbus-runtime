@@ -1,0 +1,39 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#ifndef COMMONAPI_DBUS_DBUS_SERVICE_STATUS_EVENT_H_
+#define COMMONAPI_DBUS_DBUS_SERVICE_STATUS_EVENT_H_
+
+#include "DBusMultiEvent.h"
+
+#include <CommonAPI/Event.h>
+#include <CommonAPI/types.h>
+
+#include <string>
+#include <memory>
+
+namespace CommonAPI {
+namespace DBus {
+
+
+class DBusServiceRegistry;
+
+class DBusServiceStatusEvent: public DBusMultiEvent<AvailabilityStatus> {
+ public:
+	DBusServiceStatusEvent(std::shared_ptr<DBusServiceRegistry> registry);
+
+ protected:
+	void onFirstListenerAdded(const std::string& serviceName, const Listener& listener);
+	void onListenerAdded(const std::string& serviceName, const Listener& listener);
+
+ private:
+	void availabilityEvent(const std::string& name, const bool& available);
+
+	std::shared_ptr<DBusServiceRegistry> registry_;
+};
+
+} // namespace DBus
+} // namespace CommonAPI
+
+#endif // COMMONAPI_DBUS_DBUS_SERVICE_STATUS_EVENT_H_
+

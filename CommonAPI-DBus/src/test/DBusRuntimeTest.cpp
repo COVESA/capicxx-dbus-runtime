@@ -1,0 +1,78 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include <gtest/gtest.h>
+
+#include <cstring>
+
+#include <CommonAPI/DBus/DBusRuntime.h>
+#include <CommonAPI/DBus/DBusFactory.h>
+
+
+
+class DBusRuntimeTest: public ::testing::Test {
+ protected:
+	virtual void SetUp() {
+	}
+
+	virtual void TearDown() {
+	}
+};
+
+
+
+TEST_F(DBusRuntimeTest, LoadsDefaultStaticallyLinkedDBusLibrary) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+}
+
+
+TEST_F(DBusRuntimeTest, LoadsSpecifiedStaticallyLinkedDBusLibrary) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+}
+
+
+TEST_F(DBusRuntimeTest, LoadsDBusLibraryAsSingleton) {
+    std::shared_ptr<CommonAPI::Runtime> runtime1 = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime2 = CommonAPI::Runtime::load("DBus");
+    ASSERT_TRUE((bool)runtime1);
+    ASSERT_TRUE((bool)runtime2);
+
+    CommonAPI::DBus::DBusRuntime* dbusRuntime1 = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime1));
+    CommonAPI::DBus::DBusRuntime* dbusRuntime2 = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime2));
+    ASSERT_TRUE(dbusRuntime1 != NULL);
+    ASSERT_TRUE(dbusRuntime2 != NULL);
+
+    ASSERT_TRUE(dbusRuntime1 == dbusRuntime2);
+}
+
+
+TEST_F(DBusRuntimeTest, ReturnsEmptyPointerOnRequestForUnknownMiddleware) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("UnknownMiddlewareId");
+    ASSERT_FALSE((bool)runtime);
+}
+
+
+TEST_F(DBusRuntimeTest, DBusRuntimeLoadsDBusFactory) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
+    ASSERT_TRUE((bool)proxyFactory);
+    CommonAPI::DBus::DBusFactory* dbusProxyFactory = dynamic_cast<CommonAPI::DBus::DBusFactory*>(&(*proxyFactory));
+    ASSERT_TRUE(dbusProxyFactory != NULL);
+}
+
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
