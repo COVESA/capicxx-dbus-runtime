@@ -210,18 +210,22 @@ class Variant {
     	return *this;
     }
 
-    /*Variant& operator=(const Variant& fromVariant) {
-        // TODO
-        return *this;
+    Variant& operator=(Variant&& rhs) {
+    	assign_visitor<_Types...> visitor(*this);
+    	apply_void_visitor<assign_visitor<_Types...>, Variant<_Types...>, _Types...>::visit(visitor, rhs);
+    	return *this;
     }
-*/
-    Variant& operator=(Variant&& fromVariant) {
-        // TODO
-        return *this;
+
+    template<typename _Type>
+    typename std::enable_if<!std::is_same<_Type, Variant<_Types...>>::value, Variant<_Types...>&>::type
+    operator=(const _Type& value)
+    {
+    	set<typename select_type<_Type, _Types...>::type>(value);
+    	return *this;
     }
 
     template <typename _Type>
-	const bool& isType() const {
+	const bool isType() const {
 		typedef typename select_type<_Type, _Types...>::type selected_type_t;
 		unsigned int cType = type_index_getter<_Types...>::template get<selected_type_t>();
 		if(cType == valueType_) {
@@ -231,30 +235,23 @@ class Variant {
 		}
 	}
 
-    // TODO use std::enable_if
     template <typename _Type>
     Variant(const _Type& value,
     			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
     			typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
     			typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
-    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
-    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
-        new (&valueStorage_) _Type(value);*/
     	set<typename select_type<_Type, _Types...>::type>(value, false);
     }
 
-    // TODO use std::enable_if
     template <typename _Type>
     Variant(_Type && value,
     			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
     		    typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
     		    typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
-    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
-    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
-        new (&valueStorage_) typename std::remove_reference<_Type>::type(std::move(value));*/
     	set2<typename select_type<_Type, _Types...>::type>(std::move(value), false);
     }
 
+    //TODO: Return type???
 	template <typename _Type>
 	const typename VariantTypeSelector<_Type, _Types...>::type & get(bool& success) const {
 		typedef typename select_type<_Type, _Types...>::type selected_type_t;
@@ -264,8 +261,7 @@ class Variant {
 			return *(reinterpret_cast<const _Type *>(&valueStorage_));
 		} else {
 			success = false;
-			//TODO: Fix return temporary
-			return _Type();
+			return *(reinterpret_cast<const _Type *>(&valueStorage_));
 		}
 	}
 
