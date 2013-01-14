@@ -7,6 +7,9 @@
 #include <type_traits>
 #include <cassert>
 
+template<typename ... Ts>
+struct assign_visitor;
+
 template<class Visitor, class Variant, typename ... Ts>
 struct apply_void_visitor;
 
@@ -37,28 +40,6 @@ struct apply_void_visitor<Visitor, Variant, T, Ts...> {
 		}
 	}
 };
-
-/*template<typename ... Ts>
-struct assign_visitor {
-public:
-	assign_visitor(Variant<Ts...>& lhs, const bool clear = true) :
-			lhs_(lhs), clear_(clear) {
-	}
-
-	template<typename T>
-	void operator()(const T& value) const {
-		lhs_.template set<T>(value, clear_);
-	}
-
-	template<typename T>
-	void operator()(T& value) const {
-		lhs_.template set<T>(value, clear_);
-	}
-
-private:
-	Variant<Ts...>& lhs_;
-	const bool clear_;
-};*/
 
 template<unsigned int size>
 struct clear_visitor {
@@ -222,11 +203,18 @@ class Variant {
         }
     }
 
-    Variant& operator=(const Variant& fromVariant) {
+    Variant& operator=(const Variant& rhs)
+    {
+    	assign_visitor<_Types...> visitor(*this);
+    	apply_void_visitor<assign_visitor<_Types...>, Variant<_Types...>, _Types...>::visit(visitor, rhs);
+    	return *this;
+    }
+
+    /*Variant& operator=(const Variant& fromVariant) {
         // TODO
         return *this;
     }
-
+*/
     Variant& operator=(Variant&& fromVariant) {
         // TODO
         return *this;
@@ -245,18 +233,26 @@ class Variant {
 
     // TODO use std::enable_if
     template <typename _Type>
-    Variant(const _Type& value) {
-    	typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    Variant(const _Type& value,
+    			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
+    			typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
+    			typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
+    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
     	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
-        new (&valueStorage_) _Type(value);
+        new (&valueStorage_) _Type(value);*/
+    	set<typename select_type<_Type, _Types...>::type>(value, false);
     }
 
     // TODO use std::enable_if
     template <typename _Type>
-    Variant(_Type && value) {
-    	typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    Variant(_Type && value,
+    			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
+    		    typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
+    		    typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
+    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
     	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
-        new (&valueStorage_) typename std::remove_reference<_Type>::type(std::move(value));
+        new (&valueStorage_) typename std::remove_reference<_Type>::type(std::move(value));*/
+    	set2<typename select_type<_Type, _Types...>::type>(std::move(value), false);
     }
 
 	template <typename _Type>
@@ -282,11 +278,27 @@ class Variant {
 		typedef typename select_type<U, _Types...>::type selected_type_t;
 
 		const selected_type_t& type_value = value;
-		if(hasValue()) {
+		if(clear) {
 			clear_visitor<maxSize> visitor(valueStorage_);
 			apply_void_visitor<clear_visitor<maxSize>, Variant<_Types...>, _Types...>::visit(visitor, *this);
 		}
 		new (&valueStorage_) selected_type_t(std::move(value));
+		valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+	}
+
+	template<typename U>
+	void set2( U&& value, const bool clear)	{
+		typedef typename select_type<U, _Types...>::type selected_type_t;
+
+		selected_type_t&& any_container_value = std::move(value);
+		if(clear)
+		{
+			clear_visitor<maxSize> visitor(valueStorage_);
+			apply_void_visitor<clear_visitor<maxSize>, Variant<_Types...>, _Types...>::visit(visitor, *this);
+		} else {
+			new (&valueStorage_) selected_type_t(std::move(any_container_value));
+		}
+
 		valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
 	}
 
@@ -306,14 +318,19 @@ int main(int argc, char** argv) {
     int fromInt = 5;
     double fromDouble = 12.344d;
     std::string fromString = "123abc!";
-    Variant<int, double, double, std::string> myVariant(fromInt);
-    Variant<int, double, double, std::string> myVariantf(fromDouble);
+    Variant<int, double, std::string> myVariant(fromInt);
 
-    Variant<int, double, double, std::string>* myVariants = new Variant<int, double, double, std::string>(fromString);
+    Variant<int, double, std::string> myVariantf(fromDouble);
+
+    Variant<int, double, std::string>* myVariants = new Variant<int, double, std::string>(fromString);
     bool success;
 
     const int& myInt = myVariant.get<int>(success);
     std::cout << "myInt = " << myInt << " (" << std::boolalpha << success << ")\n";
+
+    Variant<int, double, std::string> myVariant2 = myVariant;
+    const int& myInt2 = myVariant2.get<int>(success);
+    std::cout << "myInt2 = " << myInt2 << " (" << std::boolalpha << success << ")\n";
 
     const int& myFake = myVariant.get<double>(success);
     std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
@@ -331,3 +348,25 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+template<typename ... Ts>
+struct assign_visitor {
+public:
+	assign_visitor(Variant<Ts...>& lhs, const bool clear = true) :
+			lhs_(lhs), clear_(clear) {
+	}
+
+	template<typename T>
+	void operator()(const T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+	template<typename T>
+	void operator()(T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+private:
+	Variant<Ts...>& lhs_;
+	const bool clear_;
+};
