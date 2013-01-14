@@ -10,6 +10,12 @@
 template<typename ... Ts>
 struct assign_visitor;
 
+template<typename T>
+struct complete_equals_visitor;
+
+template<typename... Ts>
+struct partial_equals_visitor;
+
 template<class Visitor, class Variant, typename ... Ts>
 struct apply_void_visitor;
 
@@ -37,6 +43,36 @@ struct apply_void_visitor<Visitor, Variant, T, Ts...> {
 			visitor(var.template get<T>(b));
 		} else {
 			apply_void_visitor<Visitor, Variant, Ts...>::visit(visitor,	var);
+		}
+	}
+};
+
+template<class Visitor, class Variant, typename ... Ts>
+struct apply_return_visitor
+;
+
+template<class Visitor, class Variant>
+struct apply_return_visitor<Visitor, Variant> {
+	static const unsigned int index = 0;
+
+	static bool visit(Visitor&, Variant&) {
+		//won't be called
+		assert(false);
+	}
+};
+
+template<class Visitor, class Variant, typename T, typename ... Ts>
+struct apply_return_visitor<Visitor, Variant, T, Ts...> {
+	static const unsigned int index = apply_return_visitor<Visitor, Variant,
+			Ts...>::index + 1;
+
+	static bool visit(Visitor& visitor, Variant& var) {
+		if (var.getValueType() == index) {
+			bool b;
+			return visitor(var.template get<T>(b));
+		} else {
+			return apply_return_visitor<Visitor, Variant, Ts...>::visit(visitor,
+					var);
 		}
 	}
 };
@@ -265,7 +301,7 @@ class Variant {
 		}
 	}
 
-	inline size_t getValueType() {
+	inline size_t getValueType() const {
 		return valueType_;
 	}
 
@@ -308,42 +344,65 @@ class Variant {
 
 };
 
-
-
-int main(int argc, char** argv) {
-    int fromInt = 5;
-    double fromDouble = 12.344d;
-    std::string fromString = "123abc!";
-    Variant<int, double, std::string> myVariant(fromInt);
-
-    Variant<int, double, std::string> myVariantf(fromDouble);
-
-    Variant<int, double, std::string>* myVariants = new Variant<int, double, std::string>(fromString);
-    bool success;
-
-    const int& myInt = myVariant.get<int>(success);
-    std::cout << "myInt = " << myInt << " (" << std::boolalpha << success << ")\n";
-
-    Variant<int, double, std::string> myVariant2 = myVariant;
-    const int& myInt2 = myVariant2.get<int>(success);
-    std::cout << "myInt2 = " << myInt2 << " (" << std::boolalpha << success << ")\n";
-
-    const int& myFake = myVariant.get<double>(success);
-    std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
-
-    std::cout << "myInt is int = " << " (" << std::boolalpha << myVariant.isType<int>() << ")\n";
-    std::cout << "myInt is std::string = " << " (" << std::boolalpha << myVariant.isType<std::string>() << ")\n";
-
-    const int& myDouble = myVariantf.get<double>(success);
-    std::cout << "myDouble = " << myDouble << " (" << std::boolalpha << success << ")\n";
-
-    const std::string& myString = myVariants->get<std::string>(success);
-    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
-
-    delete myVariants;
-
-    return 0;
+template<typename... _Types>
+bool operator==(const Variant<_Types...>& lhs, const Variant<_Types...>& rhs)
+{
+	partial_equals_visitor<_Types...> visitor(lhs);
+	return apply_return_visitor<partial_equals_visitor<_Types...>, const Variant<_Types...>, _Types...>::visit(visitor, rhs);
 }
+
+template<typename... _Types>
+bool operator!=(const Variant<_Types...>& lhs, const Variant<_Types...>& rhs)
+{
+	return !(lhs == rhs);
+}
+
+template<typename T>
+struct complete_equals_visitor
+{
+	public:
+		complete_equals_visitor(const T& rhs):
+			rhs_(rhs)
+		{
+		}
+
+		bool
+		operator()(const T& lhs) const
+		{
+			return lhs == rhs_;
+		}
+
+		template<typename U>
+		bool
+		operator()(const U&) const
+		{
+			return false;
+		}
+
+	private:
+		const T& rhs_;
+};
+
+template<typename... Ts>
+struct partial_equals_visitor
+{
+	public:
+		partial_equals_visitor(const Variant<Ts...>& lhs):
+			lhs_(lhs)
+		{
+		}
+
+		template<typename T>
+		bool
+		operator()(const T& rhs) const
+		{
+			complete_equals_visitor<T> visitor(rhs);
+			return apply_return_visitor<complete_equals_visitor<T>, const Variant<Ts...>, Ts...>::visit(visitor, lhs_);
+		}
+
+	private:
+		const Variant<Ts...>& lhs_;
+};
 
 template<typename ... Ts>
 struct assign_visitor {
@@ -366,3 +425,51 @@ private:
 	Variant<Ts...>& lhs_;
 	const bool clear_;
 };
+
+
+int main(int argc, char** argv) {
+    int fromInt = 5;
+    double fromDouble = 12.344d;
+    std::string fromString = "123abc!";
+    Variant<int, double, std::string> myVariant(fromInt);
+
+    Variant<int, double, std::string> myVariantf(fromDouble);
+
+    Variant<int, double, std::string>* myVariants = new Variant<int, double, std::string>(fromString);
+    bool success;
+
+    const int& myInt = myVariant.get<int>(success);
+    std::cout << "myInt = " << myInt << " (" << std::boolalpha << success << ")\n";
+
+    Variant<int, double, std::string> myVariant2 = myVariant;
+    const int& myInt2 = myVariant2.get<int>(success);
+    std::cout << "myInt2 = " << myInt2 << " (" << std::boolalpha << success << ")\n";
+
+    Variant<int, double, std::string> myVariant3 = fromInt;
+    const int& myInt3 = myVariant3.get<int>(success);
+    std::cout << "myInt3 = " << myInt3 << " (" << std::boolalpha << success << ")\n";
+
+    Variant<int, double, std::string> myVariantCopy(myVariant);
+    const int& myIntCopy = myVariantCopy.get<int>(success);
+    std::cout << "myIntCopy = " << myIntCopy << " (" << std::boolalpha << success << ")\n";
+
+    std::cout << "myIntCopy equals myInt= " << "(" << std::boolalpha << (myVariant == myVariantCopy) << ")\n";
+
+    const int& myFake = myVariant.get<double>(success);
+    std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
+
+    std::cout << "myInt is int = " << " (" << std::boolalpha << myVariant.isType<int>() << ")\n";
+    std::cout << "myInt is std::string = " << " (" << std::boolalpha << myVariant.isType<std::string>() << ")\n";
+
+    const int& myDouble = myVariantf.get<double>(success);
+    std::cout << "myDouble = " << myDouble << " (" << std::boolalpha << success << ")\n";
+
+    const std::string& myString = myVariants->get<std::string>(success);
+    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
+
+    delete myVariants;
+
+    return 0;
+}
+
+
