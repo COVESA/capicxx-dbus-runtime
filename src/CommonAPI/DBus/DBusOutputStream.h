@@ -26,6 +26,8 @@ namespace DBus {
  */
 typedef uint32_t position_t;
 
+class DBusVariantOutputStream;
+
 
 /**
  * @class DBusOutputMessageStream
@@ -168,6 +170,14 @@ class DBusOutputStream: public OutputStream {
         writeBasicTypeValueAtPosition(popRememberedStreamPosition(), numOfWrittenBytes);
 	}
 
+    virtual void beginWriteVariant(const SerializableVariant& serializableVariant) {
+        writeValue(serializableVariant.getValueType());
+    }
+
+    virtual void endWriteVariant(const SerializableVariant& serializableVariant) {
+        //TODO
+    }
+
 	virtual bool hasError() const {
 		return dbusError_;
 	}
@@ -273,6 +283,13 @@ class DBusOutputStream: public OutputStream {
         alignToBoundary(sizeof(uint32_t));
         rememberCurrentStreamPosition();
         writeBasicTypeValue((uint32_t) 0);
+    }
+
+    inline void writeSignature(std::string& signature) {
+        uint8_t length = (uint8_t) signature.length();
+        assert(length < 256);
+        *this << length;
+        writeRawData(signature.c_str(), length + 1);
     }
 
     inline void rememberCurrentStreamPosition() {

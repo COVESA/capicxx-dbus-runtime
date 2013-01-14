@@ -10,12 +10,15 @@
 template<typename ... Ts>
 struct assign_visitor;
 
+<<<<<<< variant_dev_new
 template<typename T>
 struct complete_equals_visitor;
 
 template<typename... Ts>
 struct partial_equals_visitor;
 
+=======
+>>>>>>> a8c63f3 Tests for Variant serialization
 template<class Visitor, class Variant, typename ... Ts>
 struct apply_void_visitor;
 
@@ -46,6 +49,7 @@ struct apply_void_visitor<Visitor, Variant, T, Ts...> {
 		}
 	}
 };
+<<<<<<< variant_dev_new
 
 template<class Visitor, class Variant, typename ... Ts>
 struct apply_return_visitor
@@ -76,6 +80,8 @@ struct apply_return_visitor<Visitor, Variant, T, Ts...> {
 		}
 	}
 };
+=======
+>>>>>>> a8c63f3 Tests for Variant serialization
 
 template<unsigned int size>
 struct clear_visitor {
@@ -244,7 +250,16 @@ class Variant {
     	assign_visitor<_Types...> visitor(*this);
     	apply_void_visitor<assign_visitor<_Types...>, Variant<_Types...>, _Types...>::visit(visitor, rhs);
     	return *this;
+<<<<<<< variant_dev_new
+=======
     }
+
+    /*Variant& operator=(const Variant& fromVariant) {
+        // TODO
+        return *this;
+>>>>>>> a8c63f3 Tests for Variant serialization
+    }
+<<<<<<< variant_dev_new
 
     Variant& operator=(Variant&& rhs) {
     	assign_visitor<_Types...> visitor(*this);
@@ -258,6 +273,12 @@ class Variant {
     {
     	set<typename select_type<_Type, _Types...>::type>(value);
     	return *this;
+=======
+*/
+    Variant& operator=(Variant&& fromVariant) {
+        // TODO
+        return *this;
+>>>>>>> a8c63f3 Tests for Variant serialization
     }
 
     template <typename _Type>
@@ -276,6 +297,12 @@ class Variant {
     			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
     			typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
     			typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
+<<<<<<< variant_dev_new
+=======
+    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+        new (&valueStorage_) _Type(value);*/
+>>>>>>> a8c63f3 Tests for Variant serialization
     	set<typename select_type<_Type, _Types...>::type>(value, false);
     }
 
@@ -284,6 +311,12 @@ class Variant {
     			typename std::enable_if<!std::is_const<_Type>::value>::type* = 0,
     		    typename std::enable_if<!std::is_reference<_Type>::value>::type* = 0,
     		    typename std::enable_if<!std::is_same<_Type, Variant>::value>::type* = 0) {
+<<<<<<< variant_dev_new
+=======
+    	/*typedef typename select_type<_Type, _Types...>::type selected_type_t;
+    	valueType_ = type_index_getter<_Types...>::template get<selected_type_t>();
+        new (&valueStorage_) typename std::remove_reference<_Type>::type(std::move(value));*/
+>>>>>>> a8c63f3 Tests for Variant serialization
     	set2<typename select_type<_Type, _Types...>::type>(std::move(value), false);
     }
 
@@ -444,6 +477,7 @@ int main(int argc, char** argv) {
     Variant<int, double, std::string> myVariant2 = myVariant;
     const int& myInt2 = myVariant2.get<int>(success);
     std::cout << "myInt2 = " << myInt2 << " (" << std::boolalpha << success << ")\n";
+<<<<<<< variant_dev_new
 
     Variant<int, double, std::string> myVariant3 = fromInt;
     const int& myInt3 = myVariant3.get<int>(success);
@@ -454,6 +488,8 @@ int main(int argc, char** argv) {
     std::cout << "myIntCopy = " << myIntCopy << " (" << std::boolalpha << success << ")\n";
 
     std::cout << "myIntCopy equals myInt= " << "(" << std::boolalpha << (myVariant == myVariantCopy) << ")\n";
+=======
+>>>>>>> a8c63f3 Tests for Variant serialization
 
     const int& myFake = myVariant.get<double>(success);
     std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
@@ -472,4 +508,28 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+<<<<<<< variant_dev_new
 
+=======
+template<typename ... Ts>
+struct assign_visitor {
+public:
+	assign_visitor(Variant<Ts...>& lhs, const bool clear = true):
+			lhs_(lhs), clear_(clear) {
+	}
+
+	template<typename T>
+	void operator()(const T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+	template<typename T>
+	void operator()(T& value) const {
+		lhs_.template set<T>(value, clear_);
+	}
+
+private:
+	Variant<Ts...>& lhs_;
+	const bool clear_;
+};
+>>>>>>> a8c63f3 Tests for Variant serialization
