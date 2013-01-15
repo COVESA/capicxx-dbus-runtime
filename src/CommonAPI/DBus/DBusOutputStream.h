@@ -355,7 +355,7 @@ OutputStream& DBusOutputStream::writeValue(const ByteBuffer& byteBufferValue) {
 
 class DBusTypeOutputStream: public TypeOutputStream {
   public:
-    DBusTypeOutputStream(): signature_(""), temp_(""), tempIndex_(0) {
+    DBusTypeOutputStream(): signature_("") {
 
     }
     virtual ~DBusTypeOutputStream() {}
@@ -457,20 +457,8 @@ class DBusTypeOutputStream: public TypeOutputStream {
     inline virtual void endWriteVectorType()  {
     }
 
-    inline virtual void beginWriteVariantType()  {
-        if(tempIndex_ == 0) {
-            signature_.append("v");
-            temp_ = std::move(signature_);
-            signature_ = "";
-        }
-        ++tempIndex_;
-    }
-
-    inline virtual void endWriteVariantType()  {
-        --tempIndex_;
-        if(tempIndex_ == 0) {
-            signature_ = std::move(temp_);
-        }
+    inline virtual void writeVariantType()  {
+        signature_.append("v");
     }
 
     inline virtual std::string retrieveSignature() {
@@ -480,8 +468,6 @@ class DBusTypeOutputStream: public TypeOutputStream {
 
   private:
     std::string signature_;
-    std::string temp_;
-    uint8_t tempIndex_;
 };
 
 
