@@ -277,9 +277,6 @@ class DBusOutputStream: public OutputStream {
  	virtual void beginWriteSerializableStruct(const SerializableStruct& serializableStruct) { alignToBoundary(8); }
 	virtual void endWriteSerializableStruct(const SerializableStruct& serializableStruct) { }
 
-    virtual void beginWriteSerializableVariant(const SerializableVariant& serializableVariant) { }
-    virtual void endWriteSerializableVariant(const SerializableVariant& serializableVariant) { }
-
 	virtual void beginWriteMap(size_t elementCount) {
         alignToBoundary(sizeof(uint32_t));
         rememberCurrentStreamPosition();
@@ -293,11 +290,15 @@ class DBusOutputStream: public OutputStream {
         writeBasicTypeValueAtPosition(popRememberedStreamPosition(), numOfWrittenBytes);
 	}
 
-    virtual void beginWriteVariant(const SerializableVariant& serializableVariant) {
+    virtual void beginWriteSerializableVariant(const SerializableVariant& serializableVariant) {
         writeValue(serializableVariant.getValueType());
+
+        DBusTypeOutputStream typeOutputStream;
+        serializableVariant.writeToTypeOutputStream(typeOutputStream);
+        writeSignature(std::move(typeOutputStream.retrieveSignature()));
     }
 
-    virtual void endWriteVariant(const SerializableVariant& serializableVariant) {
+    virtual void endWriteSerializableVariant(const SerializableVariant& serializableVariant) {
         //TODO
     }
 
@@ -398,10 +399,6 @@ class DBusOutputStream: public OutputStream {
 
     bool writeRawDataAtPosition(size_t position, const char* rawDataPtr, const size_t sizeInByte);
 
-    virtual std::shared_ptr<TypeOutputStream> getNewTypeOutputStream() {
-        return std::static_pointer_cast<TypeOutputStream>(std::make_shared<DBusTypeOutputStream>());
-    }
-
   protected:
     std::string payload_;
 
@@ -412,7 +409,7 @@ class DBusOutputStream: public OutputStream {
         writeBasicTypeValue((uint32_t) 0);
     }
 
-    inline void writeSignature(std::string& signature) {
+    inline void writeSignature(std::string signature) {
         uint8_t length = (uint8_t) signature.length();
         assert(length < 256);
         *this << length;

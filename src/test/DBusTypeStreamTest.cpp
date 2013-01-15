@@ -197,10 +197,9 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructCorrectly) {
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfUInt32TypeVariantsCorrectly) {
     uint32_t fromUInt = 42;
-    CommonAPI::Variant<uint32_t, double, std::string> myVariant(fromUInt);
+    CommonAPI::Variant<uint32_t, double, uint16_t> myVariant(fromUInt);
 
-    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
-    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::string>, uint32_t, double, std::string>::visit(searchVisitor, myVariant);
+    myVariant.writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("u") == 0);
@@ -211,8 +210,7 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfStringTypeVariantsCorrectly) {
     std::string fromString = "Hai!";
     CommonAPI::Variant<uint32_t, double, std::string> myVariant(fromString);
 
-    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
-    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::string>, uint32_t, double, std::string>::visit(searchVisitor, myVariant);
+    myVariant.writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("s") == 0);
@@ -223,8 +221,7 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfVectorTypeVariantsCorrectly) {
     std::vector<std::string> fromStringVector;
     CommonAPI::Variant<uint32_t, double, std::vector<std::string>> myVariant(fromStringVector);
 
-    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
-    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::vector<std::string>>, uint32_t, double, std::vector<std::string>>::visit(searchVisitor, myVariant);
+    myVariant.writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("as") == 0);
@@ -235,8 +232,60 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructTypeVariantsCorrectly) {
     TestStruct fromTestStruct;
     CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
 
-    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
-    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, TestStruct>, uint32_t, double, TestStruct>::visit(searchVisitor, myVariant);
+    myVariant.writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+}
+
+
+
+
+
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericUInt32TypeVariantsCorrectly) {
+    uint32_t fromUInt = 42;
+    CommonAPI::Variant<uint32_t, double, uint16_t> myVariant(fromUInt);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("u") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericStringTypeVariantsCorrectly) {
+    std::string fromString = "Hai!";
+    CommonAPI::Variant<uint32_t, double, std::string> myVariant(fromString);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("s") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericVectorTypeVariantsCorrectly) {
+    std::vector<std::string> fromStringVector;
+    CommonAPI::Variant<uint32_t, double, std::vector<std::string>> myVariant(fromStringVector);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("as") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorrectly) {
+    TestStruct fromTestStruct;
+    CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("(qsv)") == 0);
