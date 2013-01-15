@@ -351,6 +351,140 @@ OutputStream& DBusOutputStream::writeValue(const ByteBuffer& byteBufferValue) {
 	return *this;
 }
 
+
+
+class DBusTypeOutputStream: public TypeOutputStream {
+  public:
+    DBusTypeOutputStream(): signature_(""), temp_(""), tempIndex_(0) {
+
+    }
+    virtual ~DBusTypeOutputStream() {}
+
+
+    inline virtual void writeBoolType() {
+        signature_.append("b");
+    }
+
+    inline virtual void writeInt8Type()  {
+        signature_.append("y");
+    }
+    inline virtual void writeInt16Type()  {
+        signature_.append("n");
+    }
+    inline virtual void writeInt32Type()  {
+        signature_.append("i");
+    }
+    inline virtual void writeInt64Type()  {
+        signature_.append("x");
+    }
+
+    inline virtual void writeUInt8Type()  {
+        signature_.append("y");
+    }
+    inline virtual void writeUInt16Type()  {
+        signature_.append("q");
+    }
+    inline virtual void writeUInt32Type()  {
+        signature_.append("u");
+    }
+    inline virtual void writeUInt64Type()  {
+        signature_.append("t");
+    }
+
+
+    inline virtual void writeInt8EnumType()  {
+        signature_.append("y");
+    }
+    inline virtual void writeInt16EnumType()  {
+        signature_.append("n");
+    }
+    inline virtual void writeInt32EnumType()  {
+        signature_.append("i");
+    }
+    inline virtual void writeInt64EnumType()  {
+        signature_.append("x");
+    }
+
+    inline virtual void writeUInt8EnumType()  {
+        signature_.append("y");
+    }
+    inline virtual void writeUInt16EnumType()  {
+        signature_.append("n");
+    }
+    inline virtual void writeUInt32EnumType()  {
+        signature_.append("u");
+    }
+    inline virtual void writeUInt64EnumType()  {
+        signature_.append("t");
+    }
+
+
+    inline virtual void writeFloatType()  {
+        signature_.append("d");
+    }
+    inline virtual void writeDoubleType()  {
+        signature_.append("d");
+    }
+
+    inline virtual void writeStringType()  {
+        signature_.append("s");
+    }
+    inline virtual void writeByteBufferType()  {
+        signature_.append("ay");
+    }
+    inline virtual void writeVersionType()  {
+        signature_.append("(uu)");
+    }
+
+    inline virtual void beginWriteStructType()  {
+        signature_.append("(");
+    }
+    inline virtual void endWriteStructType() {
+        signature_.append(")");
+    }
+
+    inline virtual void beginWriteMapType()  {
+        signature_.append("a{");
+    }
+    inline virtual void endWriteMapType() {
+        signature_.append("}");
+    }
+
+    inline virtual void beginWriteVectorType()  {
+        signature_.append("a");
+    }
+
+    inline virtual void endWriteVectorType()  {
+    }
+
+    inline virtual void beginWriteVariantType()  {
+        if(tempIndex_ == 0) {
+            signature_.append("v");
+            temp_ = std::move(signature_);
+            signature_ = "";
+        }
+        ++tempIndex_;
+    }
+
+    inline virtual void endWriteVariantType()  {
+        --tempIndex_;
+        if(tempIndex_ == 0) {
+            signature_ = std::move(temp_);
+        }
+    }
+
+    inline virtual std::string retrieveSignature() {
+        return std::move(signature_);
+    }
+
+
+  private:
+    std::string signature_;
+    std::string temp_;
+    uint8_t tempIndex_;
+};
+
+
 } // namespace DBus
 } // namespace CommonAPI
 
