@@ -17,11 +17,30 @@
 #include <type_traits>
 
 
+struct TestStruct: public CommonAPI::SerializableStruct {
+    TestStruct(): uint16Val_(42), stringVal_("Hai!"), variantVal_(13.37) {
 
+    }
 
+    virtual ~TestStruct() {}
 
-//##############################################################################################################
+    virtual void readFromInputStream(CommonAPI::InputStream& inputStream) {
+    }
 
+    virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    }
+
+    static void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+        CommonAPI::TypeWriter<uint16_t>::writeType(typeOutputStream);
+        CommonAPI::TypeWriter<std::string>::writeType(typeOutputStream);
+        CommonAPI::TypeWriter<CommonAPI::Variant<uint32_t, double, std::vector<std::string>>>::writeType(typeOutputStream);
+    }
+
+  private:
+    uint16_t uint16Val_;
+    std::string stringVal_;
+    CommonAPI::Variant<uint32_t, double, std::vector<std::string>> variantVal_;
+};
 
 
 class TypeOutputStreamTest: public ::testing::Test {
@@ -32,157 +51,190 @@ class TypeOutputStreamTest: public ::testing::Test {
 
     void TearDown() {
     }
+
+    CommonAPI::DBus::DBusTypeOutputStream typeStream_;
 };
 
 
 
-TEST_F(TypeOutputStreamTest, CreatesBoolSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<bool>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+TEST_F(TypeOutputStreamTest, CreatesBasicTypeSignatures) {
+    CommonAPI::TypeWriter<bool>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("b") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesInt8Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<int8_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<int8_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("y") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesInt16Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<int16_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<int16_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("n") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesInt32Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<int32_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<int32_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("i") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesInt64Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<int64_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<int64_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("x") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesUInt8Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<uint8_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<uint8_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("y") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesUInt16Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<uint16_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<uint16_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("q") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesUInt32Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<uint32_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<uint32_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("u") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesUInt64Signature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<uint64_t>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<uint64_t>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("t") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesFloatSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<float>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<float>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("d") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesDoubleSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<double>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<double>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("d") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesStringSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::string>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::string>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("s") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesByteBufferSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<CommonAPI::ByteBuffer>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<CommonAPI::ByteBuffer>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("ay") == 0);
 }
 TEST_F(TypeOutputStreamTest, CreatesVersionSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<CommonAPI::Version>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<CommonAPI::Version>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("(uu)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVariantWithBasicTypesSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<CommonAPI::Variant<int, double, std::string>>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<CommonAPI::Variant<int, double, std::string>>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("v") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVariantWithVariantSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, std::string>, std::string>>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, std::string>, std::string>>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("v") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfStringsSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::vector<std::string> >::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::vector<std::string> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("as") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVersionsSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::vector<CommonAPI::Version> >::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::vector<CommonAPI::Version> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("a(uu)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVariantsSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::vector<CommonAPI::Variant<int, double, std::string>> >::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::vector<CommonAPI::Variant<int, double, std::string>> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("av") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfStringsSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::vector<std::vector<std::string>> >::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::vector<std::vector<std::string>> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("aas") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesMapOfUInt16ToStringSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::unordered_map<uint16_t, std::string>>::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::unordered_map<uint16_t, std::string>>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("a{qs}") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfMapsOfUInt16ToStringSignature) {
-    CommonAPI::DBus::DBusTypeOutputStream typeStream;
-    CommonAPI::TypeWriter<std::vector<std::unordered_map<uint16_t, std::string>> >::writeType(typeStream);
-    std::string signature = typeStream.retrieveSignature();
+    CommonAPI::TypeWriter<std::vector<std::unordered_map<uint16_t, std::string>> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("aa{qs}") == 0);
 }
 
 
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructCorrectly) {
+    CommonAPI::TypeWriter<TestStruct>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfUInt32TypeVariantsCorrectly) {
+    uint32_t fromUInt = 42;
+    CommonAPI::Variant<uint32_t, double, std::string> myVariant(fromUInt);
+
+    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
+    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::string>, uint32_t, double, std::string>::visit(searchVisitor, myVariant);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("u") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfStringTypeVariantsCorrectly) {
+    std::string fromString = "Hai!";
+    CommonAPI::Variant<uint32_t, double, std::string> myVariant(fromString);
+
+    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
+    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::string>, uint32_t, double, std::string>::visit(searchVisitor, myVariant);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("s") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfVectorTypeVariantsCorrectly) {
+    std::vector<std::string> fromStringVector;
+    CommonAPI::Variant<uint32_t, double, std::vector<std::string>> myVariant(fromStringVector);
+
+    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
+    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, std::vector<std::string>>, uint32_t, double, std::vector<std::string>>::visit(searchVisitor, myVariant);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("as") == 0);
+}
+
+
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructTypeVariantsCorrectly) {
+    TestStruct fromTestStruct;
+    CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
+
+    CommonAPI::TypeSearchVisitor searchVisitor(typeStream_);
+    CommonAPI::ApplyVoidVisitor<CommonAPI::TypeSearchVisitor, CommonAPI::Variant<uint32_t, double, TestStruct>, uint32_t, double, TestStruct>::visit(searchVisitor, myVariant);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+}
 
 
 
