@@ -132,6 +132,8 @@ class DBusOutputStream: public OutputStream {
         alignToBoundary(8);
         rememberCurrentStreamPosition();
     }
+    virtual void beginWriteVectorOfSerializableVariants(uint32_t sizeOfVector) {
+    }
     virtual void beginWriteVectorOfVectors(uint32_t sizeOfVector) {
         beginWriteGenericVector();
         rememberCurrentStreamPosition();
@@ -274,6 +276,10 @@ class DBusOutputStream: public OutputStream {
     bool writeRawData(const char* rawDataPtr, const size_t sizeInByte);
 
     bool writeRawDataAtPosition(size_t position, const char* rawDataPtr, const size_t sizeInByte);
+
+    virtual std::shared_ptr<TypeOutputStream> getNewTypeOutputStream() {
+        return std::static_pointer_cast<TypeOutputStream>(std::make_shared<DBusTypeOutputStream>());
+    }
 
   protected:
     std::string payload_;

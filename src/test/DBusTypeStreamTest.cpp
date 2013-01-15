@@ -169,6 +169,12 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfStringsSignature) {
     ASSERT_TRUE(signature.compare("aas") == 0);
 }
 
+TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfVariantsSignature) {
+    CommonAPI::TypeWriter<std::vector<std::vector<CommonAPI::Variant<int, double, std::string>>> >::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("aav") == 0);
+}
+
 TEST_F(TypeOutputStreamTest, CreatesMapOfUInt16ToStringSignature) {
     CommonAPI::TypeWriter<std::unordered_map<uint16_t, std::string>>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
