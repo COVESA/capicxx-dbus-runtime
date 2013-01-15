@@ -189,29 +189,12 @@ class DBusTypeStream: public TypeStream {
 
 
 
-template<typename _Type, bool _Check>
-struct TypeWriter {
-inline static void writeType(TypeStream& typeStream) {
-//    if() {
-        _Type::writeToTypeStream(typeStream);
-//    } else if(std::is_base_of<CommonAPI::SerializableVariant, _Type>::value) {
-//        typeStream.writeVariantType();
-//    }
-}
-};
-
-
-
 template<typename _Type>
-struct TypeWriter<_Type, typename std::enable_if<std::is_base_of<CommonAPI::SerializableVariant, _Type>::value, _Type>::type> {
-inline static void writeType(TypeStream& typeStream) {
-    typeStream.writeVariantType();
-}
-};
+struct BasicTypeWriter;
 
 
 template<>
-struct TypeWriter<bool> {
+struct BasicTypeWriter<bool> {
 inline static void writeType(TypeStream& typeStream) {
     typeStream.writeBoolType();
 }
@@ -219,28 +202,28 @@ inline static void writeType(TypeStream& typeStream) {
 
 
 template<>
-struct TypeWriter<int8_t> {
+struct BasicTypeWriter<int8_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeInt8Type();
 }
 };
 
 template<>
-struct TypeWriter<int16_t> {
+struct BasicTypeWriter<int16_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeInt16Type();
 }
 };
 
 template<>
-struct TypeWriter<int32_t> {
+struct BasicTypeWriter<int32_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeInt32Type();
 }
 };
 
 template<>
-struct TypeWriter<int64_t> {
+struct BasicTypeWriter<int64_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeInt64Type();
 }
@@ -248,28 +231,28 @@ inline static void writeType (TypeStream& typeStream) {
 
 
 template<>
-struct TypeWriter<uint8_t> {
+struct BasicTypeWriter<uint8_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeUInt8Type();
 }
 };
 
 template<>
-struct TypeWriter<uint16_t> {
+struct BasicTypeWriter<uint16_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeUInt16Type();
 }
 };
 
 template<>
-struct TypeWriter<uint32_t> {
+struct BasicTypeWriter<uint32_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeUInt32Type();
 }
 };
 
 template<>
-struct TypeWriter<uint64_t> {
+struct BasicTypeWriter<uint64_t> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeUInt64Type();
 }
@@ -277,14 +260,14 @@ inline static void writeType (TypeStream& typeStream) {
 
 
 template<>
-struct TypeWriter<float> {
+struct BasicTypeWriter<float> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeFloatType();
 }
 };
 
 template<>
-struct TypeWriter<double> {
+struct BasicTypeWriter<double> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeDoubleType();
 }
@@ -292,28 +275,28 @@ inline static void writeType (TypeStream& typeStream) {
 
 
 template<>
-struct TypeWriter<std::string> {
+struct BasicTypeWriter<std::string> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeStringType();
 }
 };
 
 template<>
-struct TypeWriter<CommonAPI::ByteBuffer> {
+struct BasicTypeWriter<CommonAPI::ByteBuffer> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeByteBufferType();
 }
 };
 
 template<>
-struct TypeWriter<CommonAPI::Version> {
+struct BasicTypeWriter<CommonAPI::Version> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeVersionType();
 }
 };
 
 template<>
-struct TypeWriter<CommonAPI::SerializableVariant> {
+struct BasicTypeWriter<CommonAPI::SerializableVariant> {
 inline static void writeType (TypeStream& typeStream) {
     typeStream.writeVariantType();
 }
@@ -321,25 +304,65 @@ inline static void writeType (TypeStream& typeStream) {
 
 
 template<typename _VectorElementType>
-struct TypeWriter<std::vector<_VectorElementType>> {
+struct BasicTypeWriter<std::vector<_VectorElementType>> {
 inline static void writeType(TypeStream& typeStream) {
     typeStream.writeVectorType();
-    TypeWriter<_VectorElementType>::writeType(typeStream);
+    BasicTypeWriter<_VectorElementType>::writeType(typeStream);
 }
 };
 
 
 template<typename _KeyType, typename _ValueType>
-struct TypeWriter<std::unordered_map<_KeyType, _ValueType>> {
+struct BasicTypeWriter<std::unordered_map<_KeyType, _ValueType>> {
 inline static void writeType(TypeStream& typeStream) {
     typeStream.beginWriteMapType();
 
-    TypeWriter<_KeyType>::writeType(typeStream);
-    TypeWriter<_ValueType>::writeType(typeStream);
+    BasicTypeWriter<_KeyType>::writeType(typeStream);
+    BasicTypeWriter<_ValueType>::writeType(typeStream);
 
     typeStream.endWriteMapType();
 }
 };
+
+
+
+
+template<typename _Type, bool _IsStructType>
+struct StructTypeWriter;
+
+
+template<typename _Type>
+struct StructTypeWriter<_Type, true> {
+inline static void writeType(TypeStream& typeStream) {
+    _Type::writeToTypeStream(typeStream);
+}
+};
+
+template<typename _Type>
+struct StructTypeWriter<_Type, false>: public BasicTypeWriter<_Type> {
+};
+
+
+
+
+template<typename _Type, bool _IsVariantType>
+struct VariantTypeWriter;
+
+
+template<typename _Type>
+struct VariantTypeWriter<_Type, true> {
+inline static void writeType(TypeStream& typeStream) {
+    typeStream.writeVariantType();
+}
+};
+
+template<typename _Type>
+struct VariantTypeWriter<_Type, false>: public StructTypeWriter<_Type, std::is_base_of<CommonAPI::SerializableStruct, _Type>::value> {
+};
+
+
+template<typename _Type>
+struct TypeWriter: public VariantTypeWriter<_Type, std::is_base_of<CommonAPI::SerializableVariant, _Type>::value>{};
 
 
 
