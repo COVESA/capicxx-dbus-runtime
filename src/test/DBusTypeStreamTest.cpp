@@ -3,8 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <gtest/gtest.h>
+
+#include <unordered_map>
+#include <vector>
+
 #include <CommonAPI/SerializableStruct.h>
 #include <CommonAPI/SerializableVariant.h>
+#include <CommonAPI/types.h>
+#include <CommonAPI/ByteBuffer.h>
+
+#include <type_traits>
 
 
 
@@ -49,8 +57,12 @@ class TypeStream {
     virtual void beginWriteMapType() = 0;
     virtual void endWriteMapType() = 0;
 
-    virtual void writeSerializableStructType(const CommonAPI::SerializableStruct& serializableStruct) = 0;
-    virtual void writeVariantType(const CommonAPI::SerializableVariant& serializableVariant) = 0;
+    virtual void beginWriteStructType() = 0;
+    virtual void endWriteStructType() = 0;
+
+    virtual void writeVariantType() = 0;
+
+    virtual std::string retrieveSignature() = 0;
 };
 
 
@@ -140,22 +152,30 @@ class DBusTypeStream: public TypeStream {
         signature_.append("(uu)");
     }
 
+    inline virtual void beginWriteStructType()  {
+        signature_.append("(");
+    }
+    inline virtual void endWriteStructType() {
+        signature_.append(")");
+    }
+
     inline virtual void beginWriteMapType()  {
-        signature_.append("{");
+        signature_.append("a{");
     }
     inline virtual void endWriteMapType() {
         signature_.append("}");
     }
 
-    inline virtual void writeSerializableStructType(const CommonAPI::SerializableStruct& serializableStruct)  {
-        //TODO
-    }
-    inline virtual void writeVariantType(const CommonAPI::SerializableVariant& serializableVariant)  {
-        //TODO
-    }
-
     inline virtual void writeVectorType()  {
         signature_.append("a");
+    }
+
+    inline virtual void writeVariantType()  {
+        signature_.append("v");
+    }
+
+    inline virtual std::string retrieveSignature() {
+        return std::move(signature_);
     }
 
 
@@ -169,91 +189,156 @@ class DBusTypeStream: public TypeStream {
 
 
 
-
-template <typename _VectorElementType>
-class TypeStreamGenericVectorHelper {
- public:
-    static void writeVectorType(TypeStream& typeStream, const std::vector<_VectorElementType>& vectorValue) {
-        typeStream.writeVectorType();
-        doWriteVectorType(typeStream, vectorValue);
-    }
-
- private:
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<bool>& vectorValue) {
-        typeStream.writeBoolType();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<int8_t>& vectorValue) {
-        typeStream.writeInt8Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<int16_t>& vectorValue) {
-        typeStream.writeInt16Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<int32_t>& vectorValue) {
-        typeStream.writeInt32Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<int64_t>& vectorValue) {
-        typeStream.writeInt64Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<uint8_t>& vectorValue) {
-        typeStream.writeUInt8Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<uint16_t>& vectorValue) {
-        typeStream.writeUInt16Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<uint32_t>& vectorValue) {
-        typeStream.writeUInt32Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<uint64_t>& vectorValue) {
-        typeStream.writeUInt64Type();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<float>& vectorValue) {
-        typeStream.writeFloatType();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<double>& vectorValue) {
-        typeStream.writeDoubleType();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<std::string>& vectorValue) {
-        typeStream.writeStringType();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<CommonAPI::ByteBuffer>& vectorValue) {
-        typeStream.writeByteBufferType();
-    }
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<CommonAPI::Version>& vectorValue) {
-        typeStream.writeVersionType();
-    }
-
-    template<typename _InnerVectorElementType>
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<std::vector<_InnerVectorElementType>>& vectorValue) {
-        std::vector<_InnerVectorElementType> dummy;
-        TypeStreamVectorHelper<_InnerVectorElementType>::writeVectorType(typeStream, dummy);
-    }
-
-    template<typename _InnerKeyType, typename _InnerValueType>
-    static inline void doWriteVectorType(TypeStream& typeStream, const std::vector<std::unordered_map<_InnerKeyType, _InnerValueType>>& vectorValue) {
-        typeStream.writeVectorType();
-        typeStream.beginWriteMapType();
-        //TODO
-        typeStream.endWriteMapType();
-    }
+template<typename _Type, bool _Check>
+struct TypeWriter {
+inline static void writeType(TypeStream& typeStream) {
+//    if() {
+        _Type::writeToTypeStream(typeStream);
+//    } else if(std::is_base_of<CommonAPI::SerializableVariant, _Type>::value) {
+//        typeStream.writeVariantType();
+//    }
+}
 };
 
 
-template <typename _VectorElementType, bool _IsSerializableStruct = false>
-struct TypeStreamSerializableStructVectorHelper: public TypeStreamGenericVectorHelper<_VectorElementType> {
-};
 
-template <typename _VectorElementType>
-struct TypeStreamSerializableStructVectorHelper<_VectorElementType, true> {
-    static void writeVectorType(TypeStream& typeStream, const std::vector<_VectorElementType>& vectorValue) {
-        typeStream.writeVectorType();
-        //TODO: Write actual struct signature
-    }
+template<typename _Type>
+struct TypeWriter<_Type, typename std::enable_if<std::is_base_of<CommonAPI::SerializableVariant, _Type>::value, _Type>::type> {
+inline static void writeType(TypeStream& typeStream) {
+    typeStream.writeVariantType();
+}
 };
 
 
-template <typename _VectorElementType>
-struct TypeStreamVectorHelper: TypeStreamSerializableStructVectorHelper<_VectorElementType,
-                                                                        std::is_base_of<CommonAPI::SerializableStruct, _VectorElementType>::value> {
+template<>
+struct TypeWriter<bool> {
+inline static void writeType(TypeStream& typeStream) {
+    typeStream.writeBoolType();
+}
+};
+
+
+template<>
+struct TypeWriter<int8_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeInt8Type();
+}
+};
+
+template<>
+struct TypeWriter<int16_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeInt16Type();
+}
+};
+
+template<>
+struct TypeWriter<int32_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeInt32Type();
+}
+};
+
+template<>
+struct TypeWriter<int64_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeInt64Type();
+}
+};
+
+
+template<>
+struct TypeWriter<uint8_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeUInt8Type();
+}
+};
+
+template<>
+struct TypeWriter<uint16_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeUInt16Type();
+}
+};
+
+template<>
+struct TypeWriter<uint32_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeUInt32Type();
+}
+};
+
+template<>
+struct TypeWriter<uint64_t> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeUInt64Type();
+}
+};
+
+
+template<>
+struct TypeWriter<float> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeFloatType();
+}
+};
+
+template<>
+struct TypeWriter<double> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeDoubleType();
+}
+};
+
+
+template<>
+struct TypeWriter<std::string> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeStringType();
+}
+};
+
+template<>
+struct TypeWriter<CommonAPI::ByteBuffer> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeByteBufferType();
+}
+};
+
+template<>
+struct TypeWriter<CommonAPI::Version> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeVersionType();
+}
+};
+
+template<>
+struct TypeWriter<CommonAPI::SerializableVariant> {
+inline static void writeType (TypeStream& typeStream) {
+    typeStream.writeVariantType();
+}
+};
+
+
+template<typename _VectorElementType>
+struct TypeWriter<std::vector<_VectorElementType>> {
+inline static void writeType(TypeStream& typeStream) {
+    typeStream.writeVectorType();
+    TypeWriter<_VectorElementType>::writeType(typeStream);
+}
+};
+
+
+template<typename _KeyType, typename _ValueType>
+struct TypeWriter<std::unordered_map<_KeyType, _ValueType>> {
+inline static void writeType(TypeStream& typeStream) {
+    typeStream.beginWriteMapType();
+
+    TypeWriter<_KeyType>::writeType(typeStream);
+    TypeWriter<_ValueType>::writeType(typeStream);
+
+    typeStream.endWriteMapType();
+}
 };
 
 
@@ -262,136 +347,23 @@ struct TypeStreamVectorHelper: TypeStreamSerializableStructVectorHelper<_VectorE
 
 
 
-
-template<typename _Type>
-void writeType(TypeStream& typeStream, _Type& currentType);
-
-
-template<>
-inline void writeType<bool>(TypeStream& typeStream, bool& currentType) {
-    return typeStream.writeBoolType();
-}
-
-
-template<>
-inline void writeType<int8_t> (TypeStream& typeStream, int8_t& currentType) {
-    typeStream.writeInt8Type();
-}
-
-template<>
-inline void writeType<int16_t> (TypeStream& typeStream, int16_t& currentType) {
-    typeStream.writeInt16Type();
-}
-
-template<>
-inline void writeType<int32_t> (TypeStream& typeStream, int32_t& currentType) {
-    typeStream.writeInt32Type();
-}
-
-template<>
-inline void writeType<int64_t> (TypeStream& typeStream, int64_t& currentType) {
-    typeStream.writeInt64Type();
-}
-
-
-template<>
-inline void writeType<uint8_t> (TypeStream& typeStream, uint8_t& currentType) {
-    typeStream.writeUInt8Type();
-}
-
-template<>
-inline void writeType<uint16_t> (TypeStream& typeStream, uint16_t& currentType) {
-    typeStream.writeUInt16Type();
-}
-
-template<>
-inline void writeType<uint32_t> (TypeStream& typeStream, uint32_t& currentType) {
-    typeStream.writeUInt32Type();
-}
-
-template<>
-inline void writeType<uint64_t> (TypeStream& typeStream, uint64_t& currentType) {
-    typeStream.writeUInt64Type();
-}
-
-
-template<>
-inline void writeType<float> (TypeStream& typeStream, float& currentType) {
-    typeStream.writeFloatType();
-}
-
-template<>
-inline void writeType<double> (TypeStream& typeStream, double& currentType) {
-    typeStream.writeDoubleType();
-}
-
-
-template<>
-inline void writeType<std::string> (TypeStream& typeStream, std::string& currentType) {
-    typeStream.writeStringType();
-}
-
-template<>
-inline void writeType<CommonAPI::ByteBuffer> (TypeStream& typeStream, CommonAPI::ByteBuffer& currentType) {
-    typeStream.writeByteBufferType();
-}
-
-template<>
-inline void writeType<CommonAPI::Version> (TypeStream& typeStream, CommonAPI::Version& currentType) {
-    typeStream.writeVersionType();
-}
-
-template<>
-inline void writeType<CommonAPI::SerializableStruct> (TypeStream& typeStream, CommonAPI::SerializableStruct& currentType) {
-    typeStream.writeSerializableStructType(currentType);
-}
-
-
-template<typename... _VariantTypes>
-inline void writeType(TypeStream& typeStream, const CommonAPI::SerializableVariant& variant) {
-    //TODO
-}
-
-
-template<typename _KeyType, typename _ValueType>
-inline void writeType(TypeStream& typeStream, const std::unordered_map<_KeyType, _ValueType>& mapValue) {
-    typeStream.beginWriteMapType();
-    //TODO
-    typeStream.endWriteMapType();
-}
-
-
-template<typename _VectorElementType>
-inline void writeType(TypeStream& typeStream, const std::vector<_VectorElementType>& vectorValue) {
-    TypeStreamVectorHelper<_VectorElementType>::writeVectorType(typeStream, vectorValue);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename _Type>
 struct TypeSearchVisitor {
 public:
-    TypeSearchVisitor(typename TypeStream& typeStream): typeStream_(typeStream) {
+    TypeSearchVisitor(TypeStream& typeStream): typeStream_(typeStream) {
     }
 
     template<typename _Type>
     void operator()(const _Type& currentType) const {
-        writeType<_Type>(typeStream_, currentType);
+        TypeWriter<_Type>::writeType(typeStream_, currentType);
     }
 
 private:
     TypeStream& typeStream_;
 };
+
+
+
+//##############################################################################################################
 
 
 
@@ -404,6 +376,136 @@ class TypeStreamTest: public ::testing::Test {
     void TearDown() {
     }
 };
+
+
+
+TEST_F(TypeStreamTest, CreatesBoolSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<bool>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("b") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesInt8Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<int8_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("y") == 0);
+}
+TEST_F(TypeStreamTest, CreatesInt16Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<int16_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("n") == 0);
+}
+TEST_F(TypeStreamTest, CreatesInt32Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<int32_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("i") == 0);
+}
+TEST_F(TypeStreamTest, CreatesInt64Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<int64_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("x") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesUInt8Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<uint8_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("y") == 0);
+}
+TEST_F(TypeStreamTest, CreatesUInt16Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<uint16_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("q") == 0);
+}
+TEST_F(TypeStreamTest, CreatesUInt32Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<uint32_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("u") == 0);
+}
+TEST_F(TypeStreamTest, CreatesUInt64Signature) {
+    DBusTypeStream typeStream;
+    TypeWriter<uint64_t>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("t") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesFloatSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<float>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("d") == 0);
+}
+TEST_F(TypeStreamTest, CreatesDoubleSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<double>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("d") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesStringSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<std::string>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("s") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesByteBufferSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<CommonAPI::ByteBuffer>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("ay") == 0);
+}
+TEST_F(TypeStreamTest, CreatesVersionSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<CommonAPI::Version>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("(uu)") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesVectorOfStringsSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<std::vector<std::string> >::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("as") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesVectorOfVersionsSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<std::vector<CommonAPI::Version> >::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("a(uu)") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesMapOfUInt16ToStringSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<std::unordered_map<uint16_t, std::string>>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("a{qs}") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesBasicVariantSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<CommonAPI::SerializableVariant>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("v") == 0);
+}
+
+TEST_F(TypeStreamTest, CreatesDerivedVariantSignature) {
+    DBusTypeStream typeStream;
+    TypeWriter<CommonAPI::Variant<int, double, std::string>>::writeType(typeStream);
+    std::string signature = typeStream.retrieveSignature();
+    ASSERT_TRUE(signature.compare("v") == 0);
+}
+
+
+
 
 
 int main(int argc, char** argv) {
