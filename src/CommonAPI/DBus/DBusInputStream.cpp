@@ -112,6 +112,15 @@ void DBusInputStream::beginReadSerializableStruct(const SerializableStruct& seri
 
 void DBusInputStream::endReadSerializableStruct(const SerializableStruct& serializableStruct) { }
 
+void DBusInputStream::readSerializableVariant(SerializableVariant& serializableVariant) {
+    alignToBoundary(8);
+    uint8_t containedTypeIndex;
+    readValue(containedTypeIndex);
+    skipOverSignature();
+
+    serializableVariant.readFromInputStream(containedTypeIndex, *this);
+}
+
 
 void DBusInputStream::beginReadBoolVector() {
     beginReadGenericVector();
@@ -189,6 +198,12 @@ void DBusInputStream::beginReadVersionVector() {
 }
 
 void DBusInputStream::beginReadVectorOfSerializableStructs() {
+    beginReadGenericVector();
+    alignToBoundary(8);
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadVectorOfSerializableVariants() {
     beginReadGenericVector();
     alignToBoundary(8);
     savedStreamPositions_.push(currentDataPosition_);

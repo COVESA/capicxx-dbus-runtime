@@ -68,6 +68,8 @@ class DBusInputStream: public InputStream {
  	virtual void beginReadSerializableStruct(const SerializableStruct& serializableStruct);
  	virtual void endReadSerializableStruct(const SerializableStruct& serializableStruct);
 
+    virtual void readSerializableVariant(SerializableVariant& serializableVariant);
+
     virtual void beginReadBoolVector();
     virtual void beginReadInt8Vector();
     virtual void beginReadInt16Vector();
@@ -83,6 +85,7 @@ class DBusInputStream: public InputStream {
     virtual void beginReadByteBufferVector();
     virtual void beginReadVersionVector();
     virtual void beginReadVectorOfSerializableStructs();
+    virtual void beginReadVectorOfSerializableVariants();
     virtual void beginReadVectorOfVectors();
     virtual void beginReadVectorOfMaps();
 
@@ -188,6 +191,12 @@ class DBusInputStream: public InputStream {
         uint32_t vectorByteSize;
         readBasicTypeValue(vectorByteSize);
         bytesToRead_.push(vectorByteSize);
+    }
+
+    inline void skipOverSignature() {
+        uint8_t length;
+        readValue(length);
+        assert(length < 256);
     }
 
     char* dataBegin_;

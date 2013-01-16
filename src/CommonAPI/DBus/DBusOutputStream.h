@@ -411,7 +411,7 @@ class DBusOutputStream: public OutputStream {
         writeBasicTypeValue((uint32_t) 0);
     }
 
-    inline void writeSignature(std::string signature) {
+    inline void writeSignature(const std::string& signature) {
         uint8_t length = (uint8_t) signature.length();
         assert(length < 256);
         *this << length;
