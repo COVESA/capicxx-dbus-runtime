@@ -203,6 +203,12 @@ void DBusInputStream::beginReadVectorOfSerializableStructs() {
     savedStreamPositions_.push(currentDataPosition_);
 }
 
+void DBusInputStream::beginReadVectorOfSerializableVariants() {
+    beginReadGenericVector();
+    alignToBoundary(8);
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
 void DBusInputStream::beginReadVectorOfVectors() {
     beginReadGenericVector();
     savedStreamPositions_.push(currentDataPosition_);
