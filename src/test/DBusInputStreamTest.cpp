@@ -9,6 +9,8 @@
 #include <CommonAPI/DBus/DBusInputStream.h>
 #include <CommonAPI/DBus/DBusOutputStream.h>
 
+#include "DBusTestUtils.h"
+
 #include <unordered_map>
 #include <bits/functional_hash.h>
 
@@ -380,14 +382,16 @@ TEST_F(InputStreamTest, ReadsArraysInArrays) {
     }
 }
 
-TEST_F(InputStreamTest, ReadsBasicVariants) {
+TEST_F(InputStreamTest, ReadsInt32Variants) {
+    typedef CommonAPI::Variant<int32_t, double, std::string> TestedVariantType;
+
     int32_t fromInt = 5;
-    int8_t varIndex = 3;
+    int8_t variantTypeIndex = 3;
 
     for (int i = 0; i < numOfElements; i += 1) {
         DBusMessageIter subIter;
         dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
-        dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &varIndex);
+        dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
         DBusMessageIter subSubIter;
         dbus_message_iter_open_container(&subIter, DBUS_TYPE_VARIANT, "i", &subSubIter);
         dbus_message_iter_append_basic(&subSubIter, DBUS_TYPE_INT32, &fromInt);
@@ -398,15 +402,11 @@ TEST_F(InputStreamTest, ReadsBasicVariants) {
     CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
-    CommonAPI::Variant<int32_t, double, std::string> referenceVariant(fromInt);
-
-    bool success;
-    int32_t referenceResult = referenceVariant.get<int32_t>(success);
-    EXPECT_TRUE(success);
+    TestedVariantType referenceVariant(fromInt);
 
     EXPECT_EQ(numOfElements*4 + numOfElements*4, scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
-        CommonAPI::Variant<int32_t, double, std::string> readVariant;
+        TestedVariantType readVariant;
         inStream >> readVariant;
 
         bool readSuccess;
@@ -415,18 +415,20 @@ TEST_F(InputStreamTest, ReadsBasicVariants) {
 
         bool varEq = (referenceVariant == readVariant);
         EXPECT_TRUE(varEq);
-        EXPECT_EQ(referenceResult, actualResult);
+        EXPECT_EQ(fromInt, actualResult);
     }
 }
 
 TEST_F(InputStreamTest, ReadsStringVariants) {
+    typedef CommonAPI::Variant<int32_t, double, std::string> TestedVariantType;
+
     std::string fromString = "Hello World with CommonAPI Variants!";
-    int8_t varIndex = 1;
+    int8_t variantTypeIndex = 1;
 
     for (int i = 0; i < numOfElements; i += 1) {
         DBusMessageIter subIter;
         dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
-        dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &varIndex);
+        dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
         DBusMessageIter subSubIter;
         dbus_message_iter_open_container(&subIter, DBUS_TYPE_VARIANT, "s", &subSubIter);
         dbus_message_iter_append_basic(&subSubIter, DBUS_TYPE_STRING, &fromString);
@@ -437,17 +439,13 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
-    CommonAPI::Variant<int32_t, double, std::string> referenceVariant(fromString);
+    TestedVariantType referenceVariant(fromString);
 
-    bool success;
-    std::string referenceResult = referenceVariant.get<std::string>(success);
-    EXPECT_TRUE(success);
-
-    //Variant: type-index(1) + padding(3) + stringLength(4) + string(37) = 45
+    //Variant: type-index(1) + signature(2) + padding(1) + stringLength(4) + string(37) = 45
     //         +struct-padding inbetween (alignment 8)
     EXPECT_EQ(numOfElements * (1+3+4+fromString.length()+1) + (numOfElements - 1) * (8-((fromString.length()+1)%8)) , scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
-        CommonAPI::Variant<int32_t, double, std::string> readVariant;
+        TestedVariantType readVariant;
         inStream >> readVariant;
 
         bool readSuccess;
@@ -456,7 +454,61 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
 
         bool variantsAreEqual = (referenceVariant == readVariant);
         EXPECT_TRUE(variantsAreEqual);
-        EXPECT_EQ(referenceResult, actualResult);
+        EXPECT_EQ(fromString, actualResult);
+    }
+}
+
+TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
+    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
+
+    std::string testString1 = "Hello World with CommonAPI Variants!";
+    std::string testString2 = "What a beautiful world if there are working Arrays within Variants!!";
+    int8_t variantTypeIndex = 1;
+
+    std::vector<std::string> testInnerVector;
+
+    for (int i = 0; i < numOfElements; i += 2) {
+        testInnerVector.push_back(testString1);
+        testInnerVector.push_back(testString2);
+    }
+
+    for (int i = 0; i < numOfElements; i += 1) {
+        DBusMessageIter subIter;
+        dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
+        dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
+        DBusMessageIter subSubIter;
+        dbus_message_iter_open_container(&subIter, DBUS_TYPE_VARIANT, "as", &subSubIter);
+
+        DBusMessageIter innerArrayIter;
+        dbus_message_iter_open_container(&subSubIter, DBUS_TYPE_ARRAY, "s", &innerArrayIter);
+        for (int i = 0; i < numOfElements; i++) {
+            dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testInnerVector[i]);
+        }
+        dbus_message_iter_close_container(&subSubIter, &innerArrayIter);
+
+        dbus_message_iter_close_container(&subIter, &subSubIter);
+        dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
+    }
+
+    CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
+    CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
+
+    TestedVariantType referenceVariant(testInnerVector);
+
+    //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
+    //         string(37) + padding(3) + stringLength(4) + string(69) = 129
+    EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
+    for (int i = 0; i < numOfElements; i += 1) {
+        TestedVariantType readVariant;
+        inStream >> readVariant;
+
+        bool readSuccess;
+        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
+        EXPECT_TRUE(readSuccess);
+
+        bool variantsAreEqual = (referenceVariant == readVariant);
+        EXPECT_TRUE(variantsAreEqual);
+        EXPECT_EQ(testInnerVector, actualResult);
     }
 }
 

@@ -92,6 +92,14 @@ TEST_F(VariantTest, VariantTestPack) {
     std::cout << "myStringCopy = " << myStringCopy << " (" << std::boolalpha << success << ")\n";
     EXPECT_TRUE(success);
 
+    std::vector<std::string> testVector;
+    testVector.push_back(fromString);
+    CommonAPI::Variant<int32_t, double, std::vector<std::string>> vectorVariant(testVector);
+    std::vector<std::string> resultVector = vectorVariant.get<std::vector<std::string>>(success);
+    std::cout << "myVectorVariant read successfully= " << std::boolalpha << success << "\n";
+    EXPECT_TRUE(success);
+    EXPECT_EQ(resultVector, testVector);
+
     delete myVariants;
 }
 
