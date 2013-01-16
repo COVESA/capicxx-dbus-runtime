@@ -128,7 +128,7 @@ class DBusTypeOutputStream: public TypeOutputStream {
     }
 
     inline virtual void writeVariantType()  {
-        signature_.append("v");
+        signature_.append("(yv)");
     }
 
     inline virtual std::string retrieveSignature() {
@@ -251,6 +251,9 @@ class DBusOutputStream: public OutputStream {
         rememberCurrentStreamPosition();
     }
     virtual void beginWriteVectorOfSerializableVariants(uint32_t sizeOfVector) {
+        beginWriteGenericVector();
+        alignToBoundary(8);
+        rememberCurrentStreamPosition();
     }
     virtual void beginWriteVectorOfVectors(uint32_t sizeOfVector) {
         beginWriteGenericVector();
@@ -291,6 +294,7 @@ class DBusOutputStream: public OutputStream {
 	}
 
     virtual void beginWriteSerializableVariant(const SerializableVariant& serializableVariant) {
+        alignToBoundary(8);
         writeValue(serializableVariant.getValueType());
 
         DBusTypeOutputStream typeOutputStream;
@@ -298,9 +302,7 @@ class DBusOutputStream: public OutputStream {
         writeSignature(std::move(typeOutputStream.retrieveSignature()));
     }
 
-    virtual void endWriteSerializableVariant(const SerializableVariant& serializableVariant) {
-        //TODO
-    }
+    virtual void endWriteSerializableVariant(const SerializableVariant& serializableVariant) {}
 
 	virtual bool hasError() const {
 		return dbusError_;

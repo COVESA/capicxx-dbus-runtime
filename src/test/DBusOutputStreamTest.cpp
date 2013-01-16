@@ -11,6 +11,7 @@
 #include <CommonAPI/DBus/DBusOutputStream.h>
 #include <CommonAPI/DBus/DBusInputStream.h>
 #include <CommonAPI/SerializableStruct.h>
+#include <CommonAPI/SerializableVariant.h>
 
 
 class OutputStreamTest: public ::testing::Test {
@@ -502,6 +503,51 @@ TEST_F(OutputStreamTest, WritesArraysInArrays) {
       EXPECT_EQ(val2, res2);
     }
   }
+}
+
+typedef CommonAPI::Variant<int8_t, uint32_t, double, std::string> BasicTypeVariant;
+
+TEST_F(OutputStreamTest, WritesBasicTypeVariants) {
+  numOfElements = 4;
+  const char* signature = "(yv)(yv)(yv)(yv)";
+  message = CommonAPI::DBus::DBusMessage::createMethodCall(busName, objectPath, interfaceName, methodName, signature);
+  CommonAPI::DBus::DBusOutputStream outStream(message);
+
+  int8_t fromInt8Value = 7;
+  uint32_t fromUInt32Value = 42;
+  double fromDoubleValue = 13.37;
+  std::string fromStringValue = "Hai :)";
+  BasicTypeVariant int8Variant(fromInt8Value);
+  BasicTypeVariant uint32Variant(fromUInt32Value);
+  BasicTypeVariant doubleVariant(fromDoubleValue);
+  BasicTypeVariant stringVariant(fromStringValue);
+
+  /* TODO:
+  testVector.push_back(inner);
+
+  //4 * (1(byte) + 2(signature length + content)) + 1(int8_t) + 4(uint32_t) + 8(double) +
+  outStream.reserveMemory(numOfElements * numOfElements * 4 + numOfElements * 4 + 4);
+  outStream << testVector;
+  outStream.flush();
+
+  EXPECT_EQ(numOfElements*numOfElements*4 + numOfElements*4 + 4, message.getBodyLength());
+
+  CommonAPI::DBus::DBusInputStream inStream(message);
+  std::vector<std::vector<int32_t>> verifyVector;
+  inStream >> verifyVector;
+
+  int32_t res1;
+  int32_t res2;
+  for (int i = 0; i < numOfElements; i++) {
+    std::vector<int32_t> innerVerify = verifyVector[i];
+    for (int j = 0; j < numOfElements; j += 2) {
+      res1 = innerVerify[j];
+      EXPECT_EQ(val1, res1);
+      res2 = innerVerify[j + 1];
+      EXPECT_EQ(val2, res2);
+    }
+  }
+  */
 }
 
 namespace com {
