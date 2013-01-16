@@ -136,13 +136,13 @@ TEST_F(TypeOutputStreamTest, CreatesVersionSignature) {
 TEST_F(TypeOutputStreamTest, CreatesVariantWithBasicTypesSignature) {
     CommonAPI::TypeWriter<CommonAPI::Variant<int, double, std::string>>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("v") == 0);
+    ASSERT_TRUE(signature.compare("(yv)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVariantWithVariantSignature) {
     CommonAPI::TypeWriter<CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, CommonAPI::Variant<int, CommonAPI::Variant<int, double, std::string>, std::string>, std::string>>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("v") == 0);
+    ASSERT_TRUE(signature.compare("(yv)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfStringsSignature) {
@@ -160,7 +160,7 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfVersionsSignature) {
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVariantsSignature) {
     CommonAPI::TypeWriter<std::vector<CommonAPI::Variant<int, double, std::string>> >::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("av") == 0);
+    ASSERT_TRUE(signature.compare("a(yv)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfStringsSignature) {
@@ -172,7 +172,7 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfStringsSignature) {
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVectorOfVariantsSignature) {
     CommonAPI::TypeWriter<std::vector<std::vector<CommonAPI::Variant<int, double, std::string>>> >::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("aav") == 0);
+    ASSERT_TRUE(signature.compare("aa(yv)") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesMapOfUInt16ToStringSignature) {
@@ -191,7 +191,7 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfMapsOfUInt16ToStringSignature) {
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructCorrectly) {
     CommonAPI::TypeWriter<TestStruct>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+    ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
 
 
@@ -235,14 +235,8 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructTypeVariantsCorrectly) {
     myVariant.writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+    ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
-
-
-
-
-
-
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericUInt32TypeVariantsCorrectly) {
     uint32_t fromUInt = 42;
@@ -288,7 +282,7 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorre
     genericVariant->writeToTypeOutputStream(typeStream_);
 
     std::string signature = typeStream_.retrieveSignature();
-    ASSERT_TRUE(signature.compare("(qsv)") == 0);
+    ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
 
 
