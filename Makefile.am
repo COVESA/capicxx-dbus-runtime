@@ -87,6 +87,7 @@ TestInterfaceSources = \
 check_PROGRAMS = \
 		DBusVariantTest \
 		DBusTypeStreamTest \
+		DBusInputStreamTest \
 		DBusVariantOutputStreamTest
 
 
@@ -106,6 +107,11 @@ DBusVariantOutputStreamTest_SOURCES = src/test/DBusVariantOutputStreamTest.cpp
 DBusVariantOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusVariantOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusVariantOutputStreamTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
+
+DBusInputStreamTest_SOURCES = src/test/DBusInputStreamTest.cpp
+DBusInputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusInputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusInputStreamTest_LDADD = ${LDADD} ${GTEST_LIBS} libCommonAPI-DBus.la
 
 endif
 
