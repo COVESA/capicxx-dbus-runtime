@@ -459,7 +459,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
 }
 
 TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
-    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
+    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedStringArrayVariantType;
 
     std::string testString1 = "Hello World with CommonAPI Variants!";
     std::string testString2 = "What a beautiful world if there are working Arrays within Variants!!";
@@ -493,13 +493,13 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
-    TestedVariantType referenceVariant(testInnerVector);
+    TestedStringArrayVariantType referenceVariant(testInnerVector);
 
     //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
     //         string(37) + padding(3) + stringLength(4) + string(69) = 129
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
-        TestedVariantType readVariant;
+        TestedStringArrayVariantType readVariant;
         inStream >> readVariant;
 
         bool readSuccess;

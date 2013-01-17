@@ -22,3 +22,7 @@ inline void printLibdbusMessage(DBusMessage* libdbusMessage, uint32_t fromByteIn
     }
     std::cout << std::endl;
 }
+
+inline void printLibdbusMessage(DBusMessage* libdbusMessage) {
+    printLibdbusMessage(libdbusMessage, 0, dbus_message_get_body_length(libdbusMessage));
+}

@@ -197,7 +197,7 @@ class DBusInputStream: public InputStream {
         uint8_t signatureLength;
         readValue(signatureLength);
         assert(signatureLength < 256);
-        readRawData(signatureLength);
+        readRawData(signatureLength + 1);
     }
 
     char* dataBegin_;
