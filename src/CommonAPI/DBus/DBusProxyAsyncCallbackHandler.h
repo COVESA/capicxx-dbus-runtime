@@ -15,7 +15,6 @@
 #include <functional>
 #include <future>
 #include <memory>
-#include <iostream>
 
 
 namespace CommonAPI {

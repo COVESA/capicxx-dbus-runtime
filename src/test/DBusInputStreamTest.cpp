@@ -256,7 +256,22 @@ struct TestSerializableStruct: CommonAPI::SerializableStruct {
 	virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
 		outputStream << a << b << c << d << e;
 	}
+
+    static void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+        typeOutputStream.writeUInt32Type();
+        typeOutputStream.writeInt16Type();
+        typeOutputStream.writeBoolType();
+        typeOutputStream.writeStringType();
+        typeOutputStream.writeDoubleType();
+    }
 };
+
+bool operator==(const TestSerializableStruct& lhs, const TestSerializableStruct& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return (lhs.a == rhs.a) && (lhs.b == rhs.b) && (lhs.c == rhs.c) && (lhs.d == rhs.d) && (lhs.e == rhs.e);
+}
 
 } //namespace test
 } //namespace bmw
@@ -409,9 +424,8 @@ TEST_F(InputStreamTest, ReadsInt32Variants) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
-        bool readSuccess;
-        int32_t actualResult = readVariant.get<int32_t>(readSuccess);
-        EXPECT_TRUE(readSuccess);
+        //TODO: EXPECT_NO_THROW   (oder so)
+        int32_t actualResult = readVariant.get<int32_t>();
 
         bool varEq = (referenceVariant == readVariant);
         EXPECT_TRUE(varEq);
@@ -448,9 +462,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
-        bool readSuccess;
-        std::string actualResult = readVariant.get<std::string>(readSuccess);
-        EXPECT_TRUE(readSuccess);
+        std::string actualResult = readVariant.get<std::string>();
 
         bool variantsAreEqual = (referenceVariant == readVariant);
         EXPECT_TRUE(variantsAreEqual);
@@ -459,7 +471,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
 }
 
 TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
-    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedStringArrayVariantType;
+    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
 
     std::string testString1 = "Hello World with CommonAPI Variants!";
     std::string testString2 = "What a beautiful world if there are working Arrays within Variants!!";
@@ -493,23 +505,275 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
-    TestedStringArrayVariantType referenceVariant(testInnerVector);
+    TestedVariantType referenceVariant(testInnerVector);
 
     //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
     //         string(37) + padding(3) + stringLength(4) + string(69) = 129
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
-        TestedStringArrayVariantType readVariant;
+        TestedVariantType readVariant;
         inStream >> readVariant;
 
-        bool readSuccess;
-        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
-        EXPECT_TRUE(readSuccess);
+        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>();
 
         bool variantsAreEqual = (referenceVariant == readVariant);
         EXPECT_TRUE(variantsAreEqual);
         EXPECT_EQ(testInnerVector, actualResult);
     }
+}
+
+
+TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
+    typedef CommonAPI::Variant<int8_t, uint64_t, CommonAPI::ByteBuffer> InnerVariantType;
+
+    typedef CommonAPI::Variant<int32_t,
+                               double,
+                               std::string,
+                               InnerVariantType>
+            TestedVariantType;
+
+    int8_t outerVariantTypeIndex = 1;
+    int8_t innerVariant1TypeIndex = 1;
+    int8_t innerVariant2TypeIndex = 3;
+
+    const uint32_t byteBufferElementCount = numOfElements*10;
+
+    CommonAPI::ByteBuffer innerVariant1Value;
+    for (int i = 0; i < byteBufferElementCount; ++i) {
+        innerVariant1Value.push_back((char) (i+40));
+    }
+
+    int8_t innerVariant2Value = -55;
+
+
+    DBusMessageIter outerVariantStructIter;
+    DBusMessageIter outerVariantActualIter;
+    DBusMessageIter innerVariantStructIter;
+    DBusMessageIter innerVariantActualIterator;
+    DBusMessageIter innerArrayIter;
+
+
+    //begin 1. outer variant
+    dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &outerVariantStructIter);
+    dbus_message_iter_append_basic(&outerVariantStructIter, DBUS_TYPE_BYTE, &outerVariantTypeIndex);
+    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "v", &outerVariantActualIter);
+
+    //begin inner variant
+    dbus_message_iter_open_container(&outerVariantActualIter, DBUS_TYPE_STRUCT, NULL, &innerVariantStructIter);
+    dbus_message_iter_append_basic(&innerVariantStructIter, DBUS_TYPE_BYTE, &innerVariant1TypeIndex);
+    dbus_message_iter_open_container(&innerVariantStructIter, DBUS_TYPE_VARIANT, "ay", &innerVariantActualIterator);
+
+    //begin inner variant content
+    dbus_message_iter_open_container(&innerVariantActualIterator, DBUS_TYPE_ARRAY, "y", &innerArrayIter);
+    for (int i = 0; i < byteBufferElementCount; i++) {
+        dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_BYTE, &innerVariant1Value[i]);
+    }
+    dbus_message_iter_close_container(&innerVariantActualIterator, &innerArrayIter);
+    //end inner variant content
+
+    dbus_message_iter_close_container(&innerVariantStructIter, &innerVariantActualIterator);
+    dbus_message_iter_close_container(&outerVariantActualIter, &innerVariantStructIter);
+    //end inner variant
+
+    dbus_message_iter_close_container(&outerVariantStructIter, &outerVariantActualIter);
+    dbus_message_iter_close_container(&libdbusMessageWriteIter, &outerVariantStructIter);
+    //end 1. outer variant
+
+
+    //begin 2. outer variant
+    dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &outerVariantStructIter);
+    dbus_message_iter_append_basic(&outerVariantStructIter, DBUS_TYPE_BYTE, &outerVariantTypeIndex);
+    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "v", &outerVariantActualIter);
+
+    //begin inner variant
+    dbus_message_iter_open_container(&outerVariantActualIter, DBUS_TYPE_STRUCT, NULL, &innerVariantStructIter);
+    dbus_message_iter_append_basic(&innerVariantStructIter, DBUS_TYPE_BYTE, &innerVariant2TypeIndex);
+    dbus_message_iter_open_container(&innerVariantStructIter, DBUS_TYPE_VARIANT, "y", &innerVariantActualIterator);
+
+    //begin inner variant content
+    dbus_message_iter_append_basic(&innerVariantActualIterator, DBUS_TYPE_BYTE, &innerVariant2Value);
+    //end inner variant content
+
+    dbus_message_iter_close_container(&innerVariantStructIter, &innerVariantActualIterator);
+    dbus_message_iter_close_container(&outerVariantActualIter, &innerVariantStructIter);
+    //end inner variant
+
+    dbus_message_iter_close_container(&outerVariantStructIter, &outerVariantActualIter);
+    dbus_message_iter_close_container(&libdbusMessageWriteIter, &outerVariantStructIter);
+    //end 2. outer variant
+
+
+    CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
+    CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
+
+    InnerVariantType referenceInnerVariant1(innerVariant1Value);
+    InnerVariantType referenceInnerVariant2(innerVariant2Value);
+
+    TestedVariantType referenceVariant1(referenceInnerVariant1);
+    TestedVariantType referenceVariant2(referenceInnerVariant2);
+
+    //Variant1: type-index(1) + varSigLen(1) + varSig(2) + struct-padding(4) + inner-type-index(1) + varLen(1) + varSig(3) +
+    //          padding(3) + byteBufferLength(4) + byteBuffer(20) = 40
+    //Variant2: type-index(1) + varSigLen(1) + varSig(2) + struct-padding(4) + inner-type-index(1) + varLen(1) + varSig(2) +
+    //          byte(1) = 13
+    // = 53
+    EXPECT_EQ(53, scopedMessage.getBodyLength());
+
+    TestedVariantType readVariant1;
+    TestedVariantType readVariant2;
+    inStream >> readVariant1;
+    inStream >> readVariant2;
+    EXPECT_EQ(referenceVariant1, readVariant1);
+    EXPECT_EQ(referenceVariant2, readVariant2);
+
+    InnerVariantType readInnerVariant1 = readVariant1.get<InnerVariantType>();
+    InnerVariantType readInnerVariant2 = readVariant2.get<InnerVariantType>();
+    EXPECT_EQ(referenceInnerVariant1, readInnerVariant1);
+    EXPECT_EQ(referenceInnerVariant2, readInnerVariant2);
+
+    CommonAPI::ByteBuffer readInnerValue1 = readInnerVariant1.get<CommonAPI::ByteBuffer>();
+    int8_t readInnerValue2 = readInnerVariant2.get<int8_t>();
+    EXPECT_EQ(innerVariant1Value, readInnerValue1);
+    EXPECT_EQ(innerVariant2Value, readInnerValue2);
+}
+
+
+TEST_F(InputStreamTest, ReadsVariantsWithStructs) {
+    typedef CommonAPI::Variant<int32_t,
+                               double,
+                               std::string,
+                               bmw::test::TestSerializableStruct>
+            TestedVariantType;
+
+    int8_t variantTypeIndex = 1;
+
+    bmw::test::TestSerializableStruct testStruct;
+    testStruct.a = 15;
+    testStruct.b = -32;
+    testStruct.c = false;
+    testStruct.d = "Hello all!";
+    testStruct.e = 3.414;
+
+
+    DBusMessageIter variantStructIter;
+    DBusMessageIter variantActualIter;
+    DBusMessageIter innerStructIter;
+
+
+    //begin variant
+    dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &variantStructIter);
+    dbus_message_iter_append_basic(&variantStructIter, DBUS_TYPE_BYTE, &variantTypeIndex);
+    dbus_message_iter_open_container(&variantStructIter, DBUS_TYPE_VARIANT, "(unbsd)", &variantActualIter);
+
+    //begin variant content
+    dbus_message_iter_open_container(&variantActualIter, DBUS_TYPE_STRUCT, NULL, &innerStructIter);
+
+    dbus_bool_t dbusBool = 0;
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_UINT32, &testStruct.a);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_INT16, &testStruct.b);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &testStruct.d);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_DOUBLE, &testStruct.e);
+
+    dbus_message_iter_close_container(&variantActualIter, &innerStructIter);
+    //end variant content
+
+    dbus_message_iter_close_container(&variantStructIter, &variantActualIter);
+    dbus_message_iter_close_container(&libdbusMessageWriteIter, &variantStructIter);
+    //end variant
+
+    CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
+    CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
+    TestedVariantType referenceVariant(testStruct);
+
+    //type-index(1) + varSigLen(1) + varSig(8) + struct-padding(6) + uint32(4) + int16(2) + padding(2) + bool(4) +
+    //stringLen(4) + stringVal(11) + padding(5) + double(8) = 56
+    EXPECT_EQ(56, scopedMessage.getBodyLength());
+
+    TestedVariantType readVariant;
+    inStream >> readVariant;
+
+    bmw::test::TestSerializableStruct readStruct = readVariant.get<bmw::test::TestSerializableStruct>();
+    EXPECT_EQ(testStruct.a, readStruct.a);
+    EXPECT_EQ(testStruct.b, readStruct.b);
+    EXPECT_EQ(testStruct.c, readStruct.c);
+    EXPECT_EQ(testStruct.d, readStruct.d);
+    EXPECT_EQ(testStruct.e, readStruct.e);
+    EXPECT_EQ(testStruct, readStruct);
+    EXPECT_EQ(referenceVariant, readVariant);
+}
+
+
+TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
+    typedef CommonAPI::Variant<int32_t, double, std::vector<bmw::test::TestSerializableStruct>> TestedVariantType;
+
+    bmw::test::TestSerializableStruct testStruct;
+    testStruct.a = 15;
+    testStruct.b = -32;
+    testStruct.c = false;
+    testStruct.d = "Hello all!";
+    testStruct.e = 3.414;
+
+    int8_t variantTypeIndex = 1;
+
+    DBusMessageIter subIter;
+    DBusMessageIter subSubIter;
+    DBusMessageIter innerArrayIter;
+    DBusMessageIter innerStructIter;
+
+    //begin variant
+    dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
+    dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
+    dbus_message_iter_open_container(&subIter, DBUS_TYPE_VARIANT, "a(unbsd)", &subSubIter);
+
+    //begin array
+    dbus_message_iter_open_container(&subSubIter, DBUS_TYPE_ARRAY, "(unbsd)", &innerArrayIter);
+
+    //begin struct
+    dbus_message_iter_open_container(&innerArrayIter, DBUS_TYPE_STRUCT, NULL, &innerStructIter);
+
+    dbus_bool_t dbusBool = 0;
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_UINT32, &testStruct.a);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_INT16, &testStruct.b);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &testStruct.d);
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_DOUBLE, &testStruct.e);
+
+    dbus_message_iter_close_container(&innerArrayIter, &innerStructIter);
+    //end struct
+
+    dbus_message_iter_close_container(&subSubIter, &innerArrayIter);
+    //end array
+
+    dbus_message_iter_close_container(&subIter, &subSubIter);
+    dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
+    //end variant
+
+    CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
+    CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
+
+    std::vector<bmw::test::TestSerializableStruct> referenceInnerVector;
+    referenceInnerVector.push_back(testStruct);
+    TestedVariantType referenceVariant(referenceInnerVector);
+
+    //type-index(1) + varSigLen(1) + variantSig(9) + padding(1) + arrayLength(4) + uint32(4) + int16(2) + padding(2)
+    //bool(4) + stringLength(4) + string(11) + padding(5) + double(8) = 56
+    EXPECT_EQ(56, scopedMessage.getBodyLength());
+
+    TestedVariantType readVariant;
+    inStream >> readVariant;
+
+    std::vector<bmw::test::TestSerializableStruct> actualResult = readVariant.get<std::vector<bmw::test::TestSerializableStruct>>();
+    bmw::test::TestSerializableStruct readStruct = actualResult[0];
+
+    EXPECT_EQ(testStruct.a, readStruct.a);
+    EXPECT_EQ(testStruct.b, readStruct.b);
+    EXPECT_EQ(testStruct.c, readStruct.c);
+    EXPECT_EQ(testStruct.d, readStruct.d);
+    EXPECT_EQ(testStruct.e, readStruct.e);
+    EXPECT_EQ(testStruct, readStruct);
+    EXPECT_EQ(referenceInnerVector, actualResult);
+    EXPECT_EQ(referenceVariant, readVariant);
 }
 
 

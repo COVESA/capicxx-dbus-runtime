@@ -12,7 +12,6 @@
 #include "DBusOutputStream.h"
 #include "DBusHelper.h"
 
-#include <iostream>
 #include <memory>
 #include <initializer_list>
 #include <tuple>

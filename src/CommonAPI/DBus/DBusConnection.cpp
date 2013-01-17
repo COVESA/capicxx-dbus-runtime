@@ -11,8 +11,6 @@
 #include <cassert>
 #include <future>
 
-#include <iostream>
-
 namespace CommonAPI {
 namespace DBus {
 

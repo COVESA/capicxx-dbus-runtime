@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include <utility>
 #include <sstream>
-#include <iostream>
 #include <string>
 #include <tuple>
 #include <unistd.h>

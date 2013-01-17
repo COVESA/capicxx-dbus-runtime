@@ -12,96 +12,140 @@ using namespace CommonAPI;
 
 class VariantTest: public ::testing::Test {
 
-  void SetUp() {
-  }
+  protected:
+    typedef Variant<int, double, std::string> BasicVariantType;
 
-  void TearDown() {
-  }
+    void SetUp() {
+    }
+
+    void TearDown() {
+    }
+
+    const int fromInt = 5;
+    const double fromDouble = 12.344d;
+    const std::string fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
 };
 
-TEST_F(VariantTest, VariantTestPack) {
+TEST_F(VariantTest, HandlesInts) {
+    BasicVariantType myVariant(fromInt);
 
-    int fromInt = 5;
-    double fromDouble = 12.344d;
-    std::string fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
-    Variant<int, double, std::string> myVariant(fromInt);
-
-    Variant<int, double, std::string>* myVariants = new Variant<int, double, std::string>(fromString);
-
-    Variant<int, double, std::string> myVariantf(fromDouble);
-
-    bool success;
-
-    std::string myString = myVariants->get<std::string>(success);
-    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    const int& myInt = myVariant.get<int>(success);
-    std::cout << "myInt = " << myInt << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    Variant<int, double, std::string> myVariant2 = myVariant;
-    const int& myInt2 = myVariant2.get<int>(success);
-    std::cout << "myInt2 = " << myInt2 << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    Variant<int, double, std::string> myVariant3 = fromInt;
-    const int& myInt3 = myVariant3.get<int>(success);
-    std::cout << "myInt3 = " << myInt3 << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    myString = myVariants->get<std::string>(success);
-    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    Variant<int, double, std::string> myVariantCopy(myVariant);
-    const int& myIntCopy = myVariantCopy.get<int>(success);
-    std::cout << "myIntCopy = " << myIntCopy << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-
-    std::cout << "myIntCopy equals myInt= " << "(" << std::boolalpha << (myVariant == myVariantCopy) << ")\n";
-    EXPECT_TRUE((myVariant == myVariantCopy));
-
-    const int& myFake = myVariant.get<double>(success);
-    std::cout << "myFake = " << myFake << " (" << std::boolalpha << success << ")\n";
-    EXPECT_FALSE(success);
-
-    std::cout << "myInt is int = " << " (" << std::boolalpha << myVariant.isType<int>() << ")\n";
     EXPECT_TRUE(myVariant.isType<int>());
-
-    std::cout << "myInt is std::string = " << " (" << std::boolalpha << myVariant.isType<std::string>() << ")\n";
+    EXPECT_FALSE(myVariant.isType<double>());
     EXPECT_FALSE(myVariant.isType<std::string>());
 
-    const double& myDouble = myVariantf.get<double>(success);
-    std::cout << "myDouble = " << myDouble << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
+    const int myInt = myVariant.get<int>();
+    EXPECT_EQ(myInt, fromInt);
 
-    Variant<int, double, std::string> myVariantsCopy(*myVariants);
-    std::string myStringCopy = myVariantsCopy.get<std::string>(success);
-    std::cout << "myStringCopy = " << myStringCopy << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
-//    EXPECT_TRUE((myVariants == myVariantsCopy));
+    EXPECT_ANY_THROW(myVariant.get<double>());
+    EXPECT_ANY_THROW(myVariant.get<std::string>());
+}
 
-    bool s2;
-    myVariants->set<std::string>(std::string("Hello World"), s2);
-    myString = myVariants->get<std::string>(success);
-    std::cout << "myString = " << myString << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
+TEST_F(VariantTest, HandlesDoubles) {
+    BasicVariantType myVariant(fromDouble);
 
-    myStringCopy = myVariantsCopy.get<std::string>(success);
-    std::cout << "myStringCopy = " << myStringCopy << " (" << std::boolalpha << success << ")\n";
-    EXPECT_TRUE(success);
+    EXPECT_FALSE(myVariant.isType<int>());
+    EXPECT_TRUE(myVariant.isType<double>());
+    EXPECT_FALSE(myVariant.isType<std::string>());
+
+    EXPECT_ANY_THROW(myVariant.get<int>());
+
+    const double myDouble = myVariant.get<double>();
+    EXPECT_EQ(myDouble, fromDouble);
+
+    EXPECT_ANY_THROW(myVariant.get<std::string>());
+}
+
+TEST_F(VariantTest, HandlesStrings) {
+    BasicVariantType myVariant(fromString);
+
+    EXPECT_FALSE(myVariant.isType<int>());
+    EXPECT_FALSE(myVariant.isType<double>());
+    EXPECT_TRUE(myVariant.isType<std::string>());
+
+    EXPECT_ANY_THROW(myVariant.get<int>());
+    EXPECT_ANY_THROW(myVariant.get<double>());
+
+    const std::string myString = myVariant.get<std::string>();
+    EXPECT_EQ(myString, fromString);
+}
+
+TEST_F(VariantTest, HandlesStringVectors) {
+    typedef Variant<int, double, std::vector<std::string>> VectorVariantType;
 
     std::vector<std::string> testVector;
-    testVector.push_back(fromString);
-    CommonAPI::Variant<int32_t, double, std::vector<std::string>> vectorVariant(testVector);
-    std::vector<std::string> resultVector = vectorVariant.get<std::vector<std::string>>(success);
-    std::cout << "myVectorVariant read successfully= " << std::boolalpha << success << "\n";
-    EXPECT_TRUE(success);
-    EXPECT_EQ(resultVector, testVector);
+    for(int i = 0; i < 10; i++) {
+        testVector.push_back(fromString);
+    }
 
-    delete myVariants;
+    VectorVariantType vectorVariant(testVector);
+    const std::vector<std::string> resultVector = vectorVariant.get<std::vector<std::string>>();
+    EXPECT_EQ(resultVector, testVector);
 }
+
+TEST_F(VariantTest, HandlesAssignment) {
+    Variant<int, double, std::string> myVariant = fromInt;
+
+    myVariant = fromString;
+
+    EXPECT_FALSE(myVariant.isType<int>());
+    EXPECT_FALSE(myVariant.isType<double>());
+    EXPECT_TRUE(myVariant.isType<std::string>());
+
+    EXPECT_ANY_THROW(myVariant.get<int>());
+
+    const std::string myString = myVariant.get<std::string>();
+    EXPECT_EQ(myString, fromString);
+}
+
+TEST_F(VariantTest, HandlesVariantConstructionByAssignment) {
+    Variant<int, double, std::string> myVariant = fromInt;
+
+    EXPECT_TRUE(myVariant.isType<int>());
+    EXPECT_FALSE(myVariant.isType<double>());
+    EXPECT_FALSE(myVariant.isType<std::string>());
+
+    const int myInt = myVariant.get<int>();
+    EXPECT_EQ(myInt, fromInt);
+}
+
+TEST_F(VariantTest, HandlesVariantCopy) {
+    BasicVariantType myVariant(fromInt);
+    Variant<int, double, std::string> myVariantAssigned = myVariant;
+
+    EXPECT_TRUE(myVariantAssigned.isType<int>());
+    EXPECT_FALSE(myVariantAssigned.isType<double>());
+    EXPECT_FALSE(myVariantAssigned.isType<std::string>());
+
+    const int myInt2 = myVariantAssigned.get<int>();
+    EXPECT_EQ(myInt2, fromInt);
+
+    Variant<int, double, std::string> myVariantCopied(myVariant);
+    EXPECT_EQ(myVariant, myVariantCopied);
+
+    EXPECT_TRUE(myVariantCopied.isType<int>());
+    EXPECT_FALSE(myVariantCopied.isType<double>());
+    EXPECT_FALSE(myVariantCopied.isType<std::string>());
+
+    const int& myIntCopy = myVariantCopied.get<int>();
+    EXPECT_EQ(myIntCopy, fromInt);
+}
+
+TEST_F(VariantTest, HandlesVariantsWithinVariants) {
+    typedef Variant<int, double, BasicVariantType > VariantInVariantType;
+    BasicVariantType fromInnerVariant(fromInt);
+    VariantInVariantType myOuterVariant(fromInnerVariant);
+
+    EXPECT_FALSE(myOuterVariant.isType<int>());
+    EXPECT_FALSE(myOuterVariant.isType<double>());
+    EXPECT_TRUE(myOuterVariant.isType<BasicVariantType>());
+
+    EXPECT_ANY_THROW(myOuterVariant.get<int>());
+    EXPECT_ANY_THROW(myOuterVariant.get<double>());
+
+    const BasicVariantType myInnerVariant = myOuterVariant.get<BasicVariantType>();
+    EXPECT_EQ(fromInnerVariant, myInnerVariant);
+}
+
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

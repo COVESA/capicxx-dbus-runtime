@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <dbus/dbus.h>
 #include <functional>
 #include <CommonAPI/Event.h>
