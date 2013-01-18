@@ -157,9 +157,7 @@ TEST_F(VariantTest, VariantStringArray) {
 
     CommonAPI::Variant<int, double, std::vector<std::string>>* vectorVariant = new CommonAPI::Variant<int, double, std::vector<std::string>>(testVector);
 
-    bool b;
-    std::vector<std::string> readVector = vectorVariant->get<std::vector<std::string> >(b);
-    EXPECT_TRUE(b);
+    std::vector<std::string> readVector = vectorVariant->get<std::vector<std::string> >();
     EXPECT_EQ(readVector, testVector);
 
     delete vectorVariant;

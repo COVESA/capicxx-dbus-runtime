@@ -571,7 +571,6 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
 
     //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
     //         string(37) + padding(3) + stringLength(4) + string(69) = 129
-<<<<<<< Upstream, based on origin/variant_dev
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
@@ -583,21 +582,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
         EXPECT_TRUE(variantsAreEqual);
         EXPECT_EQ(testInnerVector, actualResult);
     }
-=======
-//    EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
-//    for (int i = 0; i < numOfElements; i += 1) {
-//        TestedVariantType readVariant;
-//        inStream >> readVariant;
-//
-//        bool readSuccess;
-//        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
-//        EXPECT_TRUE(readSuccess);
-//
-//        bool variantsAreEqual = (referenceVariant == readVariant);
-//        EXPECT_TRUE(variantsAreEqual);
-//        EXPECT_EQ(testInnerVector, actualResult);
-//    }
->>>>>>> ba8d437 New variant tests
+
 }
 
 
@@ -634,7 +619,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
     //begin 1. outer variant
     dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &outerVariantStructIter);
     dbus_message_iter_append_basic(&outerVariantStructIter, DBUS_TYPE_BYTE, &outerVariantTypeIndex);
-    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "v", &outerVariantActualIter);
+    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "(yv)", &outerVariantActualIter);
 
     //begin inner variant
     dbus_message_iter_open_container(&outerVariantActualIter, DBUS_TYPE_STRUCT, NULL, &innerVariantStructIter);
@@ -661,7 +646,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
     //begin 2. outer variant
     dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &outerVariantStructIter);
     dbus_message_iter_append_basic(&outerVariantStructIter, DBUS_TYPE_BYTE, &outerVariantTypeIndex);
-    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "v", &outerVariantActualIter);
+    dbus_message_iter_open_container(&outerVariantStructIter, DBUS_TYPE_VARIANT, "(yv)", &outerVariantActualIter);
 
     //begin inner variant
     dbus_message_iter_open_container(&outerVariantActualIter, DBUS_TYPE_STRUCT, NULL, &innerVariantStructIter);
