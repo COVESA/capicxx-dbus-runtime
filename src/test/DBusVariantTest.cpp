@@ -147,6 +147,24 @@ TEST_F(VariantTest, HandlesVariantsWithinVariants) {
 }
 
 
+TEST_F(VariantTest, VariantStringArray) {
+
+    std::vector<std::string> testVector;
+    testVector.push_back("Test 1");
+    testVector.push_back("Test 2");
+    testVector.push_back("Test 3");
+    testVector.push_back("Test 4");
+
+    CommonAPI::Variant<int, double, std::vector<std::string>>* vectorVariant = new CommonAPI::Variant<int, double, std::vector<std::string>>(testVector);
+
+    bool b;
+    std::vector<std::string> readVector = vectorVariant->get<std::vector<std::string> >(b);
+    EXPECT_TRUE(b);
+    EXPECT_EQ(readVector, testVector);
+
+    delete vectorVariant;
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

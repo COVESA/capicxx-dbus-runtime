@@ -470,6 +470,68 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     }
 }
 
+TEST_F(InputStreamTest, ReadsWriteVariantsWithAnArrayOfStrings) {
+
+    size_t numOfElements;
+    CommonAPI::DBus::DBusMessage message;
+    const char* busName;
+    const char* objectPath;
+    const char* interfaceName;
+    const char* methodName;
+
+    busName = "no.bus.here";
+    objectPath = "/no/object/here";
+    interfaceName = "no.interface.here";
+    methodName = "noMethodHere";
+
+    const char* signature = "yyyyyyyyyy";
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(busName, objectPath, interfaceName, methodName, signature);
+    CommonAPI::DBus::DBusOutputStream outputStream(message);
+
+
+
+    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
+
+    std::string testString1 = "Hello World with CommonAPI Variants!";
+    std::string testString2 = "What a beautiful world if there are working Arrays within Variants!!";
+
+    std::vector<std::string> testInnerVector;
+
+    for (int i = 0; i < numOfElements; i += 2) {
+        testInnerVector.push_back(testString1);
+        testInnerVector.push_back(testString2);
+    }
+
+    TestedVariantType writtenVariant(testInnerVector);
+
+
+    for (int i = 0; i < numOfElements; i += 1) {
+
+        outputStream << writtenVariant;
+
+    }
+
+    CommonAPI::DBus::DBusInputStream inStream(message);
+
+    TestedVariantType referenceVariant(testInnerVector);
+
+    //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
+    //         string(37) + padding(3) + stringLength(4) + string(69) = 129
+//    EXPECT_EQ(129 + 7 + 129, message.getBodyLength());
+//    for (int i = 0; i < numOfElements; i += 1) {
+//        TestedVariantType readVariant;
+//        inStream >> readVariant;
+//
+//        bool readSuccess;
+//        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
+//        EXPECT_TRUE(readSuccess);
+//
+//        bool variantsAreEqual = (referenceVariant == readVariant);
+//        EXPECT_TRUE(variantsAreEqual);
+//        EXPECT_EQ(testInnerVector, actualResult);
+//    }
+}
+
 TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
 
@@ -509,6 +571,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
 
     //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
     //         string(37) + padding(3) + stringLength(4) + string(69) = 129
+<<<<<<< Upstream, based on origin/variant_dev
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
     for (int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
@@ -520,6 +583,21 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
         EXPECT_TRUE(variantsAreEqual);
         EXPECT_EQ(testInnerVector, actualResult);
     }
+=======
+//    EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
+//    for (int i = 0; i < numOfElements; i += 1) {
+//        TestedVariantType readVariant;
+//        inStream >> readVariant;
+//
+//        bool readSuccess;
+//        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
+//        EXPECT_TRUE(readSuccess);
+//
+//        bool variantsAreEqual = (referenceVariant == readVariant);
+//        EXPECT_TRUE(variantsAreEqual);
+//        EXPECT_EQ(testInnerVector, actualResult);
+//    }
+>>>>>>> ba8d437 New variant tests
 }
 
 
