@@ -48,6 +48,11 @@ CommonAPI-D-Bus-Tools - The eclipse based tools for CommonAPI D-Bus. This is the
 === Requirements
 
 To build this package the CommonAPI library and a version of libdbus patched with the marshaling patch must be available through PkgConfig.
+=======
+Build Instructions
+==================
+
+To build this package CommonAPI and a version of libdbus patched with the marshaling patch must be available.
 
 Instructions for making a patched version of libdbus available in /usr/local:
 ----
