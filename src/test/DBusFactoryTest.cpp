@@ -34,23 +34,20 @@
 
 #include "commonapi/tests/TestInterfaceDBusProxy.h"
 
-std::shared_ptr<CommonAPI::Runtime> runtime_;
-std::shared_ptr<CommonAPI::Factory> proxyFactory;
 
 class DBusProxyFactoryTest: public ::testing::Test {
  protected:
     virtual void SetUp() {
-         if(!runtime_) {
-             runtime_ = CommonAPI::Runtime::load();
-
-         }
-         ASSERT_TRUE((bool)runtime_);
-         CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime_));
-         ASSERT_TRUE(dbusRuntime != NULL);
+        runtime_ = CommonAPI::Runtime::load();
+        ASSERT_TRUE((bool)runtime_);
+        CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime_));
+        ASSERT_TRUE(dbusRuntime != NULL);
     }
 
     virtual void TearDown() {
     }
+
+    std::shared_ptr<CommonAPI::Runtime> runtime_;
 };
 
 
@@ -80,19 +77,21 @@ public:
 //####################################################################################################################
 
 TEST_F(DBusProxyFactoryTest, DBusFactoryCanBeCreated) {
-    proxyFactory = runtime_->createFactory();
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     CommonAPI::DBus::DBusFactory* dbusProxyFactory = dynamic_cast<CommonAPI::DBus::DBusFactory*>(&(*proxyFactory));
     ASSERT_TRUE(dbusProxyFactory != NULL);
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesDefaultTestProxy) {
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>("local:commonapi.tests.TestInterface:commonapi.tests.TestInterface");
     ASSERT_TRUE((bool)defaultTestProxy);
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     auto defaultTestProxy = proxyFactory->buildProxyWithDefaultAttributeExtension<
                     commonapi::tests::TestInterfaceProxy,
@@ -101,6 +100,7 @@ TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     auto specificAttributeExtendedTestProxy = proxyFactory->buildProxy<
                     commonapi::tests::TestInterfaceProxy,
@@ -114,6 +114,7 @@ TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
 }
 
 TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfStubAdapters) {
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
 
     const std::string serviceAddress = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
@@ -130,6 +131,7 @@ TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfStubAdapters) {
 }
 
 TEST_F(DBusProxyFactoryTest, GracefullyHandlesWrongAddresses) {
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
