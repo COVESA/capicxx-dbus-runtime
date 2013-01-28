@@ -197,6 +197,48 @@ void DBusInputStream::beginReadVersionVector() {
     savedStreamPositions_.push(currentDataPosition_);
 }
 
+void DBusInputStream::beginReadInt8EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadInt16EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadInt32EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadInt64EnumVector() {
+    beginReadGenericVector();
+    alignToBoundary(8);
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadUInt8EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadUInt16EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadUInt32EnumVector() {
+    beginReadGenericVector();
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
+void DBusInputStream::beginReadUInt64EnumVector() {
+    beginReadGenericVector();
+    alignToBoundary(8);
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
 void DBusInputStream::beginReadVectorOfSerializableStructs() {
     beginReadGenericVector();
     alignToBoundary(8);

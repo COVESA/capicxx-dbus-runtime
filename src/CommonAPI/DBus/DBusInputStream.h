@@ -84,6 +84,16 @@ class DBusInputStream: public InputStream {
     virtual void beginReadStringVector();
     virtual void beginReadByteBufferVector();
     virtual void beginReadVersionVector();
+
+    virtual void beginReadInt8EnumVector();
+    virtual void beginReadInt16EnumVector();
+    virtual void beginReadInt32EnumVector();
+    virtual void beginReadInt64EnumVector();
+    virtual void beginReadUInt8EnumVector();
+    virtual void beginReadUInt16EnumVector();
+    virtual void beginReadUInt32EnumVector();
+    virtual void beginReadUInt64EnumVector();
+
     virtual void beginReadVectorOfSerializableStructs();
     virtual void beginReadVectorOfSerializableVariants();
     virtual void beginReadVectorOfVectors();

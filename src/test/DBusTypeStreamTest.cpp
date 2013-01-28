@@ -56,6 +56,15 @@ enum class TestEnum: int32_t {
 
 namespace CommonAPI {
 
+inline InputStream& operator>>(InputStream& inputStream, TestEnum& enumValue) {
+    return inputStream.readEnumValue<int32_t>(enumValue);
+}
+
+inline OutputStream& operator<<(OutputStream& outputStream, const TestEnum& enumValue) {
+    return outputStream.writeEnumValue(static_cast<int32_t>(enumValue));
+}
+
+
 template<>
 struct BasicTypeWriter<TestEnum> {
 inline static void writeType (TypeOutputStream& typeStream) {
@@ -63,10 +72,25 @@ inline static void writeType (TypeOutputStream& typeStream) {
 }
 };
 
+template<>
+struct InputStreamVectorHelper<TestEnum> {
+    static void beginReadVector(InputStream& inputStream, const std::vector<TestEnum>& vectorValue) {
+        inputStream.beginReadInt32EnumVector();
+    }
+};
+
+template <>
+struct OutputStreamVectorHelper<TestEnum> {
+    static void beginWriteVector(OutputStream& outputStream, const std::vector<TestEnum>& vectorValue) {
+        outputStream.beginWriteInt32EnumVector(vectorValue.size());
+    }
+};
+
+
 } // namespace CommonAPI
 
 
-typedef std::vector<TestEnum> testEnumList;
+typedef std::vector<TestEnum> TestEnumList;
 
 
 class TypeOutputStreamTest: public ::testing::Test {
@@ -184,6 +208,12 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfStringsSignature) {
     ASSERT_TRUE(signature.compare("as") == 0);
 }
 
+TEST_F(TypeOutputStreamTest, CreatesVectorOfInt32EnumsSignature) {
+    CommonAPI::TypeWriter<TestEnumList>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("ai") == 0);
+}
+
 TEST_F(TypeOutputStreamTest, CreatesVectorOfVersionsSignature) {
     CommonAPI::TypeWriter<std::vector<CommonAPI::Version> >::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
@@ -282,6 +312,16 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericUInt32TypeVariantsCorrectly
     ASSERT_TRUE(signature.compare("u") == 0);
 }
 
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericInt32EnumTypeVariantsCorrectly) {
+    TestEnum fromInt32Enum = TestEnum::CF_MAX;
+    CommonAPI::Variant<uint32_t, double, TestEnum> myVariant(fromInt32Enum);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("i") == 0);
+}
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericStringTypeVariantsCorrectly) {
     std::string fromString = "Hai!";
@@ -307,6 +347,18 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericVectorTypeVariantsCorrectly
 }
 
 
+TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericVectorOfInt32EnumTypeVariantsCorrectly) {
+    TestEnumList fromEnumVector;
+    CommonAPI::Variant<uint32_t, double, TestEnumList> myVariant(fromEnumVector);
+    CommonAPI::SerializableVariant* genericVariant = &myVariant;
+
+    genericVariant->writeToTypeOutputStream(typeStream_);
+
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("ai") == 0);
+}
+
+
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorrectly) {
     TestStruct fromTestStruct;
     CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
@@ -317,7 +369,6 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorre
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
-
 
 
 int main(int argc, char** argv) {
