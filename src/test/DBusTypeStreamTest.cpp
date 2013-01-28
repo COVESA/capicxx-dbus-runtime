@@ -14,15 +14,17 @@
 
 #include <CommonAPI/DBus/DBusOutputStream.h>
 
+#include "commonapi/tests/DerivedTypeCollection.h"
+
 #include <type_traits>
 
 
-struct TestStruct: public CommonAPI::SerializableStruct {
-    TestStruct(): uint16Val_(42), stringVal_("Hai!"), variantVal_(13.37) {
+struct TestStructWithVariant: public CommonAPI::SerializableStruct {
+    TestStructWithVariant(): uint16Val_(42), stringVal_("Hai!"), variantVal_(13.37) {
 
     }
 
-    virtual ~TestStruct() {}
+    virtual ~TestStructWithVariant() {}
 
     virtual void readFromInputStream(CommonAPI::InputStream& inputStream) {
     }
@@ -43,54 +45,7 @@ struct TestStruct: public CommonAPI::SerializableStruct {
 };
 
 
-enum class TestEnum: int32_t {
-    CF_UNKNOWN = 0,
-    CF_GENIVI_MONO = 1,
-    CF_GENIVI_STEREO = 2,
-    CF_GENIVI_ANALOG = 3,
-    CF_GENIVI_AUTO = 4,
-    CF_MAX
-};
-
-
-
-namespace CommonAPI {
-
-inline InputStream& operator>>(InputStream& inputStream, TestEnum& enumValue) {
-    return inputStream.readEnumValue<int32_t>(enumValue);
-}
-
-inline OutputStream& operator<<(OutputStream& outputStream, const TestEnum& enumValue) {
-    return outputStream.writeEnumValue(static_cast<int32_t>(enumValue));
-}
-
-
-template<>
-struct BasicTypeWriter<TestEnum> {
-inline static void writeType (TypeOutputStream& typeStream) {
-    typeStream.writeInt32EnumType();
-}
-};
-
-template<>
-struct InputStreamVectorHelper<TestEnum> {
-    static void beginReadVector(InputStream& inputStream, const std::vector<TestEnum>& vectorValue) {
-        inputStream.beginReadInt32EnumVector();
-    }
-};
-
-template <>
-struct OutputStreamVectorHelper<TestEnum> {
-    static void beginWriteVector(OutputStream& outputStream, const std::vector<TestEnum>& vectorValue) {
-        outputStream.beginWriteInt32EnumVector(vectorValue.size());
-    }
-};
-
-
-} // namespace CommonAPI
-
-
-typedef std::vector<TestEnum> TestEnumList;
+typedef std::vector<commonapi::tests::DerivedTypeCollection::TestEnum> TestEnumList;
 
 
 class TypeOutputStreamTest: public ::testing::Test {
@@ -185,7 +140,7 @@ TEST_F(TypeOutputStreamTest, CreatesVersionSignature) {
 }
 
 TEST_F(TypeOutputStreamTest, CreatesInt32EnumSignature) {
-    CommonAPI::TypeWriter<TestEnum>::writeType(typeStream_);
+    CommonAPI::TypeWriter<commonapi::tests::DerivedTypeCollection::TestEnum>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("i") == 0);
 }
@@ -252,7 +207,7 @@ TEST_F(TypeOutputStreamTest, CreatesVectorOfMapsOfUInt16ToStringSignature) {
 
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructCorrectly) {
-    CommonAPI::TypeWriter<TestStruct>::writeType(typeStream_);
+    CommonAPI::TypeWriter<TestStructWithVariant>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
@@ -292,8 +247,8 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfVectorTypeVariantsCorrectly) {
 
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfTestStructTypeVariantsCorrectly) {
-    TestStruct fromTestStruct;
-    CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
+    TestStructWithVariant fromTestStruct;
+    CommonAPI::Variant<uint32_t, double, TestStructWithVariant> myVariant(fromTestStruct);
 
     myVariant.writeToTypeOutputStream(typeStream_);
 
@@ -313,8 +268,8 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericUInt32TypeVariantsCorrectly
 }
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericInt32EnumTypeVariantsCorrectly) {
-    TestEnum fromInt32Enum = TestEnum::CF_MAX;
-    CommonAPI::Variant<uint32_t, double, TestEnum> myVariant(fromInt32Enum);
+    commonapi::tests::DerivedTypeCollection::TestEnum fromInt32Enum = commonapi::tests::DerivedTypeCollection::TestEnum::E_OK;
+    CommonAPI::Variant<uint32_t, double, commonapi::tests::DerivedTypeCollection::TestEnum> myVariant(fromInt32Enum);
     CommonAPI::SerializableVariant* genericVariant = &myVariant;
 
     genericVariant->writeToTypeOutputStream(typeStream_);
@@ -360,8 +315,8 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericVectorOfInt32EnumTypeVarian
 
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorrectly) {
-    TestStruct fromTestStruct;
-    CommonAPI::Variant<uint32_t, double, TestStruct> myVariant(fromTestStruct);
+    TestStructWithVariant fromTestStruct;
+    CommonAPI::Variant<uint32_t, double, TestStructWithVariant> myVariant(fromTestStruct);
     CommonAPI::SerializableVariant* genericVariant = &myVariant;
 
     genericVariant->writeToTypeOutputStream(typeStream_);
