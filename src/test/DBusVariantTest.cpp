@@ -16,14 +16,17 @@ class VariantTest: public ::testing::Test {
     typedef Variant<int, double, std::string> BasicVariantType;
 
     void SetUp() {
+        fromInt = 5;
+        fromDouble = 12.344d;
+        fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
     }
 
     void TearDown() {
     }
 
-    const int fromInt = 5;
-    const double fromDouble = 12.344d;
-    const std::string fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
+    int fromInt;
+    double fromDouble;
+    std::string fromString;
 };
 
 TEST_F(VariantTest, HandlesInts) {
