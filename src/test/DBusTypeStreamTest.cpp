@@ -43,6 +43,18 @@ struct TestStruct: public CommonAPI::SerializableStruct {
 };
 
 
+enum class TestEnum: int32_t {
+    CF_UNKNOWN = 0,
+    CF_GENIVI_MONO = 1,
+    CF_GENIVI_STEREO = 2,
+    CF_GENIVI_ANALOG = 3,
+    CF_GENIVI_AUTO = 4,
+    CF_MAX
+};
+
+typedef std::vector<TestEnum> testEnumList;
+
+
 class TypeOutputStreamTest: public ::testing::Test {
   protected:
 
@@ -127,10 +139,17 @@ TEST_F(TypeOutputStreamTest, CreatesByteBufferSignature) {
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("ay") == 0);
 }
+
 TEST_F(TypeOutputStreamTest, CreatesVersionSignature) {
     CommonAPI::TypeWriter<CommonAPI::Version>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("(uu)") == 0);
+}
+
+TEST_F(TypeOutputStreamTest, CreatesInt32EnumSignature) {
+    CommonAPI::TypeWriter<TestEnum>::writeType(typeStream_);
+    std::string signature = typeStream_.retrieveSignature();
+    ASSERT_TRUE(signature.compare("i") == 0);
 }
 
 TEST_F(TypeOutputStreamTest, CreatesVariantWithBasicTypesSignature) {
