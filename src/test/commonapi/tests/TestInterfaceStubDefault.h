@@ -1,13 +1,10 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 
-#include "TestInterfaceStub.h"
+#include <test/commonapi/tests/TestInterfaceStub.h>
 
 namespace commonapi {
 namespace tests {
@@ -36,7 +33,10 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
 
     virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
 
-    virtual void firePredefinedBroadcast(uint32_t value, std::string& sValue);
+    virtual void testUnionMethod(DerivedTypeCollection::TestUnionIn inParam, DerivedTypeCollection::TestUnionIn& outParam);
+
+    
+    virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
 
  protected:
     void onRemoteTestPredefinedTypeAttributeAttributeChanged();
@@ -51,7 +51,7 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
     bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
 
-
+    
  private:
     class RemoteEventHandler: public TestInterfaceStubRemoteEvent {
      public:

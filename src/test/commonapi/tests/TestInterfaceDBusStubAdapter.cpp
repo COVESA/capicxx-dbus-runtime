@@ -1,11 +1,8 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "TestInterfaceDBusStubAdapter.h"
-#include "TestInterface.h"
+#include <test/commonapi/tests/TestInterface.h>
 
 namespace commonapi {
 namespace tests {
@@ -69,26 +66,26 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
         "<method name=\"testVoidPredefinedTypeMethod\">\n"
             "<arg name=\"uint32Value\" type=\"u\" direction=\"in\" />\n"
             "<arg name=\"stringValue\" type=\"s\" direction=\"in\" />\n"
-            "<arg name=\"uint32Value\" type=\"u\" direction=\"out\" />\n"
-            "<arg name=\"stringValue\" type=\"s\" direction=\"out\" />\n"
         "</method>\n"
         "<method name=\"testPredefinedTypeMethod\">\n"
             "<arg name=\"uint32InValue\" type=\"u\" direction=\"in\" />\n"
             "<arg name=\"stringInValue\" type=\"s\" direction=\"in\" />\n"
-            "<arg name=\"uint32InValue\" type=\"u\" direction=\"out\" />\n"
-            "<arg name=\"stringInValue\" type=\"s\" direction=\"out\" />\n"
+            "<arg name=\"uint32OutValue\" type=\"u\" direction=\"out\" />\n"
+            "<arg name=\"stringOutValue\" type=\"s\" direction=\"out\" />\n"
         "</method>\n"
         "<method name=\"testVoidDerivedTypeMethod\">\n"
             "<arg name=\"testEnumExtended2Value\" type=\"i\" direction=\"in\" />\n"
             "<arg name=\"testMapValue\" type=\"a{ua(sq)}\" direction=\"in\" />\n"
-            "<arg name=\"testEnumExtended2Value\" type=\"i\" direction=\"out\" />\n"
-            "<arg name=\"testMapValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
         "</method>\n"
         "<method name=\"testDerivedTypeMethod\">\n"
             "<arg name=\"testEnumExtended2InValue\" type=\"i\" direction=\"in\" />\n"
             "<arg name=\"testMapInValue\" type=\"a{ua(sq)}\" direction=\"in\" />\n"
-            "<arg name=\"testEnumExtended2InValue\" type=\"i\" direction=\"out\" />\n"
-            "<arg name=\"testMapInValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
+            "<arg name=\"testEnumExtended2OutValue\" type=\"i\" direction=\"out\" />\n"
+            "<arg name=\"testMapOutValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
+        "</method>\n"
+        "<method name=\"testUnionMethod\">\n"
+            "<arg name=\"inParam\" type=\"(yv)\" direction=\"in\" />\n"
+            "<arg name=\"outParam\" type=\"(yv)\" direction=\"out\" />\n"
         "</method>\n"
     ;
 }
@@ -161,6 +158,12 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
     > testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
 
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestUnionIn>,
+    std::tuple<DerivedTypeCollection::TestUnionIn>
+    > testUnionMethodStubDispatcher(&TestInterfaceStub::testUnionMethod, "(yv)");
+
 
 template<>
 const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable TestInterfaceDBusStubAdapterHelper::stubDispatcherTable_ = {
@@ -174,11 +177,12 @@ const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable TestInterfaceDBusS
     { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::testVoidPredefinedTypeMethodStubDispatcher },
     { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
     { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
-    { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher }
+    { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher },
+    { { "testUnionMethod", "(yv)" }, &commonapi::tests::testUnionMethodStubDispatcher }
 };
 
 void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {
-    CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
+	CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
         ::sendSignal(
             *this,
             "onTestPredefinedTypeAttributeAttributeChanged",

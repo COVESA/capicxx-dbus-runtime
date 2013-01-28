@@ -1,7 +1,4 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_PROXY_H_
@@ -9,6 +6,7 @@
 
 #include "TestInterfaceProxyBase.h"
 #include <CommonAPI/AttributeExtension.h>
+#include <CommonAPI/Factory.h>
 
 namespace commonapi {
 namespace tests {
@@ -37,6 +35,9 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
 
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
+
+    virtual void testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam);
+    virtual std::future<CommonAPI::CallStatus> testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback);
 
     virtual std::string getAddress() const;
     virtual const std::string& getDomain() const;
@@ -183,6 +184,16 @@ void TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethod(const De
 template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) {
     return delegate_->testDerivedTypeMethodAsync(testEnumExtended2InValue, testMapInValue, callback);
+}
+
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam) {
+    delegate_->testUnionMethod(inParam, callStatus, outParam);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback) {
+    return delegate_->testUnionMethodAsync(inParam, callback);
 }
 
 

@@ -113,7 +113,7 @@ TEST_F(DBusMultipleConnectionTest, Broadcast) {
         promise.set_value(true);
     });
 
-    stub->firePredefinedBroadcast(v1, v2);
+    stub->fireTestPredefinedTypeBroadcastEvent(v1, v2);
 
     ASSERT_TRUE(future.get());
     ASSERT_EQ(v1, v3);

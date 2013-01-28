@@ -1,13 +1,10 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_DBUS_PROXY_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_DBUS_PROXY_H_
 
-#include "TestInterfaceProxyBase.h"
+#include <test/commonapi/tests/TestInterfaceProxyBase.h>
 #include <CommonAPI/DBus/DBusFactory.h>
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusAttribute.h>
@@ -40,6 +37,9 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
 
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
+
+    virtual void testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam);
+    virtual std::future<CommonAPI::CallStatus> testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback);
     
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
 
