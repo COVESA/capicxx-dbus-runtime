@@ -60,7 +60,7 @@ std::future<bool>& DBusServiceRegistry::getReadyFuture() {
 bool DBusServiceRegistry::isReadyBlocking() {
     if (!ready) {
         readyMutex_.lock();
-        auto status = readyFuture_.wait_for(std::chrono::seconds(5));
+        auto status = readyFuture_.wait_for(std::chrono::seconds(1));
         if (checkReady(status)) {
             ready = true;
         } else {

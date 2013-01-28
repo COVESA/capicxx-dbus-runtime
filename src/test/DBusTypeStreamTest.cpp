@@ -52,6 +52,20 @@ enum class TestEnum: int32_t {
     CF_MAX
 };
 
+
+
+namespace CommonAPI {
+
+template<>
+struct BasicTypeWriter<TestEnum> {
+inline static void writeType (TypeOutputStream& typeStream) {
+    typeStream.writeInt32EnumType();
+}
+};
+
+} // namespace CommonAPI
+
+
 typedef std::vector<TestEnum> testEnumList;
 
 
