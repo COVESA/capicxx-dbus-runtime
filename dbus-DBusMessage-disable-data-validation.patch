@@ -1,0 +1,25 @@
+From 762a0ceb1ff6b4c69eced23902fbc404870f21ca Mon Sep 17 00:00:00 2001
+From: Philip Rauwolf <rauwolf@itestra.de>
+Date: Fri, 3 Aug 2012 16:34:59 +0200
+Subject: [PATCH] Disabled all data checks in DBUS
+
+---
+ dbus/dbus-message.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dbus/dbus-message.c b/dbus/dbus-message.c
+index 5e570bd..9883e70 100644
+--- a/dbus/dbus-message.c
++++ b/dbus/dbus-message.c
+@@ -3960,7 +3960,7 @@ load_message (DBusMessageLoader *loader,
+   DBusValidationMode mode;
+   dbus_uint32_t n_unix_fds = 0;
+ 
+-  mode = DBUS_VALIDATION_MODE_DATA_IS_UNTRUSTED;
++  mode = DBUS_VALIDATION_MODE_WE_TRUST_THIS_DATA_ABSOLUTELY;
+   
+   oom = FALSE;
+ 
+-- 
+1.7.10.4
+
