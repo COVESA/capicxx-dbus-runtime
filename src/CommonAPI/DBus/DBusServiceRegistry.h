@@ -12,6 +12,7 @@
 #include <CommonAPI/Attribute.h>
 
 #include "DBusConnection.h"
+#include "DBusNameService.h"
 
 #include <unordered_map>
 #include <map>
@@ -21,6 +22,7 @@
 #include <memory>
 #include <list>
 #include <mutex>
+#include <algorithm>
 
 namespace CommonAPI {
 namespace DBus {
@@ -28,8 +30,6 @@ namespace DBus {
 typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
 
 typedef Event<std::string, std::string, std::string>::Subscription NameOwnerChangedEventSubscription;
-
-typedef std::pair<std::string, std::string> DBusServiceInstanceId;
 
 typedef std::unordered_map<std::string, int> PropertyDictStub;
 typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
@@ -87,6 +87,7 @@ class DBusServiceRegistry {
     DBusServiceInstanceId findInstanceIdMapping(const std::string& instanceId) const;
     std::string findInstanceIdMapping(const DBusServiceInstanceId& dbusInstanceId) const;
 
+
     void onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict replyMessage, std::string dbusWellKnownBusName);
     void onManagedPathsList(const CallStatus& status, DBusObjectToInterfaceDict managedObjects, std::list<std::string>::iterator iter, std::shared_ptr<std::list<std::string>> list);
 
@@ -111,7 +112,6 @@ class DBusServiceRegistry {
 
     DBusServiceStatusEvent serviceStatusEvent_;
 };
-
 
 } // namespace DBus
 } // namespace CommonAPI

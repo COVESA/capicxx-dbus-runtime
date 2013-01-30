@@ -199,7 +199,8 @@ void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToI
 }
 
 void DBusServiceRegistry::updateListeners(const std::string& conName, const std::string& objName, const std::string& intName , bool available) {
-    auto found = availabilityCallbackList.equal_range(findCommonAPIAddressForDBusAddress(conName, objName, intName));
+    std::string commonAPIAddress = DBusNameService::getInstance().findCommonAPIAddressForDBusAddress(conName, objName, intName);
+    auto found = availabilityCallbackList.equal_range(std::move(commonAPIAddress));
     auto foundIter = found.first;
     while (foundIter != found.second) {
         foundIter->second(true);
@@ -242,13 +243,19 @@ void DBusServiceRegistry::addProvidedServiceInstancesToCache(std::vector<std::st
 
 
 DBusServiceInstanceId DBusServiceRegistry::findInstanceIdMapping(const std::string& instanceId) const {
-    DBusServiceInstanceId instanceDescriptor;
-    findFallbackInstanceIdMapping(instanceId, instanceDescriptor.first, instanceDescriptor.second);
-    return instanceDescriptor;
+    DBusServiceInstanceId dbusInstanceId;
+    if(!DBusNameService::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second)) {
+        DBusNameService::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
+    }
+    return std::move(dbusInstanceId);
 }
 
 std::string DBusServiceRegistry::findInstanceIdMapping(const DBusServiceInstanceId& dbusInstanceId) const {
-    return findFallbackInstanceIdMapping(dbusInstanceId.first, dbusInstanceId.second);
+    std::string instanceId;
+    if(!DBusNameService::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second)) {
+        DBusNameService::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
+    }
+    return std::move(instanceId);
 }
 
 inline const bool isServiceName(const std::string& name) {
@@ -311,4 +318,4 @@ void DBusServiceRegistry::cacheAllServices() {
 
 
 }// namespace DBus
-} // namespace CommonAPI
+}// namespace CommonAPI

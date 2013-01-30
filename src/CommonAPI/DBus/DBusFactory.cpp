@@ -7,6 +7,7 @@
 #include "DBusProxy.h"
 #include "DBusConnection.h"
 #include "DBusFactory.h"
+#include "DBusNameService.h"
 #include "DBusServiceRegistry.h"
 #include "DBusUtils.h"
 
@@ -67,7 +68,7 @@ std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceName, const
     std::string connectionName;
     std::string objectPath;
 
-    findFallbackInstanceIdMapping(participantId, connectionName, objectPath);
+    DBusNameService::getInstance().searchForDBusInstanceId(participantId, connectionName, objectPath);
 
     if(!registeredProxyFactoryFunctions_) {
         registeredProxyFactoryFunctions_ = new std::unordered_map<std::string, DBusProxyFactoryFunction> {};
@@ -87,7 +88,8 @@ std::shared_ptr<StubAdapter> DBusFactory::createAdapter(std::shared_ptr<StubBase
 
     std::string connectionName;
     std::string objectPath;
-    findFallbackInstanceIdMapping(participantId, connectionName, objectPath);
+
+    DBusNameService::getInstance().searchForDBusInstanceId(participantId, connectionName, objectPath);
 
     if(acquiredConnectionName_ == "") {
         dbusConnection_->requestServiceNameAndBlock(connectionName);

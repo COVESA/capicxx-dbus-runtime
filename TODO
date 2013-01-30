@@ -24,6 +24,7 @@ config.ini für Mapping von DBus-Gegenstellen:
   Binary liegen, oder in /etc/commonapi-dbus/BinaryName_dbus.conf
 
 
+
 -----
 MainLoop-Integration:
 -----
@@ -47,9 +48,13 @@ Working:
 - Brauchen wir wirklich die CommonAPI::Connection? Ich hoffe ja, dass nicht.
 - Implementierung der free-functions?
 Rückmeldung Martin Haefner:
-Bezgl. des Threadings bin ich auch noch gespalten. Hier gibt es niemanden mit dem ich ganz unvoreingenommen drüber diskutieren könnte. Ich hab mir das Modell von ICE angeschaut. Die benutzen ein Leader/Follower Pattern um ihre Requests auf Serverseite auf Threads zu verteilen. Auf Clientseite kann man sich auch einiges denken. Momentan bin ich noch etwas unzufrieden bezgl. des futures das bei den asynchronen Requests verwendet wird. Ich bin irgendwie immernoch der Meinung, dass die ganze API auch in einem einzelnen Thread funktionieren müsste und dann darf der Thread eben nicht in der Waitcondition des Futures blockieren sondern muss im Hintergrund etwas tun. Das hab ich in einer eigenen IPC-Library umgesetzt. Dort gibt es eine generische waitForResponse(Request) Funktion die auf die Antwort wartet, aber eben nirgends blockiert sondern in den Dispatcher reinläuft. Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat aber eben kein std:
-:future ist und somit im Hintergrund impl. abhängig etwas anderes machen kann (concept).
-
+Bezgl. des Threadings bin ich auch noch gespalten. Hier gibt es niemanden mit dem ich ganz unvoreingenommen drüber diskutieren könnte. Ich hab mir das Modell von ICE angeschaut.
+Die benutzen ein Leader/Follower Pattern um ihre Requests auf Serverseite auf Threads zu verteilen. Auf Clientseite kann man sich auch einiges denken.
+Momentan bin ich noch etwas unzufrieden bezgl. des futures das bei den asynchronen Requests verwendet wird.
+Ich bin irgendwie immernoch der Meinung, dass die ganze API auch in einem einzelnen Thread funktionieren müsste und dann darf der Thread eben nicht in der Waitcondition des Futures blockieren
+sondern muss im Hintergrund etwas tun. Das hab ich in einer eigenen IPC-Library umgesetzt.
+Dort gibt es eine generische waitForResponse(Request) Funktion die auf die Antwort wartet, aber eben nirgends blockiert sondern in den Dispatcher reinläuft.
+Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat aber eben kein std::future ist und somit im Hintergrund impl. abhängig etwas anderes machen kann (concept).
 
 
 
@@ -158,3 +163,9 @@ Future development (2.1):
 - Handling of D-Bus properties!! Sollte auf Franca attributes gemapped sein (Grund: Interoperabilität)
 
 * getValue on attributes is inconsisten with other methods, CallStatus should be in signature not return
+
+
+-----
+"Schöner Wohnen":
+-----
+Angleichung interface InputStream und OutputStream (mal inline, mal nicht, mal als template, mal spezifisch überladen,...)

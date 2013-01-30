@@ -32,6 +32,7 @@ libCommonAPI_DBus_la_SOURCES = \
 		src/CommonAPI/DBus/DBusFunctionalHash.cpp \
 		src/CommonAPI/DBus/DBusInputStream.cpp \
 		src/CommonAPI/DBus/DBusMessage.cpp \
+		src/CommonAPI/DBus/DBusNameService.cpp \
 		src/CommonAPI/DBus/DBusObjectManager.cpp \
 		src/CommonAPI/DBus/DBusOutputStream.cpp \
 		src/CommonAPI/DBus/DBusProxy.cpp \
@@ -57,6 +58,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusInputStream.h \
         src/CommonAPI/DBus/DBusMessage.h \
         src/CommonAPI/DBus/DBusMultiEvent.h \
+		src/CommonAPI/DBus/DBusNameService.h \
         src/CommonAPI/DBus/DBusObjectManager.h \
         src/CommonAPI/DBus/DBusOutputStream.h \
         src/CommonAPI/DBus/DBusProxy.h \
