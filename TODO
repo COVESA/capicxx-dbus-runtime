@@ -1,3 +1,84 @@
+-----
+config.ini für Mapping von DBus-Gegenstellen:
+-----
+  service_name ist 1:1 der Interface Name in DBus.
+
+  instance ist 1:1 der Connection Name in DBus,
+  instance mit . durch / ersetzt und einem / am Anfang ist Obejct Path.
+
+  also, z.B.:
+    local:org.genivi.AudioManager.RoutingInterface:org.genivi.AudioManager.RoutingInterface
+  erzeugt:
+    Interface Name: org.genivi.AudioManager.RoutingInterface
+    Connection Name: org.genivi.AudioManager.RoutingInterface
+    Object Path: /org/genivi/AudioManager/RoutingInterface
+
+  Die config files sehen so aus:
+
+  [domain:service:instance]
+  dbus_connection=connection.name
+  dbus_object=/path/to/object
+  dbus_interface=service.name
+
+  Diese können als BinaryName_dbus.conf im gleichen Verzeichnis wie das
+  Binary liegen, oder in /etc/commonapi-dbus/BinaryName_dbus.conf
+
+
+-----
+MainLoop-Integration:
+-----
+Working:
+- Prototypical implementation of MainLoopIntegration
+  * Vorbild vorerst glib
+  * Andere bereits recherchiert
+- MainLoop
+  * Creation of MainLoopContext within Runtime
+  * Creation of Factories with registered MainLoop
+  * Start automatic dispatch depending on presence of a MainLoopContext
+  * Support of libdbus-watches
+  * Sending and receiving messages by using mainloop iteration
+
+- Verbindungs-Wiederaufbau nach -Abriss?
+- Workflow, um an den Kontext zu kommen, festlegen
+- Push auf master: Bei "Refs" statt "Heads" ein "Fork", damits auf Gerrit kommt
+- Dispatch für synchrone Aufrufe sind immer noch zwei Threads!
+- connection: dispatch-thread dort rein, var auf false, sync per join
+- Tests Stückweise wieder integrieren!
+- Brauchen wir wirklich die CommonAPI::Connection? Ich hoffe ja, dass nicht.
+- Implementierung der free-functions?
+Rückmeldung Martin Haefner:
+Bezgl. des Threadings bin ich auch noch gespalten. Hier gibt es niemanden mit dem ich ganz unvoreingenommen drüber diskutieren könnte. Ich hab mir das Modell von ICE angeschaut. Die benutzen ein Leader/Follower Pattern um ihre Requests auf Serverseite auf Threads zu verteilen. Auf Clientseite kann man sich auch einiges denken. Momentan bin ich noch etwas unzufrieden bezgl. des futures das bei den asynchronen Requests verwendet wird. Ich bin irgendwie immernoch der Meinung, dass die ganze API auch in einem einzelnen Thread funktionieren müsste und dann darf der Thread eben nicht in der Waitcondition des Futures blockieren sondern muss im Hintergrund etwas tun. Das hab ich in einer eigenen IPC-Library umgesetzt. Dort gibt es eine generische waitForResponse(Request) Funktion die auf die Antwort wartet, aber eben nirgends blockiert sondern in den Dispatcher reinläuft. Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat aber eben kein std:
+:future ist und somit im Hintergrund impl. abhängig etwas anderes machen kann (concept).
+
+
+
+
+-----
+"Major Features":
+-----
+* CLI für Generator
+* Vollständige Elimination Middleware-spezifische Generierung
+* Dynamisches Laden v. ein oder mehereren Middelware-Libraries (Konfiguration und aliases via config)
+
+
+-----
+Remains to be sorted/checked/done:
+-----
+Vererbung von Variants
+* Per generierung vollspezialisierter equality- und assignment-operatoren
+* Tests dafür
+
+* Fehler im InStream: Spezialisierungen für Vektor und allgemeiner "ByteBuffer"-Fall (welcher std::vector<uint8_t> ist) behandeln
+  das selbe Thema doppelt!
+* Problem auch im OutStream?
+* Wird der "readByteBufferValue" und "readVectorOfByteBuffers" korrekt aufgerufen? Oder fällt er da auch in die Vektor-Fälle zurück?
+* Entsprechend: Auflösung von Vektoren von ByteBuffern landen in dem vector<vector<_Type>> template Fall, nicht in dem vector<ByteBuffer>.
+
+Serialisierung: Verwenden des Endianness-Flags von D-Bus! Prüfen und beachten von dieser!
+Performance tests für Variants
+Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in "AttributeExtensions"?
+
+
 * Move Version checking to the ServiceRegistry:
 	Currently, ensuring the interface-version based compatibility of the local proxy and
 	a given remote service would be done asynchronously within the proxy right after its creation.
@@ -12,11 +93,7 @@
 	the interface name and object path strings?
 	Check (de)serialization, improve where possible.
 
-* Implementation of Variants.
-
 * Dedicated Test of multiple connect/disconnect cycles
-
-* Life Cycle of connections: Disconnect/Destroy with ProxyFactory, how to do this otherwise?
 
 * DBusProxyHelper.h:
   // TODO: Must implement available checks on method calls, and wait for valid avalable status in sync case
@@ -59,6 +136,13 @@
 
 
 
+- Fall für Structs (und generell):
+  * Methode wird aufgerufen, die eine Basis-Struct akzeptieren
+  * Struct ist tatsächlich eine vererbte Struct
+  * Gesendet wird damit die vererbte Struct, da wir alles über virtual implizit lösen! Problem mit Signatur!
+
+
+
 
 Future development (2.1):
 
@@ -69,15 +153,7 @@ Future development (2.1):
 	Probably we'll have to keep a list of all owned names and request a new one on registration
 	if required.
 
-* Check static/dynamic loading of libraries, make it work. 
-
 * Doxygen in CommonAPI source code.
-
-* Main Loop Integration
-	- Per Factory or on Runtime level?
-	- Which functions are needed?
-	- Example with Glib on CommonAPI base (not D-Bus specific)
-	- Christian Linke has some ideas
 
 - Handling of D-Bus properties!! Sollte auf Franca attributes gemapped sein (Grund: Interoperabilität)
 
