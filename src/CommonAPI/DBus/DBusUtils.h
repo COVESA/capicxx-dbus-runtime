@@ -11,6 +11,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <unistd.h>
+#include <future>
 
 namespace CommonAPI {
 namespace DBus {
@@ -27,6 +29,23 @@ inline std::vector<std::string>& split(const std::string& s, char delim, std::ve
 inline std::vector<std::string> split(const std::string& s, char delim) {
     std::vector<std::string> elems;
     return split(s, delim, elems);
+}
+
+
+inline std::string getBinaryFileName() {
+    char fqnOfBinary[FILENAME_MAX];
+    char pathToProcessImage[FILENAME_MAX];
+
+    sprintf(pathToProcessImage, "/proc/%ld/exe", getpid());
+    const unsigned int lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
+
+    if (lengthOfFqn != -1) {
+        fqnOfBinary[lengthOfFqn] = '\0';
+        return std::string(std::move(fqnOfBinary));
+    } else {
+        //TODO fail of readlink, i.e. it returns -1, sets errno. See http://linux.die.net/man/3/readlink
+        return std::string("");
+    }
 }
 
 template<typename _FutureWaitType>

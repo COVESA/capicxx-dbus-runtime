@@ -23,6 +23,11 @@ config.ini für Mapping von DBus-Gegenstellen:
   Diese können als BinaryName_dbus.conf im gleichen Verzeichnis wie das
   Binary liegen, oder in /etc/commonapi-dbus/BinaryName_dbus.conf
 
+  Validity checks for read values should be incorporated!
+  Each of the values is optional, all values that are not specified are mapped via the default mapping.
+  
+  Error handling for DBusUtils.h::getBinaryFileName
+
 
 
 -----

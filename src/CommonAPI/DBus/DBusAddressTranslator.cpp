@@ -7,42 +7,89 @@
 
 
 #include "DBusAddressTranslator.h"
+#include "DBusUtils.h"
 
+#include <unordered_set>
+#include <string.h>
 #include <iostream>
 #include <fstream>
-#include <unistd.h>
-#include <string.h>
 
 
 namespace CommonAPI {
 namespace DBus {
 
 
-DBusAddressTranslator::DBusAddressTranslator() {
-    char fqnOfBinary[FILENAME_MAX];
-    char pathToProcessImage[FILENAME_MAX];
 
-    sprintf(pathToProcessImage, "/proc/%ld/exe", getpid());
-    unsigned int lengthOfFqn;
-    lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
 
-    if (lengthOfFqn != -1) {
-        fqnOfBinary[lengthOfFqn] = '\0';
-        std::string fqnOfConfigFile(std::move(fqnOfBinary));
-        fqnOfConfigFile += "_dbus.ini";
 
-        std::ifstream addressConfigFile;
+inline bool readSection(std::ifstream& addressConfigFile, std::string& section) {
+    std::string readLine;
+    getline(addressConfigFile, readLine);
 
-        addressConfigFile.open(fqnOfConfigFile.c_str());
+    const size_t sectionLength = readLine.length();
 
-        std::string readLine;
-        while (addressConfigFile.good()) {
-            std::getline(addressConfigFile, readLine);
-            std::cout << readLine << std::endl;
-        }
-
-        addressConfigFile.close();
+    if(readLine[0] != '[' || readLine[sectionLength - 1] != ']') {
+        return false;
     }
+
+    section = readLine.substr(1, sectionLength - 2);
+
+    return true;
+
+//    [domain:service:instance]
+//    dbus_connection=connection.name
+//    dbus_object=/path/to/object
+//    dbus_interface=service.name
+}
+
+
+std::unordered_set<std::string> allowedValueTypes = {"dbus_connection", "dbus_object", "dbus_interface"};
+
+
+inline bool readValue(std::ifstream& addressConfigFile, std::string& paramName, std::string& paramValue) {
+    getline(addressConfigFile, paramName, '=');
+    if(allowedValueTypes.find(paramName) == allowedValueTypes.end()) {
+        return false;
+    }
+    getline(addressConfigFile, paramValue);
+
+    //TODO: Check whether its a valid bus name
+
+    return true;
+}
+
+
+
+
+
+
+DBusAddressTranslator::DBusAddressTranslator()
+{
+    std::string fqnOfConfigFile = getBinaryFileName();
+    fqnOfConfigFile += "_dbus.ini";
+
+    std::ifstream addressConfigFile;
+
+    addressConfigFile.open(fqnOfConfigFile.c_str());
+
+    while (addressConfigFile.good()) {
+        std::string section;
+
+        readSection(addressConfigFile, section);
+        std::cout << "---" << section<< "---" << std::endl;
+
+        std::string paramName;
+        std::string paramValue;
+
+        readValue(addressConfigFile, paramName, paramValue);
+        std::cout << paramName << "::" << paramValue << std::endl;
+        readValue(addressConfigFile, paramName, paramValue);
+        std::cout << paramName << "::" << paramValue << std::endl;
+        readValue(addressConfigFile, paramName, paramValue);
+        std::cout << paramName << "::" << paramValue << std::endl;
+    }
+
+    addressConfigFile.close();
 }
 
 
