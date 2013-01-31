@@ -12,7 +12,7 @@
 #include <CommonAPI/Attribute.h>
 
 #include "DBusConnection.h"
-#include "DBusNameService.h"
+#include "DBusAddressTranslator.h"
 
 #include <unordered_map>
 #include <map>

@@ -199,7 +199,7 @@ void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToI
 }
 
 void DBusServiceRegistry::updateListeners(const std::string& conName, const std::string& objName, const std::string& intName , bool available) {
-    std::string commonAPIAddress = DBusNameService::getInstance().findCommonAPIAddressForDBusAddress(conName, objName, intName);
+    std::string commonAPIAddress = DBusAddressTranslator::getInstance().findCommonAPIAddressForDBusAddress(conName, objName, intName);
     auto found = availabilityCallbackList.equal_range(std::move(commonAPIAddress));
     auto foundIter = found.first;
     while (foundIter != found.second) {
@@ -244,17 +244,13 @@ void DBusServiceRegistry::addProvidedServiceInstancesToCache(std::vector<std::st
 
 DBusServiceInstanceId DBusServiceRegistry::findInstanceIdMapping(const std::string& instanceId) const {
     DBusServiceInstanceId dbusInstanceId;
-    if(!DBusNameService::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second)) {
-        DBusNameService::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
-    }
+    DBusAddressTranslator::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
     return std::move(dbusInstanceId);
 }
 
 std::string DBusServiceRegistry::findInstanceIdMapping(const DBusServiceInstanceId& dbusInstanceId) const {
     std::string instanceId;
-    if(!DBusNameService::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second)) {
-        DBusNameService::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
-    }
+    DBusAddressTranslator::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
     return std::move(instanceId);
 }
 

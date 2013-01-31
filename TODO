@@ -28,7 +28,7 @@ config.ini für Mapping von DBus-Gegenstellen:
 -----
 MainLoop-Integration:
 -----
-Working:
+Already working:
 - Prototypical implementation of MainLoopIntegration
   * Vorbild vorerst glib
   * Andere bereits recherchiert
@@ -39,14 +39,15 @@ Working:
   * Support of libdbus-watches
   * Sending and receiving messages by using mainloop iteration
 
-- Verbindungs-Wiederaufbau nach -Abriss?
-- Workflow, um an den Kontext zu kommen, festlegen
+TODO:
+- Workflow, um an den Mainloop-Kontext zu kommen, festlegen
 - Push auf master: Bei "Refs" statt "Heads" ein "Fork", damits auf Gerrit kommt
 - Dispatch für synchrone Aufrufe sind immer noch zwei Threads!
 - connection: dispatch-thread dort rein, var auf false, sync per join
 - Tests Stückweise wieder integrieren!
 - Brauchen wir wirklich die CommonAPI::Connection? Ich hoffe ja, dass nicht.
-- Implementierung der free-functions?
+- Implementierung der memory-free-functions? Sinnvoll, notwendig?
+- Verbindungs-Wiederaufbau nach -abriss?
 Rückmeldung Martin Haefner:
 Bezgl. des Threadings bin ich auch noch gespalten. Hier gibt es niemanden mit dem ich ganz unvoreingenommen drüber diskutieren könnte. Ich hab mir das Modell von ICE angeschaut.
 Die benutzen ein Leader/Follower Pattern um ihre Requests auf Serverseite auf Threads zu verteilen. Auf Clientseite kann man sich auch einiges denken.
@@ -81,8 +82,11 @@ Vererbung von Variants
 
 Serialisierung: Verwenden des Endianness-Flags von D-Bus! Prüfen und beachten von dieser!
 Performance tests für Variants
-Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in "AttributeExtensions"?
+Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in eigenes file?
 
+Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
+- DBusNameCacheTest
+- ?
 
 * Move Version checking to the ServiceRegistry:
 	Currently, ensuring the interface-version based compatibility of the local proxy and
