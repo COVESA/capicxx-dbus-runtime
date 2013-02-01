@@ -9,36 +9,55 @@
 #ifndef DBUSNAMESERVICE_H_
 #define DBUSNAMESERVICE_H_
 
+#include "DBusFunctionalHash.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 
 namespace CommonAPI {
 namespace DBus {
 
 
-//connectionName, objectPath
-typedef std::pair<std::string, std::string> DBusServiceInstanceId;
+//connectionName, objectPath, interfaceName
+typedef std::tuple<std::string, std::string, std::string> DBusServiceAddress;
 
 
 class DBusAddressTranslator {
 public:
     ~DBusAddressTranslator();
 
-    std::string findCommonAPIAddressForDBusAddress(const std::string& conName, const std::string& objName, const std::string& intName) const;
-
-    void searchForDBusInstanceId(const std::string& instanceId, std::string& connectionName, std::string& objectPath) const;
-    void searchForCommonInstanceId(std::string& instanceId, const std::string& connectionName, const std::string& objectPath) const;
-
     static DBusAddressTranslator& getInstance();
+
+    void searchForDBusAddress(const std::string& commonApiAddress,
+                              std::string& interfaceName,
+                              std::string& connectionName,
+                              std::string& objectPath);
+
+    void searchForCommonAddress(const std::string& interfaceName,
+                                const std::string& connectionName,
+                                const std::string& objectPath,
+                                std::string& commonApiAddress);
 
 private:
     DBusAddressTranslator();
     DBusAddressTranslator(const DBusAddressTranslator&) = delete;
     DBusAddressTranslator& operator=(const DBusAddressTranslator&) = delete;
 
-    void findFallbackDBusInstanceId(const std::string& instanceId, std::string& connectionName, std::string& objectPath) const;
-    void findFallbackCommonInstanceId(std::string& instanceId, const std::string& connectionName, const std::string& objectPath) const;
+    void findFallbackDBusAddress(const std::string& instanceId,
+                                    std::string& interfaceName,
+                                    std::string& connectionName,
+                                    std::string& objectPath) const;
+
+    void findFallbackCommonAddress(std::string& instanceId,
+                                      const std::string& interfaceName,
+                                      const std::string& connectionName,
+                                      const std::string& objectPath) const;
+
+    void fillUndefinedRequiredValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const;
+
+    std::unordered_map<std::string, DBusServiceAddress> knownDBusAddresses;
+    std::unordered_map<DBusServiceAddress, std::string> knownCommonAddresses;
 };
 
 

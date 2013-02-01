@@ -32,9 +32,9 @@ class DBusFactory: public Factory {
 
     virtual bool isServiceInstanceAlive(const std::string& serviceInstanceID, const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
-    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceName, const std::string& participantId, const std::string& domain);
-
-    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceName, const std::string& participantId, const std::string& domain);
+ protected:
+    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceName, const std::string& participantId, const std::string& serviceName, const std::string& domain);
+    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceName, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;

@@ -34,3 +34,4 @@
 /DBusTypeStreamTest
 /DBusVariantOutputStreamTest
 /DBusVariantTest
+/DBusAddressTranslatorTest

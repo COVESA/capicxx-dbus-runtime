@@ -32,7 +32,7 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
 }
 
 
-inline std::string getBinaryFileName() {
+inline std::string getCurrentBinaryFileName() {
     char fqnOfBinary[FILENAME_MAX];
     char pathToProcessImage[FILENAME_MAX];
 

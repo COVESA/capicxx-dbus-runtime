@@ -57,7 +57,7 @@ std::future<bool>& DBusServiceRegistry::getReadyFuture() {
     return readyFuture_;
 }
 
-bool DBusServiceRegistry::isReadyBlocking() {
+bool DBusServiceRegistry::isReadyBlocking() const {
     if (!ready) {
         readyMutex_.lock();
         auto status = readyFuture_.wait_for(std::chrono::seconds(1));
@@ -72,26 +72,33 @@ bool DBusServiceRegistry::isReadyBlocking() {
     return ready;
 }
 
-bool DBusServiceRegistry::isReady() {
+bool DBusServiceRegistry::isReady() const {
 	return ready;
 }
 
-std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const std::string& serviceInterfaceName,
-                                                                           const std::string& serviceDomainName) {
+std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const std::string& serviceName,
+                                                                           const std::string& domainName) {
+
 	if (!isReadyBlocking()) {
 		return std::vector<std::string>();
 	}
 
-    if (serviceDomainName != "local" || !dbusConnection_->isConnected()) {
+    if (domainName != "local" || !dbusConnection_->isConnected()) {
         return std::vector<std::string>();
     }
 
     std::vector<std::string> addressesOfKnownServiceInstances;
-    auto knownServiceInstancesIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(serviceInterfaceName);
+    auto knownServiceInstancesIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(serviceName);
 
     while(knownServiceInstancesIteratorPair.first != knownServiceInstancesIteratorPair.second) {
-        const DBusServiceInstanceId dbusServiceInstanceId = knownServiceInstancesIteratorPair.first->second;
-        addressesOfKnownServiceInstances.push_back(findInstanceIdMapping(dbusServiceInstanceId));
+        const DBusInstanceId& dbusServiceInstanceId = knownServiceInstancesIteratorPair.first->second;
+        const std::string& connectionName = dbusServiceInstanceId.first;
+        const std::string& objectPath = dbusServiceInstanceId.second;
+
+        std::string commonApiAddress;
+        DBusAddressTranslator::getInstance().searchForCommonAddress(serviceName, connectionName, objectPath, commonApiAddress);
+
+        addressesOfKnownServiceInstances.push_back(std::move(commonApiAddress));
         ++knownServiceInstancesIteratorPair.first;
     }
 
@@ -127,37 +134,41 @@ void DBusServiceRegistry::onManagedPathsList(const CallStatus& status, DBusObjec
     }
 }
 
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& address) {
-	std::vector<std::string> parts = split(address, ':');
-	return isServiceInstanceAlive(parts[2], parts[1], parts[0]);
-}
-
-
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& serviceInstanceID,
-                                                 const std::string& serviceInterfaceName,
-                                                 const std::string& serviceDomainName ) {
-	if (!isReadyBlocking()) {
-		return false;
-	}
-
-    if (serviceDomainName != "local" || !dbusConnection_->isConnected()) {
+bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& commonApiAddress) const {
+    if (!isReadyBlocking() || !dbusConnection_->isConnected()) {
         return false;
     }
 
-    DBusServiceInstanceId serviceInstanceId = findInstanceIdMapping(serviceInstanceID);
+    std::vector<std::string> parts = split(commonApiAddress, ':');
+    if (parts[0] != "local") {
+        return false;
+    }
 
-    auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(serviceInterfaceName);
+    std::string interfaceName;
+    std::string connectionName;
+    std::string objectPath;
+    DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
+    DBusInstanceId serviceInstanceId(std::move(connectionName), std::move(objectPath));
+
+    auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(interfaceName);
 
     while(knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
-        DBusServiceInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
+        DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
         if(knownServiceId == serviceInstanceId) {
             return true;
         }
         ++knownInstancesForInterfaceIteratorPair.first;
     }
-
     return false;
 }
+
+
+bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& participantId,
+                                                 const std::string& serviceName,
+                                                 const std::string& domainName) const {
+    return isServiceInstanceAlive(domainName + ":" + serviceName + ":" + participantId);
+}
+
 
 void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusName) {
     auto callMessage = DBusMessage::createMethodCall(
@@ -178,6 +189,7 @@ void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusN
 
 }
 
+
 void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict managedObjects,
 		std::string dbusWellKnownBusName) {
 
@@ -189,7 +201,7 @@ void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToI
 
 		while (interfaceNameIterator != objectPathIterator->second.end()) {
 			const std::string& interfaceName = interfaceNameIterator->first;
-			dbusCachedProvidersForInterfaces_.insert( { interfaceName, { dbusWellKnownBusName, serviceObjPath } });
+			dbusCachedProvidersForInterfaces_.insert( { interfaceName, { dbusWellKnownBusName, serviceObjPath } } );
 			updateListeners(dbusWellKnownBusName, serviceObjPath, interfaceName, true);
 			++interfaceNameIterator;
 		}
@@ -198,8 +210,12 @@ void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToI
 	}
 }
 
-void DBusServiceRegistry::updateListeners(const std::string& conName, const std::string& objName, const std::string& intName , bool available) {
-    std::string commonAPIAddress = DBusAddressTranslator::getInstance().findCommonAPIAddressForDBusAddress(conName, objName, intName);
+void DBusServiceRegistry::updateListeners(const std::string& conName,
+                                          const std::string& objName,
+                                          const std::string& intName,
+                                          bool available) {
+    std::string commonAPIAddress;
+    DBusAddressTranslator::getInstance().searchForCommonAddress(conName, objName, intName, commonAPIAddress);
     auto found = availabilityCallbackList.equal_range(std::move(commonAPIAddress));
     auto foundIter = found.first;
     while (foundIter != found.second) {
@@ -242,18 +258,6 @@ void DBusServiceRegistry::addProvidedServiceInstancesToCache(std::vector<std::st
 }
 
 
-DBusServiceInstanceId DBusServiceRegistry::findInstanceIdMapping(const std::string& instanceId) const {
-    DBusServiceInstanceId dbusInstanceId;
-    DBusAddressTranslator::getInstance().searchForDBusInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
-    return std::move(dbusInstanceId);
-}
-
-std::string DBusServiceRegistry::findInstanceIdMapping(const DBusServiceInstanceId& dbusInstanceId) const {
-    std::string instanceId;
-    DBusAddressTranslator::getInstance().searchForCommonInstanceId(instanceId, dbusInstanceId.first, dbusInstanceId.second);
-    return std::move(instanceId);
-}
-
 inline const bool isServiceName(const std::string& name) {
     return name[0] != ':';
 }
@@ -279,8 +283,8 @@ void DBusServiceRegistry::removeProvidedServiceInstancesFromCache(const std::str
     //Iteriere über (interfaceName, (serviceInstanceId))
     while(providersForInterfacesIteratorPair.first != providersForInterfacesIteratorPair.second) {
 
-        DBusServiceInstanceId dbusInstanceId = providersForInterfacesIteratorPair.first->second;
-        if(dbusInstanceId.first == dbusWellKnownBusName) {
+        DBusInstanceId dbusInstanceId = providersForInterfacesIteratorPair.first->second;
+        if(std::get<0>(dbusInstanceId) == dbusWellKnownBusName) {
             auto toErase = providersForInterfacesIteratorPair.first;
             ++providersForInterfacesIteratorPair.first;
             dbusCachedProvidersForInterfaces_.erase(toErase);

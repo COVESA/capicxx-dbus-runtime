@@ -13,81 +13,110 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#include <cassert>
 
 
 namespace CommonAPI {
 namespace DBus {
 
 
+enum class TypeEnum {
+    DBUS_CONNECTION, DBUS_OBJECT, DBUS_INTERFACE
+};
+
+static const std::unordered_map<std::string, TypeEnum> allowedValueTypes = {
+                {"dbus_connection", TypeEnum::DBUS_CONNECTION},
+                {"dbus_object", TypeEnum::DBUS_OBJECT},
+                {"dbus_interface", TypeEnum::DBUS_INTERFACE}
+};
 
 
+inline void readValue(std::string& readLine, DBusServiceAddress dbusServiceAddress) {
+    std::stringstream readStream(readLine);
 
-inline bool readSection(std::ifstream& addressConfigFile, std::string& section) {
-    std::string readLine;
-    getline(addressConfigFile, readLine);
+    std::string paramName;
+    std::string paramValue;
 
-    const size_t sectionLength = readLine.length();
+    getline(readStream, paramName, '=');
 
-    if(readLine[0] != '[' || readLine[sectionLength - 1] != ']') {
-        return false;
+    auto typeEntry = allowedValueTypes.find(paramName);
+    if(typeEntry != allowedValueTypes.end()) {
+        getline(readStream, paramValue);
+        switch(typeEntry->second) {
+            case TypeEnum::DBUS_CONNECTION:
+                std::get<0>(dbusServiceAddress) = paramValue;
+                break;
+            case TypeEnum::DBUS_OBJECT:
+                std::get<1>(dbusServiceAddress) = paramValue;
+                break;
+            case TypeEnum::DBUS_INTERFACE:
+                std::get<2>(dbusServiceAddress) = paramValue;
+                break;
+        }
     }
-
-    section = readLine.substr(1, sectionLength - 2);
-
-    return true;
-
-//    [domain:service:instance]
-//    dbus_connection=connection.name
-//    dbus_object=/path/to/object
-//    dbus_interface=service.name
 }
 
 
-std::unordered_set<std::string> allowedValueTypes = {"dbus_connection", "dbus_object", "dbus_interface"};
-
-
-inline bool readValue(std::ifstream& addressConfigFile, std::string& paramName, std::string& paramValue) {
-    getline(addressConfigFile, paramName, '=');
-    if(allowedValueTypes.find(paramName) == allowedValueTypes.end()) {
-        return false;
-    }
-    getline(addressConfigFile, paramValue);
-
-    //TODO: Check whether its a valid bus name
-
-    return true;
+inline void reset(DBusServiceAddress& dbusServiceAddress) {
+    std::get<0>(dbusServiceAddress) = "";
+    std::get<1>(dbusServiceAddress) = "";
+    std::get<2>(dbusServiceAddress) = "";
 }
 
 
+void DBusAddressTranslator::fillUndefinedRequiredValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const {
+    std::string connectionName;
+    std::string objectPath;
+    std::string interfaceName;
+
+    findFallbackDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
+
+    std::get<0>(dbusServiceAddress) = std::get<0>(dbusServiceAddress) == "" ? connectionName : std::get<0>(dbusServiceAddress);
+    std::get<1>(dbusServiceAddress) = std::get<1>(dbusServiceAddress) == "" ? objectPath : std::get<1>(dbusServiceAddress);
+}
+
+//TODO: Fall, dass Datei nicht gefunden!
+//TODO: Suche in etc/config (oder so)
 
 
-
-
-DBusAddressTranslator::DBusAddressTranslator()
-{
-    std::string fqnOfConfigFile = getBinaryFileName();
-    fqnOfConfigFile += "_dbus.ini";
+DBusAddressTranslator::DBusAddressTranslator() {
+    std::string fqnOfConfigFile = getCurrentBinaryFileName();
+    fqnOfConfigFile += "_dbus.conf";
 
     std::ifstream addressConfigFile;
 
     addressConfigFile.open(fqnOfConfigFile.c_str());
 
+    std::string currentlyParsedCommonApiAddress;
+    DBusServiceAddress dbusServiceAddress;
+    reset(dbusServiceAddress);
+
+    bool currentAddressNotYetContained = false;
+    bool atLeastOneAddressFound = false;
+
     while (addressConfigFile.good()) {
-        std::string section;
+        std::string readLine;
+        getline(addressConfigFile, readLine);
+        const size_t readLineLength = readLine.length();
 
-        readSection(addressConfigFile, section);
-        std::cout << "---" << section<< "---" << std::endl;
+        if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
+            if(atLeastOneAddressFound) {
+                fillUndefinedRequiredValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
+                knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress} );
+                knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress} );
+            }
+            reset(dbusServiceAddress);
+            currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
+            currentAddressNotYetContained =
+                            knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end() &&
+                            knownCommonAddresses.find(dbusServiceAddress) == knownCommonAddresses.end();
+            atLeastOneAddressFound = true;
 
-        std::string paramName;
-        std::string paramValue;
-
-        readValue(addressConfigFile, paramName, paramValue);
-        std::cout << paramName << "::" << paramValue << std::endl;
-        readValue(addressConfigFile, paramName, paramValue);
-        std::cout << paramName << "::" << paramValue << std::endl;
-        readValue(addressConfigFile, paramName, paramValue);
-        std::cout << paramName << "::" << paramValue << std::endl;
+        } else if(currentAddressNotYetContained) {
+            readValue(readLine, dbusServiceAddress);
+        }
     }
+    knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress} );
 
     addressConfigFile.close();
 }
@@ -102,41 +131,55 @@ DBusAddressTranslator& DBusAddressTranslator::getInstance() {
 }
 
 
-void DBusAddressTranslator::searchForDBusInstanceId(const std::string& instanceId,
-                                              std::string& connectionName,
-                                              std::string& objectPath) const {
-    if(!true) {
-        findFallbackDBusInstanceId(instanceId, connectionName, objectPath);
-    }
-}
-
-void DBusAddressTranslator::searchForCommonInstanceId(std::string& instanceId,
-                                                const std::string& connectionName,
-                                                const std::string& objectPath) const {
-    if(!true) {
-        findFallbackCommonInstanceId(instanceId, connectionName, objectPath);
-    }
-}
-
-
-std::string DBusAddressTranslator::findCommonAPIAddressForDBusAddress(const std::string& conName,
-                                               const std::string& objName,
-                                               const std::string& intName) const {
-    return "local:" + intName + ":" + conName;
-}
-
-void DBusAddressTranslator::findFallbackDBusInstanceId(const std::string& instanceId,
+void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAddress,
+                                                 std::string& interfaceName,
                                                  std::string& connectionName,
-                                                 std::string& objectPath) const {
-    connectionName = instanceId;
-    objectPath = '/' + instanceId;
+                                                 std::string& objectPath) {
+
+    const auto& foundAddressMapping = knownDBusAddresses.find(commonApiAddress);
+    if(foundAddressMapping != knownDBusAddresses.end()) {
+        connectionName = std::get<0>(foundAddressMapping->second);
+        objectPath = std::get<1>(foundAddressMapping->second);
+        interfaceName = std::get<2>(foundAddressMapping->second);
+    } else {
+        findFallbackDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
+        knownDBusAddresses.insert( {commonApiAddress, std::make_tuple(connectionName, objectPath, interfaceName) } );
+    }
+}
+
+void DBusAddressTranslator::searchForCommonAddress(const std::string& interfaceName,
+                                                   const std::string& connectionName,
+                                                   const std::string& objectPath,
+                                                   std::string& commonApiAddress) {
+
+    DBusServiceAddress dbusAddress(connectionName, objectPath, interfaceName);
+
+    const auto& foundAddressMapping = knownCommonAddresses.find(dbusAddress);
+    if (foundAddressMapping != knownCommonAddresses.end()) {
+        commonApiAddress = foundAddressMapping->second;
+    } else {
+        findFallbackCommonAddress(commonApiAddress, interfaceName, connectionName, objectPath);
+        knownCommonAddresses.insert( {std::move(dbusAddress), commonApiAddress} );
+    }
+}
+
+
+void DBusAddressTranslator::findFallbackDBusAddress(const std::string& commonApiAddress,
+                                                    std::string& interfaceName,
+                                                    std::string& connectionName,
+                                                    std::string& objectPath) const {
+    std::vector<std::string> parts = split(commonApiAddress, ':');
+    interfaceName = parts[1];
+    connectionName = parts[2];
+    objectPath = '/' + parts[2];
     std::replace(objectPath.begin(), objectPath.end(), '.', '/');
 }
 
-void DBusAddressTranslator::findFallbackCommonInstanceId(std::string& instanceId,
-                                                   const std::string& connectionName,
-                                                   const std::string& objectPath) const {
-    instanceId = connectionName;
+void DBusAddressTranslator::findFallbackCommonAddress(std::string& commonApiAddress,
+                                                      const std::string& interfaceName,
+                                                      const std::string& connectionName,
+                                                      const std::string& objectPath) const {
+    commonApiAddress = "local:" + interfaceName + ":" + connectionName;
 }
 
 

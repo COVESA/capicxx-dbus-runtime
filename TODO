@@ -13,20 +13,19 @@ config.ini für Mapping von DBus-Gegenstellen:
     Connection Name: org.genivi.AudioManager.RoutingInterface
     Object Path: /org/genivi/AudioManager/RoutingInterface
 
-  Die config files sehen so aus:
-
-  [domain:service:instance]
-  dbus_connection=connection.name
-  dbus_object=/path/to/object
-  dbus_interface=service.name
-
   Diese können als BinaryName_dbus.conf im gleichen Verzeichnis wie das
   Binary liegen, oder in /etc/commonapi-dbus/BinaryName_dbus.conf
 
-  Validity checks for read values should be incorporated!
+  Validity checks for read values should be incorporated in DBusAddressTranslator::readValue!
   Each of the values is optional, all values that are not specified are mapped via the default mapping.
   
   Error handling for DBusUtils.h::getBinaryFileName
+  
+  using interfaceName in this address scheme has to be considered insecure, as it alters the predefined interface name!
+  Still has to be supported cause some legacy service might exist that has a deviating name.
+  
+  Create and delete file for testing dynamically, also depending on the name of this binary!
+  Also incorporate checks on binary-file-name-retrieval here!
 
 
 
@@ -172,6 +171,11 @@ Future development (2.1):
 - Handling of D-Bus properties!! Sollte auf Franca attributes gemapped sein (Grund: Interoperabilität)
 
 * getValue on attributes is inconsisten with other methods, CallStatus should be in signature not return
+
+
+
+DBusServiceRegistry.cpp::updateListeners
+* Sollte der "bool available"-Parameter einen Sinn haben? Prüfen und ihm ggf einen geben, sonst entfernen!
 
 
 -----

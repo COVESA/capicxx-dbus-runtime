@@ -11,18 +11,54 @@
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 
 
+static const std::string fileString = "\n"
+"\n"
+"\n"
+"[domain:service:instance]\n"
+"dbus_connection=connection.name\n"
+"dbus_object=/path/to/object\n"
+"dbus_interface=service.name\n"
+"\n"
+"[noNothingDomain:noNothingService:noNothingInterface]\n"
+"\n"
+"[noInterfaceDomain:noInterfaceService:noInterfaceInstance]\n"
+"dbus_connection=no.interface.connection\n"
+"dbus_object=/no/interface/path\n"
+"\n"
+"[noConnectionDomain:noConnectionService:noConnectionInstance]\n"
+"dbus_object=/no/connection/path\n"
+"dbus_interface=no.connection.interface\n"
+"\n"
+"[noObjectDomain:noObjectService:noObjectInstance]\n"
+"dbus_connection=no.object.connection\n"
+"dbus_interface=no.object.interface\n"
+"\n"
+"[onlyInterfaceDomain:onlyInterfaceService:onlyInterfaceInstance]\n"
+"dbus_interface=only.interface.interface\n"
+"\n"
+"[onlyConnectionDomain:onlyConnectionService:onlyConnectionInstance]\n"
+"dbus_connection=only.connection.connection\n"
+"\n"
+"[onlyObjectDomain:onlyObjectService:onlyObjectInstance]\n"
+"dbus_object=/only/object/path\n";
+
+
 class AddressTranslatorTest: public ::testing::Test {
 protected:
-
-    virtual void TearDown() {
+    void SetUp() {
     }
 
-    void SetUp() {
+    virtual void TearDown() {
     }
 };
 
 
 TEST_F(AddressTranslatorTest, InstanceCanBeRetrieved) {
+    CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
+}
+
+
+TEST_F(AddressTranslatorTest, ParsesContainedDBusAddresses) {
     CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
 }
 
