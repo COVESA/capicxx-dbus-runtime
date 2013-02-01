@@ -81,44 +81,48 @@ void DBusAddressTranslator::fillUndefinedRequiredValues(DBusServiceAddress& dbus
 
 DBusAddressTranslator::DBusAddressTranslator() {
     std::string fqnOfConfigFile = getCurrentBinaryFileName();
-    fqnOfConfigFile += "_dbus.conf";
+    fqnOfConfigFile += DBUS_CONFIG_SUFFIX;
 
     std::ifstream addressConfigFile;
 
     addressConfigFile.open(fqnOfConfigFile.c_str());
 
-    std::string currentlyParsedCommonApiAddress;
-    DBusServiceAddress dbusServiceAddress;
-    reset(dbusServiceAddress);
+    if(addressConfigFile) {
+        std::string currentlyParsedCommonApiAddress;
+        DBusServiceAddress dbusServiceAddress;
+        reset(dbusServiceAddress);
 
-    bool currentAddressNotYetContained = false;
-    bool atLeastOneAddressFound = false;
+        bool currentAddressNotYetContained = false;
+        bool atLeastOneAddressFound = false;
 
-    while (addressConfigFile.good()) {
-        std::string readLine;
-        getline(addressConfigFile, readLine);
-        const size_t readLineLength = readLine.length();
+        while (addressConfigFile.good()) {
+            std::string readLine;
+            getline(addressConfigFile, readLine);
+            const size_t readLineLength = readLine.length();
 
-        if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
-            if(atLeastOneAddressFound) {
-                fillUndefinedRequiredValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
-                knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress} );
-                knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress} );
+            if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
+                if (atLeastOneAddressFound) {
+                    fillUndefinedRequiredValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
+                    knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
+                    knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
+                }
+                reset(dbusServiceAddress);
+                currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
+                currentAddressNotYetContained =
+                                knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end()
+                                                &&
+                                                knownCommonAddresses.find(dbusServiceAddress)
+                                                                == knownCommonAddresses.end();
+                atLeastOneAddressFound = true;
+
+            } else if (currentAddressNotYetContained) {
+                readValue(readLine, dbusServiceAddress);
             }
-            reset(dbusServiceAddress);
-            currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
-            currentAddressNotYetContained =
-                            knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end() &&
-                            knownCommonAddresses.find(dbusServiceAddress) == knownCommonAddresses.end();
-            atLeastOneAddressFound = true;
-
-        } else if(currentAddressNotYetContained) {
-            readValue(readLine, dbusServiceAddress);
         }
-    }
-    knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress} );
+        knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
 
-    addressConfigFile.close();
+        addressConfigFile.close();
+    }
 }
 
 

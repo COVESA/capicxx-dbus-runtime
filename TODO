@@ -4,24 +4,18 @@ config.ini für Mapping von DBus-Gegenstellen:
 Remaining issues:
 - Validity checks for read values should be incorporated in DBusAddressTranslator::readValue!
 - Error handling for DBusUtils.h::getBinaryFileName
-  * When no file is found
   * When one of the defined error codes is thrown
 - Search for an appropriate file in global configuration directory ("/etc/commonapi-dbus/<BinaryName>_dbus.conf").
-- Giving a serviceName now influences the interfaceName on registering of a proxy or service.
-  * Check whether this (DBus interface names given as CommonAPI service names at runtime) compromises communication.
-    # Reason: There still are several places where interfaces use their predefined names.
-    # Possibility: The given interfaceName only alters the name under which the service is registered.
+- Giving a serviceName now could influence the interfaceName on registering a proxy or service.
+  * Current situation:
+    # Given service name only alters the name under which the proxy/service is registered.
+    # The given service name does NOT influence communication, here always the predefined interface name is used.
   * Reasons to support alternative interface names for a given proxy:
     # Some legacy service might exist that has a deviating interface name.
   * Alternative:
     # Force the predefined interfaceName and the given serviceName to be the same.
+    # Ignore the given service name on DBus level.
 - Incorporate checks on binary-file-name-retrieval in unit test.
-  Create and delete config-file in .libs for testing dynamically, also depending on the name of this binary.
-  --> Makes it unnecessary to provide a .config in the .libs folder.
-  
-
-
-
 
 
 -----
@@ -171,6 +165,7 @@ Future development (2.1):
 
 DBusServiceRegistry.cpp::updateListeners
 * Sollte der "bool available"-Parameter einen Sinn haben? Prüfen und ihm ggf einen geben, sonst entfernen!
+
 
 
 -----

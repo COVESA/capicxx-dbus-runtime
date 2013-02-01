@@ -8,7 +8,10 @@
 
 #include <gtest/gtest.h>
 
+#include <fstream>
+
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
+#include <CommonAPI/DBus/DBusUtils.h>
 
 
 static const std::string fileString = "\n"
@@ -42,6 +45,27 @@ static const std::string fileString = "\n"
 "[onlyObjectDomain:onlyObjectService:onlyObjectInstance]\n"
 "dbus_object=/only/object/path\n";
 
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileName();
+        configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
+        std::ofstream configFile(configFileName_);
+        ASSERT_TRUE(configFile.is_open());
+        configFile << fileString;
+        configFile.close();
+    }
+
+    virtual void TearDown() {
+        std::remove(configFileName_.c_str());
+    }
+
+    std::string configFileName_;
+};
+
 
 class AddressTranslatorTest: public ::testing::Test {
 protected:
@@ -65,5 +89,6 @@ TEST_F(AddressTranslatorTest, ParsesContainedDBusAddresses) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
