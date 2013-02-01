@@ -31,7 +31,7 @@ static const std::unordered_map<std::string, TypeEnum> allowedValueTypes = {
 };
 
 
-inline void readValue(std::string& readLine, DBusServiceAddress dbusServiceAddress) {
+inline void readValue(std::string& readLine, DBusServiceAddress& dbusServiceAddress) {
     std::stringstream readStream(readLine);
 
     std::string paramName;
@@ -64,7 +64,7 @@ inline void reset(DBusServiceAddress& dbusServiceAddress) {
 }
 
 
-void DBusAddressTranslator::fillUndefinedRequiredValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const {
+void DBusAddressTranslator::fillUndefinedValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const {
     std::string connectionName;
     std::string objectPath;
     std::string interfaceName;
@@ -73,13 +73,14 @@ void DBusAddressTranslator::fillUndefinedRequiredValues(DBusServiceAddress& dbus
 
     std::get<0>(dbusServiceAddress) = std::get<0>(dbusServiceAddress) == "" ? connectionName : std::get<0>(dbusServiceAddress);
     std::get<1>(dbusServiceAddress) = std::get<1>(dbusServiceAddress) == "" ? objectPath : std::get<1>(dbusServiceAddress);
+    std::get<2>(dbusServiceAddress) = std::get<2>(dbusServiceAddress) == "" ? interfaceName : std::get<2>(dbusServiceAddress);
 }
 
-//TODO: Fall, dass Datei nicht gefunden!
-//TODO: Suche in etc/config (oder so)
+
+DBusAddressTranslator::DBusAddressTranslator() {}
 
 
-DBusAddressTranslator::DBusAddressTranslator() {
+void DBusAddressTranslator::init() {
     std::string fqnOfConfigFile = getCurrentBinaryFileName();
     fqnOfConfigFile += DBUS_CONFIG_SUFFIX;
 
@@ -102,24 +103,26 @@ DBusAddressTranslator::DBusAddressTranslator() {
 
             if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
                 if (atLeastOneAddressFound) {
-                    fillUndefinedRequiredValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
+                    fillUndefinedValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
                     knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
                     knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
                 }
                 reset(dbusServiceAddress);
                 currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
                 currentAddressNotYetContained =
-                                knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end()
-                                                &&
-                                                knownCommonAddresses.find(dbusServiceAddress)
-                                                                == knownCommonAddresses.end();
+                                knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end() &&
+                                knownCommonAddresses.find(dbusServiceAddress) == knownCommonAddresses.end();
                 atLeastOneAddressFound = true;
 
             } else if (currentAddressNotYetContained) {
                 readValue(readLine, dbusServiceAddress);
             }
         }
-        knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
+        if(atLeastOneAddressFound) {
+            fillUndefinedValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
+            knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
+            knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
+        }
 
         addressConfigFile.close();
     }
@@ -130,6 +133,7 @@ DBusAddressTranslator& DBusAddressTranslator::getInstance() {
     static DBusAddressTranslator* dbusNameService_;
     if(!dbusNameService_) {
         dbusNameService_ = new DBusAddressTranslator();
+        dbusNameService_->init();
     }
     return *dbusNameService_;
 }

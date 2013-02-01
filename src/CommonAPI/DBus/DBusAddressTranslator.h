@@ -44,6 +44,8 @@ private:
     DBusAddressTranslator(const DBusAddressTranslator&) = delete;
     DBusAddressTranslator& operator=(const DBusAddressTranslator&) = delete;
 
+    void init();
+
     void findFallbackDBusAddress(const std::string& instanceId,
                                     std::string& interfaceName,
                                     std::string& connectionName,
@@ -54,7 +56,7 @@ private:
                                       const std::string& connectionName,
                                       const std::string& objectPath) const;
 
-    void fillUndefinedRequiredValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const;
+    void fillUndefinedValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const;
 
     std::unordered_map<std::string, DBusServiceAddress> knownDBusAddresses;
     std::unordered_map<DBusServiceAddress, std::string> knownCommonAddresses;

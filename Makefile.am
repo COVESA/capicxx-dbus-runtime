@@ -105,7 +105,9 @@ check_PROGRAMS = \
 TESTS =	${check_PROGRAMS}
 LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} ${LDADD}
 
-DBusAddressTranslatorTest_SOURCES = src/test/DBusAddressTranslatorTest.cpp
+DBusAddressTranslatorTest_SOURCES = \
+		src/test/DBusAddressTranslatorTest.cpp \
+		${TestInterfaceSources}
 DBusAddressTranslatorTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusAddressTranslatorTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusAddressTranslatorTest_LDADD = ${LDADD_FOR_GTEST}

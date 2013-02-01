@@ -2,11 +2,12 @@
 config.ini für Mapping von DBus-Gegenstellen:
 -----
 Remaining issues:
-- Validity checks for read values should be incorporated in DBusAddressTranslator::readValue!
+- Validity checks for read values should be incorporated in DBusAddressTranslator::readValue
+  * Don't forget to ignore any non-"local" domains
 - Error handling for DBusUtils.h::getBinaryFileName
   * When one of the defined error codes is thrown
 - Search for an appropriate file in global configuration directory ("/etc/commonapi-dbus/<BinaryName>_dbus.conf").
-- Giving a serviceName now could influence the interfaceName on registering a proxy or service.
+- To check: Giving a serviceName now could influence the interfaceName on registering a proxy or service.
   * Current situation:
     # Given service name only alters the name under which the proxy/service is registered.
     # The given service name does NOT influence communication, here always the predefined interface name is used.
@@ -16,6 +17,7 @@ Remaining issues:
     # Force the predefined interfaceName and the given serviceName to be the same.
     # Ignore the given service name on DBus level.
 - Incorporate checks on binary-file-name-retrieval in unit test.
+- Incorporate test on cooperation of "getAvailableServices" and the DBusAddressTranslator
 
 
 -----
