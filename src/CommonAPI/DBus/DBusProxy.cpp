@@ -46,13 +46,17 @@ SubscriptionStatus DBusProxyStatusEvent::onServiceAvailableSignalHandler(const s
 
 const std::string DBusProxy::domain_ = "local";
 
-DBusProxy::DBusProxy(const std::string& dbusBusName,
+DBusProxy::DBusProxy(const std::string& commonApiAddress,
+                     const std::string& dbusInterfaceName,
+                     const std::string& dbusBusName,
                      const std::string& dbusObjectPath,
-                     const std::string& interfaceName,
                      const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection) :
+                         commonApiDomain_(split(commonApiAddress, ':')[0]),
+                         commonApiServiceId_(split(commonApiAddress, ':')[1]),
+                         commonApiParticipantId_(split(commonApiAddress, ':')[2]),
 						 dbusBusName_(dbusBusName),
 		                 dbusObjectPath_(dbusObjectPath),
-		                 interfaceName_(interfaceName),
+		                 interfaceName_(dbusInterfaceName),
 		                 statusEvent_(this),
 		                 interfaceVersionAttribute_(*this, "getInterfaceVersion"),
 		                 available_(false),
@@ -60,35 +64,39 @@ DBusProxy::DBusProxy(const std::string& dbusBusName,
 		                 connection_(dbusProxyConnection) {
 }
 
-DBusProxy::DBusProxy(const std::string& dbusBusName,
+DBusProxy::DBusProxy(const std::string& commonApiAddress,
+                     const std::string& dbusInterfaceName,
+                     const std::string& dbusBusName,
                      const std::string& dbusObjectPath,
-                     const std::string& interfaceName,
                      const std::shared_ptr<DBusProxyConnection>& connection,
-                     const bool isAlwaysAvailable) :
-                 dbusBusName_(dbusBusName),
-                 dbusObjectPath_(dbusObjectPath),
-                 interfaceName_(interfaceName),
-                 statusEvent_(this),
-                 interfaceVersionAttribute_(*this, "getInterfaceVersion"),
-                 available_(isAlwaysAvailable),
-                 availableSet_(isAlwaysAvailable),
-                 connection_(connection) {
+                     const bool isAlwaysAvailable):
+                         commonApiDomain_(split(commonApiAddress, ':')[0]),
+                         commonApiServiceId_(split(commonApiAddress, ':')[1]),
+                         commonApiParticipantId_(split(commonApiAddress, ':')[2]),
+                         dbusBusName_(dbusBusName),
+                         dbusObjectPath_(dbusObjectPath),
+                         interfaceName_(dbusInterfaceName),
+                         statusEvent_(this),
+                         interfaceVersionAttribute_(*this, "getInterfaceVersion"),
+                         available_(isAlwaysAvailable),
+                         availableSet_(isAlwaysAvailable),
+                         connection_(connection) {
 }
 
 std::string DBusProxy::getAddress() const {
-    return domain_ + ":" + interfaceName_ + ":" + dbusBusName_;
+    return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
 }
 
 const std::string& DBusProxy::getDomain() const {
-    return domain_;
+    return commonApiDomain_;
 }
 
 const std::string& DBusProxy::getServiceId() const {
-    return getInterfaceName();
+    return commonApiServiceId_;
 }
 
 const std::string& DBusProxy::getInstanceId() const {
-    return dbusBusName_;
+    return commonApiParticipantId_;
 }
 
 

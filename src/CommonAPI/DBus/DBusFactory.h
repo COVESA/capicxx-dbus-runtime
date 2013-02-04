@@ -17,8 +17,17 @@
 namespace CommonAPI {
 namespace DBus {
 
-typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const char* busName, const char* objectPath, std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
-typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (std::string busName, std::string objectPath, std::shared_ptr<DBusProxyConnection> dbusProxyConnection, std::shared_ptr<StubBase> stubBase);
+typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const std::string& commonApiAddress,
+                                                                const std::string& interfaceName,
+                                                                const std::string& busName,
+                                                                const std::string& objectPath,
+                                                                const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const std::string& commonApiAddress,
+                                                                        const std::string& interfaceName,
+                                                                        const std::string& busName,
+                                                                        const std::string& objectPath,
+                                                                        const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection,
+                                                                        const std::shared_ptr<StubBase>& stubBase);
 
 class DBusFactory: public Factory {
  public:
@@ -33,8 +42,8 @@ class DBusFactory: public Factory {
     virtual bool isServiceInstanceAlive(const std::string& serviceInstanceID, const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
  protected:
-    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceName, const std::string& participantId, const std::string& serviceName, const std::string& domain);
-    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceName, const std::string& participantId, const std::string& serviceName, const std::string& domain);
+    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
+    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;

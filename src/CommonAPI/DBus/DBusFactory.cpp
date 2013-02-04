@@ -60,11 +60,10 @@ std::vector<std::string> DBusFactory::getAvailableServiceInstances(const std::st
 bool DBusFactory::isServiceInstanceAlive(const std::string& participantId,
                                          const std::string& serviceName,
                                          const std::string& domainName) {
-
     return dbusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(participantId, serviceName, domainName);
 }
 
-std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceIdentifier,
+std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceId,
                                                 const std::string& participantId,
                                                 const std::string& serviceName,
                                                 const std::string& domain) {
@@ -81,8 +80,8 @@ std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceIdentifier,
     }
 
     for (auto it = registeredProxyFactoryFunctions_->begin(); it != registeredProxyFactoryFunctions_->end(); ++it) {
-        if(it->first == interfaceIdentifier) {
-            return (it->second)(connectionName.c_str(), objectPath.c_str(), dbusConnection_);
+        if(it->first == interfaceId) {
+            return (it->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_);
         }
     }
 
@@ -90,7 +89,7 @@ std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceIdentifier,
 }
 
 std::shared_ptr<StubAdapter> DBusFactory::createAdapter(std::shared_ptr<StubBase> stubBase,
-                                                        const char* interfaceIdentifier,
+                                                        const char* interfaceId,
                                                         const std::string& participantId,
                                                         const std::string& serviceName,
                                                         const std::string& domain) {
@@ -116,8 +115,8 @@ std::shared_ptr<StubAdapter> DBusFactory::createAdapter(std::shared_ptr<StubBase
     }
 
     for (auto it = registeredAdapterFactoryFunctions_->begin(); it != registeredAdapterFactoryFunctions_->end(); ++it) {
-        if(it->first == interfaceIdentifier) {
-            std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (it->second)(connectionName.c_str(), objectPath.c_str(), dbusConnection_, stubBase);
+        if(it->first == interfaceId) {
+            std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (it->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
             dbusStubAdapter->init();
             return dbusStubAdapter;
         }

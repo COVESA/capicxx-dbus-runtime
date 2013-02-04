@@ -33,12 +33,13 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
     };
 
  public:
-    DBusStubAdapterHelper(const std::string& dbusBusName,
+    DBusStubAdapterHelper(const std::string& commonApiAddress,
+                          const std::string& dbusInterfaceName,
+                          const std::string& dbusBusName,
                           const std::string& dbusObjectPath,
-                          const std::string& interfaceName,
                           const std::shared_ptr<DBusProxyConnection>& dbusConnection,
-                          std::shared_ptr<_StubClass> stub):
-                    DBusStubAdapter(dbusBusName, dbusObjectPath, interfaceName, dbusConnection),
+                          const std::shared_ptr<_StubClass>& stub):
+                    DBusStubAdapter(commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection),
                     stub_(stub) {
     }
 

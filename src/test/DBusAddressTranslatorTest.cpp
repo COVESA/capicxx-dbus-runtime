@@ -29,8 +29,6 @@
 
 
 static const std::string fileString =
-"\n"
-"\n"
 "[local:no.nothing.service:no.nothing.instance]\n"
 "\n"
 "[local:service:instance]\n"
@@ -57,7 +55,7 @@ static const std::string fileString =
 "dbus_connection=only.connection.connection\n"
 "\n"
 "[local:only.object.service:only.object.instance]\n"
-"dbus_object=/only/object/path\n";
+"dbus_object=/only/object/path";
 
 static const std::vector<std::string> commonApiAddresses = {
     "local:no.nothing.service:no.nothing.instance",

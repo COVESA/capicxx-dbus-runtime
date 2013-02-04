@@ -30,7 +30,7 @@ class DBusDaemonProxy: public DBusProxy {
 
 	DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& connection);
 
-    const char* getInterfaceName() const;
+    inline const char* getInterfaceName() const;
 
     NameOwnerChangedEvent& getNameOwnerChangedEvent();
 
@@ -45,8 +45,11 @@ class DBusDaemonProxy: public DBusProxy {
 
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
-
 };
+
+const char* DBusDaemonProxy::getInterfaceName() const {
+    return "org.freedesktop.DBus";
+}
 
 } // namespace DBus
 } // namespace CommonAPI

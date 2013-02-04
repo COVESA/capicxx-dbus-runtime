@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DBusStubAdapter.h"
+#include "DBusUtils.h"
 
 #include <dbus/dbus-protocol.h>
 
@@ -17,21 +18,25 @@ namespace DBus {
 
 const std::string DBusStubAdapter::domain_ = "local";
 
-DBusStubAdapter::DBusStubAdapter(const std::string& dbusBusName,
+DBusStubAdapter::DBusStubAdapter(const std::string& commonApiAddress,
+                                 const std::string& dbusInterfaceName,
+                                 const std::string& dbusBusName,
                                  const std::string& dbusObjectPath,
-                                 const std::string& interfaceName,
                                  const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
+                commonApiDomain_(split(commonApiAddress, ':')[0]),
+                commonApiServiceId_(split(commonApiAddress, ':')[1]),
+                commonApiParticipantId_(split(commonApiAddress, ':')[2]),
+                dbusInterfaceName_(dbusInterfaceName),
                 dbusBusName_(dbusBusName),
                 dbusObjectPath_(dbusObjectPath),
-                interfaceName_(interfaceName),
                 dbusConnection_(dbusConnection),
                 isInitialized_(false) {
 
     assert(!dbusBusName_.empty());
-    assert(!interfaceName_.empty());
+    assert(!dbusInterfaceName_.empty());
     assert(!dbusObjectPath_.empty());
     assert(dbusObjectPath_[0] == '/');
-    assert(!interfaceName.empty());
+    assert(!dbusInterfaceName_.empty());
     assert(dbusConnection_);
 }
 
@@ -51,26 +56,26 @@ void DBusStubAdapter::init() {
 
     dbusInterfaceHandlerToken_ = dbusConnection_->getDBusObjectManager()->registerInterfaceHandler(
                     dbusObjectPath_,
-                    interfaceName_,
+                    dbusInterfaceName_,
                     std::bind(&DBusStubAdapter::onInterfaceDBusMessage, this, std::placeholders::_1));
 
     isInitialized_ = true;
 }
 
 const std::string DBusStubAdapter::getAddress() const {
-	return domain_ + ":" + interfaceName_ + ":" + dbusBusName_;
+    return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
 }
 
 const std::string& DBusStubAdapter::getDomain() const {
-    return domain_;
+    return commonApiDomain_;
 }
 
 const std::string& DBusStubAdapter::getServiceId() const {
-    return interfaceName_;
+    return commonApiServiceId_;
 }
 
 const std::string& DBusStubAdapter::getInstanceId() const {
-    return dbusObjectPath_;
+    return commonApiParticipantId_;
 }
 
 bool DBusStubAdapter::onIntrospectionInterfaceDBusMessage(const DBusMessage& dbusMessage) {
@@ -86,7 +91,7 @@ bool DBusStubAdapter::onIntrospectionInterfaceDBusMessage(const DBusMessage& dbu
                                "<arg type=\"s\" name=\"xml_data\" direction=\"out\"/>\n"
                            "</method>\n"
                        "</interface>\n"
-                       "<interface name=\"" << interfaceName_ << "\">\n"
+                       "<interface name=\"" << dbusInterfaceName_ << "\">\n"
                            << getMethodsDBusIntrospectionXmlData() << "\n"
                        "</interface>\n"
                    "</node>";

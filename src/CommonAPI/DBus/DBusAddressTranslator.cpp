@@ -145,6 +145,7 @@ void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAdd
                                                  std::string& objectPath) {
 
     const auto& foundAddressMapping = knownDBusAddresses.find(commonApiAddress);
+
     if(foundAddressMapping != knownDBusAddresses.end()) {
         connectionName = std::get<0>(foundAddressMapping->second);
         objectPath = std::get<1>(foundAddressMapping->second);

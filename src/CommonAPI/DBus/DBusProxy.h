@@ -46,9 +46,10 @@ class DBusProxyStatusEvent: public ProxyStatusEvent {
 
 class DBusProxy: public virtual CommonAPI::Proxy {
  public:
-    DBusProxy(const std::string& dbusBusName,
+    DBusProxy(const std::string& commonApiAddress,
+              const std::string& dbusInterfaceName,
+              const std::string& dbusBusName,
               const std::string& dbusObjectPath,
-              const std::string& interfaceName,
               const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
 
     virtual std::string getAddress() const;
@@ -78,9 +79,10 @@ class DBusProxy: public virtual CommonAPI::Proxy {
  protected:
     DBusProxy(const DBusProxy& abstractProxy) = delete;
 
-    DBusProxy(const std::string& busName,
-              const std::string& objectId,
-              const std::string& interfaceName,
+    DBusProxy(const std::string& commonApiAddress,
+              const std::string& dbusInterfaceName,
+              const std::string& dbusBusName,
+              const std::string& dbusObjectPath,
               const std::shared_ptr<DBusProxyConnection>& connection,
               const bool isAlwaysAvailable);
 
@@ -91,6 +93,10 @@ class DBusProxy: public virtual CommonAPI::Proxy {
 
  private:
     void onServiceAlive(bool alive);
+
+    const std::string commonApiDomain_;
+    const std::string commonApiServiceId_;
+    const std::string commonApiParticipantId_;
 
     const std::string dbusBusName_;
     const std::string dbusObjectPath_;
