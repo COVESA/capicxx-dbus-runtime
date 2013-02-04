@@ -7,12 +7,9 @@
 #include <CommonAPI/InputStream.h>
 #include <CommonAPI/OutputStream.h>
 #include <CommonAPI/SerializableStruct.h>
-#include <CommonAPI/SerializableVariant.h>
 #include <CommonAPI/types.h>
-#include <test/commonapi/tests/PredefinedTypeCollection.h>
+#include "PredefinedTypeCollection.h"
 #include <cstdint>
-#include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -102,12 +99,6 @@ typedef std::vector<uint64_t> TestArrayUInt64;
 typedef std::vector<TestStruct> TestArrayTestStruct;
 
 typedef std::unordered_map<uint32_t, TestArrayTestStruct> TestMap;
-
-typedef CommonAPI::Variant<double, int16_t, std::string>  TestUnionIn;
-
-typedef CommonAPI::Variant<TestEnumExtended, double, int16_t, std::string>  TestUnionOut;
-
-typedef CommonAPI::Variant<TestEnum, TestEnumExtended, double, int16_t, std::string>  TestUnionReallyExtended;
 
 inline CommonAPI::InputStream& operator>>(CommonAPI::InputStream& inputStream, TestEnum& enumValue) {
     return inputStream.readEnumValue<int32_t>(enumValue);
@@ -307,124 +298,6 @@ namespace CommonAPI {
 	    }
 	};
 	
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& rhs) {
-	    	if (lhs.getValueType() == rhs.getValueType()) {
-	            if (rhs.getValueType() == 1) { 
-	            	std::string a = lhs.get<std::string>(); 
-	            	std::string b = rhs.get<std::string>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 2) { 
-	            	int16_t a = lhs.get<int16_t>(); 
-	            	int16_t b = rhs.get<int16_t>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 3) { 
-	            	double a = lhs.get<double>(); 
-	            	double b = rhs.get<double>(); 
-	            	return (a == b); 
-	            }
-	    }
-	    return false;
-	}
-	
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& rhs) {
-	        return rhs == lhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& rhs) {
-	        return lhs != rhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& rhs) {
-	        return lhs != rhs;
-	}        
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& rhs) {
-	    	if (lhs.getValueType() == rhs.getValueType()) {
-	            if (rhs.getValueType() == 1) { 
-	            	std::string a = lhs.get<std::string>(); 
-	            	std::string b = rhs.get<std::string>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 2) { 
-	            	int16_t a = lhs.get<int16_t>(); 
-	            	int16_t b = rhs.get<int16_t>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 3) { 
-	            	double a = lhs.get<double>(); 
-	            	double b = rhs.get<double>(); 
-	            	return (a == b); 
-	            }
-	    }
-	    return false;
-	}
-	
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& rhs) {
-	        return rhs == lhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& rhs) {
-	        return lhs != rhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionIn& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& rhs) {
-	        return lhs != rhs;
-	}        
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& rhs) {
-	    	if (lhs.getValueType() == rhs.getValueType()) {
-	            if (rhs.getValueType() == 1) { 
-	            	double a = lhs.get<double>(); 
-	            	double b = rhs.get<double>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 2) { 
-	            	int16_t a = lhs.get<int16_t>(); 
-	            	int16_t b = rhs.get<int16_t>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 3) { 
-	            	std::string a = lhs.get<std::string>(); 
-	            	std::string b = rhs.get<std::string>(); 
-	            	return (a == b); 
-	            } else if (rhs.getValueType() == 4) { 
-	            	commonapi::tests::DerivedTypeCollection::TestEnumExtended a = lhs.get<commonapi::tests::DerivedTypeCollection::TestEnumExtended>(); 
-	            	commonapi::tests::DerivedTypeCollection::TestEnumExtended b = rhs.get<commonapi::tests::DerivedTypeCollection::TestEnumExtended>(); 
-	            	return (a == b); 
-	            }
-	    }
-	    return false;
-	}
-	
-	inline bool operator==(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& rhs) {
-	        return rhs == lhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& rhs) {
-	        return lhs != rhs;
-	}
-	
-	inline bool operator!=(
-	    const commonapi::tests::DerivedTypeCollection::TestUnionOut& lhs, 
-	    const commonapi::tests::DerivedTypeCollection::TestUnionReallyExtended& rhs) {
-	        return lhs != rhs;
-	}        
 	
 }
 

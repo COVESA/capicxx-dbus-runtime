@@ -57,10 +57,24 @@ std::vector<std::string> DBusFactory::getAvailableServiceInstances(const std::st
 }
 
 
+bool DBusFactory::isServiceInstanceAlive(const std::string& serviceAddress) {
+    std::vector<std::string> parts = split(serviceAddress, ':');
+    assert(parts[0] == "local");
+
+    std::string interfaceName;
+    std::string connectionName;
+    std::string objectPath;
+    DBusAddressTranslator::getInstance().searchForDBusAddress(serviceAddress, interfaceName, connectionName, objectPath);
+
+    return dbusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(interfaceName, connectionName, objectPath);
+}
+
+
 bool DBusFactory::isServiceInstanceAlive(const std::string& participantId,
                                          const std::string& serviceName,
                                          const std::string& domainName) {
-    return dbusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(participantId, serviceName, domainName);
+    std::string serviceAddress = domainName + ":" + serviceName + ":" + participantId;
+    return isServiceInstanceAlive(serviceAddress);
 }
 
 std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceId,

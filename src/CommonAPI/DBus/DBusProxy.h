@@ -79,8 +79,7 @@ class DBusProxy: public virtual CommonAPI::Proxy {
  protected:
     DBusProxy(const DBusProxy& abstractProxy) = delete;
 
-    DBusProxy(const std::string& commonApiAddress,
-              const std::string& dbusInterfaceName,
+    DBusProxy(const std::string& dbusInterfaceName,
               const std::string& dbusBusName,
               const std::string& dbusObjectPath,
               const std::shared_ptr<DBusProxyConnection>& connection,
@@ -100,7 +99,7 @@ class DBusProxy: public virtual CommonAPI::Proxy {
 
     const std::string dbusBusName_;
     const std::string dbusObjectPath_;
-    const std::string interfaceName_;
+    const std::string dbusInterfaceName_;
 
     mutable bool available_;
     mutable bool availableSet_;
@@ -123,7 +122,7 @@ const std::string& DBusProxy::getDBusObjectPath() const {
 }
 
 const std::string& DBusProxy::getInterfaceName() const {
-    return interfaceName_;
+    return dbusInterfaceName_;
 }
 
 const std::shared_ptr<DBusProxyConnection>& DBusProxy::getDBusConnection() const {

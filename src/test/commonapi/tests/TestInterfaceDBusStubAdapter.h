@@ -4,7 +4,7 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_DBUS_STUB_ADAPTER_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_DBUS_STUB_ADAPTER_H_
 
-#include <test/commonapi/tests/TestInterfaceStub.h>
+#include "TestInterfaceStub.h"
 
 #include <CommonAPI/DBus/DBusStubAdapterHelper.h>
 #include <CommonAPI/DBus/DBusFactory.h>
@@ -17,6 +17,8 @@ typedef CommonAPI::DBus::DBusStubAdapterHelper<TestInterfaceStub> TestInterfaceD
 class TestInterfaceDBusStubAdapter: public TestInterfaceStubAdapter, public TestInterfaceDBusStubAdapterHelper {
  public:
     TestInterfaceDBusStubAdapter(
+            const std::string& commonApiAddress,
+            const std::string& dbusInterfaceName,
             const std::string& dbusBusName,
             const std::string& dbusObjectPath,
             const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,

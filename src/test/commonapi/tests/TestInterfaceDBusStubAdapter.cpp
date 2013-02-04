@@ -2,29 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "TestInterfaceDBusStubAdapter.h"
-#include <test/commonapi/tests/TestInterface.h>
+#include "TestInterface.h"
 
 namespace commonapi {
 namespace tests {
 
-std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createTestInterfaceDBusStubAdapter(std::string busName,
-                                                           std::string objectPath,
-                                                           std::shared_ptr<CommonAPI::DBus::DBusProxyConnection> dbusProxyConnection,
-                                                           std::shared_ptr<CommonAPI::StubBase> stubBase) {
-    return std::make_shared<TestInterfaceDBusStubAdapter>(busName, objectPath, dbusProxyConnection, stubBase);
+std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createTestInterfaceDBusStubAdapter(
+                   const std::string& commonApiAddress,
+                   const std::string& interfaceName,
+                   const std::string& busName,
+                   const std::string& objectPath,
+                   const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyConnection,
+                   const std::shared_ptr<CommonAPI::StubBase>& stubBase) {
+    return std::make_shared<TestInterfaceDBusStubAdapter>(commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
 __attribute__((constructor)) void registerTestInterfaceDBusStubAdapter(void) {
-    CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(TestInterface::getInterfaceName(),
+    CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(TestInterface::getInterfaceId(),
                                                                &createTestInterfaceDBusStubAdapter);
 }
 
 TestInterfaceDBusStubAdapter::TestInterfaceDBusStubAdapter(
+        const std::string& commonApiAddress,
+        const std::string& dbusInterfaceName,
         const std::string& dbusBusName,
         const std::string& dbusObjectPath,
         const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
         const std::shared_ptr<CommonAPI::StubBase>& stub):
-        TestInterfaceDBusStubAdapterHelper(dbusBusName, dbusObjectPath, TestInterface::getInterfaceName(), dbusConnection, std::dynamic_pointer_cast<TestInterfaceStub>(stub)) {
+        TestInterfaceDBusStubAdapterHelper(commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection, std::dynamic_pointer_cast<TestInterfaceStub>(stub)) {
 }
 
 const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() const {
@@ -82,10 +87,6 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"testMapInValue\" type=\"a{ua(sq)}\" direction=\"in\" />\n"
             "<arg name=\"testEnumExtended2OutValue\" type=\"i\" direction=\"out\" />\n"
             "<arg name=\"testMapOutValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
-        "</method>\n"
-        "<method name=\"testUnionMethod\">\n"
-            "<arg name=\"inParam\" type=\"(yv)\" direction=\"in\" />\n"
-            "<arg name=\"outParam\" type=\"(yv)\" direction=\"out\" />\n"
         "</method>\n"
     ;
 }
@@ -158,12 +159,6 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
     > testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
-    TestInterfaceStub,
-    std::tuple<DerivedTypeCollection::TestUnionIn>,
-    std::tuple<DerivedTypeCollection::TestUnionIn>
-    > testUnionMethodStubDispatcher(&TestInterfaceStub::testUnionMethod, "(yv)");
-
 
 template<>
 const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable TestInterfaceDBusStubAdapterHelper::stubDispatcherTable_ = {
@@ -177,8 +172,7 @@ const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable TestInterfaceDBusS
     { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::testVoidPredefinedTypeMethodStubDispatcher },
     { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
     { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
-    { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher },
-    { { "testUnionMethod", "(yv)" }, &commonapi::tests::testUnionMethodStubDispatcher }
+    { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher }
 };
 
 void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {

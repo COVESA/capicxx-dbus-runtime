@@ -29,7 +29,7 @@ void DBusProxyStatusEvent::onFirstListenerAdded(const Listener& listener) {
                     std::placeholders::_2);
 
     subscription_ = dbusProxy_->getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().subscribe(
-                    dbusProxy_->dbusBusName_ + ":" + dbusProxy_->dbusObjectPath_ + ":" + dbusProxy_->interfaceName_,
+                    dbusProxy_->commonApiDomain_ + ":" + dbusProxy_->commonApiServiceId_ + ":" + dbusProxy_->commonApiParticipantId_,
                     serviceStatusListener);
 }
 
@@ -44,7 +44,6 @@ SubscriptionStatus DBusProxyStatusEvent::onServiceAvailableSignalHandler(const s
     return notifyListeners(availability);
 }
 
-const std::string DBusProxy::domain_ = "local";
 
 DBusProxy::DBusProxy(const std::string& commonApiAddress,
                      const std::string& dbusInterfaceName,
@@ -56,7 +55,7 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
                          commonApiParticipantId_(split(commonApiAddress, ':')[2]),
 						 dbusBusName_(dbusBusName),
 		                 dbusObjectPath_(dbusObjectPath),
-		                 interfaceName_(dbusInterfaceName),
+		                 dbusInterfaceName_(dbusInterfaceName),
 		                 statusEvent_(this),
 		                 interfaceVersionAttribute_(*this, "getInterfaceVersion"),
 		                 available_(false),
@@ -64,18 +63,17 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
 		                 connection_(dbusProxyConnection) {
 }
 
-DBusProxy::DBusProxy(const std::string& commonApiAddress,
-                     const std::string& dbusInterfaceName,
+DBusProxy::DBusProxy(const std::string& dbusInterfaceName,
                      const std::string& dbusBusName,
                      const std::string& dbusObjectPath,
                      const std::shared_ptr<DBusProxyConnection>& connection,
                      const bool isAlwaysAvailable):
-                         commonApiDomain_(split(commonApiAddress, ':')[0]),
-                         commonApiServiceId_(split(commonApiAddress, ':')[1]),
-                         commonApiParticipantId_(split(commonApiAddress, ':')[2]),
+                         commonApiDomain_(""),
+                         commonApiServiceId_(""),
+                         commonApiParticipantId_(""),
                          dbusBusName_(dbusBusName),
                          dbusObjectPath_(dbusObjectPath),
-                         interfaceName_(dbusInterfaceName),
+                         dbusInterfaceName_(dbusInterfaceName),
                          statusEvent_(this),
                          interfaceVersionAttribute_(*this, "getInterfaceVersion"),
                          available_(isAlwaysAvailable),
@@ -104,7 +102,10 @@ bool DBusProxy::isAvailable() const {
     if (!availableSet_) {
         auto status = getDBusConnection()->getDBusServiceRegistry()->getReadyFuture().wait_for(std::chrono::milliseconds(1));
         if (checkReady(status)) {
-            available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(getAddress());
+            available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(
+                            dbusInterfaceName_,
+                            dbusBusName_,
+                            dbusObjectPath_);
             availableSet_ = true;
         }
     }
@@ -112,10 +113,12 @@ bool DBusProxy::isAvailable() const {
 }
 
 bool DBusProxy::isAvailableBlocking() const {
-
     if (!availableSet_) {
         getDBusConnection()->getDBusServiceRegistry()->getReadyFuture().wait();
-        available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(getAddress());
+        available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(
+                        dbusInterfaceName_,
+                        dbusBusName_,
+                        dbusObjectPath_);
         availableSet_ = true;
     }
     return available_;
@@ -134,7 +137,7 @@ DBusMessage DBusProxy::createMethodCall(const char* methodName,
     return DBusMessage::createMethodCall(
                     dbusBusName_.c_str(),
                     dbusObjectPath_.c_str(),
-                    getInterfaceName().c_str(),
+                    dbusInterfaceName_.c_str(),
                     methodName,
                     methodSignature);
 }

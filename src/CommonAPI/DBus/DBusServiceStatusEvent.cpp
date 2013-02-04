@@ -15,32 +15,36 @@ DBusServiceStatusEvent::DBusServiceStatusEvent(std::shared_ptr<DBusServiceRegist
                 registry_(registry) {
 }
 
-void DBusServiceStatusEvent::onFirstListenerAdded(const std::string& serviceName, const Listener& listener) {
+void DBusServiceStatusEvent::onFirstListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {
     if (registry_) {
-        registry_->registerAvailabilityListener(serviceName, std::bind(
+        registry_->registerAvailabilityListener(commonApiServiceName, std::bind(
                         &DBusServiceStatusEvent::availabilityEvent,
                         this,
-                        serviceName,
+                        commonApiServiceName,
                         std::placeholders::_1));
     }
 }
 
-void DBusServiceStatusEvent::availabilityEvent(const std::string& name, const bool& available) {
+void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const bool& available) {
 
     const AvailabilityStatus availabilityStatus = !available ? AvailabilityStatus::NOT_AVAILABLE :
                                                                AvailabilityStatus::AVAILABLE;
-    notifyListeners(name, availabilityStatus);
+    notifyListeners(commonApiServiceName, availabilityStatus);
 }
 
-void DBusServiceStatusEvent::onListenerAdded(const std::string& name, const Listener& listener) {
+void DBusServiceStatusEvent::onListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {
     if (registry_) {
+        std::string dbusInterfaceName;
+        std::string dbusConnectionName;
+        std::string dbusObjectPath;
+        DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiServiceName, dbusInterfaceName, dbusConnectionName, dbusObjectPath);
+
         const AvailabilityStatus availabilityStatus =
-                        !registry_->isServiceInstanceAlive(name) ? AvailabilityStatus::NOT_AVAILABLE :
+                        !registry_->isServiceInstanceAlive(dbusInterfaceName, dbusConnectionName, dbusObjectPath) ? AvailabilityStatus::NOT_AVAILABLE :
                                         AvailabilityStatus::AVAILABLE;
 
-        notifyListeners(name, availabilityStatus);
+        notifyListeners(commonApiServiceName, availabilityStatus);
     }
-
 }
 
 } // namespace DBus

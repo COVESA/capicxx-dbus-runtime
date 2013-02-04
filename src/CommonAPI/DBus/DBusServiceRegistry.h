@@ -55,11 +55,9 @@ class DBusServiceRegistry {
     std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
                                                           const std::string& domainName = "local");
 
-    bool isServiceInstanceAlive(const std::string& participantId,
-                                const std::string& serviceName,
-                                const std::string& domainName = "local") const;
-
-    bool isServiceInstanceAlive(const std::string& address) const;
+    bool isServiceInstanceAlive(const std::string& dbusInterfaceName,
+                                const std::string& dbusConnectionName,
+                                const std::string& dbusObjectPath) const;
 
     bool isReady() const;
 

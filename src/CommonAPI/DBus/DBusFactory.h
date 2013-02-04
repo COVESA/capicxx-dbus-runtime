@@ -39,6 +39,7 @@ class DBusFactory: public Factory {
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
+    virtual bool isServiceInstanceAlive(const std::string& serviceAddress);
     virtual bool isServiceInstanceAlive(const std::string& serviceInstanceID, const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
  protected:

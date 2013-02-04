@@ -46,17 +46,19 @@ bool TestStubAdapter::onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage&
 
 TestStubAdapter::TestStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection) :
         CommonAPI::DBus::DBusStubAdapter(
+        "local:random.common:api.address",
+        "com.bmw.test.Echo",
         "com.bmw.test.Echo",
         "/com/bmw/test/Echo",
-        "com.bmw.test.Echo",
         dbusConnection) {
 }
 
 TestProxy::TestProxy(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection) :
 		CommonAPI::DBus::DBusProxy(
+		"local:random.common:api.address",
+		"com.bmw.test.Echo",
         "com.bmw.test.Echo",
         "/com/bmw/test/Echo",
-        "com.bmw.test.Echo",
         dbusConnection) {
 }
 
@@ -130,7 +132,8 @@ TEST_F(ProxyTest, ServiceStatus) {
 TEST_F(ProxyTest, IsAvailableBlocking) {
     std::shared_ptr<TestStubAdapter> stub = std::make_shared<TestStubAdapter>(dbusConnection_);
     stub->init();
-    dbusConnection_->requestServiceNameAndBlock(ID);
+    bool registered = dbusConnection_->requestServiceNameAndBlock(ID);
+    ASSERT_TRUE(registered);
 
     bool isAvailable = proxy_->isAvailableBlocking();
     EXPECT_TRUE(isAvailable);

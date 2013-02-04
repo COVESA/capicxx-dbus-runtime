@@ -4,14 +4,11 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_STUB_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_STUB_H_
 
-#include <CommonAPI/SerializableVariant.h>
 #include <unordered_map>
 #include <cstdint>
-#include <test/commonapi/tests/DerivedTypeCollection.h>
+#include "DerivedTypeCollection.h"
 #include <CommonAPI/InputStream.h>
 #include <vector>
-#include <string>
-#include <memory>
 #include <CommonAPI/OutputStream.h>
 #include "TestInterface.h"
 #include <CommonAPI/Stub.h>
@@ -55,7 +52,6 @@ class TestInterfaceStub : public CommonAPI::Stub<TestInterfaceStubAdapter , Test
     virtual void testPredefinedTypeMethod(uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue) = 0;
     virtual void testVoidDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue) = 0;
     virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
-    virtual void testUnionMethod(DerivedTypeCollection::TestUnionIn inParam, DerivedTypeCollection::TestUnionIn& outParam) = 0;
     
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) = 0;
 };

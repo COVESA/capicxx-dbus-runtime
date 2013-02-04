@@ -5,14 +5,11 @@
 #define COMMONAPI_TESTS_TEST_INTERFACE_PROXY_BASE_H_
 
 #include "TestInterface.h"
-#include <CommonAPI/SerializableVariant.h>
 #include <unordered_map>
 #include <cstdint>
-#include <test/commonapi/tests/DerivedTypeCollection.h>
+#include "DerivedTypeCollection.h"
 #include <CommonAPI/InputStream.h>
 #include <vector>
-#include <string>
-#include <memory>
 #include <CommonAPI/OutputStream.h>
 #include <CommonAPI/Attribute.h>
 #include <CommonAPI/Event.h>
@@ -33,7 +30,6 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
     typedef std::function<void(const CommonAPI::CallStatus&, const uint32_t&, const std::string&)> TestPredefinedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&)> TestVoidDerivedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&, const DerivedTypeCollection::TestEnumExtended2&, const DerivedTypeCollection::TestMap&)> TestDerivedTypeMethodAsyncCallback;
-    typedef std::function<void(const CommonAPI::CallStatus&, const DerivedTypeCollection::TestUnionIn&)> TestUnionMethodAsyncCallback;
 
     virtual TestPredefinedTypeAttributeAttribute& getTestPredefinedTypeAttributeAttribute() = 0;
     virtual TestDerivedStructAttributeAttribute& getTestDerivedStructAttributeAttribute() = 0;
@@ -53,9 +49,6 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
 
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) = 0;
-
-    virtual void testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam) = 0;
-    virtual std::future<CommonAPI::CallStatus> testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback) = 0;
 };
 
 

@@ -12,7 +12,7 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& connection):
-                DBusProxy("::", getInterfaceName(), "org.freedesktop.DBus", "/org/freedesktop/DBus", connection, true),
+                DBusProxy(getInterfaceName(), "org.freedesktop.DBus", "/org/freedesktop/DBus", connection, true),
                 nameOwnerChangedEvent_(*this, "NameOwnerChanged", "sss") {
 }
 

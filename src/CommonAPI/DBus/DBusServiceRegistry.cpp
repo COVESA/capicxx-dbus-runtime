@@ -134,23 +134,18 @@ void DBusServiceRegistry::onManagedPathsList(const CallStatus& status, DBusObjec
     }
 }
 
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& commonApiAddress) const {
+
+bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName,
+                                                 const std::string& dbusConnectionName,
+                                                 const std::string& dbusObjectPath) const {
+
     if (!isReadyBlocking() || !dbusConnection_->isConnected()) {
         return false;
     }
 
-    std::vector<std::string> parts = split(commonApiAddress, ':');
-    if (parts[0] != "local") {
-        return false;
-    }
+    DBusInstanceId serviceInstanceId(dbusConnectionName, dbusObjectPath);
 
-    std::string interfaceName;
-    std::string connectionName;
-    std::string objectPath;
-    DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
-    DBusInstanceId serviceInstanceId(std::move(connectionName), std::move(objectPath));
-
-    auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(interfaceName);
+    auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(dbusInterfaceName);
 
     while(knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
         DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
@@ -160,13 +155,6 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& commonApiAdd
         ++knownInstancesForInterfaceIteratorPair.first;
     }
     return false;
-}
-
-
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& participantId,
-                                                 const std::string& serviceName,
-                                                 const std::string& domainName) const {
-    return isServiceInstanceAlive(domainName + ":" + serviceName + ":" + participantId);
 }
 
 

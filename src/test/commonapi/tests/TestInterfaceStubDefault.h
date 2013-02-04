@@ -4,7 +4,7 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 
-#include <test/commonapi/tests/TestInterfaceStub.h>
+#include "TestInterfaceStub.h"
 
 namespace commonapi {
 namespace tests {
@@ -32,8 +32,6 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual void testVoidDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue);
 
     virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
-
-    virtual void testUnionMethod(DerivedTypeCollection::TestUnionIn inParam, DerivedTypeCollection::TestUnionIn& outParam);
 
     
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);

@@ -23,7 +23,7 @@ class DBusMultiEvent {
 	typedef typename ListenersMap::iterator Subscription;
 
 	Subscription subscribeAll(const Listener& listener);
-	Subscription subscribe(const std::string& name, const Listener& listener);
+	Subscription subscribe(const std::string& eventName, const Listener& listener);
 
 	void unsubscribe(Subscription listenerSubscription);
 
@@ -53,15 +53,16 @@ DBusMultiEvent<_Arguments...>::subscribeAll(const Listener& listener) {
 
 template <typename... _Arguments>
 typename DBusMultiEvent<_Arguments...>::Subscription
-DBusMultiEvent<_Arguments...>::subscribe(const std::string& name, const Listener& listener) {
+DBusMultiEvent<_Arguments...>::subscribe(const std::string& eventName, const Listener& listener) {
 	const bool firstListenerAdded = listenersMap_.empty();
 
-	auto listenerSubscription = listenersMap_.insert({name, listener});
+	auto listenerSubscription = listenersMap_.insert({eventName, listener});
 
-	if (firstListenerAdded)
-		onFirstListenerAdded(name, listener);
+	if (firstListenerAdded) {
+		onFirstListenerAdded(eventName, listener);
+	}
 
-	onListenerAdded(name, listener);
+	onListenerAdded(eventName, listener);
 
 	return listenerSubscription;
 }
