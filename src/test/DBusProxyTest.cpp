@@ -133,10 +133,8 @@ TEST_F(ProxyTest, IsAvailableBlocking) {
     std::shared_ptr<TestStubAdapter> stub = std::make_shared<TestStubAdapter>(dbusConnection_);
     stub->init();
     bool registered = dbusConnection_->requestServiceNameAndBlock(ID);
-    ASSERT_TRUE(registered);
-
     bool isAvailable = proxy_->isAvailableBlocking();
-    EXPECT_TRUE(isAvailable);
+    EXPECT_EQ(registered, isAvailable);
 }
 
 TEST_F(ProxyTest, HasNecessaryAttributesAndEvents) {

@@ -8,9 +8,6 @@ Remaining issues:
   * When one of the defined error codes is thrown
 - Search for an appropriate file in global configuration directory ("/etc/commonapi-dbus/<BinaryName>_dbus.conf").
 - To check: Giving a serviceName now could influence the interfaceName on registering a proxy or service.
-  * Current situation:
-    # Given service name only alters the name under which the proxy/service is registered.
-    # The given service name does NOT influence communication, here always the predefined interface name is used.
   * Reasons to support alternative interface names for a given proxy:
     # Some legacy service might exist that has a deviating interface name.
   * Alternative:
@@ -18,6 +15,13 @@ Remaining issues:
     # Ignore the given service name on DBus level.
 - Incorporate checks on binary-file-name-retrieval in unit test.
 - Incorporate test on cooperation of "getAvailableServices" and the DBusAddressTranslator
+- Aufräumen in DBusServiceRegistry! Hier ist scheinbar einiges doppelt und/oder undurchsichtig.
+  * "IsServiceInstanceAlive": Sollte bereits true returnen, wenn nur die Connection dazu lebt.
+    --> Use Cases:
+        # Legacy services implementieren eher nicht "getManagedObjects"
+        # Dienste sollen nicht aufgeweckt werden, wenn z.B. nur ein Proxy für sie angelegt wird
+    --> Macht das den ObjectManager obsolet?
+    --> Können beide Mechanismen sinnvoll nebeneinander existieren?
 
 
 -----
@@ -82,6 +86,13 @@ Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in eigenes fi
 Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
 - DBusNameCacheTest
 - ?
+
+Discussion: Does the ServiceRegistry really NEED to ask ALL targets EVERY startup for their managed objects?
+Alternatives:
+- On demand, as this is only necessary for the factory method "getAllAvailableServices"
+- Specific proxy asks only for its own defined service, does not implicitly start the registration
+  of all services with the local ObjectManager
+
 
 * Move Version checking to the ServiceRegistry:
 	Currently, ensuring the interface-version based compatibility of the local proxy and

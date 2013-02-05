@@ -7,8 +7,9 @@
 
 
 #include <gtest/gtest.h>
-
 #include <fstream>
+#include <thread>
+#include <unistd.h>
 
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 #include <CommonAPI/DBus/DBusUtils.h>
@@ -27,6 +28,20 @@
 #include "commonapi/tests/TestInterfaceStubDefault.h"
 #include "commonapi/tests/TestInterfaceDBusStubAdapter.h"
 
+#include "fakeLegacyService/fake/legacy/service/LegacyInterfaceProxy.h"
+
+
+static const std::vector<std::string> commonApiAddresses = {
+    "local:no.nothing.service:no.nothing.instance",
+    "local:service:instance",
+    "local:no.interface.service:no.interface.instance",
+    "local:no.connection.service:no.connection.instance",
+    "local:no.object.service:no.object.instance",
+    "local:only.interface.service:only.interface.instance",
+    "local:only.connection.service:only.connection.instance",
+    "local:only.object.service:only.object.instance",
+    "local:fake.legacy.service.LegacyInterface:fake.legacy.service"
+};
 
 static const std::string fileString =
 "[local:no.nothing.service:no.nothing.instance]\n"
@@ -55,18 +70,12 @@ static const std::string fileString =
 "dbus_connection=only.connection.connection\n"
 "\n"
 "[local:only.object.service:only.object.instance]\n"
-"dbus_object=/only/object/path";
-
-static const std::vector<std::string> commonApiAddresses = {
-    "local:no.nothing.service:no.nothing.instance",
-    "local:service:instance",
-    "local:no.interface.service:no.interface.instance",
-    "local:no.connection.service:no.connection.instance",
-    "local:no.object.service:no.object.instance",
-    "local:only.interface.service:only.interface.instance",
-    "local:only.connection.service:only.connection.instance",
-    "local:only.object.service:only.object.instance"
-};
+"dbus_object=/only/object/path\n"
+"\n"
+"[local:fake.legacy.service.LegacyInterface:fake.legacy.service]\n"
+"dbus_connection=fake.legacy.service.connection\n"
+"dbus_object=/some/legacy/path/6259504\n"
+"dbus_interface=fake.legacy.service.LegacyInterface\n";
 
 typedef std::vector<CommonAPI::DBus::DBusServiceAddress>::value_type vt;
 static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
@@ -77,8 +86,10 @@ static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
                 vt("no.object.connection", "/no/object/instance", "no.object.interface"),
                 vt("only.interface.instance", "/only/interface/instance", "only.interface.interface"),
                 vt("only.connection.connection", "/only/connection/instance", "only.connection.service"),
-                vt("only.object.instance", "/only/object/path", "only.object.service")
+                vt("only.object.instance", "/only/object/path", "only.object.service"),
+                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
 };
+
 
 class Environment: public ::testing::Environment {
 public:
@@ -173,6 +184,79 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+}
+
+
+const std::string addressOfFakeLegacyService = commonApiAddresses[8];
+
+const std::string domainOfFakeLegacyService = "local";
+const std::string serviceIdOfFakeLegacyService = "fake.legacy.service.LegacyInterface";
+const std::string participantIdOfFakeLegacyService = "fake.legacy.service";
+
+TEST_F(AddressTranslatorTest, CreatedProxyHasCorrectCommonApiAddress) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
+    ASSERT_TRUE((bool)proxyFactory);
+    auto proxyForFakeLegacyService = proxyFactory->buildProxy<fake::legacy::service::LegacyInterfaceProxy>(addressOfFakeLegacyService);
+    ASSERT_TRUE((bool)proxyForFakeLegacyService);
+
+    ASSERT_EQ(addressOfFakeLegacyService, proxyForFakeLegacyService->getAddress());
+    ASSERT_EQ(domainOfFakeLegacyService, proxyForFakeLegacyService->getDomain());
+    ASSERT_EQ(serviceIdOfFakeLegacyService, proxyForFakeLegacyService->getServiceId());
+    ASSERT_EQ(participantIdOfFakeLegacyService, proxyForFakeLegacyService->getInstanceId());
+}
+
+
+void fakeLegacyServiceThread() {
+    int resultCode = system("python ./src/test/fakeLegacyService/fakeLegacyService.py");
+    EXPECT_EQ(0, resultCode);
+}
+
+TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
+    std::thread fakeServiceThread = std::thread(fakeLegacyServiceThread);
+    sleep(1);
+
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
+    ASSERT_TRUE((bool)proxyFactory);
+    auto proxyForFakeLegacyService = proxyFactory->buildProxy<fake::legacy::service::LegacyInterfaceProxy>(addressOfFakeLegacyService);
+    ASSERT_TRUE((bool)proxyForFakeLegacyService);
+
+    ASSERT_EQ(addressOfFakeLegacyService, proxyForFakeLegacyService->getAddress());
+
+    CommonAPI::CallStatus status;
+
+    const int32_t input = 42;
+    int32_t output1, output2;
+    proxyForFakeLegacyService->TestMethod(input, status, output1, output2);
+    EXPECT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+    if(CommonAPI::CallStatus::SUCCESS == status) {
+        EXPECT_EQ(input -5, output1);
+        EXPECT_EQ(input +5, output2);
+    }
+
+    std::string greeting;
+    int32_t identifier;
+    proxyForFakeLegacyService->OtherTestMethod(status, greeting, identifier);
+    EXPECT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+    if(CommonAPI::CallStatus::SUCCESS == status) {
+        EXPECT_EQ(std::string("Hello"), greeting);
+        EXPECT_EQ(42, identifier);
+    }
+
+    //end the fake legacy service via dbus
+    int resultCode = system("python ./src/test/fakeLegacyService/sendToFakeLegacyService.py finish");
+    EXPECT_EQ(0, resultCode);
+
+    fakeServiceThread.join();
 }
 
 

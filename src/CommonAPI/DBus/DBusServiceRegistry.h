@@ -23,6 +23,7 @@
 #include <list>
 #include <mutex>
 #include <algorithm>
+#include <set>
 
 namespace CommonAPI {
 namespace DBus {
@@ -58,6 +59,7 @@ class DBusServiceRegistry {
     bool isServiceInstanceAlive(const std::string& dbusInterfaceName,
                                 const std::string& dbusConnectionName,
                                 const std::string& dbusObjectPath) const;
+    bool isConnectionAlive(const std::string& dbusConnectionName) const;
 
     bool isReady() const;
 
@@ -73,7 +75,7 @@ class DBusServiceRegistry {
     void cacheAllServices();
 
     void removeProvidedServiceInstancesFromCache(const std::string& serviceBusName);
-    void addProvidedServiceInstancesToCache(std::vector<std::string>& dbusNames);
+    void addProvidedServiceInstancesToCache(const std::set<std::string>& dbusNames);
     void addProvidedServiceInstancesToCache(const std::string& dbusNames);
     void addAllProvidedServiceInstancesToCache(const std::vector<std::string>& serviceBusNames);
 
@@ -91,6 +93,7 @@ class DBusServiceRegistry {
     void updateListeners(const std::string& conName, const std::string& objName, const std::string& intName , bool available);
 
     std::multimap<std::string, DBusInstanceId> dbusCachedProvidersForInterfaces_;
+    std::set<std::string> dbusLivingServiceBusNames_;
 
     std::shared_ptr<DBusConnection> dbusConnection_;
 

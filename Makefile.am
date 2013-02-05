@@ -84,7 +84,8 @@ TestInterfaceSources = \
 		src/test/commonapi/tests/DerivedTypeCollection.cpp \
 		src/test/commonapi/tests/TestInterfaceDBusProxy.cpp \
 		src/test/commonapi/tests/TestInterfaceDBusStubAdapter.cpp \
-		src/test/commonapi/tests/TestInterfaceStubDefault.cpp
+		src/test/commonapi/tests/TestInterfaceStubDefault.cpp \
+		src/test/fakeLegacyService/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
 
 check_PROGRAMS = \
 		DBusAddressTranslatorTest \

@@ -42,7 +42,6 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusConnection> dbusCon
 
 void DBusServiceRegistry::registerAvailabilityListener(const std::string& service, const std::function<void(bool)>& listener) {
     availabilityCallbackList.insert({service, listener});
-
 }
 
 DBusServiceStatusEvent& DBusServiceRegistry::getServiceStatusEvent() {
@@ -154,6 +153,11 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
         }
         ++knownInstancesForInterfaceIteratorPair.first;
     }
+
+    if(dbusLivingServiceBusNames_.find(dbusConnectionName) != dbusLivingServiceBusNames_.end()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -217,7 +221,7 @@ void DBusServiceRegistry::addProvidedServiceInstancesToCache(const std::string& 
 	getManagedObjects(dbusNames);
 }
 
-void DBusServiceRegistry::addProvidedServiceInstancesToCache(std::vector<std::string>& dbusNames) {
+void DBusServiceRegistry::addProvidedServiceInstancesToCache(const std::set<std::string>& dbusNames) {
 
     std::shared_ptr<std::list<std::string>> dbusList = std::make_shared<std::list<std::string>>(dbusNames.begin(), dbusNames.end());
 
@@ -285,15 +289,14 @@ void DBusServiceRegistry::removeProvidedServiceInstancesFromCache(const std::str
 void DBusServiceRegistry::onListNames(const CommonAPI::CallStatus& callStatus, std::vector<std::string> existingBusConnections) {
 
 	if (callStatus == CallStatus::SUCCESS) {
-		std::vector<std::string> dbusLivingServiceBusNames;
 		for (const std::string& connectionName : existingBusConnections) {
 			const bool isWellKnownName = (connectionName[0] != ':');
 
 			if (isWellKnownName) {
-				dbusLivingServiceBusNames.push_back(connectionName);
+				dbusLivingServiceBusNames_.insert(connectionName);
 			}
 		}
-		addProvidedServiceInstancesToCache(dbusLivingServiceBusNames);
+		addProvidedServiceInstancesToCache(dbusLivingServiceBusNames_);
 	}
 }
 
