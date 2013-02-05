@@ -7,14 +7,8 @@ Remaining issues:
 - Error handling for DBusUtils.h::getBinaryFileName
   * When one of the defined error codes is thrown
 - Search for an appropriate file in global configuration directory ("/etc/commonapi-dbus/<BinaryName>_dbus.conf").
-- To check: Giving a serviceName now could influence the interfaceName on registering a proxy or service.
-  * Reasons to support alternative interface names for a given proxy:
-    # Some legacy service might exist that has a deviating interface name.
-  * Alternative:
-    # Force the predefined interfaceName and the given serviceName to be the same.
-    # Ignore the given service name on DBus level.
 - Incorporate checks on binary-file-name-retrieval in unit test.
-- Incorporate test on cooperation of "getAvailableServices" and the DBusAddressTranslator
+- Incorporate test on cooperation of "Factory::getAvailableServices" and the DBusAddressTranslator
 - Aufräumen in DBusServiceRegistry! Hier ist scheinbar einiges doppelt und/oder undurchsichtig.
   * "IsServiceInstanceAlive": Sollte bereits true returnen, wenn nur die Connection dazu lebt.
     --> Use Cases:
@@ -22,6 +16,7 @@ Remaining issues:
         # Dienste sollen nicht aufgeweckt werden, wenn z.B. nur ein Proxy für sie angelegt wird
     --> Macht das den ObjectManager obsolet?
     --> Können beide Mechanismen sinnvoll nebeneinander existieren?
+  * If service disconnects: Is the proxy correctly marked as not available?
 
 
 -----
