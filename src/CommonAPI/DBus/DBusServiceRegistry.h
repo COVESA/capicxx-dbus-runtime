@@ -58,7 +58,7 @@ class DBusServiceRegistry {
 
     bool isServiceInstanceAlive(const std::string& dbusInterfaceName,
                                 const std::string& dbusConnectionName,
-                                const std::string& dbusObjectPath) const;
+                                const std::string& dbusObjectPath);
     bool isConnectionAlive(const std::string& dbusConnectionName) const;
 
     bool isReady() const;
@@ -79,14 +79,14 @@ class DBusServiceRegistry {
     void addProvidedServiceInstancesToCache(const std::string& dbusNames);
     void addAllProvidedServiceInstancesToCache(const std::vector<std::string>& serviceBusNames);
 
-    void getManagedObjects(const std::string& serviceBusName);
+    void getManagedObjects(const std::string& serviceBusName, std::promise<bool>* returnPromise = 0);
 
     void onDBusNameOwnerChangedEvent(const std::string& name, const std::string& oldOwner, const std::string& newOwner);
 
     bool isRemoteServiceVersionMatchingLocalVersion(const std::string& serviceBusName, const std::string& serviceInterfaceName);
     bool isServiceInstanceAliveHelper(const std::string& connectionName) const;
 
-    void onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict replyMessage, std::string dbusWellKnownBusName);
+    void onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict replyMessage, std::string dbusWellKnownBusName, std::promise<bool>* returnPromise = 0);
     void onManagedPathsList(const CallStatus& status, DBusObjectToInterfaceDict managedObjects, std::list<std::string>::iterator iter, std::shared_ptr<std::list<std::string>> list);
 
     void onListNames(const CommonAPI::CallStatus&, std::vector<std::string>);

@@ -136,33 +136,56 @@ void DBusServiceRegistry::onManagedPathsList(const CallStatus& status, DBusObjec
 
 bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName,
                                                  const std::string& dbusConnectionName,
-                                                 const std::string& dbusObjectPath) const {
+                                                 const std::string& dbusObjectPath) {
 
-    if (!isReadyBlocking() || !dbusConnection_->isConnected()) {
+    if (!dbusConnection_->isConnected()) {
         return false;
     }
 
+
     DBusInstanceId serviceInstanceId(dbusConnectionName, dbusObjectPath);
 
-    auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(dbusInterfaceName);
+    if (isReady()) {
+        auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(dbusInterfaceName);
 
-    while(knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
-        DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
-        if(knownServiceId == serviceInstanceId) {
-            return true;
+        while (knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
+            DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
+            if (knownServiceId == serviceInstanceId) {
+                return true;
+            }
+            ++knownInstancesForInterfaceIteratorPair.first;
         }
-        ++knownInstancesForInterfaceIteratorPair.first;
     }
 
-    if(dbusLivingServiceBusNames_.find(dbusConnectionName) != dbusLivingServiceBusNames_.end()) {
+    if (dbusLivingServiceBusNames_.find(dbusConnectionName) != dbusLivingServiceBusNames_.end()) {
+        std::promise<bool>* pathPromise = new std::promise<bool>();
+        std::future<bool> pathFuture = pathPromise->get_future();
+
+        getManagedObjects(dbusConnectionName, pathPromise);
+
+        auto status = pathFuture.wait_for(std::chrono::seconds(1));
+        if (checkReady(status)) {
+            delete pathPromise;
+            auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(
+                            dbusInterfaceName);
+
+            while (knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
+                DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
+                if (knownServiceId == serviceInstanceId) {
+                    return true;
+                }
+                ++knownInstancesForInterfaceIteratorPair.first;
+            }
+        }
+
+        //If all else fails we have a con name
         return true;
     }
-
     return false;
 }
 
 
-void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusName) {
+void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusName, std::promise<bool>* returnPromise) {
     auto callMessage = DBusMessage::createMethodCall(
                     dbusWellKnownBusName.c_str(),
                     "/",
@@ -177,13 +200,14 @@ void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusN
                                                     this,
                                                     std::placeholders::_1,
                                                     std::placeholders::_2,
-                                                    dbusWellKnownBusName)), 100);
+                                                    dbusWellKnownBusName,
+                                                    returnPromise)), 100);
 
 }
 
 
 void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict managedObjects,
-		std::string dbusWellKnownBusName) {
+		std::string dbusWellKnownBusName, std::promise<bool>* returnPromise) {
 
 	auto objectPathIterator = managedObjects.begin();
 
@@ -199,6 +223,9 @@ void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToI
 		}
 
 		++objectPathIterator;
+	}
+	if (returnPromise != 0) {
+	    returnPromise->set_value(true);
 	}
 }
 
