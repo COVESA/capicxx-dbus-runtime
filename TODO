@@ -64,6 +64,13 @@ Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat abe
 -----
 Remains to be sorted/checked/done:
 -----
+Generierte Typen (interfaces und type-collections):
+- Abhängigkeiten u.U. in falscher Reihenfolge!
+
+Generierte map-Datentypen:
+- Anhängen des mit-generierten Comparator-Typs kompiliert nicht.
+
+
 Vererbung von Variants
 * Per generierung vollspezialisierter equality- und assignment-operatoren
 * Tests dafür
