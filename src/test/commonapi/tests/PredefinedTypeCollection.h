@@ -55,7 +55,10 @@ static inline const char* getTypeCollectionName() {
 namespace CommonAPI {
 	
 	
-	
+}
+
+
+namespace std {
 }
 
 #endif // COMMONAPI_TESTS_PREDEFINED_TYPE_COLLECTION_H_

@@ -33,4 +33,8 @@ namespace CommonAPI {
 
 }
 
+
+namespace std {
+}
+
 #endif // COMMONAPI_TESTS_TEST_INTERFACE_H_

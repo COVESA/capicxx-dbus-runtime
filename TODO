@@ -67,8 +67,13 @@ Remains to be sorted/checked/done:
 Generierte Typen (interfaces und type-collections):
 - Abhängigkeiten u.U. in falscher Reihenfolge!
 
-Generierte map-Datentypen:
-- Anhängen des mit-generierten Comparator-Typs kompiliert nicht.
+Generierte Map-Datentypen:
+- Für sämtliche legale key-Typen sollte eine Hash-Spezialisierung verfügbar sein, z.B. auch für Variants und Structs.
+- D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!
+  --> Definitiv nachrangig, aber dennoch wünschenswert, da in Franca erlaubt.
+
+Default-Stubs:
+- Methods are not consistently virtual
 
 Namespace in DBus Stub adapter fehlt für typen in Interfaces
 

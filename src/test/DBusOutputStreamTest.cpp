@@ -13,6 +13,8 @@
 #include <CommonAPI/SerializableStruct.h>
 #include <CommonAPI/SerializableVariant.h>
 
+#include "commonapi/tests/DerivedTypeCollection.h"
+
 
 class OutputStreamTest: public ::testing::Test {
 protected:
@@ -47,7 +49,7 @@ TEST_F(OutputStreamTest, WritesBytes) {
   outStream.reserveMemory(numOfElements);
   uint8_t val1 = 0xff;
   uint8_t val2 = 0x00;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -59,7 +61,7 @@ TEST_F(OutputStreamTest, WritesBytes) {
 
   uint8_t verifyVal1;
   uint8_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -76,7 +78,7 @@ TEST_F(OutputStreamTest, WritesBools) {
   outStream.reserveMemory(numOfElements * 4);
   bool val1 = TRUE;
   bool val2 = FALSE;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -88,7 +90,7 @@ TEST_F(OutputStreamTest, WritesBools) {
 
   bool verifyVal1;
   bool verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -105,7 +107,7 @@ TEST_F(OutputStreamTest, WritesUInt16) {
   outStream.reserveMemory(numOfElements * 2);
   uint16_t val1 = 0x0000;
   uint16_t val2 = 0xffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -117,7 +119,7 @@ TEST_F(OutputStreamTest, WritesUInt16) {
 
   uint16_t verifyVal1;
   uint16_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -134,7 +136,7 @@ TEST_F(OutputStreamTest, WritesInt16) {
   outStream.reserveMemory(numOfElements * 2);
   int16_t val1 = 0x7fff;
   int16_t val2 = 0xffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -146,7 +148,7 @@ TEST_F(OutputStreamTest, WritesInt16) {
 
   int16_t verifyVal1;
   int16_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -163,7 +165,7 @@ TEST_F(OutputStreamTest, WritesUInt32) {
   outStream.reserveMemory(numOfElements * 4);
   uint32_t val1 = 0x00000000;
   uint32_t val2 = 0xffffffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -175,7 +177,7 @@ TEST_F(OutputStreamTest, WritesUInt32) {
 
   uint32_t verifyVal1;
   uint32_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -192,7 +194,7 @@ TEST_F(OutputStreamTest, WritesInt32) {
   outStream.reserveMemory(numOfElements * 4);
   int32_t val1 = 0x7fffffff;
   int32_t val2 = 0xffffffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -204,7 +206,7 @@ TEST_F(OutputStreamTest, WritesInt32) {
 
   int32_t verifyVal1;
   int32_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -221,7 +223,7 @@ TEST_F(OutputStreamTest, WritesUInt64) {
   outStream.reserveMemory(numOfElements * 8);
   uint64_t val1 = 0x0000000000000000;
   uint64_t val2 = 0xffffffffffffffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -233,7 +235,7 @@ TEST_F(OutputStreamTest, WritesUInt64) {
 
   uint64_t verifyVal1;
   uint64_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -250,7 +252,7 @@ TEST_F(OutputStreamTest, WritesInt64) {
   outStream.reserveMemory(numOfElements * 8);
   int64_t val1 = 0x7fffffffffffffff;
   int64_t val2 = 0xffffffffffffffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -262,7 +264,7 @@ TEST_F(OutputStreamTest, WritesInt64) {
 
   int64_t verifyVal1;
   int64_t verifyVal2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -279,7 +281,7 @@ TEST_F(OutputStreamTest, WritesDouble) {
   outStream.reserveMemory(numOfElements * 8);
   double val1 = 13.37;
   double val2 = 3.414;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     outStream << val1;
     outStream << val2;
   }
@@ -292,7 +294,7 @@ TEST_F(OutputStreamTest, WritesDouble) {
   double verifyVal1;
   double verifyVal2;
   std::string verifySignature;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     inStream >> verifyVal1;
     EXPECT_EQ(val1, verifyVal1);
 
@@ -403,7 +405,7 @@ TEST_F(OutputStreamTest, WritesArrays) {
   std::vector<int32_t> testVector;
   int32_t val1 = 0xffffffff;
   int32_t val2 = 0x7fffffff;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     testVector.push_back(val1);
     testVector.push_back(val2);
   }
@@ -420,7 +422,7 @@ TEST_F(OutputStreamTest, WritesArrays) {
 
   int32_t res1;
   int32_t res2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     res1 = verifyVector[i];
     EXPECT_EQ(val1, res1);
     res2 = verifyVector[i + 1];
@@ -436,7 +438,7 @@ TEST_F(OutputStreamTest, WritesArraysOfStrings) {
   std::vector<std::string> testVector;
   std::string val1 = "Hai";
   std::string val2 = "Ciao";
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     testVector.push_back(val1);
     testVector.push_back(val2);
   }
@@ -457,7 +459,7 @@ TEST_F(OutputStreamTest, WritesArraysOfStrings) {
 
   std::string res1;
   std::string res2;
-  for (int i = 0; i < numOfElements; i += 2) {
+  for (unsigned int i = 0; i < numOfElements; i += 2) {
     res1 = verifyVector[i];
     EXPECT_EQ(val1, res1);
     res2 = verifyVector[i + 1];
@@ -473,9 +475,9 @@ TEST_F(OutputStreamTest, WritesArraysInArrays) {
   std::vector<std::vector<int32_t>> testVector;
   int32_t val1 = 0xffffffff;
   int32_t val2 = 0x7fffffff;
-  for (int i = 0; i < numOfElements; i++) {
+  for (unsigned int i = 0; i < numOfElements; i++) {
     std::vector<int32_t> inner;
-    for (int j = 0; j < numOfElements; j += 2) {
+    for (unsigned int j = 0; j < numOfElements; j += 2) {
       inner.push_back(val1);
       inner.push_back(val2);
     }
@@ -494,9 +496,9 @@ TEST_F(OutputStreamTest, WritesArraysInArrays) {
 
   int32_t res1;
   int32_t res2;
-  for (int i = 0; i < numOfElements; i++) {
+  for (unsigned int i = 0; i < numOfElements; i++) {
     std::vector<int32_t> innerVerify = verifyVector[i];
-    for (int j = 0; j < numOfElements; j += 2) {
+    for (unsigned int j = 0; j < numOfElements; j += 2) {
       res1 = innerVerify[j];
       EXPECT_EQ(val1, res1);
       res2 = innerVerify[j + 1];
@@ -625,7 +627,7 @@ TEST_F(OutputStreamTest, WritesTestStructLists) {
   CommonAPI::DBus::DBusOutputStream outStream(message);
 
   com::bmw::test::TestStructList testList;
-  for (int i = 0; i < numOfElements; i++) {
+  for (unsigned int i = 0; i < numOfElements; i++) {
     testList.emplace_back(1, 12.6, 1e40, "XXXXXXXXXXXXXXXXXXXX");
   }
 
@@ -697,7 +699,7 @@ TEST_F(OutputStreamTest, WritesStructsOfArraysWithSthBefore) {
   CommonAPI::DBus::DBusOutputStream outStream(message);
 
   com::bmw::test::ArrayStruct arrayStruct;
-  for (int i = 0; i < numOfElements; i++) {
+  for (unsigned int i = 0; i < numOfElements; i++) {
       arrayStruct.val1.push_back(i*50);
       arrayStruct.val2.push_back("Hai");
       arrayStruct.val3.push_back(3.414);
@@ -733,7 +735,7 @@ TEST_F(OutputStreamTest, WritesStructsOfArraysWithSthBefore) {
   std::string res4;
   uint16_t res5;
 
-  for (int i = 0; i < numOfElements; i++) {
+  for (unsigned int i = 0; i < numOfElements; i++) {
     res1 = verifyStruct.val1[i];
     res2 = verifyStruct.val2[i];
     res3 = verifyStruct.val3[i];
@@ -745,6 +747,45 @@ TEST_F(OutputStreamTest, WritesStructsOfArraysWithSthBefore) {
     EXPECT_EQ(3.414, res3);
     EXPECT_EQ(std::string("Ciao"), res4);
     EXPECT_EQ(i*5, res5);
+  }
+}
+
+
+
+TEST_F(OutputStreamTest, WritesEnumKeyedMaps) {
+  commonapi::tests::DerivedTypeCollection::TestEnumMap testEnumMap;
+
+  commonapi::tests::DerivedTypeCollection::TestEnum key1 = commonapi::tests::DerivedTypeCollection::TestEnum::E_NOT_USED;
+  commonapi::tests::DerivedTypeCollection::TestEnum key2 = commonapi::tests::DerivedTypeCollection::TestEnum::E_OK;
+  commonapi::tests::DerivedTypeCollection::TestEnum key3 = commonapi::tests::DerivedTypeCollection::TestEnum::E_OUT_OF_RANGE;
+  commonapi::tests::DerivedTypeCollection::TestEnum key4 = commonapi::tests::DerivedTypeCollection::TestEnum::E_UNKNOWN;
+  std::string val = "Hai";
+
+  testEnumMap.insert( {key1, val} );
+  testEnumMap.insert( {key2, val} );
+  testEnumMap.insert( {key3, val} );
+  testEnumMap.insert( {key4, val} );
+
+  const char* signature = "a{is}";
+  message = CommonAPI::DBus::DBusMessage::createMethodCall(busName, objectPath, interfaceName, methodName, signature);
+  CommonAPI::DBus::DBusOutputStream outStream(message);
+
+  //array length (4) + struct-padding (4) +
+  //      3 * (sizeof(int) + sizeof(string)) + (sizeof(int) + sizeof(string))
+  size_t sizeOfBody = 4 + 4 + 3 * (4 + 8) + (4 + 8);
+  outStream.reserveMemory(sizeOfBody);
+  outStream << testEnumMap;
+  outStream.flush();
+
+  EXPECT_EQ(sizeOfBody, message.getBodyLength());
+
+  CommonAPI::DBus::DBusInputStream inStream(message);
+
+  commonapi::tests::DerivedTypeCollection::TestEnumMap verificationMap;
+  inStream >> verificationMap;
+
+  for(auto it = verificationMap.begin(); it != verificationMap.end(); ++it) {
+    ASSERT_EQ(it->second, testEnumMap[it->first]);
   }
 }
 

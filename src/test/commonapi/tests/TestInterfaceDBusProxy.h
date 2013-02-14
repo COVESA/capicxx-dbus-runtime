@@ -24,6 +24,8 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
                     const std::string& objectPath,
                     const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection);
 
+    virtual ~TestInterfaceDBusProxy() { }
+
     virtual TestPredefinedTypeAttributeAttribute& getTestPredefinedTypeAttributeAttribute();
     virtual TestDerivedStructAttributeAttribute& getTestDerivedStructAttributeAttribute();
     virtual TestDerivedArrayAttributeAttribute& getTestDerivedArrayAttributeAttribute();

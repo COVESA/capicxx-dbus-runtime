@@ -140,12 +140,16 @@ DBusDaemonProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusDaemonProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusDaemonProxyTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusInputStreamTest_SOURCES = src/test/DBusInputStreamTest.cpp
+DBusInputStreamTest_SOURCES = \
+		src/test/DBusInputStreamTest.cpp \
+		${TestInterfaceSources}
 DBusInputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusInputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusInputStreamTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusOutputStreamTest_SOURCES = src/test/DBusOutputStreamTest.cpp
+DBusOutputStreamTest_SOURCES = \
+		src/test/DBusOutputStreamTest.cpp \
+		${TestInterfaceSources}
 DBusOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusOutputStreamTest_LDADD = ${LDADD_FOR_GTEST}

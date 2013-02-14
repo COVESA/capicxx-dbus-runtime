@@ -44,6 +44,8 @@ class TestInterfaceStubRemoteEvent {
 
 class TestInterfaceStub : public CommonAPI::Stub<TestInterfaceStubAdapter , TestInterfaceStubRemoteEvent> {
  public:
+    virtual ~TestInterfaceStub() { }
+
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute() = 0;
     virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute() = 0;
     virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute() = 0;

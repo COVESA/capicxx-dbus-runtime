@@ -16,13 +16,13 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
 
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute();
-    void setTestPredefinedTypeAttributeAttribute(uint32_t value);
+    virtual void setTestPredefinedTypeAttributeAttribute(uint32_t value);
 
     virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute();
-    void setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
+    virtual void setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
 
     virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute();
-    void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
+    virtual void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
 
 
     virtual void testVoidPredefinedTypeMethod(uint32_t uint32Value, std::string stringValue);
@@ -37,17 +37,17 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
 
  protected:
-    void onRemoteTestPredefinedTypeAttributeAttributeChanged();
-    bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
-    bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
+    virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged();
+    virtual bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
+    virtual bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
 
-    void onRemoteTestDerivedStructAttributeAttributeChanged();
-    bool trySetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
-    bool validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value);
+    virtual void onRemoteTestDerivedStructAttributeAttributeChanged();
+    virtual bool trySetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
+    virtual bool validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value);
 
-    void onRemoteTestDerivedArrayAttributeAttributeChanged();
-    bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
-    bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
+    virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
+    virtual bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
+    virtual bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
 
     
  private:
