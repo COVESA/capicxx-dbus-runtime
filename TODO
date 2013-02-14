@@ -70,6 +70,8 @@ Generierte Typen (interfaces und type-collections):
 Generierte map-Datentypen:
 - Anhängen des mit-generierten Comparator-Typs kompiliert nicht.
 
+Namespace in DBus Stub adapter fehlt für typen in Interfaces
+
 
 Vererbung von Variants
 * Per generierung vollspezialisierter equality- und assignment-operatoren
