@@ -72,11 +72,6 @@ Generierte Map-Datentypen:
 - D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!
   --> Definitiv nachrangig, aber dennoch wünschenswert, da in Franca erlaubt.
 
-Default-Stubs:
-- Methods are not consistently virtual
-
-Namespace in DBus Stub adapter fehlt für typen in Interfaces
-
 
 Vererbung von Variants
 * Per generierung vollspezialisierter equality- und assignment-operatoren

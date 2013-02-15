@@ -71,13 +71,13 @@ struct TestStruct: CommonAPI::SerializableStruct {
             TestStruct() = default;
             TestStruct(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue);
 
-    virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
-    virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+	virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+	virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
 
-    static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
-        typeOutputStream.writeStringType();
-        typeOutputStream.writeUInt16Type();
-    }
+	static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+		typeOutputStream.writeStringType();
+		typeOutputStream.writeUInt16Type();
+	}
 };
 
 struct TestStructExtended: TestStruct {
@@ -86,13 +86,13 @@ struct TestStructExtended: TestStruct {
             TestStructExtended() = default;
             TestStructExtended(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue, const TestEnumExtended2& testEnumExtended2);
 
-    virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
-    virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+	virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+	virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
 
-    static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+	static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
 TestStruct::writeToTypeOutputStream(typeOutputStream);
-        typeOutputStream.writeInt32Type();
-    }
+		typeOutputStream.writeInt32Type();
+	}
 };
 
 typedef std::vector<uint64_t> TestArrayUInt64;
@@ -219,88 +219,88 @@ static inline const char* getTypeCollectionName() {
 } // namespace commonapi
 
 namespace CommonAPI {
-
-    template<>
-    struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnum> {
-        inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
-            typeStream.writeInt32EnumType();
-        }
-    };
-
-    template<>
-    struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnum> {
-        static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnum>& vectorValue) {
-            inputStream.beginReadInt32EnumVector();
-        }
-    };
-
-    template <>
-    struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnum> {
-        static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnum>& vectorValue) {
-            outputStream.beginWriteInt32EnumVector(vectorValue.size());
-        }
-    };
-    template<>
-    struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
-        inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
-            typeStream.writeInt32EnumType();
-        }
-    };
-
-    template<>
-    struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
-        static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue>& vectorValue) {
-            inputStream.beginReadInt32EnumVector();
-        }
-    };
-
-    template <>
-    struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
-        static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue>& vectorValue) {
-            outputStream.beginWriteInt32EnumVector(vectorValue.size());
-        }
-    };
-    template<>
-    struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
-        inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
-            typeStream.writeInt32EnumType();
-        }
-    };
-
-    template<>
-    struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
-        static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended>& vectorValue) {
-            inputStream.beginReadInt32EnumVector();
-        }
-    };
-
-    template <>
-    struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
-        static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended>& vectorValue) {
-            outputStream.beginWriteInt32EnumVector(vectorValue.size());
-        }
-    };
-    template<>
-    struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
-        inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
-            typeStream.writeInt32EnumType();
-        }
-    };
-
-    template<>
-    struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
-        static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended2>& vectorValue) {
-            inputStream.beginReadInt32EnumVector();
-        }
-    };
-
-    template <>
-    struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
-        static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended2>& vectorValue) {
-            outputStream.beginWriteInt32EnumVector(vectorValue.size());
-        }
-    };
-
+	
+	template<>
+	struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnum> {
+	    inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
+	        typeStream.writeInt32EnumType();
+	    }
+	};
+	
+	template<>
+	struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnum> {
+	    static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnum>& vectorValue) {
+	        inputStream.beginReadInt32EnumVector();
+	    }
+	};
+	
+	template <>
+	struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnum> {
+	    static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnum>& vectorValue) {
+	        outputStream.beginWriteInt32EnumVector(vectorValue.size());
+	    }
+	};
+	template<>
+	struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
+	    inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
+	        typeStream.writeInt32EnumType();
+	    }
+	};
+	
+	template<>
+	struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
+	    static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue>& vectorValue) {
+	        inputStream.beginReadInt32EnumVector();
+	    }
+	};
+	
+	template <>
+	struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue> {
+	    static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumMissingValue>& vectorValue) {
+	        outputStream.beginWriteInt32EnumVector(vectorValue.size());
+	    }
+	};
+	template<>
+	struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
+	    inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
+	        typeStream.writeInt32EnumType();
+	    }
+	};
+	
+	template<>
+	struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
+	    static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended>& vectorValue) {
+	        inputStream.beginReadInt32EnumVector();
+	    }
+	};
+	
+	template <>
+	struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended> {
+	    static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended>& vectorValue) {
+	        outputStream.beginWriteInt32EnumVector(vectorValue.size());
+	    }
+	};
+	template<>
+	struct BasicTypeWriter<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
+	    inline static void writeType (CommonAPI::TypeOutputStream& typeStream) {
+	        typeStream.writeInt32EnumType();
+	    }
+	};
+	
+	template<>
+	struct InputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
+	    static void beginReadVector(InputStream& inputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended2>& vectorValue) {
+	        inputStream.beginReadInt32EnumVector();
+	    }
+	};
+	
+	template <>
+	struct OutputStreamVectorHelper<commonapi::tests::DerivedTypeCollection::TestEnumExtended2> {
+	    static void beginWriteVector(OutputStream& outputStream, const std::vector<commonapi::tests::DerivedTypeCollection::TestEnumExtended2>& vectorValue) {
+	        outputStream.beginWriteInt32EnumVector(vectorValue.size());
+	    }
+	};
+	
 }
 
 
