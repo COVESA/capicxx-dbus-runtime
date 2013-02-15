@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include <cstdint>
+#include "PredefinedTypeCollection.h"
 #include "DerivedTypeCollection.h"
 #include <CommonAPI/InputStream.h>
 #include <vector>

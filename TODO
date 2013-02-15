@@ -64,9 +64,6 @@ Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat abe
 -----
 Remains to be sorted/checked/done:
 -----
-Generierte Typen (interfaces und type-collections):
-- Abhängigkeiten u.U. in falscher Reihenfolge!
-
 Generierte Map-Datentypen:
 - Für sämtliche legale key-Typen sollte eine Hash-Spezialisierung verfügbar sein, z.B. auch für Variants und Structs.
 - D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!

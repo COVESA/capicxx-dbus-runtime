@@ -7,6 +7,35 @@ namespace commonapi {
 namespace tests {
 namespace DerivedTypeCollection {
 
+TestStructExtended::TestStructExtended(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue, const TestEnumExtended2& testEnumExtended2Value, const PredefinedTypeCollection::WeirdStrangeAlienEnum& alienEnumValue):
+        TestStruct(testStringValue, uintValueValue),
+        testEnumExtended2(testEnumExtended2Value),
+        alienEnum(alienEnumValue)
+{
+}
+
+bool operator==(const TestStructExtended& lhs, const TestStructExtended& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return
+        static_cast<TestStructExtended::TestStruct>(lhs) == static_cast<TestStructExtended::TestStruct>(rhs) &&
+        lhs.testEnumExtended2 == rhs.testEnumExtended2 &&
+        lhs.alienEnum == rhs.alienEnum
+    ;
+}
+
+void TestStructExtended::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    TestStruct::readFromInputStream(inputStream);
+    inputStream >> testEnumExtended2;
+    inputStream >> alienEnum;
+}
+
+void TestStructExtended::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    TestStruct::writeToOutputStream(outputStream);
+    outputStream << testEnumExtended2;
+    outputStream << alienEnum;
+}
 TestStruct::TestStruct(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue):
         testString(testStringValue),
         uintValue(uintValueValue)
@@ -31,31 +60,6 @@ void TestStruct::readFromInputStream(CommonAPI::InputStream& inputStream) {
 void TestStruct::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
     outputStream << testString;
     outputStream << uintValue;
-}
-TestStructExtended::TestStructExtended(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue, const TestEnumExtended2& testEnumExtended2Value):
-        TestStruct(testStringValue, uintValueValue),
-        testEnumExtended2(testEnumExtended2Value)
-{
-}
-
-bool operator==(const TestStructExtended& lhs, const TestStructExtended& rhs) {
-    if (&lhs == &rhs)
-        return true;
-
-    return
-        static_cast<TestStructExtended::TestStruct>(lhs) == static_cast<TestStructExtended::TestStruct>(rhs) &&
-        lhs.testEnumExtended2 == rhs.testEnumExtended2
-    ;
-}
-
-void TestStructExtended::readFromInputStream(CommonAPI::InputStream& inputStream) {
-    TestStruct::readFromInputStream(inputStream);
-    inputStream >> testEnumExtended2;
-}
-
-void TestStructExtended::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
-    TestStruct::writeToOutputStream(outputStream);
-    outputStream << testEnumExtended2;
 }
 
 } // namespace DerivedTypeCollection

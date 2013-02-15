@@ -28,7 +28,7 @@ TestInterfaceDBusProxy::TestInterfaceDBusProxy(
                     const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection):
         CommonAPI::DBus::DBusProxy(commonApiAddress, interfaceName, busName, objectPath, dbusProxyconnection)
 ,        testPredefinedTypeAttribute_(*this, "onTestPredefinedTypeAttributeAttributeChanged", "setTestPredefinedTypeAttributeAttribute", "u", "getTestPredefinedTypeAttributeAttribute"),
-        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqi)", "getTestDerivedStructAttributeAttribute"),
+        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqii)", "getTestDerivedStructAttributeAttribute"),
         testDerivedArrayAttribute_(*this, "onTestDerivedArrayAttributeAttributeChanged", "setTestDerivedArrayAttributeAttribute", "at", "getTestDerivedArrayAttributeAttribute")
 ,        testPredefinedTypeBroadcast_(*this, "TestPredefinedTypeBroadcast", "us")
                  {
