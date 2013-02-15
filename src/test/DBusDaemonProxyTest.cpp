@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusDaemonProxy.h>
+#include <CommonAPI/DBus/DBusUtils.h>
 
 #include <gtest/gtest.h>
 
@@ -70,7 +71,9 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
 	});
 
-	ASSERT_EQ(future.wait_for(std::chrono::milliseconds(200)), std::future_status::ready);
+	auto status = future.wait_for(std::chrono::milliseconds(200));
+	bool waitResult = CommonAPI::DBus::checkReady(status);
+    ASSERT_EQ(waitResult, true);
 
 	ASSERT_EQ(callStatusFuture.get(), CommonAPI::CallStatus::SUCCESS);
 
@@ -116,7 +119,9 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
 		//	break;
 	//}
 	//ASSERT_NE(readWriteDispatchCount_, 5);
-	ASSERT_EQ(future.wait_for(std::chrono::milliseconds(100)), std::future_status::ready);
+	auto status = future.wait_for(std::chrono::milliseconds(100));
+	const bool waitResult = CommonAPI::DBus::checkReady(status);
+    ASSERT_EQ(waitResult, true);
 
 	ASSERT_EQ(callStatusFuture.get(), CommonAPI::CallStatus::SUCCESS);
 
