@@ -11,7 +11,7 @@
 #include <CommonAPI/types.h>
 #include <CommonAPI/Attribute.h>
 
-#include "DBusConnection.h"
+#include "DBusProxyConnection.h"
 #include "DBusAddressTranslator.h"
 
 #include <unordered_map>
@@ -38,7 +38,7 @@ typedef std::unordered_map<std::string, int> PropertyDictStub;
 typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
 typedef std::unordered_map<std::string, InterfaceToPropertyDict> DBusObjectToInterfaceDict;
 
-class DBusConnection;
+class DBusProxyConnection;
 class DBusDaemonProxy;
 
 
@@ -50,7 +50,7 @@ class DBusServiceRegistry {
     DBusServiceRegistry(const DBusServiceRegistry&) = delete;
     DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
 
-    DBusServiceRegistry(std::shared_ptr<DBusConnection> connection);
+    DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> connection);
     ~DBusServiceRegistry();
 
     std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
@@ -95,7 +95,7 @@ class DBusServiceRegistry {
     std::multimap<std::string, DBusInstanceId> dbusCachedProvidersForInterfaces_;
     std::set<std::string> dbusLivingServiceBusNames_;
 
-    std::shared_ptr<DBusConnection> dbusConnection_;
+    std::shared_ptr<DBusProxyConnection> dbusConnection_;
 
     std::unordered_multimap<std::string, std::function<void(bool)>> availabilityCallbackList;
 

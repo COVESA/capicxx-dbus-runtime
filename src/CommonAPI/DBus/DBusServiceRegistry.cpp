@@ -13,7 +13,7 @@
 #include "DBusServiceRegistry.h"
 #include "DBusInputStream.h"
 #include "DBusDaemonProxy.h"
-#include "DBusConnection.h"
+#include "DBusProxyConnection.h"
 #include "DBusUtils.h"
 
 
@@ -21,7 +21,7 @@ namespace CommonAPI {
 namespace DBus {
 
 
-DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusConnection> dbusConnection) :
+DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusConnection) :
                 dbusConnection_(dbusConnection),
                 ready(false),
                 serviceStatusEvent_(std::shared_ptr<DBusServiceRegistry>(this)),
