@@ -6,7 +6,8 @@ MOSTLYCLEANFILES =
 AM_CPPFLAGS = \
 		${COMMONAPI_CFLAGS} \
 		${DBUS_CFLAGS} \
-		-I$(top_srcdir)/src
+		-I$(top_srcdir)/src \
+		-I$(top_srcdir)/src/test
 
 LDADD = \
 		${COMMONAPI_LIBS} \

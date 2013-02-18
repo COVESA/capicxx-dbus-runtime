@@ -39,7 +39,7 @@ inline std::string getCurrentBinaryFileName() {
     char pathToProcessImage[FILENAME_MAX];
 
     sprintf(pathToProcessImage, "/proc/%d/exe", getpid());
-    const unsigned int lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
+    const ssize_t lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
 
     if (lengthOfFqn != -1) {
         fqnOfBinary[lengthOfFqn] = '\0';

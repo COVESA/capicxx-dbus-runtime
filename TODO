@@ -69,6 +69,21 @@ Generierte Map-Datentypen:
 - D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!
   --> Definitiv nachrangig, aber dennoch wünschenswert, da in Franca erlaubt.
 
+Test-Fehler:
+        [ RUN      ] ProxyTest.IsAvailableBlocking
+        src/test/DBusProxyTest.cpp:144: Failure
+        Value of: isAvailable
+          Actual: true
+        Expected: registered
+        Which is: false
+- Vermuteter Grund: In dem Test davor wird die Connection desselben Namens bereits besetzt und nicht abgebaut, bis dieser Test läuft.
+- Connection sollte bei out-of-scope von allen zusammenhängenden Factory und Proxies eigentlich ebenfalls zerstört werden...
+
+Test-Fehler:
+        [ RUN      ] DBusMultipleConnectionTest.Broadcast
+        /bin/sh: line 5: 16324 Segmentation fault      (core dumped) ${dir}$tst
+        FAIL: DBusMultipleConnectionTest
+- Einer dieser "Hin und wieder passierts"-Fehler
 
 Vererbung von Variants
 * Per generierung vollspezialisierter equality- und assignment-operatoren
@@ -81,7 +96,7 @@ Vererbung von Variants
 * Entsprechend: Auflösung von Vektoren von ByteBuffern landen in dem vector<vector<_Type>> template Fall, nicht in dem vector<ByteBuffer>.
 
 Serialisierung: Verwenden des Endianness-Flags von D-Bus! Prüfen und beachten von dieser!
-Performance tests für Variants
+Performance tests für Variants?
 Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in eigenes file?
 
 Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
@@ -96,18 +111,18 @@ Alternatives:
 
 
 * Move Version checking to the ServiceRegistry:
-	Currently, ensuring the interface-version based compatibility of the local proxy and
-	a given remote service would be done asynchronously within the proxy right after its creation.
-	The check should be moved to the service registry, so that a proxy only needs to ask
-	for the locally cached version information of the remote service.
-	According to the current CommonAPI Spec, it is required that a proxy remains "unavailable" when
-	it's counterpart has an incompatible interface version.
-	Feasibility of and alternatives to this approach remain to be determined.
+    Currently, ensuring the interface-version based compatibility of the local proxy and
+    a given remote service would be done asynchronously within the proxy right after its creation.
+    The check should be moved to the service registry, so that a proxy only needs to ask
+    for the locally cached version information of the remote service.
+    According to the current CommonAPI Spec, it is required that a proxy remains "unavailable" when
+    it's counterpart has an incompatible interface version.
+    Feasibility of and alternatives to this approach remain to be determined.
 
 * Performance:
-	Check especially message dispatching! Is it possible to do the dispatching without copying
-	the interface name and object path strings?
-	Check (de)serialization, improve where possible.
+    Check especially message dispatching! Is it possible to do the dispatching without copying
+    the interface name and object path strings?
+    Check (de)serialization, improve where possible.
 
 * Dedicated Test of multiple connect/disconnect cycles
 
@@ -163,11 +178,11 @@ Alternatives:
 Future development (2.1):
 
 * Request Name for DBusStubAdapter:
-	The D-Bus specification states that a single D-Bus connection might own multiple names.
-	We have to make sure that when a register request comes from the CommonAPI StubAdapter
-	Factory that we make sure that the name is already owned by our DBusConnection.
-	Probably we'll have to keep a list of all owned names and request a new one on registration
-	if required.
+    The D-Bus specification states that a single D-Bus connection might own multiple names.
+    We have to make sure that when a register request comes from the CommonAPI StubAdapter
+    Factory that we make sure that the name is already owned by our DBusConnection.
+    Probably we'll have to keep a list of all owned names and request a new one on registration
+    if required.
 
 * Doxygen in CommonAPI source code.
 
