@@ -6,7 +6,6 @@ Remaining issues:
   * Don't forget to ignore any non-"local" domains
 - Error handling for DBusUtils.h::getBinaryFileName
   * When one of the defined error codes is thrown
-- Search for an appropriate file in global configuration directory ("/etc/commonapi-dbus/<BinaryName>_dbus.conf").
 - Incorporate checks on binary-file-name-retrieval in unit test.
 - Incorporate test on cooperation of "Factory::getAvailableServices" and the DBusAddressTranslator
 - Aufräumen in DBusServiceRegistry! Hier ist scheinbar einiges doppelt und/oder undurchsichtig.
