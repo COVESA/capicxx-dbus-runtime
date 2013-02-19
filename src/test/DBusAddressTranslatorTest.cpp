@@ -97,7 +97,7 @@ public:
     }
 
     virtual void SetUp() {
-        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileName();
+        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
         configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
         ASSERT_TRUE(configFile.is_open());

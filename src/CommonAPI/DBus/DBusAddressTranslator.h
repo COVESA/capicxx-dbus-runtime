@@ -45,6 +45,7 @@ private:
     DBusAddressTranslator& operator=(const DBusAddressTranslator&) = delete;
 
     void init();
+    void readConfigFile(std::ifstream& addressConfigFile);
 
     void findFallbackDBusAddress(const std::string& instanceId,
                                     std::string& interfaceName,

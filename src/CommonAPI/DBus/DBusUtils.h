@@ -18,6 +18,7 @@ namespace CommonAPI {
 namespace DBus {
 
 static const char* DBUS_CONFIG_SUFFIX = "_dbus.conf";
+static const char* DBUS_GLOBAL_CONFIG_ROOT = "/etc/CommonApiDBus/";
 
 inline std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems) {
     std::istringstream ss(s);
@@ -34,7 +35,7 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
 }
 
 
-inline std::string getCurrentBinaryFileName() {
+inline std::string getCurrentBinaryFileFQN() {
     char fqnOfBinary[FILENAME_MAX];
     char pathToProcessImage[FILENAME_MAX];
 
