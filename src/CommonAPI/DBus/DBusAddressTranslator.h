@@ -19,6 +19,10 @@ namespace CommonAPI {
 namespace DBus {
 
 
+static const char* DBUS_CONFIG_SUFFIX = "_dbus.conf";
+static const char* DBUS_GLOBAL_CONFIG_FQN = "/etc/CommonApiDBus/dbusAddresses.conf";
+static const char* DBUS_GLOBAL_CONFIG_ROOT = "/etc/CommonApiDBus/";
+
 //connectionName, objectPath, interfaceName
 typedef std::tuple<std::string, std::string, std::string> DBusServiceAddress;
 
