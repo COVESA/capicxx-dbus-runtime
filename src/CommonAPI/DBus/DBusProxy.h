@@ -28,10 +28,8 @@ class DBusProxyStatusEvent: public ProxyStatusEvent {
  public:
     DBusProxyStatusEvent(DBusProxy* dbusProxy);
 
-    void onFirstListenerAdded(const Listener& listener);
-    void onLastListenerRemoved(const Listener& listener);
-
-    Subscription subscribe(Listener listener);
+    void onFirstListenerAdded(const CancellableListener& listener);
+    void onLastListenerRemoved(const CancellableListener& listener);
 
  private:
     SubscriptionStatus onServiceAvailableSignalHandler(const std::string& name, const AvailabilityStatus& availabilityStatus);

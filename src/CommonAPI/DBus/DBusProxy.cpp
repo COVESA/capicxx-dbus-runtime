@@ -21,7 +21,7 @@ DBusProxyStatusEvent::DBusProxyStatusEvent(DBusProxy* dbusProxy) :
                 dbusProxy_(dbusProxy) {
 }
 
-void DBusProxyStatusEvent::onFirstListenerAdded(const Listener& listener) {
+void DBusProxyStatusEvent::onFirstListenerAdded(const CancellableListener& listener) {
     auto serviceStatusListener = std::bind(
                     &DBusProxyStatusEvent::onServiceAvailableSignalHandler,
                     this,
@@ -33,7 +33,7 @@ void DBusProxyStatusEvent::onFirstListenerAdded(const Listener& listener) {
                     serviceStatusListener);
 }
 
-void DBusProxyStatusEvent::onLastListenerRemoved(const Listener& listener) {
+void DBusProxyStatusEvent::onLastListenerRemoved(const CancellableListener& listener) {
     dbusProxy_->getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().unsubscribe(subscription_);
 }
 
