@@ -89,12 +89,23 @@ void DBusAddressTranslator::init() {
 
     if(addressConfigFile.is_open()) {
         readConfigFile(addressConfigFile);
-    } else {
-        addressConfigFile.clear();
-        addressConfigFile.open(DBUS_GLOBAL_CONFIG_FQN);
-        if(addressConfigFile.is_open()) {
-            readConfigFile(addressConfigFile);
-        }
+        addressConfigFile.close();
+    }
+
+    addressConfigFile.clear();
+    std::vector<std::string> splittedConfigFQN = split(fqnOfConfigFile, '/');
+    std::string globalConfigFQN = DBUS_GLOBAL_CONFIG_ROOT + splittedConfigFQN.at(splittedConfigFQN.size() - 1);
+    addressConfigFile.open(globalConfigFQN);
+    if(addressConfigFile.is_open()) {
+        readConfigFile(addressConfigFile);
+        addressConfigFile.close();
+    }
+
+    addressConfigFile.clear();
+    addressConfigFile.open(DBUS_GLOBAL_CONFIG_FQN);
+    if(addressConfigFile.is_open()) {
+        readConfigFile(addressConfigFile);
+        addressConfigFile.close();
     }
 }
 
@@ -134,8 +145,6 @@ void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
         knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
         knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
     }
-
-    addressConfigFile.close();
 }
 
 

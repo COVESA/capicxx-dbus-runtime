@@ -19,6 +19,7 @@ namespace DBus {
 
 static const char* DBUS_CONFIG_SUFFIX = "_dbus.conf";
 static const char* DBUS_GLOBAL_CONFIG_FQN = "/etc/CommonApiDBus/dbusAddresses.conf";
+static const char* DBUS_GLOBAL_CONFIG_ROOT = "/etc/CommonApiDBus/";
 
 inline std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems) {
     std::istringstream ss(s);
