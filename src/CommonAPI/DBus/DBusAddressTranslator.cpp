@@ -91,9 +91,7 @@ void DBusAddressTranslator::init() {
         readConfigFile(addressConfigFile);
     } else {
         addressConfigFile.clear();
-        std::vector<std::string> splittedConfigFQN = split(fqnOfConfigFile, '/');
-        std::string globalConfigFQN = DBUS_GLOBAL_CONFIG_ROOT + splittedConfigFQN.at(splittedConfigFQN.size() - 1);
-        addressConfigFile.open(globalConfigFQN);
+        addressConfigFile.open(DBUS_GLOBAL_CONFIG_FQN);
         if(addressConfigFile.is_open()) {
             readConfigFile(addressConfigFile);
         }

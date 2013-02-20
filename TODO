@@ -16,6 +16,11 @@ Remaining issues:
     --> Macht das den ObjectManager obsolet?
     --> Können beide Mechanismen sinnvoll nebeneinander existieren?
   * If service disconnects: Is the proxy correctly marked as not available?
+Discussion: Does the ServiceRegistry really NEED to ask ALL targets EVERY startup for their managed objects?
+Alternatives:
+- On demand, as this is only necessary for the factory method "getAllAvailableServices"
+- Specific proxy asks only for its own defined service, does not implicitly start the registration
+  of all services with the local ObjectManager
 
 
 -----
@@ -55,6 +60,7 @@ Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat abe
 -----
 "Major Features":
 -----
+* Improved UI for generator, e.g. visible and understandable error messages
 * CLI für Generator
 * Vollständige Elimination Middleware-spezifische Generierung
 * Dynamisches Laden v. ein oder mehereren Middelware-Libraries (Konfiguration und aliases via config)
@@ -101,12 +107,6 @@ Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in eigenes fi
 Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
 - DBusNameCacheTest
 - ?
-
-Discussion: Does the ServiceRegistry really NEED to ask ALL targets EVERY startup for their managed objects?
-Alternatives:
-- On demand, as this is only necessary for the factory method "getAllAvailableServices"
-- Specific proxy asks only for its own defined service, does not implicitly start the registration
-  of all services with the local ObjectManager
 
 
 * Move Version checking to the ServiceRegistry:
