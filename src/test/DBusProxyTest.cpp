@@ -4,7 +4,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <dbus/dbus.h>
+#define _GLIBCXX_USE_NANOSLEEP
+
 #include <CommonAPI/DBus/DBusInputStream.h>
 #include <CommonAPI/DBus/DBusMessage.h>
 #include <CommonAPI/DBus/DBusProxy.h>
@@ -16,12 +17,14 @@
 #include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
 #include <commonapi/tests/TestInterfaceStubDefault.h>
 
-#include <stdint.h>
-#include <vector>
 #include <gtest/gtest.h>
-#include <iostream>
+
 #include <algorithm>
+#include <cstdint>
+#include <iostream>
 #include <string>
+#include <thread>
+#include <vector>
 
 
 static const std::string commonApiAddress = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
@@ -38,7 +41,12 @@ protected:
         proxyDBusConnection_->disconnect();
 
         stubAdapter_.reset();
-        stubDBusConnection_.reset();
+
+        if (stubDBusConnection_) {
+            stubDBusConnection_->releaseServiceName(busName);
+            stubDBusConnection_->disconnect();
+            stubDBusConnection_.reset();
+        }
     }
 
     void SetUp() {
@@ -70,28 +78,34 @@ protected:
         stubAdapter_->init();
     }
 
-    bool proxyWaitForServiceAvailabilityStatus(CommonAPI::AvailabilityStatus& availabilityStatus) {
-        std::promise<CommonAPI::AvailabilityStatus> availabilityStatusPromise;
+    void proxyRegisterForAvailabilityStatus() {
+        proxyAvailabilityStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
 
-        auto subscription = proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
-            std::cout << "Got availabilityStatus" << (int) availabilityStatus << std::endl;
-            availabilityStatusPromise.set_value(availabilityStatus);
+        proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
+            std::cout << "Proxy AvailabilityStatus changed to " << (int) availabilityStatus << std::endl;
+            proxyAvailabilityStatus_ = availabilityStatus;
         });
+    }
 
-        auto availabilityStatusFuture = availabilityStatusPromise.get_future();
-        auto waitStatus = availabilityStatusFuture.wait_for(std::chrono::milliseconds(1000));
-        const bool availabilityStatusFutureReady = CommonAPI::DBus::checkReady(waitStatus);
+    bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
+        std::chrono::milliseconds loopWaitDuration(100);
 
-        proxy_->getProxyStatusEvent().unsubscribe(subscription);
+        if (proxyAvailabilityStatus_ == availabilityStatus)
+            return true;
 
-        if (availabilityStatusFutureReady)
-            availabilityStatus = availabilityStatusFuture.get();
+        for (int i = 0; i < 10; i++) {
+            std::this_thread::sleep_for(loopWaitDuration);
 
-        return availabilityStatusFutureReady;
+            if (proxyAvailabilityStatus_ == availabilityStatus)
+                return true;
+        }
+
+        return false;
     }
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
     std::shared_ptr<commonapi::tests::TestInterfaceDBusProxy> proxy_;
+    CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> stubDBusConnection_;
     std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter_;
@@ -124,17 +138,23 @@ TEST_F(ProxyTest, ServiceRegistry) {
 }
 
 TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
+    proxyRegisterForAvailabilityStatus();
+
+    ASSERT_NE(proxyAvailabilityStatus_, CommonAPI::AvailabilityStatus::AVAILABLE);
+
+    registerTestStub();
+
+    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+}
+
+TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     proxyDBusConnection_->disconnect();
 
     registerTestStub();
 
     proxyDBusConnection_->connect();
-
-    CommonAPI::AvailabilityStatus availabilityStatus;
-    const bool availabilityStatusSet = proxyWaitForServiceAvailabilityStatus(availabilityStatus);
-
-    ASSERT_TRUE(availabilityStatusSet);
-    ASSERT_EQ(availabilityStatus, CommonAPI::AvailabilityStatus::AVAILABLE);
+    proxyRegisterForAvailabilityStatus();
+    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
