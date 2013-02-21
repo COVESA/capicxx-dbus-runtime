@@ -10,6 +10,7 @@
 #include "DBusMessage.h"
 #include "DBusSerializableArguments.h"
 #include "DBusProxyAsyncCallbackHandler.h"
+#include "DBusProxyConnection.h"
 
 #include <functional>
 #include <future>
@@ -129,11 +130,25 @@ struct DBusProxyHelper<_In<_InArgs...>, _Out<_OutArgs...>> {
 	                        dbusMessage,
 	                        DBusProxyAsyncCallbackHandler<_OutArgs...>::create(std::move(asyncCallback)));
 	        } else {
+
+	            CallStatus callStatus = CallStatus::NOT_AVAILABLE;
+
+                callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
+
 	            std::promise<CallStatus> promise;
 	            promise.set_value(CallStatus::NOT_AVAILABLE);
 	            return promise.get_future();
 	        }
 	   }
+
+       template <int... _ArgIndices>
+       static void callCallbackOnNotAvailable(std::function<void(CallStatus, _OutArgs...)> callback,
+                                              index_sequence<_ArgIndices...>) {
+
+           std::tuple<_OutArgs...> argTuple;
+           const CallStatus callstatus = CallStatus::NOT_AVAILABLE;
+           callback(callstatus, std::move(std::get<_ArgIndices>(argTuple))...);
+       }
 };
 
 } // namespace DBus
