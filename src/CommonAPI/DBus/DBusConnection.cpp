@@ -45,7 +45,6 @@ DBusConnection::~DBusConnection() {
     if (isConnected()) {
         disconnect();
     }
-    dispatchThread_.join();
 }
 
 bool DBusConnection::connect() {
@@ -82,9 +81,12 @@ bool DBusConnection::connect(DBusError& dbusError) {
 void DBusConnection::disconnect() {
     if (isConnected()) {
         stopDispatching_ = true;
+
         if (!dbusSignalMatchRulesMap_.empty()) {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
+
+        dispatchThread_.join();
 
         dbus_connection_close(libdbusConnection_);
         dbus_connection_unref(libdbusConnection_);
