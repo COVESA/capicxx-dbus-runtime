@@ -89,12 +89,12 @@ TestInterfaceSources = \
 		src/test/fakeLegacyService/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
 
 check_PROGRAMS = \
+		DBusProxyTest \
 		DBusAddressTranslatorTest \
 		DBusInputStreamTest \
 		DBusOutputStreamTest \
 		DBusRuntimeTest \
 		DBusFactoryTest \
-		DBusProxyTest \
 		DBusVariantTest \
 		DBusTypeStreamTest \
 		DBusVariantOutputStreamTest \
@@ -178,7 +178,9 @@ DBusMultipleConnectionTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusMultipleConnectionTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusMultipleConnectionTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusProxyTest_SOURCES = src/test/DBusProxyTest.cpp
+DBusProxyTest_SOURCES = \
+		src/test/DBusProxyTest.cpp \
+		${TestInterfaceSources}
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}

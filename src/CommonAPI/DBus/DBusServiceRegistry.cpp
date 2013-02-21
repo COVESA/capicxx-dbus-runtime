@@ -29,7 +29,6 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> db
                 readyMutex_()
 {
     readyFuture_ = readyPromise_.get_future();
-    cacheAllServices();
     dbusNameOwnerChangedEventSubscription_ =
                     dbusConnection_->getDBusDaemonProxy()->getNameOwnerChangedEvent().subscribe(
                                     std::bind(&DBusServiceRegistry::onDBusNameOwnerChangedEvent,
@@ -86,10 +85,12 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         return std::vector<std::string>();
     }
 
+    cacheAllServiceInstances();
+
     std::vector<std::string> addressesOfKnownServiceInstances;
     auto knownServiceInstancesIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(serviceName);
 
-    while(knownServiceInstancesIteratorPair.first != knownServiceInstancesIteratorPair.second) {
+    for(auto it=knownServiceInstancesIteratorPair.first; it != knownServiceInstancesIteratorPair.second; ++it) {
         const DBusInstanceId& dbusServiceInstanceId = knownServiceInstancesIteratorPair.first->second;
         const std::string& connectionName = dbusServiceInstanceId.first;
         const std::string& objectPath = dbusServiceInstanceId.second;
@@ -98,46 +99,13 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         DBusAddressTranslator::getInstance().searchForCommonAddress(serviceName, connectionName, objectPath, commonApiAddress);
 
         addressesOfKnownServiceInstances.push_back(std::move(commonApiAddress));
-        ++knownServiceInstancesIteratorPair.first;
     }
 
     return addressesOfKnownServiceInstances;
 }
 
-void DBusServiceRegistry::onManagedPathsList(const CallStatus& status, DBusObjectToInterfaceDict managedObjects,
-        std::list<std::string>::iterator iter, std::shared_ptr<std::list<std::string>> list) {
 
-    auto objectPathIterator = managedObjects.begin();
-
-    while (objectPathIterator != managedObjects.end()) {
-        const std::string& serviceObjPath = objectPathIterator->first;
-        auto interfaceNameIterator = objectPathIterator->second.begin();
-
-        while (interfaceNameIterator != objectPathIterator->second.end()) {
-            const std::string& interfaceName = interfaceNameIterator->first;
-            dbusCachedProvidersForInterfaces_.insert( { interfaceName, { *iter, serviceObjPath } });
-            ++interfaceNameIterator;
-        }
-        ++objectPathIterator;
-    }
-
-    list->erase(iter);
-
-    if (list->size() == 0) {
-        readyMutex_.lock();
-        if (!ready) {
-            readyPromise_.set_value(true);
-            ready = true;
-        }
-        readyMutex_.unlock();
-    }
-}
-
-
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName,
-                                                 const std::string& dbusConnectionName,
-                                                 const std::string& dbusObjectPath) {
-
+bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath) {
     if (!dbusConnection_->isConnected()) {
         return false;
     }
@@ -157,30 +125,14 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
         }
     }
 
+    if(dbusLivingServiceBusNames_.empty()) {
+        cacheExistingBusNames();
+    }
+
     if (dbusLivingServiceBusNames_.find(dbusConnectionName) != dbusLivingServiceBusNames_.end()) {
-        std::promise<bool>* pathPromise = new std::promise<bool>();
-        std::future<bool> pathFuture = pathPromise->get_future();
-
-        getManagedObjects(dbusConnectionName, pathPromise);
-
-        auto status = pathFuture.wait_for(std::chrono::seconds(1));
-        if (checkReady(status)) {
-            delete pathPromise;
-            auto knownInstancesForInterfaceIteratorPair = dbusCachedProvidersForInterfaces_.equal_range(
-                            dbusInterfaceName);
-
-            while (knownInstancesForInterfaceIteratorPair.first != knownInstancesForInterfaceIteratorPair.second) {
-                DBusInstanceId knownServiceId = knownInstancesForInterfaceIteratorPair.first->second;
-                if (knownServiceId == serviceInstanceId) {
-                    return true;
-                }
-                ++knownInstancesForInterfaceIteratorPair.first;
-            }
-        }
-
-        //If all else fails we have a con name
         return true;
     }
+
     return false;
 }
 
@@ -206,8 +158,10 @@ void DBusServiceRegistry::getManagedObjects(const std::string& dbusWellKnownBusN
 }
 
 
-void DBusServiceRegistry::onManagedPaths(const CallStatus& status, DBusObjectToInterfaceDict managedObjects,
-		std::string dbusWellKnownBusName, std::promise<bool>* returnPromise) {
+void DBusServiceRegistry::onManagedPaths(const CallStatus& status,
+                                         DBusObjectToInterfaceDict managedObjects,
+                                         std::string dbusWellKnownBusName,
+                                         std::promise<bool>* returnPromise) {
 
 	auto objectPathIterator = managedObjects.begin();
 
@@ -248,34 +202,6 @@ void DBusServiceRegistry::addProvidedServiceInstancesToCache(const std::string& 
 	getManagedObjects(dbusNames);
 }
 
-void DBusServiceRegistry::addProvidedServiceInstancesToCache(const std::set<std::string>& dbusNames) {
-
-    std::shared_ptr<std::list<std::string>> dbusList = std::make_shared<std::list<std::string>>(dbusNames.begin(), dbusNames.end());
-
-    auto iter = dbusList->begin();
-
-    while (iter != dbusList->end()) {
-
-            auto callMessage = DBusMessage::createMethodCall(
-                            iter->c_str(),
-                            "/",
-                            "org.freedesktop.DBus.ObjectManager",
-                            "GetManagedObjects",
-                            "");
-            dbusConnection_->sendDBusMessageWithReplyAsync(
-                            callMessage,
-                            DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(
-                                            std::bind(
-                                                            &DBusServiceRegistry::onManagedPathsList,
-                                                            this,
-                                                            std::placeholders::_1,
-                                                            std::placeholders::_2,
-                                                            iter,
-                                                            dbusList)), 10);
-            iter++;
-    }
-}
-
 
 inline const bool isServiceName(const std::string& name) {
     return name[0] != ':';
@@ -314,7 +240,6 @@ void DBusServiceRegistry::removeProvidedServiceInstancesFromCache(const std::str
 }
 
 void DBusServiceRegistry::onListNames(const CommonAPI::CallStatus& callStatus, std::vector<std::string> existingBusConnections) {
-
 	if (callStatus == CallStatus::SUCCESS) {
 		for (const std::string& connectionName : existingBusConnections) {
 			const bool isWellKnownName = (connectionName[0] != ':');
@@ -323,15 +248,74 @@ void DBusServiceRegistry::onListNames(const CommonAPI::CallStatus& callStatus, s
 				dbusLivingServiceBusNames_.insert(connectionName);
 			}
 		}
-		addProvidedServiceInstancesToCache(dbusLivingServiceBusNames_);
 	}
 }
 
-void DBusServiceRegistry::cacheAllServices() {
-    CommonAPI::CallStatus callStatus;
-    std::vector<std::string> existingBusConnections;
-    dbusConnection_->getDBusDaemonProxy()->listNames(callStatus, existingBusConnections);
-    onListNames(callStatus, existingBusConnections);
+void DBusServiceRegistry::cacheExistingBusNames() {
+    if(dbusConnection_->isConnected()) {
+        CommonAPI::CallStatus callStatus;
+        std::vector<std::string> existingBusConnections;
+        dbusConnection_->getDBusDaemonProxy()->listNames(callStatus, existingBusConnections);
+        onListNames(callStatus, existingBusConnections);
+    }
+}
+
+void DBusServiceRegistry::cacheAllServiceInstances() {
+    if(dbusLivingServiceBusNames_.empty()) {
+        cacheExistingBusNames();
+    }
+
+    std::shared_ptr<std::list<std::string>> dbusList = std::make_shared<std::list<std::string>>(dbusLivingServiceBusNames_.begin(), dbusLivingServiceBusNames_.end());
+
+    auto iter = dbusList->begin();
+
+    while (iter != dbusList->end()) {
+        auto callMessage = DBusMessage::createMethodCall(
+                        iter->c_str(),
+                        "/",
+                        "org.freedesktop.DBus.ObjectManager",
+                        "GetManagedObjects",
+                        "");
+        dbusConnection_->sendDBusMessageWithReplyAsync(
+                        callMessage,
+                        DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(
+                                        std::bind(&DBusServiceRegistry::onManagedPathsList,
+                                                  this,
+                                                  std::placeholders::_1,
+                                                  std::placeholders::_2,
+                                                  iter,
+                                                  dbusList)), 10);
+        iter++;
+    }
+}
+
+void DBusServiceRegistry::onManagedPathsList(const CallStatus& status, DBusObjectToInterfaceDict managedObjects,
+        std::list<std::string>::iterator iter, std::shared_ptr<std::list<std::string>> list) {
+
+    auto objectPathIterator = managedObjects.begin();
+
+    while (objectPathIterator != managedObjects.end()) {
+        const std::string& serviceObjPath = objectPathIterator->first;
+        auto interfaceNameIterator = objectPathIterator->second.begin();
+
+        while (interfaceNameIterator != objectPathIterator->second.end()) {
+            const std::string& interfaceName = interfaceNameIterator->first;
+            dbusCachedProvidersForInterfaces_.insert( { interfaceName, { *iter, serviceObjPath } });
+            ++interfaceNameIterator;
+        }
+        ++objectPathIterator;
+    }
+
+    list->erase(iter);
+
+    if (list->size() == 0) {
+        readyMutex_.lock();
+        if (!ready) {
+            readyPromise_.set_value(true);
+            ready = true;
+        }
+        readyMutex_.unlock();
+    }
 }
 
 

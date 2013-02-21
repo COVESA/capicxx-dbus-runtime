@@ -10,6 +10,11 @@
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusStubAdapter.h>
+
+#include <commonapi/tests/TestInterfaceDBusProxy.h>
+#include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
+#include <commonapi/tests/TestInterfaceStubDefault.h>
+
 #include <stdint.h>
 #include <vector>
 #include <gtest/gtest.h>
@@ -18,55 +23,11 @@
 #include <string>
 
 
-class TestProxy: public CommonAPI::DBus::DBusProxy {
-public:
-  TestProxy(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection);
-  ~TestProxy() = default;
-
-protected:
-  void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
-
-};
-
-class TestStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
-public:
-    TestStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection);
-protected:
-    bool onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage);
-    const char* getMethodsDBusIntrospectionXmlData() const;
-};
-
-const char* TestStubAdapter::getMethodsDBusIntrospectionXmlData() const {
-    return "";
-}
-
-bool TestStubAdapter::onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
-    return true;
-}
-
-TestStubAdapter::TestStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection) :
-        CommonAPI::DBus::DBusStubAdapter(
-        "local:random.common:api.address",
-        "com.bmw.test.Echo",
-        "com.bmw.test.Echo",
-        "/com/bmw/test/Echo",
-        dbusConnection) {
-}
-
-TestProxy::TestProxy(const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection) :
-		CommonAPI::DBus::DBusProxy(
-		"local:random.common:api.address",
-		"com.bmw.test.Echo",
-        "com.bmw.test.Echo",
-        "/com/bmw/test/Echo",
-        dbusConnection) {
-}
-
-void TestProxy::getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const {
-}
-
-
-const static std::string ID = "com.bmw.test.Echo";
+const static std::string commonApiAddress = "local:com.bmw.test.Echo:com.bmw.test";
+const static std::string commonApiServiceName = "com.bmw.test.Echo";
+const static std::string interfaceName = "com.bmw.test.Echo";
+const static std::string connectionName = "com.bmw.test";
+const static std::string objectPath = "/com/bmw/test";
 
 
 class ProxyTest: public ::testing::Test {
@@ -79,26 +40,32 @@ protected:
     void SetUp() {
         dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         ASSERT_TRUE(dbusConnection_->connect());
-        proxy_ = std::make_shared<TestProxy>(dbusConnection_);
+
+        proxy_ = std::make_shared<commonapi::tests::TestInterfaceDBusProxy>(
+                        commonApiAddress,
+                        interfaceName,
+                        connectionName,
+                        objectPath,
+                        dbusConnection_);
     }
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
-    std::shared_ptr<TestProxy> proxy_;
+    std::shared_ptr<commonapi::tests::TestInterfaceDBusProxy> proxy_;
 };
 
-TEST_F(ProxyTest, HasCorrectBusName) {
+TEST_F(ProxyTest, HasCorrectConnectionName) {
   std::string actualName = proxy_->getDBusBusName();
-  EXPECT_EQ("com.bmw.test.Echo", actualName);
+  EXPECT_EQ(connectionName, actualName);
 }
 
 TEST_F(ProxyTest, HasCorrectObjectPath) {
   std::string actualPath = proxy_->getDBusObjectPath();
-  EXPECT_EQ("/com/bmw/test/Echo", actualPath);
+  EXPECT_EQ(objectPath, actualPath);
 }
 
 TEST_F(ProxyTest, HasCorrectInterfaceName) {
   std::string actualName = proxy_->getInterfaceName();
-  EXPECT_EQ("com.bmw.test.Echo", actualName);
+  EXPECT_EQ(interfaceName, actualName);
 }
 
 TEST_F(ProxyTest, IsNotAvailable) {
@@ -113,26 +80,47 @@ TEST_F(ProxyTest, ServiceRegistry) {
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
-    std::shared_ptr<TestStubAdapter> stub_ = std::make_shared<TestStubAdapter>(dbusConnection_);
-	stub_->init();
-    dbusConnection_->requestServiceNameAndBlock(ID);
+    dbusConnection_->requestServiceNameAndBlock(connectionName);
+
+    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter =  std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
+                    commonApiAddress,
+                    interfaceName,
+                    connectionName,
+                    objectPath,
+                    dbusConnection_,
+                    stubDefault);
+
+    stubAdapter->init();
+
+    auto testConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+    testConnection->connect();
 
 	std::vector<std::string> actuallyAvailableServices;
-
-
-	actuallyAvailableServices = dbusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances("com.bmw.test.Echo",
+	actuallyAvailableServices = testConnection->getDBusServiceRegistry()->getAvailableServiceInstances(commonApiServiceName,
 			"local");
 
-	std::string toFind = "com.bmw.test.Echo";
-	auto found = std::find(actuallyAvailableServices.begin(), actuallyAvailableServices.end(), toFind);
+	auto found = std::find(actuallyAvailableServices.begin(), actuallyAvailableServices.end(), commonApiAddress);
 
 	ASSERT_TRUE(actuallyAvailableServices.begin() != actuallyAvailableServices.end());
+	ASSERT_TRUE(found != actuallyAvailableServices.end());
+
+	testConnection->disconnect();
 }
 
 TEST_F(ProxyTest, IsAvailableBlocking) {
-    std::shared_ptr<TestStubAdapter> stub = std::make_shared<TestStubAdapter>(dbusConnection_);
-    stub->init();
-    bool registered = dbusConnection_->requestServiceNameAndBlock(ID);
+    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter =  std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
+                    commonApiAddress,
+                    interfaceName,
+                    connectionName,
+                    objectPath,
+                    dbusConnection_,
+                    stubDefault);
+
+    stubAdapter->init();
+
+    bool registered = dbusConnection_->requestServiceNameAndBlock(connectionName);
     bool isAvailable = proxy_->isAvailableBlocking();
     EXPECT_EQ(registered, isAvailable);
 }

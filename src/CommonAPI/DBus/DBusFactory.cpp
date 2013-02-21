@@ -47,6 +47,7 @@ DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo*
     dbusConnection_->connect();
 }
 
+
 DBusFactory::~DBusFactory() {
 }
 
@@ -76,6 +77,7 @@ bool DBusFactory::isServiceInstanceAlive(const std::string& participantId,
     std::string serviceAddress = domainName + ":" + serviceName + ":" + participantId;
     return isServiceInstanceAlive(serviceAddress);
 }
+
 
 std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceId,
                                                 const std::string& participantId,

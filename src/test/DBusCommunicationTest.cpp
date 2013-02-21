@@ -97,7 +97,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     ASSERT_TRUE(success);
 
     uint32_t v1 = 5;
-    std::string v2 = "Hai :)";
+    std::string v2 = "Ciao ;)";
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
