@@ -46,28 +46,27 @@ class DBusServiceRegistry {
  public:
     static constexpr const char* getManagedObjectsDBusSignature_ = "a{oa{sa{sv}}}";
 
-    DBusServiceRegistry() = delete;
+    DBusServiceRegistry();
     DBusServiceRegistry(const DBusServiceRegistry&) = delete;
     DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
 
     DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> connection);
-    ~DBusServiceRegistry();
+    virtual ~DBusServiceRegistry();
 
-    std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
+    virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
                                                           const std::string& domainName = "local");
 
-    bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
-    bool isConnectionAlive(const std::string& dbusConnectionName) const;
+    virtual bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
 
-    bool isReady() const;
+    virtual bool isReady() const;
 
-    bool isReadyBlocking() const;
+    virtual bool isReadyBlocking() const;
 
-    void registerAvailabilityListener(const std::string& service, const std::function<void(bool)>& listener);
+    virtual void registerAvailabilityListener(const std::string& service, const std::function<void(bool)>& listener);
 
-    std::future<bool>& getReadyFuture();
+    virtual std::future<bool>& getReadyFuture();
 
-    DBusServiceStatusEvent& getServiceStatusEvent();
+    virtual DBusServiceStatusEvent& getServiceStatusEvent();
 
  private:
     void cacheAllServiceInstances();

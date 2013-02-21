@@ -21,6 +21,15 @@ namespace CommonAPI {
 namespace DBus {
 
 
+DBusServiceRegistry::DBusServiceRegistry() :
+                ready(false),
+                serviceStatusEvent_(std::shared_ptr<DBusServiceRegistry>(this)),
+                readyPromise_(),
+                readyMutex_()
+{
+
+}
+
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusConnection) :
                 dbusConnection_(dbusConnection),
                 ready(false),
@@ -253,10 +262,7 @@ void DBusServiceRegistry::onListNames(const CommonAPI::CallStatus& callStatus, s
 
 void DBusServiceRegistry::cacheExistingBusNames() {
     if(dbusConnection_->isConnected()) {
-        CommonAPI::CallStatus callStatus;
-        std::vector<std::string> existingBusConnections;
-        dbusConnection_->getDBusDaemonProxy()->listNames(callStatus, existingBusConnections);
-        onListNames(callStatus, existingBusConnections);
+        dbusConnection_->getDBusDaemonProxy()->listNamesAsync(std::bind(&DBusServiceRegistry::onListNames, this, std::placeholders::_1, std::placeholders::_2));
     }
 }
 
