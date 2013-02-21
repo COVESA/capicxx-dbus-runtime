@@ -36,6 +36,7 @@ libCommonAPI_DBus_la_SOURCES = \
 		src/CommonAPI/DBus/DBusMessage.cpp \
 		src/CommonAPI/DBus/DBusObjectManager.cpp \
 		src/CommonAPI/DBus/DBusOutputStream.cpp \
+		src/CommonAPI/DBus/DBusProxyBase.cpp \
 		src/CommonAPI/DBus/DBusProxy.cpp \
 		src/CommonAPI/DBus/DBusFactory.cpp \
 		src/CommonAPI/DBus/DBusRuntime.cpp \
@@ -62,6 +63,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusMultiEvent.h \
         src/CommonAPI/DBus/DBusObjectManager.h \
         src/CommonAPI/DBus/DBusOutputStream.h \
+        src/CommonAPI/DBus/DBusProxyBase.h \
         src/CommonAPI/DBus/DBusProxy.h \
         src/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.h \
         src/CommonAPI/DBus/DBusProxyConnection.h \
