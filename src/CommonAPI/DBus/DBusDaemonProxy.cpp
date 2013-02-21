@@ -11,9 +11,43 @@
 namespace CommonAPI {
 namespace DBus {
 
-DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& connection):
-                DBusProxy(getInterfaceName(), "org.freedesktop.DBus", "/org/freedesktop/DBus", connection, true),
+StaticInterfaceVersionAttribute::StaticInterfaceVersionAttribute(const uint32_t& majorValue, const uint32_t& minorValue):
+                version_(majorValue, minorValue) {
+}
+
+CallStatus StaticInterfaceVersionAttribute::getValue(Version& version) const {
+    version = version_;
+
+    return CallStatus::SUCCESS;
+}
+
+std::future<CallStatus> StaticInterfaceVersionAttribute::getValueAsync(AttributeAsyncCallback attributeAsyncCallback) {
+    attributeAsyncCallback(CallStatus::SUCCESS, version_);
+
+    std::promise<CallStatus> versionPromise;
+    versionPromise.set_value(CallStatus::SUCCESS);
+
+    return versionPromise.get_future();
+}
+
+
+StaticInterfaceVersionAttribute DBusDaemonProxy::interfaceVersionAttribute_(1, 0);
+
+DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
+                DBusProxyBase(getInterfaceId(), "org.freedesktop.DBus", "/org/freedesktop/DBus", dbusConnection),
                 nameOwnerChangedEvent_(*this, "NameOwnerChanged", "sss") {
+}
+
+bool DBusDaemonProxy::isAvailable() const {
+    return getDBusConnection()->isConnected();
+}
+
+ProxyStatusEvent& DBusDaemonProxy::getProxyStatusEvent() {
+    return getDBusConnection()->getConnectionStatusEvent();
+}
+
+InterfaceVersionAttribute& DBusDaemonProxy::getInterfaceVersionAttribute() {
+    return interfaceVersionAttribute_;
 }
 
 DBusDaemonProxy::NameOwnerChangedEvent& DBusDaemonProxy::getNameOwnerChangedEvent() {
@@ -24,9 +58,7 @@ void DBusDaemonProxy::listNames(CommonAPI::CallStatus& callStatus, std::vector<s
     DBusMessage dbusMethodCall = createMethodCall("ListNames", "");
 
     DBusError dbusError;
-    DBusMessage dbusMessageReply = getDBusConnection()->sendDBusMessageWithReplyAndBlock(
-                    dbusMethodCall,
-                    dbusError);
+    DBusMessage dbusMessageReply = getDBusConnection()->sendDBusMessageWithReplyAndBlock(dbusMethodCall, dbusError);
 
     if (dbusError || !dbusMessageReply.isMethodReturnType()) {
         callStatus = CallStatus::REMOTE_ERROR;
@@ -39,8 +71,8 @@ void DBusDaemonProxy::listNames(CommonAPI::CallStatus& callStatus, std::vector<s
         callStatus = CallStatus::REMOTE_ERROR;
         return;
     }
-    callStatus = CallStatus::SUCCESS;
 
+    callStatus = CallStatus::SUCCESS;
 }
 
 std::future<CallStatus> DBusDaemonProxy::listNamesAsync(ListNamesAsyncCallback listNamesAsyncCallback) const {
@@ -101,8 +133,6 @@ std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& bu
 
 }
 
-void DBusDaemonProxy::getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const {
-}
 
 } // namespace DBus
 } // namespace CommonAPI

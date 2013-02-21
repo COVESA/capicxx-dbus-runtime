@@ -57,10 +57,13 @@ class DBusProxyConnection {
     typedef std::unordered_multimap<DBusSignalHandlerPath, DBusSignalHandler*> DBusSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
+    typedef Event<AvailabilityStatus> ConnectionStatusEvent;
 
 	virtual ~DBusProxyConnection() { }
 
 	virtual bool isConnected() const =  0;
+
+	virtual ConnectionStatusEvent& getConnectionStatusEvent() = 0;
 
 	virtual bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const = 0;
 

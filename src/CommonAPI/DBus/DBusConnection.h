@@ -21,7 +21,7 @@ namespace DBus {
 class DBusConnection;
 class DBusObjectManager;
 
-class DBusConnectionStatusEvent: public Event<AvailabilityStatus> {
+class DBusConnectionStatusEvent: public DBusProxyConnection::ConnectionStatusEvent {
     friend class DBusConnection;
 };
 
@@ -55,7 +55,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	virtual bool isConnected() const;
 
-	virtual DBusConnectionStatusEvent& getConnectionStatusEvent();
+	virtual ConnectionStatusEvent& getConnectionStatusEvent();
 
 	virtual bool requestServiceNameAndBlock(const std::string& serviceName) const;
 	virtual bool releaseServiceName(const std::string& serviceName) const;

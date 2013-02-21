@@ -100,7 +100,7 @@ bool DBusConnection::isConnected() const {
     return (libdbusConnection_ != NULL);
 }
 
-DBusConnectionStatusEvent& DBusConnection::getConnectionStatusEvent() {
+DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusEvent() {
     return dbusConnectionStatusEvent_;
 }
 

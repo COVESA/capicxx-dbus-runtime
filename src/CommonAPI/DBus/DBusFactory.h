@@ -13,6 +13,7 @@
 
 #include "CommonAPI/DBus/DBusStubAdapter.h"
 #include "DBusConnection.h"
+#include "DBusProxy.h"
 
 namespace CommonAPI {
 namespace DBus {

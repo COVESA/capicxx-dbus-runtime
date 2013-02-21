@@ -15,6 +15,7 @@
 #include "DBusDaemonProxy.h"
 #include "DBusProxyConnection.h"
 #include "DBusUtils.h"
+#include "DBusProxyAsyncCallbackHandler.h"
 
 
 namespace CommonAPI {

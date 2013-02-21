@@ -7,30 +7,44 @@
 #ifndef COMMONAPI_DBUS_DBUS_DAEMON_PROXY_H_
 #define COMMONAPI_DBUS_DBUS_DAEMON_PROXY_H_
 
-#include "DBusProxy.h"
+#include "DBusProxyBase.h"
 #include "DBusEvent.h"
 
-#include "DBusServiceStatusEvent.h"
-
+#include <functional>
 #include <string>
 #include <vector>
+
 
 namespace CommonAPI {
 namespace DBus {
 
-class DBusServiceStatusEvent;
+class StaticInterfaceVersionAttribute: public InterfaceVersionAttribute {
+ public:
+    StaticInterfaceVersionAttribute(const uint32_t& majorValue, const uint32_t& minorValue);
 
-class DBusDaemonProxy: public DBusProxy {
+    CallStatus getValue(Version& version) const;
+    std::future<CallStatus> getValueAsync(AttributeAsyncCallback attributeAsyncCallback);
 
+ private:
+    Version version_;
+};
+
+
+class DBusDaemonProxy: public DBusProxyBase {
  public:
 	typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
+
 	typedef std::function<void(const CommonAPI::CallStatus&, std::vector<std::string>)> ListNamesAsyncCallback;
 	typedef std::function<void(const CommonAPI::CallStatus&, bool)> NameHasOwnerAsyncCallback;
 
 
-	DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& connection);
+	DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection);
 
-    inline const char* getInterfaceName() const;
+	virtual bool isAvailable() const;
+	virtual ProxyStatusEvent& getProxyStatusEvent();
+	virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
+
+	static inline const char* getInterfaceId();
 
     NameOwnerChangedEvent& getNameOwnerChangedEvent();
 
@@ -40,14 +54,13 @@ class DBusDaemonProxy: public DBusProxy {
     void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
     std::future<CallStatus> nameHasOwnerAsync(const std::string& busName, NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const;
 
- protected:
-    void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
-
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
+
+    static StaticInterfaceVersionAttribute interfaceVersionAttribute_;
 };
 
-const char* DBusDaemonProxy::getInterfaceName() const {
+const char* DBusDaemonProxy::getInterfaceId() {
     return "org.freedesktop.DBus";
 }
 
