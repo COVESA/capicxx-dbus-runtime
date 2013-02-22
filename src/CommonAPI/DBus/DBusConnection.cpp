@@ -67,13 +67,14 @@ bool DBusConnection::connect(DBusError& dbusError) {
     assert(libdbusConnection_);
     dbus_connection_set_exit_on_disconnect(libdbusConnection_, false);
 
-    dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::AVAILABLE);
-
     initLibdbusObjectPathHandlerAfterConnect();
 
     initLibdbusSignalFilterAfterConnect();
 
+    stopDispatching_ = false;
     dispatchThread_ = std::thread(std::bind(&DBusConnection::dispatch, this));
+
+    dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::AVAILABLE);
 
     return true;
 }
