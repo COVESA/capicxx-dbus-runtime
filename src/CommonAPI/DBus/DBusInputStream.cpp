@@ -288,6 +288,11 @@ void DBusInputStream::endReadMap() {
     savedStreamPositions_.pop();
 }
 
+void DBusInputStream::beginReadMapElement() {
+    alignToBoundary(8);
+}
+void DBusInputStream::endReadMapElement() {}
+
 
 } // namespace DBus
 } // namespace CommonAPI

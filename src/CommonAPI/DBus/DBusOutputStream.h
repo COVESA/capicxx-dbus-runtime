@@ -237,8 +237,9 @@ class DBusOutputStream: public OutputStream {
     virtual void endWriteSerializableStruct(const SerializableStruct& serializableStruct);
 
     virtual void beginWriteMap(size_t elementCount);
-
     virtual void endWriteMap();
+    virtual void beginWriteMapElement();
+    virtual void endWriteMapElement();
 
     virtual void beginWriteSerializableVariant(const SerializableVariant& serializableVariant);
 

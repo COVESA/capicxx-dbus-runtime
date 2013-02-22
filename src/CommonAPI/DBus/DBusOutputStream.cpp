@@ -191,6 +191,11 @@ void DBusOutputStream::endWriteMap() {
     writeBasicTypeValueAtPosition(popRememberedStreamPosition(), numOfWrittenBytes);
 }
 
+void DBusOutputStream::beginWriteMapElement() {
+    alignToBoundary(8);
+}
+void DBusOutputStream::endWriteMapElement() {}
+
 void DBusOutputStream::beginWriteSerializableVariant(const SerializableVariant& serializableVariant) {
     alignToBoundary(8);
     writeValue(serializableVariant.getValueType());

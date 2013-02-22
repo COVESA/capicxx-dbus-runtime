@@ -105,6 +105,8 @@ class DBusInputStream: public InputStream {
  	virtual void beginReadMap();
  	virtual bool hasMoreMapElements();
  	virtual void endReadMap();
+    virtual void beginReadMapElement();
+    virtual void endReadMapElement();
 
 
  	/**
