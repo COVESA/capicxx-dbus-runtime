@@ -4,15 +4,17 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Workaround for libstdc++ bug
+#ifndef _GLIBCXX_USE_NANOSLEEP
+#define _GLIBCXX_USE_NANOSLEEP
+#endif
+
 #include "DBusProxy.h"
 #include "DBusServiceRegistry.h"
 #include "DBusUtils.h"
 
-#include <algorithm>
 #include <cassert>
-#include <dbus/dbus.h>
-#include <functional>
-#include <CommonAPI/Event.h>
+
 
 namespace CommonAPI {
 namespace DBus {
@@ -21,27 +23,9 @@ DBusProxyStatusEvent::DBusProxyStatusEvent(DBusProxy* dbusProxy) :
                 dbusProxy_(dbusProxy) {
 }
 
-void DBusProxyStatusEvent::onFirstListenerAdded(const CancellableListener& listener) {
-    auto serviceStatusListener = std::bind(
-                    &DBusProxyStatusEvent::onServiceAvailableSignalHandler,
-                    this,
-                    std::placeholders::_1,
-                    std::placeholders::_2);
-
-    subscription_ = dbusProxy_->getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().subscribe(
-                    dbusProxy_->commonApiDomain_ + ":" + dbusProxy_->commonApiServiceId_ + ":" + dbusProxy_->commonApiParticipantId_,
-                    serviceStatusListener);
-}
-
-void DBusProxyStatusEvent::onLastListenerRemoved(const CancellableListener& listener) {
-    dbusProxy_->getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().unsubscribe(subscription_);
-}
-
-SubscriptionStatus DBusProxyStatusEvent::onServiceAvailableSignalHandler(const std::string& name,
-                                                                         const AvailabilityStatus& availabilityStatus) {
-    AvailabilityStatus availability = availabilityStatus;
-
-    return notifyListeners(availability);
+void DBusProxyStatusEvent::onListenerAdded(const CancellableListener& listener) {
+    if (dbusProxy_->isAvailable())
+        listener(AvailabilityStatus::AVAILABLE);
 }
 
 
@@ -49,97 +33,59 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
                      const std::string& dbusInterfaceName,
                      const std::string& dbusBusName,
                      const std::string& dbusObjectPath,
-                     const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection) :
-                         commonApiDomain_(split(commonApiAddress, ':')[0]),
-                         commonApiServiceId_(split(commonApiAddress, ':')[1]),
-                         commonApiParticipantId_(split(commonApiAddress, ':')[2]),
-						 dbusBusName_(dbusBusName),
-		                 dbusObjectPath_(dbusObjectPath),
-		                 dbusInterfaceName_(dbusInterfaceName),
-		                 statusEvent_(this),
-		                 interfaceVersionAttribute_(*this, "getInterfaceVersion"),
-		                 available_(false),
-		                 availableSet_(false),
-		                 connection_(dbusProxyConnection) {
+                     const std::shared_ptr<DBusProxyConnection>& dbusConnection):
+                DBusProxyBase(split(commonApiAddress, ':')[1],
+                              split(commonApiAddress, ':')[2],
+                              dbusInterfaceName,
+                              dbusBusName,
+                              dbusObjectPath,
+                              dbusConnection),
+                dbusProxyStatusEvent_(this),
+                availabilityStatus_(AvailabilityStatus::UNKNOWN),
+                interfaceVersionAttribute_(*this, "getInterfaceVersion") {
+    const std::string commonApiDomain = split(commonApiAddress, ':')[0];
+    assert(commonApiDomain == "local");
+
+    dbusServiceStatusEventSubscription_ = dbusConnection->getDBusServiceRegistry()->getServiceStatusEvent().subscribe(
+                    commonApiAddress,
+                    std::bind(&DBusProxy::onServiceStatusEvent, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-DBusProxy::DBusProxy(const std::string& dbusInterfaceName,
-                     const std::string& dbusBusName,
-                     const std::string& dbusObjectPath,
-                     const std::shared_ptr<DBusProxyConnection>& connection,
-                     const bool isAlwaysAvailable):
-                         commonApiDomain_(""),
-                         commonApiServiceId_(""),
-                         commonApiParticipantId_(""),
-                         dbusBusName_(dbusBusName),
-                         dbusObjectPath_(dbusObjectPath),
-                         dbusInterfaceName_(dbusInterfaceName),
-                         statusEvent_(this),
-                         interfaceVersionAttribute_(*this, "getInterfaceVersion"),
-                         available_(isAlwaysAvailable),
-                         availableSet_(isAlwaysAvailable),
-                         connection_(connection) {
+DBusProxy::~DBusProxy() {
+    getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().unsubscribe(dbusServiceStatusEventSubscription_);
 }
-
-std::string DBusProxy::getAddress() const {
-    return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
-}
-
-const std::string& DBusProxy::getDomain() const {
-    return commonApiDomain_;
-}
-
-const std::string& DBusProxy::getServiceId() const {
-    return commonApiServiceId_;
-}
-
-const std::string& DBusProxy::getInstanceId() const {
-    return commonApiParticipantId_;
-}
-
 
 bool DBusProxy::isAvailable() const {
-    if (!availableSet_) {
-        auto status = getDBusConnection()->getDBusServiceRegistry()->getReadyFuture().wait_for(std::chrono::milliseconds(1));
-        if (checkReady(status)) {
-            available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(
-                            dbusInterfaceName_,
-                            dbusBusName_,
-                            dbusObjectPath_);
-            availableSet_ = true;
-        }
-    }
-    return available_;
+    return (availabilityStatus_ == AvailabilityStatus::AVAILABLE);
 }
 
 bool DBusProxy::isAvailableBlocking() const {
-    if (!availableSet_) {
-        getDBusConnection()->getDBusServiceRegistry()->getReadyFuture().wait();
-        available_ = getDBusConnection()->getDBusServiceRegistry()->isServiceInstanceAlive(
-                        dbusInterfaceName_,
-                        dbusBusName_,
-                        dbusObjectPath_);
-        availableSet_ = true;
+    if (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
+        std::chrono::milliseconds singleWaitDuration(100);
+
+        // Wait for the service registry
+        while (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
+            std::this_thread::sleep_for(singleWaitDuration);
+        }
     }
-    return available_;
+
+    return isAvailable();
 }
 
 ProxyStatusEvent& DBusProxy::getProxyStatusEvent() {
-    return statusEvent_;
+    return dbusProxyStatusEvent_;
 }
 
 InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
     return interfaceVersionAttribute_;
 }
 
-DBusMessage DBusProxy::createMethodCall(const char* methodName,
-                                        const char* methodSignature) const {
-    return DBusMessage::createMethodCall(
-                    dbusBusName_.c_str(),
-                    dbusObjectPath_.c_str(),
-                    dbusInterfaceName_.c_str(),
-                    methodName,
-                    methodSignature);
+SubscriptionStatus DBusProxy::onServiceStatusEvent(const std::string& name, const AvailabilityStatus& availabilityStatus) {
+    availabilityStatus_ = availabilityStatus;
+
+    dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+
+    return SubscriptionStatus::RETAIN;
 }
 
 } // namespace DBus
