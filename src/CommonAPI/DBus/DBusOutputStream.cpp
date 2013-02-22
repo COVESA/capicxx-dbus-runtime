@@ -16,7 +16,12 @@ DBusOutputStream::DBusOutputStream(DBusMessage dbusMessage) :
 DBusOutputStream::~DBusOutputStream() {
 }
 
-OutputStream& DBusOutputStream::writeValue(const bool& boolValue) { return writeBasicTypeValue<uint32_t>(boolValue); }
+OutputStream& DBusOutputStream::writeValue(const bool& boolValue) {
+	alignToBoundary(4);
+	writeBasicTypeValue(boolValue);
+	alignToBoundary(4);
+	return *this;
+}
 
 OutputStream& DBusOutputStream::writeValue(const int8_t& int8Value) { return writeBasicTypeValue(int8Value); }
 OutputStream& DBusOutputStream::writeValue(const int16_t& int16Value) { return writeBasicTypeValue(int16Value); }
