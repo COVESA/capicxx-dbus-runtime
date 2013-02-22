@@ -12,17 +12,23 @@ inline char eliminateZeroes(char val) {
     return !val ? '0' : val;
 }
 
+
+inline void printLibdbusMessageBody(char* data, uint32_t fromByteIndex, uint32_t toByteIndex) {
+	for(int i = fromByteIndex; i < toByteIndex; i++) {
+		std::cout << eliminateZeroes(data[i]);
+		if(i%8 == 7) {
+			std::cout << std::endl;
+		}
+	}
+	std::cout << std::endl;
+}
+
 inline void printLibdbusMessage(DBusMessage* libdbusMessage, uint32_t fromByteIndex, uint32_t toByteIndex) {
     char* data = dbus_message_get_body(libdbusMessage);
-    for(int i = fromByteIndex; i < toByteIndex; i++) {
-        std::cout << eliminateZeroes(data[i]);
-        if(i%8 == 7) {
-            std::cout << std::endl;
-        }
-    }
-    std::cout << std::endl;
+    printLibdbusMessageBody(data, fromByteIndex, toByteIndex);
 }
 
 inline void printLibdbusMessage(DBusMessage* libdbusMessage) {
     printLibdbusMessage(libdbusMessage, 0, dbus_message_get_body_length(libdbusMessage));
 }
+
