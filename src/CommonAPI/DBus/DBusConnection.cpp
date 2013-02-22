@@ -14,6 +14,15 @@
 namespace CommonAPI {
 namespace DBus {
 
+DBusConnectionStatusEvent::DBusConnectionStatusEvent(DBusConnection* dbusConnection):
+                dbusConnection_(dbusConnection) {
+}
+
+void DBusConnectionStatusEvent::onListenerAdded(const CancellableListener& listener) {
+    if (dbusConnection_->isConnected())
+        listener(AvailabilityStatus::AVAILABLE);
+}
+
 
 DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
                 NULL, // no need to handle unregister callbacks
@@ -28,6 +37,7 @@ void DBusConnection::dispatch() {
 DBusConnection::DBusConnection(BusType busType) :
                 busType_(busType),
                 libdbusConnection_(NULL),
+                dbusConnectionStatusEvent_(this),
                 isLibdbusSignalFilterAdded_(false),
                 stopDispatching_(false) {
     dbus_threads_init_default();
@@ -36,6 +46,7 @@ DBusConnection::DBusConnection(BusType busType) :
 DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
                 busType_(WRAPPED),
                 libdbusConnection_(libDbusConnection),
+                dbusConnectionStatusEvent_(this),
                 isLibdbusSignalFilterAdded_(false),
                 stopDispatching_(false)  {
     dbus_threads_init_default();

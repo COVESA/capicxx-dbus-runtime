@@ -18,11 +18,18 @@
 namespace CommonAPI {
 namespace DBus {
 
-class DBusConnection;
 class DBusObjectManager;
 
 class DBusConnectionStatusEvent: public DBusProxyConnection::ConnectionStatusEvent {
     friend class DBusConnection;
+
+ public:
+    DBusConnectionStatusEvent(DBusConnection* dbusConnection);
+
+ protected:
+    virtual void onListenerAdded(const CancellableListener& listener);
+
+    DBusConnection* dbusConnection_;
 };
 
 
