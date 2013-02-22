@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 
+
 namespace CommonAPI {
 namespace DBus {
 
@@ -96,16 +97,14 @@ SubscriptionStatus DBusMultiEvent<_Arguments...>::notifyListenersRange(
 		const std::string& name,
 		IteratorRange listenersRange,
 		const _Arguments&... eventArguments) {
-	for (auto iterator = listenersRange.first; iterator != listenersRange.second; ) {
+	for (auto iterator = listenersRange.first; iterator != listenersRange.second; iterator++) {
 		const Listener& listener = iterator->second;
 		const SubscriptionStatus listenerSubcriptionStatus = listener(name, eventArguments...);
 
 		if (listenerSubcriptionStatus == SubscriptionStatus::CANCEL) {
 			auto listenerIterator = iterator;
 			listenersMap_.erase(listenerIterator);
-			iterator++;
-		} else
-			iterator++;
+		}
 	}
 
 	return listenersMap_.empty() ? SubscriptionStatus::CANCEL : SubscriptionStatus::RETAIN;
