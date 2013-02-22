@@ -16,13 +16,7 @@ DBusServiceStatusEvent::DBusServiceStatusEvent(std::shared_ptr<DBusServiceRegist
 }
 
 void DBusServiceStatusEvent::onFirstListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {
-    if (registry_) {
-        registry_->registerAvailabilityListener(commonApiServiceName, std::bind(
-                        &DBusServiceStatusEvent::availabilityEvent,
-                        this,
-                        commonApiServiceName,
-                        std::placeholders::_1));
-    }
+
 }
 
 void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const bool& available) {
@@ -34,10 +28,21 @@ void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServi
 
 void DBusServiceStatusEvent::onListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {
     if (registry_) {
+
+        registry_->registerAvailabilityListener(commonApiServiceName, std::bind(
+                        &DBusServiceStatusEvent::availabilityEvent,
+                        this,
+                        commonApiServiceName,
+                        std::placeholders::_1));
+
         std::string dbusInterfaceName;
         std::string dbusConnectionName;
         std::string dbusObjectPath;
-        DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiServiceName, dbusInterfaceName, dbusConnectionName, dbusObjectPath);
+        DBusAddressTranslator::getInstance().searchForDBusAddress(
+                        commonApiServiceName,
+                        dbusInterfaceName,
+                        dbusConnectionName,
+                        dbusObjectPath);
 
         const AvailabilityStatus availabilityStatus =
                         !registry_->isServiceInstanceAlive(dbusInterfaceName, dbusConnectionName, dbusObjectPath) ? AvailabilityStatus::NOT_AVAILABLE :
