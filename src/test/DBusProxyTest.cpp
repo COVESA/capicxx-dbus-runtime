@@ -4,7 +4,9 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#ifndef _GLIBCXX_USE_NANOSLEEP
 #define _GLIBCXX_USE_NANOSLEEP
+#endif
 
 #include <CommonAPI/DBus/DBusInputStream.h>
 #include <CommonAPI/DBus/DBusMessage.h>
@@ -31,7 +33,7 @@ static const std::string commonApiAddress = "local:CommonAPI.DBus.tests.DBusProx
 static const std::string commonApiServiceName = "CommonAPI.DBus.tests.DBusProxyTest";
 static const std::string interfaceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
 static const std::string busName = "CommonAPI.DBus.tests.DBusProxyTestService";
-static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTest/TestObject";
+static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
 
 
 class ProxyTest: public ::testing::Test {
@@ -43,8 +45,10 @@ protected:
         stubAdapter_.reset();
 
         if (stubDBusConnection_) {
-            stubDBusConnection_->releaseServiceName(busName);
-            stubDBusConnection_->disconnect();
+            if (stubDBusConnection_->isConnected()) {
+                stubDBusConnection_->releaseServiceName(busName);
+                stubDBusConnection_->disconnect();
+            }
             stubDBusConnection_.reset();
         }
     }
@@ -145,6 +149,10 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     registerTestStub();
 
     ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+
+    stubDBusConnection_->disconnect();
+
+    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 }
 
 TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
@@ -152,9 +160,15 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
 
     registerTestStub();
 
-    proxyDBusConnection_->connect();
+    ASSERT_TRUE(proxyDBusConnection_->connect());
+
     proxyRegisterForAvailabilityStatus();
+
     ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+
+    stubDBusConnection_->disconnect();
+
+    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
