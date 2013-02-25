@@ -136,7 +136,7 @@ struct DBusProxyHelper<_In<_InArgs...>, _Out<_OutArgs...>> {
                 callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
 
 	            std::promise<CallStatus> promise;
-	            promise.set_value(CallStatus::NOT_AVAILABLE);
+	            promise.set_value(callStatus);
 	            return promise.get_future();
 	        }
 	   }
