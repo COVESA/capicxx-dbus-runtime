@@ -88,7 +88,8 @@ bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessag
         ++registeredObjectsIterator;
     }
 
-    DBusMessage replyMessage = callMessage.createMethodReturn(DBusServiceRegistry::getManagedObjectsDBusSignature_);
+    const char* getManagedObjectsDBusSignature = "a{oa{sa{sv}}}";
+    DBusMessage replyMessage = callMessage.createMethodReturn(getManagedObjectsDBusSignature);
 
     DBusOutputStream outStream(replyMessage);
     outStream << dictToSend;

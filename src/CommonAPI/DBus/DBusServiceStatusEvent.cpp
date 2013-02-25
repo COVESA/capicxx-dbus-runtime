@@ -19,10 +19,7 @@ void DBusServiceStatusEvent::onFirstListenerAdded(const std::string& commonApiSe
 
 }
 
-void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const bool& available) {
-
-    const AvailabilityStatus availabilityStatus = !available ? AvailabilityStatus::NOT_AVAILABLE :
-                                                               AvailabilityStatus::AVAILABLE;
+void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const AvailabilityStatus& availabilityStatus) {
     notifyListeners(commonApiServiceName, availabilityStatus);
 }
 

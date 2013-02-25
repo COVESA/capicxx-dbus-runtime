@@ -40,21 +40,6 @@ TEST_F(DBusServiceRegistryTest, DBusConnectionHasRegistry) {
     ASSERT_FALSE(!serviceRegistry);
 }
 
-
-TEST_F(DBusServiceRegistryTest, IsNotReadyBeforeConnect) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto serviceRegistry = dbusConnection->getDBusServiceRegistry();
-    ASSERT_FALSE(serviceRegistry->isReady());
-}
-
-TEST_F(DBusServiceRegistryTest, IsFinallyReadyAfterConnect) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
-    dbusConnection->connect();
-    ASSERT_TRUE(dbusServiceRegistry->isReadyBlocking());
-}
-
-
 TEST_F(DBusServiceRegistryTest, ServiceStatusEventCanBeFetched) {
     auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
     auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
