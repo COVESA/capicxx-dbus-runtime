@@ -30,7 +30,7 @@
 
 
 static const std::string commonApiAddress = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
-static const std::string commonApiServiceName = "CommonAPI.DBus.tests.DBusProxyTest";
+static const std::string commonApiServiceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
 static const std::string interfaceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
 static const std::string busName = "CommonAPI.DBus.tests.DBusProxyTestService";
 static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
@@ -201,20 +201,10 @@ TEST_F(ProxyTest, ServiceStatus) {
 }
 
 TEST_F(ProxyTest, IsAvailableBlocking) {
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter =  std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
-                    commonApiAddress,
-                    interfaceName,
-                    busName,
-                    objectPath,
-                    proxyDBusConnection_,
-                    stubDefault);
+    registerTestStub();
 
-    stubAdapter->init();
-
-    bool registered = proxyDBusConnection_->requestServiceNameAndBlock(busName);
-    bool isAvailable = proxy_->isAvailableBlocking();
-    EXPECT_EQ(registered, isAvailable);
+    const bool isAvailable = proxy_->isAvailableBlocking();
+    EXPECT_TRUE(isAvailable);
 }
 
 TEST_F(ProxyTest, HasNecessaryAttributesAndEvents) {
