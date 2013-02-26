@@ -46,7 +46,8 @@ protected:
 
         if (stubDBusConnection_) {
             if (stubDBusConnection_->isConnected()) {
-                stubDBusConnection_->releaseServiceName(busName);
+                // uses dbus read_write_dispatch() which might dispatch events, which might cause a dead lock
+                // stubDBusConnection_->releaseServiceName(busName);
                 stubDBusConnection_->disconnect();
             }
             stubDBusConnection_.reset();
@@ -86,7 +87,6 @@ protected:
         proxyAvailabilityStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
 
         proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
-            std::cout << "Proxy AvailabilityStatus changed to " << (int) availabilityStatus << std::endl;
             proxyAvailabilityStatus_ = availabilityStatus;
         });
     }
@@ -200,10 +200,29 @@ TEST_F(ProxyTest, ServiceStatus) {
 	testConnection->disconnect();
 }
 
+TEST_F(ProxyTest, isServiceInstanceAlive) {
+    registerTestStub();
+
+    bool isInstanceAlive = proxyDBusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(interfaceName, busName, objectPath);
+
+    for (int i = 0; !isInstanceAlive && i < 10; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        isInstanceAlive = proxyDBusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(interfaceName, busName, objectPath);
+    }
+
+    EXPECT_TRUE(isInstanceAlive);
+}
+
 TEST_F(ProxyTest, IsAvailableBlocking) {
     registerTestStub();
 
-    const bool isAvailable = proxy_->isAvailableBlocking();
+    // blocking in terms of "if it's still uknown"
+    bool isAvailable = proxy_->isAvailableBlocking();
+    for (int i = 0; !isAvailable && i < 10; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        isAvailable = proxy_->isAvailableBlocking();
+    }
+
     EXPECT_TRUE(isAvailable);
 }
 
