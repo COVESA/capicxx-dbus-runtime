@@ -46,13 +46,12 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
     const std::string commonApiDomain = split(commonApiAddress, ':')[0];
     assert(commonApiDomain == "local");
 
-    dbusServiceStatusEventSubscription_ = dbusConnection->getDBusServiceRegistry()->getServiceStatusEvent().subscribe(
+    dbusConnection->getDBusServiceRegistry()->registerAvailabilityListener(
                     commonApiAddress,
-                    std::bind(&DBusProxy::onServiceStatusEvent, this, std::placeholders::_1, std::placeholders::_2));
+                    std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1));
 }
 
 DBusProxy::~DBusProxy() {
-    getDBusConnection()->getDBusServiceRegistry()->getServiceStatusEvent().unsubscribe(dbusServiceStatusEventSubscription_);
 }
 
 bool DBusProxy::isAvailable() const {
@@ -80,12 +79,10 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
     return interfaceVersionAttribute_;
 }
 
-SubscriptionStatus DBusProxy::onServiceStatusEvent(const std::string& name, const AvailabilityStatus& availabilityStatus) {
+void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     availabilityStatus_ = availabilityStatus;
 
     dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
-
-    return SubscriptionStatus::RETAIN;
 }
 
 } // namespace DBus

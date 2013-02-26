@@ -50,7 +50,7 @@ class DBusProxy: public DBusProxyBase {
  private:
     DBusProxy(const DBusProxy&) = delete;
 
-    SubscriptionStatus onServiceStatusEvent(const std::string& name, const AvailabilityStatus& availabilityStatus);
+    void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
     DBusServiceStatusEvent::Subscription dbusServiceStatusEventSubscription_;
