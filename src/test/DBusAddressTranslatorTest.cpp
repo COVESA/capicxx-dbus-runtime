@@ -79,15 +79,15 @@ static const std::string fileString =
 
 typedef std::vector<CommonAPI::DBus::DBusServiceAddress>::value_type vt;
 static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
-                vt("no.nothing.instance", "/no/nothing/instance", "no.nothing.service"),
-                vt("connection.name", "/path/to/object", "service.name"),
-                vt("no.interface.connection", "/no/interface/path", "no.interface.service"),
-                vt("no.connection.instance", "/no/connection/path", "no.connection.interface"),
-                vt("no.object.connection", "/no/object/instance", "no.object.interface"),
-                vt("only.interface.instance", "/only/interface/instance", "only.interface.interface"),
-                vt("only.connection.connection", "/only/connection/instance", "only.connection.service"),
-                vt("only.object.instance", "/only/object/path", "only.object.service"),
-                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
+                vt("no.nothing.instance", "/no/nothing/instance", "no.nothing.service", false),
+                vt("connection.name", "/path/to/object", "service.name", false),
+                vt("no.interface.connection", "/no/interface/path", "no.interface.service", false),
+                vt("no.connection.instance", "/no/connection/path", "no.connection.interface", false),
+                vt("no.object.connection", "/no/object/instance", "no.object.interface", false),
+                vt("only.interface.instance", "/only/interface/instance", "only.interface.interface", false),
+                vt("only.connection.connection", "/only/connection/instance", "only.connection.service", false),
+                vt("only.object.instance", "/only/object/path", "only.object.service", false),
+                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface", false)
 };
 
 
