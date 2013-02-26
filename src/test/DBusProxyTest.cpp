@@ -233,6 +233,21 @@ TEST_F(ProxyTest, TestInterfaceVersionAttribute) {
 	ASSERT_EQ(CommonAPI::CallStatus::NOT_AVAILABLE, status);
 }
 
+TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
+    commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testInputStruct;
+    commonapi::tests::DerivedTypeCollection::TestMap testInputMap;
+    bool wasCalled = false;
+    proxy_->testDerivedTypeMethodAsync(testInputStruct, testInputMap, [&] (const CommonAPI::CallStatus& callStatus,
+                                                                          const commonapi::tests::DerivedTypeCollection::TestEnumExtended2&,
+                                                                          const commonapi::tests::DerivedTypeCollection::TestMap&) {
+                    ASSERT_EQ(callStatus, CommonAPI::CallStatus::NOT_AVAILABLE);
+                    wasCalled = true;
+            }
+    );
+    sleep(1);
+    ASSERT_TRUE(wasCalled);
+}
+
 int main(int argc, char** argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
