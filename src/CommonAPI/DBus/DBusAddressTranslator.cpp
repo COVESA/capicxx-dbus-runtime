@@ -21,13 +21,14 @@ namespace DBus {
 
 
 enum class TypeEnum {
-    DBUS_CONNECTION, DBUS_OBJECT, DBUS_INTERFACE
+    DBUS_CONNECTION, DBUS_OBJECT, DBUS_INTERFACE, DBUS_PREDEFINED
 };
 
 static const std::unordered_map<std::string, TypeEnum> allowedValueTypes = {
                 {"dbus_connection", TypeEnum::DBUS_CONNECTION},
                 {"dbus_object", TypeEnum::DBUS_OBJECT},
-                {"dbus_interface", TypeEnum::DBUS_INTERFACE}
+                {"dbus_interface", TypeEnum::DBUS_INTERFACE},
+                {"dbus_predefined", TypeEnum::DBUS_PREDEFINED}
 };
 
 
@@ -85,6 +86,9 @@ inline void readValue(std::string& readLine, DBusServiceAddress& dbusServiceAddr
             case TypeEnum::DBUS_INTERFACE:
                 std::get<2>(dbusServiceAddress) = paramValue;
                 break;
+            case TypeEnum::DBUS_PREDEFINED:
+                std::get<3>(dbusServiceAddress) = paramValue == "true" ? true : false;
+                break;
         }
     }
 }
@@ -94,6 +98,7 @@ inline void reset(DBusServiceAddress& dbusServiceAddress) {
     std::get<0>(dbusServiceAddress) = "";
     std::get<1>(dbusServiceAddress) = "";
     std::get<2>(dbusServiceAddress) = "";
+    std::get<3>(dbusServiceAddress) = false;
 }
 
 
@@ -167,7 +172,7 @@ void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAdd
         interfaceName = std::get<2>(foundAddressMapping->second);
     } else {
         findFallbackDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
-        knownDBusAddresses.insert( {commonApiAddress, std::make_tuple(connectionName, objectPath, interfaceName) } );
+        knownDBusAddresses.insert( {commonApiAddress, std::make_tuple(connectionName, objectPath, interfaceName, false) } );
     }
 }
 
@@ -176,7 +181,7 @@ void DBusAddressTranslator::searchForCommonAddress(const std::string& interfaceN
                                                    const std::string& objectPath,
                                                    std::string& commonApiAddress) {
 
-    DBusServiceAddress dbusAddress(connectionName, objectPath, interfaceName);
+    DBusServiceAddress dbusAddress(connectionName, objectPath, interfaceName, false);
 
     const auto& foundAddressMapping = knownCommonAddresses.find(dbusAddress);
     if (foundAddressMapping != knownCommonAddresses.end()) {
@@ -187,6 +192,17 @@ void DBusAddressTranslator::searchForCommonAddress(const std::string& interfaceN
     }
 }
 
+void DBusAddressTranslator::getPredefinedInstances(const std::string& connectionName,
+                                   std::vector<DBusServiceAddress>& instances) {
+    instances.clear();
+    auto dbusAddress = knownDBusAddresses.begin();
+    while (dbusAddress != knownDBusAddresses.end()) {
+        if (connectionName == std::get<0>(dbusAddress->second) && true == std::get<3>(dbusAddress->second)) {
+            instances.push_back(dbusAddress->second);
+        }
+        dbusAddress++;
+    }
+}
 
 void DBusAddressTranslator::findFallbackDBusAddress(const std::string& commonApiAddress,
                                                     std::string& interfaceName,
