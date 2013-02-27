@@ -172,32 +172,17 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
-    proxyDBusConnection_->requestServiceNameAndBlock(busName);
+    registerTestStub();
 
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter =  std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
-                    commonApiAddress,
-                    interfaceName,
-                    busName,
-                    objectPath,
-                    proxyDBusConnection_,
-                    stubDefault);
+    std::vector<std::string> availableDBusServices;
+    availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
+                    commonApiServiceName,
+                    "local");
 
-    stubAdapter->init();
+	auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
 
-    auto testConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    testConnection->connect();
-
-	std::vector<std::string> actuallyAvailableServices;
-	actuallyAvailableServices = testConnection->getDBusServiceRegistry()->getAvailableServiceInstances(commonApiServiceName,
-			"local");
-
-	auto found = std::find(actuallyAvailableServices.begin(), actuallyAvailableServices.end(), commonApiAddress);
-
-	ASSERT_TRUE(actuallyAvailableServices.begin() != actuallyAvailableServices.end());
-	ASSERT_TRUE(found != actuallyAvailableServices.end());
-
-	testConnection->disconnect();
+	ASSERT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
+	ASSERT_TRUE(found != availableDBusServices.end());
 }
 
 TEST_F(ProxyTest, isServiceInstanceAlive) {
