@@ -9,6 +9,7 @@
 
 #include "DBusProxyBase.h"
 #include "DBusAttribute.h"
+#include "DBusServiceRegistry.h"
 
 #include <functional>
 #include <memory>
@@ -53,6 +54,7 @@ class DBusProxy: public DBusProxyBase {
     void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
+    DBusServiceRegistry::Subscription dbusServiceRegistrySubscription_;
     DBusServiceStatusEvent::Subscription dbusServiceStatusEventSubscription_;
     AvailabilityStatus availabilityStatus_;
 

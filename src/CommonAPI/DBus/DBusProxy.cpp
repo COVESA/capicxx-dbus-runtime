@@ -10,7 +10,6 @@
 #endif
 
 #include "DBusProxy.h"
-#include "DBusServiceRegistry.h"
 #include "DBusUtils.h"
 
 #include <cassert>
@@ -46,12 +45,15 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
     const std::string commonApiDomain = split(commonApiAddress, ':')[0];
     assert(commonApiDomain == "local");
 
-    dbusConnection->getDBusServiceRegistry()->registerAvailabilityListener(
+    dbusServiceRegistrySubscription_ = dbusConnection->getDBusServiceRegistry()->subscribeAvailabilityListener(
                     commonApiAddress,
                     std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1));
 }
 
 DBusProxy::~DBusProxy() {
+    getDBusConnection()->getDBusServiceRegistry()->unsubscribeAvailabilityListener(
+                    getAddress(),
+                    dbusServiceRegistrySubscription_);
 }
 
 bool DBusProxy::isAvailable() const {

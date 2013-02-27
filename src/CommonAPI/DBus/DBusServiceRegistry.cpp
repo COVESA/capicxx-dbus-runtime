@@ -6,10 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DBusFunctionalHash.h"
 #include "DBusServiceRegistry.h"
-#include "DBusInputStream.h"
 #include "DBusDaemonProxy.h"
-#include "DBusProxyConnection.h"
-#include "DBusUtils.h"
 #include "DBusProxyAsyncCallbackHandler.h"
 
 namespace CommonAPI {
@@ -231,7 +228,8 @@ DBusServiceStatusEvent& DBusServiceRegistry::getServiceStatusEvent() {
     return serviceStatusEvent_;
 }
 
-void DBusServiceRegistry::registerAvailabilityListener(const std::string& commonApiAddress, DBusServiceListener serviceListener) {
+DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityListener(const std::string& commonApiAddress,
+                                                                                     DBusServiceListener serviceListener) {
     std::string dbusInterfaceName;
     std::string dbusServiceName;
     std::string dbusObjectPath;
@@ -270,8 +268,8 @@ void DBusServiceRegistry::registerAvailabilityListener(const std::string& common
         dbusInstanceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
     }
 
-    dbusServiceListenerList.push_back(serviceListener);
-
+    Subscription listenerSubscription = dbusServiceListenerList.insert(
+                    dbusServiceListenerList.end(), serviceListener);
 
     switch (dbusServiceState) {
         case DBusServiceState::AVAILABLE:
@@ -282,6 +280,45 @@ void DBusServiceRegistry::registerAvailabilityListener(const std::string& common
         case DBusServiceState::NOT_AVAILABLE:
             serviceListener(dbusInstanceAvailabilityStatus);
             break;
+    }
+
+    return listenerSubscription;
+}
+
+void DBusServiceRegistry::unsubscribeAvailabilityListener(const std::string& commonApiAddress,
+                                                          Subscription& listenerSubscription) {
+    std::string dbusInterfaceName;
+    std::string dbusServiceName;
+    std::string dbusObjectPath;
+
+    DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, dbusInterfaceName, dbusServiceName, dbusObjectPath);
+
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
+
+    if (dbusServiceIterator == dbusServices_.end()) {
+        return;
+    }
+
+    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
+    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
+
+    auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
+    if (dbusInstanceIterator == dbusInstanceList.end()) {
+        return;
+    }
+
+    const AvailabilityStatus& dbusServiceAvailabilityStatus = dbusInstanceIterator->second.first;
+    DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
+
+    dbusServiceListenerList.erase(listenerSubscription);
+
+    if (dbusServiceListenerList.empty() && dbusServiceAvailabilityStatus != AvailabilityStatus::AVAILABLE) {
+        dbusInstanceList.erase(dbusInstanceIterator);
+
+        if (dbusInstanceList.empty() && dbusServiceState == DBusServiceState::UNKNOWN) {
+            dbusServices_.erase(dbusServiceIterator);
+        }
     }
 }
 

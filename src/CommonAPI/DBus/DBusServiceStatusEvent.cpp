@@ -25,8 +25,7 @@ void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServi
 
 void DBusServiceStatusEvent::onListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {
     if (registry_) {
-
-        registry_->registerAvailabilityListener(commonApiServiceName, std::bind(
+        registry_->subscribeAvailabilityListener(commonApiServiceName, std::bind(
                         &DBusServiceStatusEvent::availabilityEvent,
                         this,
                         commonApiServiceName,

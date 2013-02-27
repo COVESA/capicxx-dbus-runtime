@@ -47,7 +47,22 @@ class DBusDaemonProxy;
 
 class DBusServiceRegistry {
  public:
+    enum class DBusServiceState {
+        UNKNOWN,
+        AVAILABLE,
+        RESOLVING,
+        RESOLVED,
+        NOT_AVAILABLE
+    };
+
     typedef std::function<void(const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
+    typedef std::list<DBusServiceListener> DBusServiceListenerList;
+    typedef DBusServiceListenerList::iterator Subscription;
+
+    typedef std::pair<std::string, std::string> DBusObjectInterfacePair;
+    typedef std::unordered_map<DBusObjectInterfacePair, std::pair<AvailabilityStatus, DBusServiceListenerList> > DBusInstanceList;
+    typedef std::unordered_map<std::string, std::pair<DBusServiceState, DBusInstanceList> > DBusServiceList;
+
 
     DBusServiceRegistry();
 
@@ -57,7 +72,10 @@ class DBusServiceRegistry {
 
     bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
 
-    void registerAvailabilityListener(const std::string& commonApiAddress, DBusServiceListener serviceListener);
+    Subscription subscribeAvailabilityListener(const std::string& commonApiAddress,
+                                               DBusServiceListener serviceListener);
+    void unsubscribeAvailabilityListener(const std::string& commonApiAddress,
+                                         Subscription& listenerSubscription);
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
                                                           const std::string& domainName = "local");
@@ -65,20 +83,6 @@ class DBusServiceRegistry {
     virtual DBusServiceStatusEvent& getServiceStatusEvent();
 
  private:
-    enum class DBusServiceState {
-        UNKNOWN,
-        AVAILABLE,
-        RESOLVING,
-        RESOLVED,
-        NOT_AVAILABLE
-    };
-
-    typedef std::list<DBusServiceListener> DBusServiceListenerList;
-    typedef std::pair<std::string, std::string> DBusObjectInterfacePair;
-    typedef std::unordered_map<DBusObjectInterfacePair, std::pair<AvailabilityStatus, DBusServiceListenerList> > DBusInstanceList;
-    typedef std::unordered_map<std::string, std::pair<DBusServiceState, DBusInstanceList> > DBusServiceList;
-
-
     DBusServiceRegistry(const DBusServiceRegistry&) = delete;
     DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
 
