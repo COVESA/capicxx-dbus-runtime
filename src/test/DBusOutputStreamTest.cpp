@@ -771,8 +771,8 @@ TEST_F(OutputStreamTest, WritesEnumKeyedMaps) {
   CommonAPI::DBus::DBusOutputStream outStream(message);
 
   //array length (4) + struct-padding (4) +
-  //      3 * (sizeof(int) + sizeof(string)) + (sizeof(int) + sizeof(string))
-  size_t sizeOfBody = 4 + 4 + 3 * (4 + 8) + (4 + 8);
+  //      3 * (sizeof(int) + sizeof(string) + struct-padding) + (sizeof(int) + sizeof(string))
+  size_t sizeOfBody = 4 + 4 + 3 * (4 + 8 + 4) + (4 + 8);
   outStream.reserveMemory(sizeOfBody);
   outStream << testEnumMap;
   outStream.flush();
