@@ -175,9 +175,16 @@ TEST_F(ProxyTest, ServiceStatus) {
     registerTestStub();
 
     std::vector<std::string> availableDBusServices;
-    availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
-                    commonApiServiceName,
-                    "local");
+
+    for (int i = 0; i < 5; i++) {
+        availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
+                        commonApiServiceName,
+                        "local");
+
+        if (!availableDBusServices.empty()) {
+            break;
+        }
+    }
 
 	auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
 

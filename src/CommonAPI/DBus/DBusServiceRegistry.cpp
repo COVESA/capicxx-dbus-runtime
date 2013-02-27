@@ -149,17 +149,16 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         typedef std::chrono::high_resolution_clock clock;
         clock::time_point startTimePoint = clock::now();
 
-        const bool dbusServicesResolved = dbusServiceChanged_.wait_for(
+        size_t wakeupCount = 0;
+        dbusServiceChanged_.wait_for(
                         dbusServicesLock,
                         timeout,
                         [&] {
-                            const bool done = dbusServiceResolvingCount == 0;
-                            if (dbusServiceResolvingCount > 0)
-                                dbusServiceResolvingCount--;
-                            return done;
+                            wakeupCount++;
+                            return wakeupCount > dbusServiceResolvingCount;
                         });
 
-        if (!dbusServicesResolved) {
+        if (wakeupCount > 1) {
             getAvailableServiceInstances(serviceName, availableServiceInstances);
             break;
         }
