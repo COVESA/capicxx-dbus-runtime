@@ -113,6 +113,8 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     bool success = stubFactory_->registerService(stub, nonstandardAddress_);
     ASSERT_TRUE(success);
 
+    sleep(10);
+
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
     CommonAPI::CallStatus stat;

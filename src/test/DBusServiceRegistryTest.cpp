@@ -100,7 +100,7 @@ TEST_F(DBusServiceRegistryTest, SubscriptionToServiceStatusEventCanBeCancelled) 
 class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
  protected:
     virtual void SetUp() {
-        CommonAPI::DBus::DBusConnection::getSessionBus();
+        dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         dbusServiceRegistry_ = dbusConnection_->getDBusServiceRegistry();
         dbusConnection_->connect();
 
