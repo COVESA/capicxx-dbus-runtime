@@ -65,7 +65,7 @@ void DBusAddressTranslator::init() {
 }
 
 
-inline void readValue(std::string& readLine, DBusServiceAddress& dbusServiceAddress) {
+inline void readValue(std::string& readLine, CommonApiServiceDetails& serviceDetails) {
     std::stringstream readStream(readLine);
 
     std::string paramName;
@@ -78,16 +78,16 @@ inline void readValue(std::string& readLine, DBusServiceAddress& dbusServiceAddr
         getline(readStream, paramValue);
         switch(typeEntry->second) {
             case TypeEnum::DBUS_CONNECTION:
-                std::get<0>(dbusServiceAddress) = paramValue;
+                std::get<0>(std::get<0>(serviceDetails)) = paramValue;
                 break;
             case TypeEnum::DBUS_OBJECT:
-                std::get<1>(dbusServiceAddress) = paramValue;
+                std::get<1>(std::get<0>(serviceDetails)) = paramValue;
                 break;
             case TypeEnum::DBUS_INTERFACE:
-                std::get<2>(dbusServiceAddress) = paramValue;
+                std::get<2>(std::get<0>(serviceDetails)) = paramValue;
                 break;
             case TypeEnum::DBUS_PREDEFINED:
-                std::get<3>(dbusServiceAddress) = paramValue == "true" ? true : false;
+                std::get<1>(serviceDetails) = paramValue == "true" ? true : false;
                 break;
         }
     }
@@ -98,14 +98,18 @@ inline void reset(DBusServiceAddress& dbusServiceAddress) {
     std::get<0>(dbusServiceAddress) = "";
     std::get<1>(dbusServiceAddress) = "";
     std::get<2>(dbusServiceAddress) = "";
-    std::get<3>(dbusServiceAddress) = false;
+}
+
+inline void reset(CommonApiServiceDetails& serviceDetails) {
+    reset(std::get<0>(serviceDetails));
+    std::get<1>(serviceDetails) = false;
 }
 
 
 void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
     std::string currentlyParsedCommonApiAddress;
-    DBusServiceAddress dbusServiceAddress;
-    reset(dbusServiceAddress);
+    CommonApiServiceDetails serviceDetails;
+    reset(serviceDetails);
 
     bool newAddressFound = false;
 
@@ -116,36 +120,36 @@ void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
 
         if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
             if (newAddressFound) {
-                fillUndefinedValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
-                knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
-                knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
+                fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
+                commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
+                dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
             }
-            reset(dbusServiceAddress);
+            reset(serviceDetails);
             currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
-            newAddressFound = knownDBusAddresses.find(currentlyParsedCommonApiAddress) == knownDBusAddresses.end();
+            newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
 
         } else if (newAddressFound) {
-            readValue(readLine, dbusServiceAddress);
+            readValue(readLine, serviceDetails);
         }
     }
     if(newAddressFound) {
-        fillUndefinedValues(dbusServiceAddress, currentlyParsedCommonApiAddress);
-        knownDBusAddresses.insert( {currentlyParsedCommonApiAddress, dbusServiceAddress});
-        knownCommonAddresses.insert( {dbusServiceAddress, currentlyParsedCommonApiAddress});
+        fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
+        commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
+        dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
     }
 }
 
 
-void DBusAddressTranslator::fillUndefinedValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const {
+void DBusAddressTranslator::fillUndefinedValues(CommonApiServiceDetails& serviceDetails, const std::string& commonApiAddress) const {
     std::string connectionName;
     std::string objectPath;
     std::string interfaceName;
 
     findFallbackDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
 
-    std::get<0>(dbusServiceAddress) = std::get<0>(dbusServiceAddress) == "" ? connectionName : std::get<0>(dbusServiceAddress);
-    std::get<1>(dbusServiceAddress) = std::get<1>(dbusServiceAddress) == "" ? objectPath : std::get<1>(dbusServiceAddress);
-    std::get<2>(dbusServiceAddress) = std::get<2>(dbusServiceAddress) == "" ? interfaceName : std::get<2>(dbusServiceAddress);
+    std::get<0>(std::get<0>(serviceDetails)) = std::get<0>(std::get<0>(serviceDetails)) == "" ? connectionName : std::get<0>(std::get<0>(serviceDetails));
+    std::get<1>(std::get<0>(serviceDetails)) = std::get<1>(std::get<0>(serviceDetails)) == "" ? objectPath : std::get<1>(std::get<0>(serviceDetails));
+    std::get<2>(std::get<0>(serviceDetails)) = std::get<2>(std::get<0>(serviceDetails)) == "" ? interfaceName : std::get<2>(std::get<0>(serviceDetails));
 }
 
 
@@ -164,15 +168,15 @@ void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAdd
                                                  std::string& connectionName,
                                                  std::string& objectPath) {
 
-    const auto& foundAddressMapping = knownDBusAddresses.find(commonApiAddress);
+    const auto& foundAddressMapping = commonApiAddressDetails.find(commonApiAddress);
 
-    if(foundAddressMapping != knownDBusAddresses.end()) {
-        connectionName = std::get<0>(foundAddressMapping->second);
-        objectPath = std::get<1>(foundAddressMapping->second);
-        interfaceName = std::get<2>(foundAddressMapping->second);
+    if(foundAddressMapping != commonApiAddressDetails.end()) {
+        connectionName = std::get<0>(std::get<0>(foundAddressMapping->second));
+        objectPath = std::get<1>(std::get<0>(foundAddressMapping->second));
+        interfaceName = std::get<2>(std::get<0>(foundAddressMapping->second));
     } else {
         findFallbackDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
-        knownDBusAddresses.insert( {commonApiAddress, std::make_tuple(connectionName, objectPath, interfaceName, false) } );
+        commonApiAddressDetails.insert( {commonApiAddress, std::make_tuple(std::make_tuple(connectionName, objectPath, interfaceName), false) } );
     }
 }
 
@@ -181,24 +185,26 @@ void DBusAddressTranslator::searchForCommonAddress(const std::string& interfaceN
                                                    const std::string& objectPath,
                                                    std::string& commonApiAddress) {
 
-    DBusServiceAddress dbusAddress(connectionName, objectPath, interfaceName, false);
+    DBusServiceAddress dbusAddress(connectionName, objectPath, interfaceName);
 
-    const auto& foundAddressMapping = knownCommonAddresses.find(dbusAddress);
-    if (foundAddressMapping != knownCommonAddresses.end()) {
+    const auto& foundAddressMapping = dbusToCommonApiAddress.find(dbusAddress);
+    if (foundAddressMapping != dbusToCommonApiAddress.end()) {
         commonApiAddress = foundAddressMapping->second;
     } else {
         findFallbackCommonAddress(commonApiAddress, interfaceName, connectionName, objectPath);
-        knownCommonAddresses.insert( {std::move(dbusAddress), commonApiAddress} );
+        dbusToCommonApiAddress.insert( {std::move(dbusAddress), commonApiAddress} );
     }
 }
 
 void DBusAddressTranslator::getPredefinedInstances(const std::string& connectionName,
-                                   std::vector<DBusServiceAddress>& instances) {
+                                                   std::vector<DBusServiceAddress>& instances) {
     instances.clear();
-    auto dbusAddress = knownDBusAddresses.begin();
-    while (dbusAddress != knownDBusAddresses.end()) {
-        if (connectionName == std::get<0>(dbusAddress->second) && true == std::get<3>(dbusAddress->second)) {
-            instances.push_back(dbusAddress->second);
+    auto dbusAddress = commonApiAddressDetails.begin();
+    while (dbusAddress != commonApiAddressDetails.end()) {
+        CommonApiServiceDetails serviceDetails = dbusAddress->second;
+        if (connectionName == std::get<0>(std::get<0>(serviceDetails))
+                        && true == std::get<1>(serviceDetails)) {
+            instances.push_back(std::get<0>(serviceDetails));
         }
         dbusAddress++;
     }

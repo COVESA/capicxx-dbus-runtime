@@ -23,8 +23,11 @@ static const char* DBUS_CONFIG_SUFFIX = "_dbus.conf";
 static const char* DBUS_GLOBAL_CONFIG_FQN = "/etc/CommonApiDBus/dbusAddresses.conf";
 static const char* DBUS_GLOBAL_CONFIG_ROOT = "/etc/CommonApiDBus/";
 
-//connectionName, objectPath, interfaceName, predefined
-typedef std::tuple<std::string, std::string, std::string, bool> DBusServiceAddress;
+//connectionName, objectPath, interfaceName
+typedef std::tuple<std::string, std::string, std::string> DBusServiceAddress;
+
+//Details for a common api address key: DBusAddress, predefined service
+typedef std::tuple<DBusServiceAddress, bool> CommonApiServiceDetails;
 
 
 class DBusAddressTranslator {
@@ -64,10 +67,10 @@ private:
                                       const std::string& connectionName,
                                       const std::string& objectPath) const;
 
-    void fillUndefinedValues(DBusServiceAddress& dbusServiceAddress, const std::string& commonApiAddress) const;
+    void fillUndefinedValues(CommonApiServiceDetails& dbusServiceAddress, const std::string& commonApiAddress) const;
 
-    std::unordered_map<std::string, DBusServiceAddress> knownDBusAddresses;
-    std::unordered_map<DBusServiceAddress, std::string> knownCommonAddresses;
+    std::unordered_map<std::string, CommonApiServiceDetails> commonApiAddressDetails;
+    std::unordered_map<DBusServiceAddress, std::string> dbusToCommonApiAddress;
 };
 
 
