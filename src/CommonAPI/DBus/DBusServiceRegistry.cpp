@@ -13,17 +13,10 @@ namespace CommonAPI {
 namespace DBus {
 
 
-DBusServiceRegistry::DBusServiceRegistry() :
-                dbusServicesStatus_(AvailabilityStatus::UNKNOWN),
-                serviceStatusEvent_(std::shared_ptr<DBusServiceRegistry>(this))
-{
-}
+DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection):
+                dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
+                dbusServicesStatus_(AvailabilityStatus::UNKNOWN) {
 
-DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy) :
-                dbusDaemonProxy_(dbusDaemonProxy),
-                dbusServicesStatus_(AvailabilityStatus::UNKNOWN),
-                serviceStatusEvent_(std::shared_ptr<DBusServiceRegistry>(this))
-{
     dbusDaemonProxyStatusEventSubscription_ =
                     dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
                                     std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, this, std::placeholders::_1));
@@ -223,9 +216,6 @@ size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbus
     return dbusServicesResolvedCount;
 }
 
-DBusServiceStatusEvent& DBusServiceRegistry::getServiceStatusEvent() {
-    return serviceStatusEvent_;
-}
 
 DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityListener(const std::string& commonApiAddress,
                                                                                      DBusServiceListener serviceListener) {

@@ -61,9 +61,7 @@ class DBusServiceRegistry {
     typedef std::unordered_map<std::string, std::pair<DBusServiceState, DBusInstanceList> > DBusServiceList;
 
 
-    DBusServiceRegistry();
-
-    DBusServiceRegistry(std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy);
+    DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
 
     virtual ~DBusServiceRegistry();
 
@@ -75,9 +73,7 @@ class DBusServiceRegistry {
                                          Subscription& listenerSubscription);
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
-                                                          const std::string& domainName = "local");
-
-    virtual DBusServiceStatusEvent& getServiceStatusEvent();
+                                                                  const std::string& domainName = "local");
 
  private:
     DBusServiceRegistry(const DBusServiceRegistry&) = delete;
@@ -120,8 +116,6 @@ class DBusServiceRegistry {
 
     ProxyStatusEvent::Subscription dbusDaemonProxyStatusEventSubscription_;
     NameOwnerChangedEvent::Subscription dbusDaemonProxyNameOwnerChangedEventSubscription_;
-
-    DBusServiceStatusEvent serviceStatusEvent_;
 };
 
 } // namespace DBus
