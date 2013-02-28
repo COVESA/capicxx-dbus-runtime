@@ -43,11 +43,18 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
                     stub_(stub) {
     }
 
-    virtual ~DBusStubAdapterHelper() { }
+    virtual ~DBusStubAdapterHelper() {
+    	stub_->deinitStubAdapter();
+    }
 
     virtual void init() {
         DBusStubAdapter::init();
         remoteEventHandler_ = stub_->initStubAdapter(getStubAdapter());
+    }
+
+    virtual void deinit() {
+        DBusStubAdapter::deinit();
+        stub_->deinitStubAdapter();
     }
 
     inline std::shared_ptr<StubAdapterType> getStubAdapter() {

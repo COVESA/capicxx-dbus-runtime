@@ -14,6 +14,7 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     TestInterfaceStubDefault();
 
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
+    void deinitStubAdapter();
 
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute();
     virtual void setTestPredefinedTypeAttributeAttribute(uint32_t value);

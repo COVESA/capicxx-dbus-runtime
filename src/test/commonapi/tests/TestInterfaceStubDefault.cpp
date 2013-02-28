@@ -15,6 +15,10 @@ TestInterfaceStubRemoteEvent* TestInterfaceStubDefault::initStubAdapter(const st
     return &remoteEventHandler_;
 }
 
+void TestInterfaceStubDefault::deinitStubAdapter() {
+	stubAdapter_.reset();
+}
+
 const uint32_t& TestInterfaceStubDefault::getTestPredefinedTypeAttributeAttribute() {
     return testPredefinedTypeAttributeAttributeValue_;
 }

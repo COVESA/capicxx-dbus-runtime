@@ -41,10 +41,13 @@ DBusStubAdapter::DBusStubAdapter(const std::string& commonApiAddress,
 }
 
 DBusStubAdapter::~DBusStubAdapter() {
+}
+
+void DBusStubAdapter::deinit() {
 	assert(dbusConnection_);
 	assert(isInitialized_);
 
-    dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusIntrospectionInterfaceHandlerToken_);
+	dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusIntrospectionInterfaceHandlerToken_);
 	dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusInterfaceHandlerToken_);
 }
 
