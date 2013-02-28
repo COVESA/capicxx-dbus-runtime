@@ -185,6 +185,8 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+
+    stubFactory->unregisterService(commonApiAddresses[0]);
 }
 
 

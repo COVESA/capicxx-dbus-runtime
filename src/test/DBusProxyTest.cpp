@@ -52,16 +52,6 @@ protected:
     }
 
     virtual void TearDown() {
-        stubAdapter_.reset();
-
-        if (stubDBusConnection_) {
-            if (stubDBusConnection_->isConnected()) {
-                // uses dbus read_write_dispatch() which might dispatch events, which might cause a dead lock
-                // stubDBusConnection_->releaseServiceName(busName);
-                stubDBusConnection_->disconnect();
-            }
-            stubDBusConnection_.reset();
-        }
     }
 
     void registerTestStub() {
@@ -79,6 +69,16 @@ protected:
                         stubDBusConnection_,
                         stubDefault);
         stubAdapter_->init();
+    }
+
+    void deregisterTestStub() {
+    	stubAdapter_->deinit();
+    	stubAdapter_.reset();
+
+		if (stubDBusConnection_->isConnected()) {
+			stubDBusConnection_->disconnect();
+		}
+		stubDBusConnection_.reset();
     }
 
     void proxyRegisterForAvailabilityStatus() {
@@ -151,6 +151,8 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     stubDBusConnection_->disconnect();
 
     ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+
+    deregisterTestStub();
 }
 
 TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
@@ -167,6 +169,8 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     stubDBusConnection_->disconnect();
 
     ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+
+    deregisterTestStub();
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
@@ -188,6 +192,8 @@ TEST_F(ProxyTest, ServiceStatus) {
 
 	ASSERT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
 	ASSERT_TRUE(found != availableDBusServices.end());
+
+    deregisterTestStub();
 }
 
 TEST_F(ProxyTest, isServiceInstanceAlive) {
@@ -201,6 +207,8 @@ TEST_F(ProxyTest, isServiceInstanceAlive) {
     }
 
     EXPECT_TRUE(isInstanceAlive);
+
+    deregisterTestStub();
 }
 
 TEST_F(ProxyTest, IsAvailableBlocking) {
@@ -214,6 +222,8 @@ TEST_F(ProxyTest, IsAvailableBlocking) {
     }
 
     EXPECT_TRUE(isAvailable);
+
+    deregisterTestStub();
 }
 
 TEST_F(ProxyTest, HasNecessaryAttributesAndEvents) {

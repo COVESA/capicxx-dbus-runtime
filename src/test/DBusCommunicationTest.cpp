@@ -96,12 +96,16 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     bool success = stubFactory_->registerService(stub, serviceAddress_);
     ASSERT_TRUE(success);
 
+    sleep(1);
+
     uint32_t v1 = 5;
     std::string v2 = "Ciao ;)";
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+
+    stubFactory_->unregisterService(serviceAddress_);
 }
 
 
@@ -113,7 +117,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     bool success = stubFactory_->registerService(stub, nonstandardAddress_);
     ASSERT_TRUE(success);
 
-    sleep(10);
+    sleep(1);
 
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
@@ -121,6 +125,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    stubFactory_->unregisterService(nonstandardAddress_);
 }
 
 

@@ -43,6 +43,7 @@ class DBusMultipleConnectionTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
+    	stubFactory->unregisterService(serviceAddress);
     }
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory;
@@ -111,7 +112,6 @@ TEST_F(DBusMultipleConnectionTest, SetAttributeBroadcast) {
 
     ASSERT_TRUE(future.get());
     ASSERT_EQ(v1, v3);
-
 }
 
 
