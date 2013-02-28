@@ -75,7 +75,8 @@ static const std::string fileString =
 "[local:fake.legacy.service.LegacyInterface:fake.legacy.service]\n"
 "dbus_connection=fake.legacy.service.connection\n"
 "dbus_object=/some/legacy/path/6259504\n"
-"dbus_interface=fake.legacy.service.LegacyInterface\n";
+"dbus_interface=fake.legacy.service.LegacyInterface\n"
+"dbus_predefined=true\n";
 
 typedef std::vector<CommonAPI::DBus::DBusServiceAddress>::value_type vt;
 static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {

@@ -130,6 +130,7 @@ class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
 
 
 TEST_F(DBusServiceRegistryTestWithPredefinedRemote, RecognizesCommonAPIDBusServiceInstanceAsAlive) {
+    sleep(1);
     ASSERT_TRUE(dbusServiceRegistry_->isServiceInstanceAlive("test.service.name", "test.instance.name", "/test/instance/name"));
 }
 

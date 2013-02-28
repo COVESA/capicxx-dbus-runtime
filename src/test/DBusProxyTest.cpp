@@ -185,7 +185,7 @@ TEST_F(ProxyTest, ServiceStatus) {
             break;
         }
     }
-
+    sleep(1);
 	auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
 
 	ASSERT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
