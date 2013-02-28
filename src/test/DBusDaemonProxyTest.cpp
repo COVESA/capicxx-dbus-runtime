@@ -15,34 +15,22 @@
 
 namespace {
 
-void dispatch(std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection) {
-    while (dbusConnection->readWriteDispatch(10)) {}
-}
-
 class DBusDaemonProxyTest: public ::testing::Test {
  protected:
-
-	std::thread* thread;
 
 	virtual void SetUp() {
 		dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
 		ASSERT_TRUE(dbusConnection_->connect());
-		thread = new std::thread(dispatch, dbusConnection_);
-		thread->detach();
 		dbusDaemonProxy_ = std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusConnection_);
-		//readWriteDispatchCount_ = 0;
  	}
 
 	virtual void TearDown() {
-		delete thread;
 		if (dbusConnection_ && dbusConnection_->isConnected()) {
-			//dbusConnection_->disconnect();
 		}
 	}
 
 	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
 	std::shared_ptr<CommonAPI::DBus::DBusDaemonProxy> dbusDaemonProxy_;
-	//size_t readWriteDispatchCount_;
 };
 
 TEST_F(DBusDaemonProxyTest, ListNames) {

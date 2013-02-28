@@ -39,21 +39,6 @@ static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestServic
 class ProxyTest: public ::testing::Test {
 protected:
 
-    virtual void TearDown() {
-        proxyDBusConnection_->disconnect();
-
-        stubAdapter_.reset();
-
-        if (stubDBusConnection_) {
-            if (stubDBusConnection_->isConnected()) {
-                // uses dbus read_write_dispatch() which might dispatch events, which might cause a dead lock
-                // stubDBusConnection_->releaseServiceName(busName);
-                stubDBusConnection_->disconnect();
-            }
-            stubDBusConnection_.reset();
-        }
-    }
-
     void SetUp() {
         proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         ASSERT_TRUE(proxyDBusConnection_->connect());
@@ -64,6 +49,19 @@ protected:
                         busName,
                         objectPath,
                         proxyDBusConnection_);
+    }
+
+    virtual void TearDown() {
+        stubAdapter_.reset();
+
+        if (stubDBusConnection_) {
+            if (stubDBusConnection_->isConnected()) {
+                // uses dbus read_write_dispatch() which might dispatch events, which might cause a dead lock
+                // stubDBusConnection_->releaseServiceName(busName);
+                stubDBusConnection_->disconnect();
+            }
+            stubDBusConnection_.reset();
+        }
     }
 
     void registerTestStub() {
