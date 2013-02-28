@@ -4,10 +4,11 @@ EXTRA_DIST = LICENSE LICENSE_dbus_patch LICENSE_MurmurHash
 MOSTLYCLEANFILES =
 
 AM_CPPFLAGS = \
-		${COMMONAPI_CFLAGS} \
-		${DBUS_CFLAGS} \
 		-I$(top_srcdir)/src \
-		-I$(top_srcdir)/src/test
+		-I$(top_srcdir)/src/test \
+		${COMMONAPI_CFLAGS} \
+		${DBUS_CFLAGS}
+		
 
 LDADD = \
 		${COMMONAPI_LIBS} \
