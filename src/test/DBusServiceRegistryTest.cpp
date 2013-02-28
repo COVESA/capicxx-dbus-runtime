@@ -29,71 +29,17 @@ class DBusServiceRegistryTest: public ::testing::Test {
 
 
 TEST_F(DBusServiceRegistryTest, CanBeConstructed) {
-    CommonAPI::DBus::DBusServiceRegistry* registry = new CommonAPI::DBus::DBusServiceRegistry();
+	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+    CommonAPI::DBus::DBusServiceRegistry* registry = new CommonAPI::DBus::DBusServiceRegistry(dbusConnection);
     ASSERT_TRUE(registry != NULL);
 }
 
 
 TEST_F(DBusServiceRegistryTest, DBusConnectionHasRegistry) {
     auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+    dbusConnection->connect();
     auto serviceRegistry = dbusConnection->getDBusServiceRegistry();
     ASSERT_FALSE(!serviceRegistry);
-}
-
-TEST_F(DBusServiceRegistryTest, ServiceStatusEventCanBeFetched) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
-    dbusConnection->connect();
-    ASSERT_NO_FATAL_FAILURE(auto serviceStatusEvent = dbusServiceRegistry->getServiceStatusEvent());
-}
-
-
-TEST_F(DBusServiceRegistryTest, ServiceStatusEventCanBeSubscribedTo) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
-    dbusConnection->connect();
-    auto serviceStatusEvent = dbusServiceRegistry->getServiceStatusEvent();
-    std::string eventName_ = "local:some:address";
-    serviceStatusEvent.subscribe(eventName_,
-            [&] (const std::string& eventName, const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
-                return CommonAPI::SubscriptionStatus::RETAIN;
-            }
-    );
-}
-
-
-TEST_F(DBusServiceRegistryTest, ServiceStatusEventGetsFirstCall) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
-    dbusConnection->connect();
-    auto serviceStatusEvent = dbusServiceRegistry->getServiceStatusEvent();
-    std::string eventName_ = "local:some:address";
-    bool called = false;
-    serviceStatusEvent.subscribe(eventName_,
-            [&] (const std::string& eventName, const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
-                called = true;
-                return CommonAPI::SubscriptionStatus::RETAIN;
-            }
-    );
-    while(!called) {
-        usleep(1);
-    }
-    ASSERT_TRUE(called);
-}
-
-
-TEST_F(DBusServiceRegistryTest, SubscriptionToServiceStatusEventCanBeCancelled) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = dbusConnection->getDBusServiceRegistry();
-    dbusConnection->connect();
-    auto serviceStatusEvent = dbusServiceRegistry->getServiceStatusEvent();
-    std::string eventName_ = "local:some:address";
-    serviceStatusEvent.subscribe(eventName_,
-            [&] (const std::string& eventName, const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
-                return CommonAPI::SubscriptionStatus::CANCEL;
-            }
-    );
-    sleep(1);
 }
 
 
