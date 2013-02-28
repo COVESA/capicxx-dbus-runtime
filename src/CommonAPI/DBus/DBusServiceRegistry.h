@@ -13,6 +13,7 @@
 
 #include "DBusProxyConnection.h"
 #include "DBusAddressTranslator.h"
+#include "DBusDaemonProxy.h"
 
 #include <unordered_map>
 #include <utility>
@@ -36,10 +37,6 @@ typedef Event<std::string, std::string, std::string>::Subscription NameOwnerChan
 
 //connectionName, objectPath
 typedef std::pair<std::string, std::string> DBusInstanceId;
-
-typedef std::unordered_map<std::string, int> PropertyDictStub;
-typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
-typedef std::unordered_map<std::string, InterfaceToPropertyDict> DBusObjectToInterfaceDict;
 
 class DBusProxyConnection;
 class DBusDaemonProxy;
@@ -66,7 +63,7 @@ class DBusServiceRegistry {
 
     DBusServiceRegistry();
 
-    DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> connection);
+    DBusServiceRegistry(std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy);
 
     virtual ~DBusServiceRegistry();
 
@@ -92,7 +89,7 @@ class DBusServiceRegistry {
     void onListNamesCallback(const CommonAPI::CallStatus& callStatus, std::vector<std::string> dbusNames);
 
     void resolveDBusServiceInstances(DBusServiceList::iterator& dbusServiceIterator);
-    void onGetManagedObjectsCallback(const CallStatus& status, DBusObjectToInterfaceDict managedObjects, const std::string& dbusServiceName);
+    void onGetManagedObjectsCallback(const CallStatus& status, DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects, const std::string& dbusServiceName);
 
     size_t getAvailableServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances);
 
@@ -113,7 +110,7 @@ class DBusServiceRegistry {
     static bool isDBusServiceName(const std::string& name);
 
 
-    std::shared_ptr<DBusProxyConnection> dbusConnection_;
+    std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy_;
 
     DBusServiceList dbusServices_;
     AvailabilityStatus dbusServicesStatus_;

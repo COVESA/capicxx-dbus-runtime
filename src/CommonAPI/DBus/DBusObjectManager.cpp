@@ -63,8 +63,7 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) const {
 }
 
 bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessage) {
-
-    DBusObjectToInterfaceDict dictToSend;
+    DBusDaemonProxy::DBusObjectToInterfaceDict dictToSend;
 
     const char* interfaceName = callMessage.getInterfaceName();
     const char* signature = callMessage.getSignatureString();

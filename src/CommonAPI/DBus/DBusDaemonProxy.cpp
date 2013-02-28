@@ -81,10 +81,12 @@ std::future<CallStatus> DBusDaemonProxy::listNamesAsync(ListNamesAsyncCallback l
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
                     DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(listNamesAsyncCallback));
+    std::promise<CallStatus> failedPromise;
+    failedPromise.set_value(CallStatus::CONNECTION_FAILED);
+    return failedPromise.get_future();
 }
 
 void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const {
-
     DBusMessage dbusMethodCall = createMethodCall("NameHasOwner", "s");
 
     DBusOutputStream outputStream(dbusMethodCall);
@@ -111,11 +113,9 @@ void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallSt
         return;
     }
     callStatus = CallStatus::SUCCESS;
-
 }
 
 std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& busName, NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const {
-
     DBusMessage dbusMessage = createMethodCall("NameHasOwner", "s");
 
     DBusOutputStream outputStream(dbusMessage);
@@ -130,8 +130,74 @@ std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& bu
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
                     DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback));
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback callback) const {
+    // resolve remote objects
+    auto dbusMethodCallMessage = DBusMessage::createMethodCall(
+                    forDBusServiceName,
+                    "/",
+                    "org.freedesktop.DBus.ObjectManager",
+                    "GetManagedObjects",
+                    "");
+
+    const int timeoutMilliseconds = 100;
+
+    return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                    dbusMethodCallMessage,
+                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback),
+                    timeoutMilliseconds);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 } // namespace DBus

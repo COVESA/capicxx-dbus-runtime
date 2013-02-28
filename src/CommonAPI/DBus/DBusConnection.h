@@ -93,9 +93,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	bool readWriteDispatch(int timeoutMilliseconds = -1);
 
-	virtual const std::shared_ptr<DBusDaemonProxy>& getDBusDaemonProxy();
-    virtual const std::shared_ptr<DBusServiceRegistry>& getDBusServiceRegistry();
-    virtual const std::shared_ptr<DBusObjectManager>& getDBusObjectManager();
+    virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();
+    virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
 
  private:
     void dispatch();
@@ -136,7 +135,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	::DBusConnection* libdbusConnection_;
 
-	std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy_;
+	std::weak_ptr<DBusDaemonProxy> dbusDaemonProxy_;
 	std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
 

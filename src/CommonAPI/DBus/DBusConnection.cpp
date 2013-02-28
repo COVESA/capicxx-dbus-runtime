@@ -116,23 +116,15 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
     return dbusConnectionStatusEvent_;
 }
 
-const std::shared_ptr<DBusServiceRegistry>& DBusConnection::getDBusServiceRegistry() {
+const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
     if (!dbusServiceRegistry_) {
-        dbusServiceRegistry_ = std::make_shared<DBusServiceRegistry>(this->shared_from_this());
+        dbusServiceRegistry_ = std::make_shared<DBusServiceRegistry>(std::make_shared<DBusDaemonProxy>(this->shared_from_this()));
     }
 
     return dbusServiceRegistry_;
 }
 
-const std::shared_ptr<DBusDaemonProxy>& DBusConnection::getDBusDaemonProxy() {
-    if (!dbusDaemonProxy_) {
-        dbusDaemonProxy_ = std::make_shared<DBusDaemonProxy>(this->shared_from_this());
-    }
-
-    return dbusDaemonProxy_;
-}
-
-const std::shared_ptr<DBusObjectManager>& DBusConnection::getDBusObjectManager() {
+const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() {
     if (!dbusObjectManager_) {
         dbusObjectManager_ = std::make_shared<DBusObjectManager>(this->shared_from_this());
     }

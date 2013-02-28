@@ -29,6 +29,7 @@ class DBusDaemonProxyTest: public ::testing::Test {
 		ASSERT_TRUE(dbusConnection_->connect());
 		thread = new std::thread(dispatch, dbusConnection_);
 		thread->detach();
+		dbusDaemonProxy_ = std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusConnection_);
 		//readWriteDispatchCount_ = 0;
  	}
 
@@ -39,12 +40,8 @@ class DBusDaemonProxyTest: public ::testing::Test {
 		}
 	}
 
-	/*bool doReadWriteDispatch(int timeoutMilliseconds = 100) {
-		readWriteDispatchCount_++;
-		return dbusConnection_->readWriteDispatch(timeoutMilliseconds);
-	}*/
-
 	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
+	std::shared_ptr<CommonAPI::DBus::DBusDaemonProxy> dbusDaemonProxy_;
 	//size_t readWriteDispatchCount_;
 };
 
@@ -52,7 +49,7 @@ TEST_F(DBusDaemonProxyTest, ListNames) {
 	std::vector<std::string> busNames;
 	CommonAPI::CallStatus callStatus;
 
-	dbusConnection_->getDBusDaemonProxy()->listNames(callStatus, busNames);
+	dbusDaemonProxy_->listNames(callStatus, busNames);
 	ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
 
 	ASSERT_GT(busNames.size(), 0);
@@ -66,7 +63,7 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
 	std::promise<std::tuple<CommonAPI::CallStatus, std::vector<std::string>>> promise;
 	auto future = promise.get_future();
 
-	auto callStatusFuture = dbusConnection_->getDBusDaemonProxy()->listNamesAsync(
+	auto callStatusFuture = dbusDaemonProxy_->listNamesAsync(
 			[&](const CommonAPI::CallStatus& callStatus, std::vector<std::string> busNames) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
 	});
@@ -94,11 +91,11 @@ TEST_F(DBusDaemonProxyTest, NameHasOwner) {
 	bool nameHasOwner;
 	CommonAPI::CallStatus callStatus;
 
-	dbusConnection_->getDBusDaemonProxy()->nameHasOwner("org.freedesktop.DBus", callStatus, nameHasOwner);
+	dbusDaemonProxy_->nameHasOwner("org.freedesktop.DBus", callStatus, nameHasOwner);
 	ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
 	ASSERT_TRUE(nameHasOwner);
 
-	dbusConnection_->getDBusDaemonProxy()->nameHasOwner("org.freedesktop.DBus.InvalidName.XXYYZZ", callStatus, nameHasOwner);
+	dbusDaemonProxy_->nameHasOwner("org.freedesktop.DBus.InvalidName.XXYYZZ", callStatus, nameHasOwner);
 	ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
 	ASSERT_FALSE(nameHasOwner);
 }
@@ -107,7 +104,7 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
 	std::promise<std::tuple<CommonAPI::CallStatus, bool>> promise;
 	auto future = promise.get_future();
 
-	auto callStatusFuture = dbusConnection_->getDBusDaemonProxy()->nameHasOwnerAsync(
+	auto callStatusFuture = dbusDaemonProxy_->nameHasOwnerAsync(
 			"org.freedesktop.DBus",
 			[&](const CommonAPI::CallStatus& callStatus, bool nameHasOwner) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, bool>(callStatus, std::move(nameHasOwner)));
@@ -137,7 +134,7 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
 	std::promise<bool> promise;
 	auto future = promise.get_future();
 
-	dbusConnection_->getDBusDaemonProxy()->getNameOwnerChangedEvent().subscribe(
+	dbusDaemonProxy_->getNameOwnerChangedEvent().subscribe(
 			[&](const std::string& name, const std::string& oldOwner, const std::string& newOwner) {
 	    static bool promiseIsSet = false;
 	    if(!promiseIsSet) {

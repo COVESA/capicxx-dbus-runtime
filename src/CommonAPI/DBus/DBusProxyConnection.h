@@ -88,9 +88,8 @@ class DBusProxyConnection {
 
 	virtual void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
 
-    virtual const std::shared_ptr<DBusDaemonProxy>& getDBusDaemonProxy() = 0;
-    virtual const std::shared_ptr<DBusServiceRegistry>& getDBusServiceRegistry() = 0;
-    virtual const std::shared_ptr<DBusObjectManager>& getDBusObjectManager() = 0;
+    virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry() = 0;
+    virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
 };
 
 

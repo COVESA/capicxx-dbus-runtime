@@ -34,8 +34,13 @@ class DBusDaemonProxy: public DBusProxyBase {
  public:
 	typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
 
+	typedef std::unordered_map<std::string, int> PropertyDictStub;
+	typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
+	typedef std::unordered_map<std::string, InterfaceToPropertyDict> DBusObjectToInterfaceDict;
+
 	typedef std::function<void(const CommonAPI::CallStatus&, std::vector<std::string>)> ListNamesAsyncCallback;
 	typedef std::function<void(const CommonAPI::CallStatus&, bool)> NameHasOwnerAsyncCallback;
+	typedef std::function<void(const CommonAPI::CallStatus&, DBusObjectToInterfaceDict)> GetManagedObjectsAsyncCallback;
 
 
 	DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection);
@@ -53,6 +58,8 @@ class DBusDaemonProxy: public DBusProxyBase {
 
     void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
     std::future<CallStatus> nameHasOwnerAsync(const std::string& busName, NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const;
+
+    std::future<CallStatus> getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback) const;
 
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;

@@ -19,17 +19,17 @@ DBusServiceRegistry::DBusServiceRegistry() :
 {
 }
 
-DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusConnection) :
-                dbusConnection_(dbusConnection),
+DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy) :
+                dbusDaemonProxy_(dbusDaemonProxy),
                 dbusServicesStatus_(AvailabilityStatus::UNKNOWN),
                 serviceStatusEvent_(std::shared_ptr<DBusServiceRegistry>(this))
 {
     dbusDaemonProxyStatusEventSubscription_ =
-                    dbusConnection->getDBusDaemonProxy()->getProxyStatusEvent().subscribeCancellableListener(
+                    dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
                                     std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, this, std::placeholders::_1));
 
     dbusDaemonProxyNameOwnerChangedEventSubscription_ =
-                    dbusConnection->getDBusDaemonProxy()->getNameOwnerChangedEvent().subscribeCancellableListener(
+                    dbusDaemonProxy_->getNameOwnerChangedEvent().subscribeCancellableListener(
                     std::bind(&DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent,
                               this,
                               std::placeholders::_1,
@@ -38,8 +38,8 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> db
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
-    dbusConnection_->getDBusDaemonProxy()->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
-    dbusConnection_->getDBusDaemonProxy()->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
+    dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
+    dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
 }
 
 bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout) {
@@ -69,7 +69,7 @@ bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>
 }
 
 bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusServiceName, const std::string& dbusObjectPath) {
-    if (!dbusConnection_->isConnected()) {
+    if (!dbusDaemonProxy_->isAvailable()) {
         return false;
     }
 
@@ -127,7 +127,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
                                                                            const std::string& domainName) {
     std::vector<std::string> availableServiceInstances;
 
-    if (!dbusConnection_->isConnected()) {
+    if (!dbusDaemonProxy_->isAvailable()) {
         return availableServiceInstances;
     }
 
@@ -327,7 +327,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const Avail
     switch (availabilityStatus) {
         case AvailabilityStatus::AVAILABLE:
             dbusServicesStatus_ = AvailabilityStatus::UNKNOWN;
-            dbusConnection_->getDBusDaemonProxy()->listNamesAsync(std::bind(
+            dbusDaemonProxy_->listNamesAsync(std::bind(
                             &DBusServiceRegistry::onListNamesCallback,
                             this,
                             std::placeholders::_1,
@@ -490,29 +490,16 @@ void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator&
         notifyDBusServiceListeners(dbusServiceListenerList, AvailabilityStatus::AVAILABLE);
     }
 
-    // resolve remote objects
-    auto dbusMethodCallMessage = DBusMessage::createMethodCall(
-                    dbusServiceName.c_str(),
-                    "/",
-                    "org.freedesktop.DBus.ObjectManager",
-                    "GetManagedObjects",
-                    "");
-
-    const int timeoutMilliseconds = 100;
-
-    dbusConnection_->sendDBusMessageWithReplyAsync(
-                    dbusMethodCallMessage,
-                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(
-                                    std::bind(&DBusServiceRegistry::onGetManagedObjectsCallback,
-                                              this,
-                                              std::placeholders::_1,
-                                              std::placeholders::_2,
-                                              dbusServiceName)),
-                                    timeoutMilliseconds);
+    DBusDaemonProxy::GetManagedObjectsAsyncCallback callback = std::bind(&DBusServiceRegistry::onGetManagedObjectsCallback,
+                                                                         this,
+                                                                         std::placeholders::_1,
+                                                                         std::placeholders::_2,
+                                                                         dbusServiceName);
+    dbusDaemonProxy_->getManagedObjectsAsync(dbusServiceName, callback);
 }
 
 void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStatus,
-                                                      DBusObjectToInterfaceDict managedObjects,
+                                                      DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects,
                                                       const std::string& dbusServiceName) {
     std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
