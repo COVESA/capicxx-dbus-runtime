@@ -29,7 +29,10 @@ DBusInterfaceHandlerToken DBusObjectManager::registerInterfaceHandler(const std:
     assert(noSuchHandlerRegistered);
 
     dbusRegisteredObjectsTable_.insert({handlerPath, dbusMessageInterfaceHandler});
-    dbusConnection_->registerObjectPath(objectPath);
+    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    if(lockedConnection) {
+        lockedConnection->registerObjectPath(objectPath);
+    }
 
     return handlerPath;
 }
@@ -37,7 +40,10 @@ DBusInterfaceHandlerToken DBusObjectManager::registerInterfaceHandler(const std:
 void DBusObjectManager::unregisterInterfaceHandler(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken) {
     const std::string& objectPath = dbusInterfaceHandlerToken.first;
 
-    dbusConnection_->unregisterObjectPath(objectPath);
+    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    if(lockedConnection) {
+        lockedConnection->unregisterObjectPath(objectPath);
+    }
 
     dbusRegisteredObjectsTable_.erase(dbusInterfaceHandlerToken);
 }
@@ -93,7 +99,12 @@ bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessag
     DBusOutputStream outStream(replyMessage);
     outStream << dictToSend;
     outStream.flush();
-    return dbusConnection_->sendDBusMessage(replyMessage);
+
+    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    if(lockedConnection) {
+        return lockedConnection->sendDBusMessage(replyMessage);
+    }
+    return false;
 }
 
 

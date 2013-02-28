@@ -59,7 +59,10 @@ class DBusProxy: public DBusProxyBase {
     AvailabilityStatus availabilityStatus_;
 
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
+
+    std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
 };
+
 
 } // namespace DBus
 } // namespace CommonAPI

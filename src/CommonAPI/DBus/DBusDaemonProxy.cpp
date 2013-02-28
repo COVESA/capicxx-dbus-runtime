@@ -132,18 +132,6 @@ std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& bu
                     DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback));
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback callback) const {
     // resolve remote objects
     auto dbusMethodCallMessage = DBusMessage::createMethodCall(
@@ -160,44 +148,6 @@ std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::strin
                     DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback),
                     timeoutMilliseconds);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 } // namespace DBus

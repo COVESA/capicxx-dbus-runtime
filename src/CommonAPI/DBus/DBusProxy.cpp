@@ -41,17 +41,19 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
                               dbusConnection),
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
-                interfaceVersionAttribute_(*this, "getInterfaceVersion") {
+                interfaceVersionAttribute_(*this, "getInterfaceVersion"),
+                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()) {
+
     const std::string commonApiDomain = split(commonApiAddress, ':')[0];
     assert(commonApiDomain == "local");
 
-    dbusServiceRegistrySubscription_ = dbusConnection->getDBusServiceRegistry()->subscribeAvailabilityListener(
+    dbusServiceRegistrySubscription_ = dbusServiceRegistry_->subscribeAvailabilityListener(
                     commonApiAddress,
                     std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1));
 }
 
 DBusProxy::~DBusProxy() {
-    getDBusConnection()->getDBusServiceRegistry()->unsubscribeAvailabilityListener(
+    dbusServiceRegistry_->unsubscribeAvailabilityListener(
                     getAddress(),
                     dbusServiceRegistrySubscription_);
 }

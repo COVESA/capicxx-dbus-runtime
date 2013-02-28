@@ -63,7 +63,6 @@ class DBusDaemonProxy: public DBusProxyBase {
 
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
-
     static StaticInterfaceVersionAttribute interfaceVersionAttribute_;
 };
 

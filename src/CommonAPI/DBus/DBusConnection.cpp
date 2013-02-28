@@ -117,11 +117,14 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
 }
 
 const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
-    if (!dbusServiceRegistry_) {
-        dbusServiceRegistry_ = std::make_shared<DBusServiceRegistry>(std::make_shared<DBusDaemonProxy>(this->shared_from_this()));
+    std::shared_ptr<DBusServiceRegistry> serviceRegistry = dbusServiceRegistry_.lock();
+    if (!serviceRegistry) {
+    	auto blub = this->shared_from_this();
+        serviceRegistry = std::make_shared<DBusServiceRegistry>(blub);
+        dbusServiceRegistry_ = serviceRegistry;
     }
 
-    return dbusServiceRegistry_;
+    return serviceRegistry;
 }
 
 const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() {

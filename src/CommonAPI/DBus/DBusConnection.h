@@ -135,8 +135,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	::DBusConnection* libdbusConnection_;
 
-	std::weak_ptr<DBusDaemonProxy> dbusDaemonProxy_;
-	std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
+	std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
 
 	DBusConnectionStatusEvent dbusConnectionStatusEvent_;
