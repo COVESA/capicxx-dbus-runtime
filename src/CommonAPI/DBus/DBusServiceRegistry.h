@@ -42,7 +42,7 @@ class DBusProxyConnection;
 class DBusDaemonProxy;
 
 
-class DBusServiceRegistry {
+class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegistry> {
  public:
     enum class DBusServiceState {
         UNKNOWN,
@@ -64,6 +64,8 @@ class DBusServiceRegistry {
     DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
 
     virtual ~DBusServiceRegistry();
+
+    void init();
 
     bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
 

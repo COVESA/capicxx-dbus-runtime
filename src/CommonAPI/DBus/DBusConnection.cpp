@@ -92,15 +92,16 @@ bool DBusConnection::connect(DBusError& dbusError) {
 
 void DBusConnection::disconnect() {
     if (isConnected()) {
-        stopDispatching_ = true;
-
         if (!dbusSignalMatchRulesMap_.empty()) {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
 
+        dbus_connection_close(libdbusConnection_);
+
+        stopDispatching_ = true;
+
         dispatchThread_.join();
 
-        dbus_connection_close(libdbusConnection_);
         dbus_connection_unref(libdbusConnection_);
         libdbusConnection_ = NULL;
 
@@ -119,8 +120,8 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
 const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
     std::shared_ptr<DBusServiceRegistry> serviceRegistry = dbusServiceRegistry_.lock();
     if (!serviceRegistry) {
-    	auto blub = this->shared_from_this();
-        serviceRegistry = std::make_shared<DBusServiceRegistry>(blub);
+        serviceRegistry = std::make_shared<DBusServiceRegistry>(this->shared_from_this());
+        serviceRegistry->init();
         dbusServiceRegistry_ = serviceRegistry;
     }
 
