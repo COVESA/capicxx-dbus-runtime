@@ -91,15 +91,13 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
                         [&] { return dbusServiceState != DBusServiceState::RESOLVING; });
     }
 
-    if (dbusServiceState == DBusServiceState::RESOLVED) {
-        const DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-        auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
+    const DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
+    auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
 
-        if (dbusInstanceIterator != dbusInstanceList.end()) {
-            const AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
+    if (dbusInstanceIterator != dbusInstanceList.end()) {
+        const AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
 
-            return (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE);
-        }
+        return (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE);
     }
 
     return false;
@@ -166,7 +164,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
 }
 
 size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances) {
-    size_t dbusServicesResolvedCount = 0;
+    size_t dbusServicesResolvingCount = 0;
 
     availableServiceInstances.clear();
 
@@ -181,14 +179,15 @@ size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbus
         switch (dbusServiceState) {
             case DBusServiceState::AVAILABLE:
                 resolveDBusServiceInstances(dbusServiceIterator);
-                dbusServicesResolvedCount++;
+                dbusServicesResolvingCount++;
                 break;
 
             case DBusServiceState::RESOLVING:
-                dbusServicesResolvedCount++;
-                break;
-
             case DBusServiceState::RESOLVED:
+                if (dbusServiceState == DBusServiceState::RESOLVING) {
+                    dbusServicesResolvingCount++;
+                }
+
                 for (auto& dbusInstanceIterator : dbusInstanceList) {
                     const AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator.second.first;
                     const std::string& dbusInstanceObjectPath = dbusInstanceIterator.first.first;
@@ -213,7 +212,7 @@ size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbus
         dbusServiceIterator++;
     }
 
-    return dbusServicesResolvedCount;
+    return dbusServicesResolvingCount;
 }
 
 
@@ -248,12 +247,12 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
     auto dbusInstanceIterator = addDBusServiceInstance(
                     dbusInstanceList,
                     dbusObjectPath,
-                    dbusInterfaceName,
-                    AvailabilityStatus::UNKNOWN);
+                    dbusInterfaceName);
     AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
     DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
 
-    if (dbusServiceState == DBusServiceState::RESOLVED) {
+    if (dbusServiceState == DBusServiceState::RESOLVED
+                    && dbusInstanceAvailabilityStatus == AvailabilityStatus::UNKNOWN) {
         dbusInstanceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
     }
 
@@ -263,6 +262,12 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
     switch (dbusServiceState) {
         case DBusServiceState::AVAILABLE:
             resolveDBusServiceInstances(dbusServiceIterator);
+            break;
+
+        case DBusServiceState::RESOLVING:
+            if (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE) {
+                serviceListener(dbusInstanceAvailabilityStatus);
+            }
             break;
 
         case DBusServiceState::RESOLVED:
@@ -400,13 +405,10 @@ DBusServiceRegistry::DBusServiceList::iterator DBusServiceRegistry::onDBusServic
 
     if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
         const std::string& dbusServiceName = dbusServiceIterator->first;
-        const bool dbusServiceHasListeners = !dbusInstanceList.empty();
 
         if (dbusServiceState != DBusServiceState::RESOLVING) {
             resolveDBusServiceInstances(dbusServiceIterator);
         }
-
-        dbusServiceChanged_.notify_all();
 
         return dbusServiceIterator;
     }
@@ -463,23 +465,18 @@ void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator&
     dbusServiceState = DBusServiceState::RESOLVING;
 
     // add predefined instances
-    DBusAddressTranslator::getInstance().getPredefinedInstances(
-                    dbusServiceName,
-                    predefinedDBusServiceInstances);
+    DBusAddressTranslator::getInstance().getPredefinedInstances(dbusServiceName, predefinedDBusServiceInstances);
+
     for (auto& dbusServiceAddress : predefinedDBusServiceInstances) {
         const std::string& dbusObjectPath = std::get<1>(dbusServiceAddress);
         const std::string& dbusInterfaceName = std::get<2>(dbusServiceAddress);
 
-        auto dbusInstanceIterator = addDBusServiceInstance(
-                        dbusInstanceList,
-                        dbusObjectPath,
-                        dbusInterfaceName,
-                        AvailabilityStatus::AVAILABLE);
-        DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
-
-        notifyDBusServiceListeners(dbusServiceListenerList, AvailabilityStatus::AVAILABLE);
+        onDBusServiceInstanceAvailable(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
     }
 
+    dbusServiceChanged_.notify_all();
+
+    // search for remote instances
     DBusDaemonProxy::GetManagedObjectsAsyncCallback callback = std::bind(&DBusServiceRegistry::onGetManagedObjectsCallback,
                                                                          this,
                                                                          std::placeholders::_1,
@@ -493,6 +490,11 @@ void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStat
                                                       const std::string& dbusServiceName) {
     std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
+    // already offline
+    if (dbusServicesStatus_ == AvailabilityStatus::NOT_AVAILABLE) {
+        return;
+    }
+
     auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
     if (dbusServiceIterator == dbusServices_.end()) {
         return; // nothing we can do
@@ -501,25 +503,16 @@ void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStat
     DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
     DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
 
-    dbusServiceState = (dbusServicesStatus_ == AvailabilityStatus::AVAILABLE) ? DBusServiceState::NOT_AVAILABLE : DBusServiceState::UNKNOWN;
+    dbusServiceState = DBusServiceState::RESOLVED;
 
     if (callStatus == CallStatus::SUCCESS) {
-        dbusServiceState = DBusServiceState::RESOLVED;
-
         for (auto& dbusObjectPathIterator : managedObjects) {
             const std::string& dbusObjectPath = dbusObjectPathIterator.first;
 
             for (auto& dbusInterfaceNameIterator : dbusObjectPathIterator.second) {
                 const std::string& dbusInterfaceName = dbusInterfaceNameIterator.first;
 
-                auto dbusInstanceIterator = addDBusServiceInstance(
-                                dbusInstanceList,
-                                dbusObjectPath,
-                                dbusInterfaceName,
-                                AvailabilityStatus::AVAILABLE);
-                DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
-
-                notifyDBusServiceListeners(dbusServiceListenerList, AvailabilityStatus::AVAILABLE);
+                onDBusServiceInstanceAvailable(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
             }
         }
     }
@@ -538,22 +531,31 @@ void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStat
     }
 }
 
+void DBusServiceRegistry::onDBusServiceInstanceAvailable(DBusInstanceList& dbusInstanceList,
+                                                         const std::string& dbusObjectPath,
+                                                         const std::string& dbusInterfaceName) {
+    auto dbusInstanceIterator = addDBusServiceInstance(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
+    AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
+    DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
+
+    dbusInstanceAvailabilityStatus = AvailabilityStatus::AVAILABLE;
+
+    notifyDBusServiceListeners(dbusServiceListenerList, dbusInstanceAvailabilityStatus);
+}
+
 DBusServiceRegistry::DBusInstanceList::iterator DBusServiceRegistry::addDBusServiceInstance(DBusInstanceList& dbusInstanceList,
                                                                                             const std::string& dbusObjectPath,
-                                                                                            const std::string& dbusInterfaceName,
-                                                                                            const AvailabilityStatus& newDBusInstanceAvailabilityStatus) {
+                                                                                            const std::string& dbusInterfaceName) {
     auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
 
     // add instance for the first time
     if (dbusInstanceIterator == dbusInstanceList.end()) {
        auto insertIterator = dbusInstanceList.insert(
-                        { { dbusObjectPath, dbusInterfaceName }, { newDBusInstanceAvailabilityStatus, DBusServiceListenerList() } });
+                        { { dbusObjectPath, dbusInterfaceName }, { AvailabilityStatus::UNKNOWN, DBusServiceListenerList() } });
+       const bool& insertSuccessfull = insertIterator.second;
 
-       assert(insertIterator.second);
+       assert(insertSuccessfull);
        dbusInstanceIterator = insertIterator.first;
-    } else {
-        AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
-        dbusInstanceAvailabilityStatus = newDBusInstanceAvailabilityStatus;
     }
 
     return dbusInstanceIterator;

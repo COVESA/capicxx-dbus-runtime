@@ -95,11 +95,15 @@ class DBusServiceRegistry {
     DBusServiceList::iterator onDBusServiceAvailabilityStatus(DBusServiceList::iterator& dbusServiceIterator, const AvailabilityStatus& availabilityStatus);
     DBusServiceList::iterator onDBusServiceOffline(DBusServiceList::iterator& dbusServiceIterator, const DBusServiceState& dbusServiceState);
 
+    static void onDBusServiceInstanceAvailable(
+                    DBusInstanceList& dbusInstanceList,
+                    const std::string& dbusObjectPath,
+                    const std::string& dbusInterfaceName);
+
     static DBusInstanceList::iterator addDBusServiceInstance(
                     DBusInstanceList& dbusInstanceList,
                     const std::string& dbusObjectPath,
-                    const std::string& dbusInterfaceName,
-                    const AvailabilityStatus& dbusInstanceAvailabilityStatus);
+                    const std::string& dbusInterfaceName);
 
     static void notifyDBusServiceListeners(DBusServiceListenerList& dbusServiceListenerList, const AvailabilityStatus& availabilityStatus);
 
