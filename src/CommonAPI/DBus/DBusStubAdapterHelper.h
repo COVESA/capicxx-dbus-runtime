@@ -44,7 +44,8 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
     }
 
     virtual ~DBusStubAdapterHelper() {
-    	stub_->deinitStubAdapter();
+        DBusStubAdapter::deinit();
+    	stub_.reset();
     }
 
     virtual void init() {
@@ -54,7 +55,7 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
 
     virtual void deinit() {
         DBusStubAdapter::deinit();
-        stub_->deinitStubAdapter();
+    	stub_.reset();
     }
 
     inline std::shared_ptr<StubAdapterType> getStubAdapter() {

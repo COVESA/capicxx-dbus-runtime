@@ -104,11 +104,11 @@ std::shared_ptr<Proxy> DBusFactory::createProxy(const char* interfaceId,
     return NULL;
 }
 
-std::shared_ptr<StubAdapter> DBusFactory::createAdapter(std::shared_ptr<StubBase> stubBase,
-                                                        const char* interfaceId,
-                                                        const std::string& participantId,
-                                                        const std::string& serviceName,
-                                                        const std::string& domain) {
+bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
+								  const char* interfaceId,
+								  const std::string& participantId,
+								  const std::string& serviceName,
+								  const std::string& domain) {
     assert(dbusConnection_->isConnected());
 
     std::string commonApiAddress = domain + ":" + serviceName + ":" + participantId;
@@ -133,12 +133,29 @@ std::shared_ptr<StubAdapter> DBusFactory::createAdapter(std::shared_ptr<StubBase
     for (auto it = registeredAdapterFactoryFunctions_->begin(); it != registeredAdapterFactoryFunctions_->end(); ++it) {
         if(it->first == interfaceId) {
             std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (it->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
-            dbusStubAdapter->init();
-            return dbusStubAdapter;
+        	if(!dbusStubAdapter) {
+        		return false;
+        	}
+        	std::string address = domain + ":" + serviceName + ":" + participantId;
+        	if(registeredServices_.insert( {std::move(address), dbusStubAdapter} ).second) {
+        		dbusStubAdapter->init();
+        		return true;
+        	}
         }
     }
 
-    return NULL;
+	return false;
+}
+
+bool DBusFactory::unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain) {
+    std::string commonApiAddress = domain + ":" + serviceName + ":" + participantId;
+	auto foundStubAdapter = registeredServices_.find(commonApiAddress);
+	if(foundStubAdapter != registeredServices_.end()) {
+		std::shared_ptr<DBusStubAdapter> stubAdapter = foundStubAdapter->second;
+		stubAdapter->deinit();
+		return registeredServices_.erase(commonApiAddress);
+	}
+	return false;
 }
 
 

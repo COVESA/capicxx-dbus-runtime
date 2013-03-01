@@ -41,15 +41,18 @@ class DBusFactory: public Factory {
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
     virtual bool isServiceInstanceAlive(const std::string& serviceAddress);
-    virtual bool isServiceInstanceAlive(const std::string& serviceInstanceID, const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
+    virtual bool isServiceInstanceAlive(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
+
+    virtual bool unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
  protected:
     virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
-    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
+    virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::string acquiredConnectionName_;
+    std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> registeredServices_;
 };
 
 } // namespace DBus

@@ -41,14 +41,17 @@ DBusStubAdapter::DBusStubAdapter(const std::string& commonApiAddress,
 }
 
 DBusStubAdapter::~DBusStubAdapter() {
+	deinit();
 }
 
 void DBusStubAdapter::deinit() {
 	assert(dbusConnection_);
-	assert(isInitialized_);
 
-	dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusIntrospectionInterfaceHandlerToken_);
-	dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusInterfaceHandlerToken_);
+	if(isInitialized_) {
+		dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusIntrospectionInterfaceHandlerToken_);
+		dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusInterfaceHandlerToken_);
+		isInitialized_ = false;
+	}
 }
 
 void DBusStubAdapter::init() {
