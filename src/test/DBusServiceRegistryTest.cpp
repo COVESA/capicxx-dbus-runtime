@@ -56,22 +56,25 @@ class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
         auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
         dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
-        auto stubAdapter = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
+        stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
                         "local:test.service.name:test.instance.name",
                         "test.service.name",
                         "test.instance.name",
                         "/test/instance/name",
                         dbusStubConnection_,
                         stub);
-        stubAdapter->init();
+        stubAdapter_->init();
     }
 
     virtual void TearDown() {
+    	stubAdapter_->deinit();
     }
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusStubConnection_;
     std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> dbusServiceRegistry_;
+
+    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter_;
 };
 
 
@@ -82,6 +85,7 @@ TEST_F(DBusServiceRegistryTestWithPredefinedRemote, RecognizesCommonAPIDBusServi
 
 
 TEST_F(DBusServiceRegistryTestWithPredefinedRemote, FindsCommonAPIDBusServiceInstance) {
+	sleep(1);
     auto availableServices = dbusServiceRegistry_->getAvailableServiceInstances("test.service.name", "local");
     ASSERT_EQ(1, availableServices.size());
     bool serviceFound;

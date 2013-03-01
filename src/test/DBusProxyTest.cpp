@@ -142,15 +142,15 @@ TEST_F(ProxyTest, ServiceRegistry) {
 TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     proxyRegisterForAvailabilityStatus();
 
-    ASSERT_NE(proxyAvailabilityStatus_, CommonAPI::AvailabilityStatus::AVAILABLE);
+    EXPECT_NE(proxyAvailabilityStatus_, CommonAPI::AvailabilityStatus::AVAILABLE);
 
     registerTestStub();
 
-    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 
     stubDBusConnection_->disconnect();
 
-    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 
     deregisterTestStub();
 }
@@ -160,15 +160,15 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
 
     registerTestStub();
 
-    ASSERT_TRUE(proxyDBusConnection_->connect());
+    EXPECT_TRUE(proxyDBusConnection_->connect());
 
     proxyRegisterForAvailabilityStatus();
 
-    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 
     stubDBusConnection_->disconnect();
 
-    ASSERT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 
     deregisterTestStub();
 }
@@ -190,8 +190,8 @@ TEST_F(ProxyTest, ServiceStatus) {
     sleep(1);
 	auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
 
-	ASSERT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
-	ASSERT_TRUE(found != availableDBusServices.end());
+	EXPECT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
+	EXPECT_TRUE(found != availableDBusServices.end());
 
     deregisterTestStub();
 }

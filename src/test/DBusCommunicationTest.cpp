@@ -103,7 +103,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
-    ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
 
     stubFactory_->unregisterService(serviceAddress_);
 }
@@ -124,7 +124,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
-    ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
     stubFactory_->unregisterService(nonstandardAddress_);
 }
 

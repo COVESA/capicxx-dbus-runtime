@@ -179,6 +179,8 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     bool success = stubFactory->registerService(stub, commonApiAddresses[0]);
     ASSERT_TRUE(success);
 
+    sleep(1);
+
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
     CommonAPI::CallStatus stat;
