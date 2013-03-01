@@ -21,7 +21,6 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> db
 DBusServiceRegistry::~DBusServiceRegistry() {
     dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
     dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
-    std::cout << "Crushing stuff" << std::endl;
 }
 
 void DBusServiceRegistry::init() {
