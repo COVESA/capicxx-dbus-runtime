@@ -15,26 +15,30 @@ namespace DBus {
 
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection):
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
-                dbusServicesStatus_(AvailabilityStatus::UNKNOWN) {
+                dbusServicesStatus_(AvailabilityStatus::UNKNOWN),
+                initialized_(false) {
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
-    dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
-    dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
+	if(initialized_) {
+		dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
+		dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
+	}
 }
 
 void DBusServiceRegistry::init() {
-    dbusDaemonProxyStatusEventSubscription_ =
-                    dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
-                                    std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, this->shared_from_this(), std::placeholders::_1));
+	dbusDaemonProxyStatusEventSubscription_ =
+					dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
+									std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, this, std::placeholders::_1));
 
-    dbusDaemonProxyNameOwnerChangedEventSubscription_ =
-                    dbusDaemonProxy_->getNameOwnerChangedEvent().subscribeCancellableListener(
-                    std::bind(&DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent,
-                              this->shared_from_this(),
-                              std::placeholders::_1,
-                              std::placeholders::_2,
-                              std::placeholders::_3));
+	dbusDaemonProxyNameOwnerChangedEventSubscription_ =
+					dbusDaemonProxy_->getNameOwnerChangedEvent().subscribeCancellableListener(
+					std::bind(&DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent,
+							  this,
+							  std::placeholders::_1,
+							  std::placeholders::_2,
+							  std::placeholders::_3));
+	initialized_ = true;
 }
 
 bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout) {
@@ -480,7 +484,7 @@ void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator&
 
     // search for remote instances
     DBusDaemonProxy::GetManagedObjectsAsyncCallback callback = std::bind(&DBusServiceRegistry::onGetManagedObjectsCallback,
-                                                                         this->shared_from_this(),
+    																     this->shared_from_this(),
                                                                          std::placeholders::_1,
                                                                          std::placeholders::_2,
                                                                          dbusServiceName);

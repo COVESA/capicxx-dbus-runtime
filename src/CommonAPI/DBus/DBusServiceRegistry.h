@@ -120,6 +120,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
     std::mutex dbusServicesMutex_;
 
+    bool initialized_;
+
     ProxyStatusEvent::Subscription dbusDaemonProxyStatusEventSubscription_;
     NameOwnerChangedEvent::Subscription dbusDaemonProxyNameOwnerChangedEventSubscription_;
 };
