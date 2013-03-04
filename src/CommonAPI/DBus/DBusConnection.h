@@ -120,7 +120,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	::DBusHandlerResult onLibdbusSignalFilter(::DBusMessage* libdbusMessage);
 
-	static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void *userData);
+	static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
 	static void onLibdbusDataCleanup(void* userData);
 
 	static ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,

@@ -180,12 +180,16 @@ void DBusConnection::onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusP
 
 	auto dbusMessageReplyAsyncHandler = reinterpret_cast<DBusMessageReplyAsyncHandler*>(userData);
 
-	::DBusMessage* libdbusMessage = dbus_pending_call_steal_reply(
-			libdbusPendingCall);
+	::DBusMessage* libdbusMessage = dbus_pending_call_steal_reply(libdbusPendingCall);
 	const bool increaseLibdbusMessageReferenceCount = false;
 	DBusMessage dbusMessage(libdbusMessage, increaseLibdbusMessageReferenceCount);
+	CallStatus callStatus = CallStatus::SUCCESS;
 
-	dbusMessageReplyAsyncHandler->onDBusMessageReply(CallStatus::SUCCESS, dbusMessage);
+	if (!dbusMessage.isMethodReturnType()) {
+		callStatus = CallStatus::REMOTE_ERROR;
+	}
+
+	dbusMessageReplyAsyncHandler->onDBusMessageReply(callStatus, dbusMessage);
 
 	// libdbus calls the Cleanup method below
 	dbus_pending_call_unref(libdbusPendingCall);
