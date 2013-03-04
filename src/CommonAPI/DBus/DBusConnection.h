@@ -42,6 +42,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 		WRAPPED
 	};
 
+	DBusConnection(BusType busType);
+
 	inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
 	inline static std::shared_ptr<DBusConnection> wrapLibDBus(::DBusConnection* libDbusConnection);
 	inline static std::shared_ptr<DBusConnection> getSessionBus();
@@ -102,8 +104,6 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     std::thread dispatchThread_;
     bool stopDispatching_;
 
-	DBusConnection(BusType busType);
-
 	void addLibdbusSignalMatchRule(const std::string& objectPath,
 	                               const std::string& interfaceName,
 	                               const std::string& interfaceMemberName);
@@ -157,11 +157,11 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {
-	return std::shared_ptr<DBusConnection>(new DBusConnection(busType));
+	return std::make_shared<DBusConnection>(busType);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::wrapLibDBus(::DBusConnection* libDbusConnection) {
-    return std::shared_ptr<DBusConnection>(new DBusConnection(libDbusConnection));
+    return std::make_shared<DBusConnection>(libDbusConnection);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::getSessionBus() {

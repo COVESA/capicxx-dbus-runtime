@@ -72,8 +72,9 @@ bool DBusConnection::connect(DBusError& dbusError) {
     const ::DBusBusType libdbusType = static_cast<DBusBusType>(busType_);
 
     libdbusConnection_ = dbus_bus_get_private(libdbusType, &dbusError.libdbusError_);
-    if (dbusError)
+    if (dbusError) {
         return false;
+    }
 
     assert(libdbusConnection_);
     dbus_connection_set_exit_on_disconnect(libdbusConnection_, false);
@@ -96,11 +97,17 @@ void DBusConnection::disconnect() {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
 
-        dbus_connection_close(libdbusConnection_);
-
         stopDispatching_ = true;
 
-        dispatchThread_.join();
+        dbus_connection_close(libdbusConnection_);
+
+        //It is possible for the disconnect to be called from within a callback, i.e. from within the dispatch
+        //thread. Self-join is prevented this way.
+        if (dispatchThread_.joinable() && std::this_thread::get_id() != dispatchThread_.get_id()) {
+        	dispatchThread_.join();
+        } else {
+        	dispatchThread_.detach();
+        }
 
         dbus_connection_unref(libdbusConnection_);
         libdbusConnection_ = NULL;
@@ -119,7 +126,7 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
 
 const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
     std::shared_ptr<DBusServiceRegistry> serviceRegistry = dbusServiceRegistry_.lock();
-    if (!serviceRegistry) {
+    if (!serviceRegistry || dbusServiceRegistry_.expired()) {
         serviceRegistry = std::make_shared<DBusServiceRegistry>(this->shared_from_this());
         serviceRegistry->init();
         dbusServiceRegistry_ = serviceRegistry;
@@ -269,8 +276,9 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 
     dbusSignalHandlerTable_.insert(DBusSignalHandlerTable::value_type(dbusSignalHandlerPath, dbusSignalHandler));
 
-    if (isFirstSignalMemberHandler)
+    if (isFirstSignalMemberHandler) {
         addLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName);
+    }
 
     return dbusSignalHandlerPath;
 }
@@ -402,6 +410,7 @@ void DBusConnection::addLibdbusSignalMatchRule(const std::string& objectPath,
 void DBusConnection::removeLibdbusSignalMatchRule(const std::string& objectPath,
                                                   const std::string& interfaceName,
                                                   const std::string& interfaceMemberName) {
+    auto selfReference = this->shared_from_this();
     DBusSignalMatchRuleTuple dbusSignalMatchRuleTuple(objectPath, interfaceName, interfaceMemberName);
     auto matchRuleIterator = dbusSignalMatchRulesMap_.find(dbusSignalMatchRuleTuple);
     const bool matchRuleFound = matchRuleIterator != dbusSignalMatchRulesMap_.end();
@@ -422,8 +431,9 @@ void DBusConnection::removeLibdbusSignalMatchRule(const std::string& objectPath,
     dbusSignalMatchRulesMap_.erase(matchRuleIterator);
 
     const bool isLastMatchRule = dbusSignalMatchRulesMap_.empty();
-    if (isLastMatchRule)
+    if (isLastMatchRule) {
         dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
+    }
 }
 
 void DBusConnection::initLibdbusObjectPathHandlerAfterConnect() {
@@ -492,6 +502,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
 
 ::DBusHandlerResult DBusConnection::onLibdbusSignalFilter(::DBusMessage* libdbusMessage) {
     assert(libdbusMessage);
+    auto selfReference = this->shared_from_this();
 
     // handle only signal messages
     if (dbus_message_get_type(libdbusMessage) != DBUS_MESSAGE_TYPE_SIGNAL)
@@ -521,8 +532,9 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
             	auto dbusSignalHandlerSubscription = equalRangeIteratorPair.first;
             	equalRangeIteratorPair.first++;
             	dbusSignalHandlerTable_.erase(dbusSignalHandlerSubscription);
-            } else
+            } else {
             	equalRangeIteratorPair.first++;
+            }
         }
 
         return DBUS_HANDLER_RESULT_HANDLED;
