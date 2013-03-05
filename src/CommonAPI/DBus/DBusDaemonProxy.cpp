@@ -81,9 +81,6 @@ std::future<CallStatus> DBusDaemonProxy::listNamesAsync(ListNamesAsyncCallback l
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
                     DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(listNamesAsyncCallback));
-    std::promise<CallStatus> failedPromise;
-    failedPromise.set_value(CallStatus::CONNECTION_FAILED);
-    return failedPromise.get_future();
 }
 
 void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const {
