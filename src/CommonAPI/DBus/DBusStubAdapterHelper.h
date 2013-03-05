@@ -87,7 +87,9 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         const bool foundInterfaceMemberHandler = (findIterator != this->stubDispatcherTable_.end());
         bool dbusMessageHandled = false;
 
-        if (foundInterfaceMemberHandler) {
+        //To prevent the destruction of the stub whilst still handling a message
+        auto stubSafety = stub_;
+        if (stubSafety && foundInterfaceMemberHandler) {
             StubDispatcher* stubDispatcher = findIterator->second;
             dbusMessageHandled = stubDispatcher->dispatchDBusMessage(dbusMessage, *this);
         }
