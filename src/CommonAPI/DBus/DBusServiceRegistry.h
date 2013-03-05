@@ -115,7 +115,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy_;
 
     DBusServiceList dbusServices_;
-    AvailabilityStatus dbusServicesStatus_;
+    AvailabilityStatus dbusNameListStatus_;
     std::condition_variable dbusServiceChanged_;
 
     std::mutex dbusServicesMutex_;

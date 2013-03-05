@@ -12,10 +12,9 @@
 namespace CommonAPI {
 namespace DBus {
 
-
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection):
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
-                dbusServicesStatus_(AvailabilityStatus::UNKNOWN),
+                dbusNameListStatus_(AvailabilityStatus::UNKNOWN),
                 initialized_(false) {
 }
 
@@ -42,7 +41,7 @@ void DBusServiceRegistry::init() {
 }
 
 bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout) {
-    bool dbusServicesStatusIsKnown = (dbusServicesStatus_ != AvailabilityStatus::UNKNOWN);
+    bool dbusServicesStatusIsKnown = (dbusNameListStatus_ != AvailabilityStatus::UNKNOWN);
 
     while (!dbusServicesStatusIsKnown && timeout.count() > 0) {
         typedef std::chrono::high_resolution_clock clock;
@@ -51,7 +50,7 @@ bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>
         dbusServicesStatusIsKnown = dbusServiceChanged_.wait_for(
                                         lock,
                                         timeout,
-                                        [&]{ return dbusServicesStatus_ != AvailabilityStatus::UNKNOWN; });
+                                        [&]{ return dbusNameListStatus_ != AvailabilityStatus::UNKNOWN; });
 
         std::chrono::milliseconds elapsedWaitTime =
                                     std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - startTimePoint);
@@ -64,7 +63,7 @@ bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>
         timeout -= elapsedWaitTime;
     }
 
-    return (dbusServicesStatus_ == AvailabilityStatus::AVAILABLE);
+    return (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE);
 }
 
 bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusServiceName, const std::string& dbusObjectPath) {
@@ -232,22 +231,22 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
 
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
-    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
+    DBusServiceList::iterator dbusServiceIterator = dbusServices_.find(dbusServiceName);
 
     // add service for the first time
     if (dbusServiceIterator == dbusServices_.end()) {
-        DBusServiceState dbusServiceState = DBusServiceState::UNKNOWN;
+        DBusServiceState dbusConnectionNameState = DBusServiceState::UNKNOWN;
 
-        if (dbusServicesStatus_ == AvailabilityStatus::AVAILABLE) {
-            dbusServiceState = DBusServiceState::NOT_AVAILABLE;
+        if (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE) {
+            dbusConnectionNameState = DBusServiceState::RESOLVED;
         }
 
-        auto insertIterator = dbusServices_.insert({ dbusServiceName, { dbusServiceState, DBusInstanceList() } });
-        assert(insertIterator.second);
-        dbusServiceIterator = insertIterator.first;
+        std::pair<DBusServiceList::iterator, bool> insertResult = dbusServices_.insert({ dbusServiceName, { dbusConnectionNameState, DBusInstanceList() } });
+        assert(insertResult.second);
+        dbusServiceIterator = insertResult.first;
     }
 
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
+    DBusServiceState& dbusConnectionNameState = dbusServiceIterator->second.first;
     DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
 
     auto dbusInstanceIterator = addDBusServiceInstance(
@@ -257,7 +256,7 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
     AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
     DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
 
-    if (dbusServiceState == DBusServiceState::RESOLVED
+    if (dbusConnectionNameState == DBusServiceState::RESOLVED
                     && dbusInstanceAvailabilityStatus == AvailabilityStatus::UNKNOWN) {
         dbusInstanceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
     }
@@ -265,7 +264,7 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
     Subscription listenerSubscription = dbusServiceListenerList.insert(
                     dbusServiceListenerList.end(), serviceListener);
 
-    switch (dbusServiceState) {
+    switch (dbusConnectionNameState) {
         case DBusServiceState::AVAILABLE:
             resolveDBusServiceInstances(dbusServiceIterator);
             break;
@@ -291,9 +290,9 @@ void DBusServiceRegistry::unsubscribeAvailabilityListener(const std::string& com
     std::string dbusServiceName;
     std::string dbusObjectPath;
 
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
     DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, dbusInterfaceName, dbusServiceName, dbusObjectPath);
 
-    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
     auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
 
     if (dbusServiceIterator == dbusServices_.end()) {
@@ -323,11 +322,11 @@ void DBusServiceRegistry::unsubscribeAvailabilityListener(const std::string& com
 }
 
 SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const AvailabilityStatus& availabilityStatus) {
-    std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     switch (availabilityStatus) {
         case AvailabilityStatus::AVAILABLE:
-            dbusServicesStatus_ = AvailabilityStatus::UNKNOWN;
+            dbusNameListStatus_ = AvailabilityStatus::UNKNOWN;
             dbusDaemonProxy_->listNamesAsync(std::bind(
                             &DBusServiceRegistry::onListNamesCallback,
                             this->shared_from_this(),
@@ -342,7 +341,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const Avail
                 dbusServiceIterator = onDBusServiceOffline(dbusServiceIterator, DBusServiceState::NOT_AVAILABLE);
             }
 
-            dbusServicesStatus_ = AvailabilityStatus::NOT_AVAILABLE;
+            dbusNameListStatus_ = AvailabilityStatus::NOT_AVAILABLE;
             break;
     }
 
@@ -359,7 +358,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(c
             dbusServiceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
         }
 
-        std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+        std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
         onDBusServiceAvailabilityStatus(affectedName, dbusServiceAvailabilityStatus);
     }
@@ -368,7 +367,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(c
 }
 
 void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callStatus, std::vector<std::string> dbusNames) {
-    std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     if (callStatus == CallStatus::SUCCESS) {
         for (const std::string& dbusName : dbusNames) {
@@ -378,7 +377,7 @@ void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callS
         }
     }
 
-    dbusServicesStatus_ = AvailabilityStatus::AVAILABLE;
+    dbusNameListStatus_ = AvailabilityStatus::AVAILABLE;
 
     auto dbusServiceIterator = dbusServices_.begin();
     while (dbusServiceIterator != dbusServices_.end()) {
@@ -494,10 +493,10 @@ void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator&
 void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStatus,
                                                       DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects,
                                                       const std::string& dbusServiceName) {
-    std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     // already offline
-    if (dbusServicesStatus_ == AvailabilityStatus::NOT_AVAILABLE) {
+    if (dbusNameListStatus_ == AvailabilityStatus::NOT_AVAILABLE) {
         return;
     }
 
