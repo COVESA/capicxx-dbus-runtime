@@ -29,7 +29,7 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
     class StubDispatcher {
      public:
         virtual ~StubDispatcher() { }
-        virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
+        virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
     };
 
  public:
@@ -62,10 +62,6 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         return this->shared_from_this();
     }
 
-    inline const std::shared_ptr<_StubClass>& getStub() {
-        return stub_;
-    }
-
     inline RemoteEventHandlerType* getRemoteEventHandler() {
         return remoteEventHandler_;
     }
@@ -91,7 +87,7 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         auto stubSafety = stub_;
         if (stubSafety && foundInterfaceMemberHandler) {
             StubDispatcher* stubDispatcher = findIterator->second;
-            dbusMessageHandled = stubDispatcher->dispatchDBusMessage(dbusMessage, *this);
+            dbusMessageHandled = stubDispatcher->dispatchDBusMessage(dbusMessage, stubSafety, *this);
         }
 
         return dbusMessageHandled;
@@ -149,13 +145,14 @@ class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAda
             stubFunctor_(stubFunctor) {
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
-        return handleDBusMessage(dbusMessage, dbusStubAdapterHelper, typename make_sequence<sizeof...(_InArgs)>::type());
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+        return handleDBusMessage(dbusMessage, stub, dbusStubAdapterHelper, typename make_sequence<sizeof...(_InArgs)>::type());
     }
 
  private:
     template <int... _InArgIndices, int... _OutArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
+    							  const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<_InArgIndices...>) const {
         std::tuple<_InArgs...> argTuple;
@@ -167,7 +164,7 @@ class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAda
                 return false;
         }
 
-        (dbusStubAdapterHelper.getStub().get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))...);
+        (stub.get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))...);
 
         return true;
     }
@@ -194,9 +191,10 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
             dbusReplySignature_(dbusReplySignature) {
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         return handleDBusMessage(
                         dbusMessage,
+                        stub,
                         dbusStubAdapterHelper,
                         typename make_sequence_range<sizeof...(_InArgs), 0>::type(),
                         typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type());
@@ -205,6 +203,7 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
  private:
     template <int... _InArgIndices, int... _OutArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
+    							  const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<_InArgIndices...>,
                                   index_sequence<_OutArgIndices...>) const {
@@ -217,7 +216,7 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
                 return false;
         }
 
-        (dbusStubAdapterHelper.getStub().get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
+        (stub.get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
 
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusReplySignature_);
 
@@ -249,16 +248,16 @@ class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::
         dbusSignature_(dbusSignature) {
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
-        return sendAttributeValueReply(dbusMessage, dbusStubAdapterHelper);
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+        return sendAttributeValueReply(dbusMessage, stub, dbusStubAdapterHelper);
     }
 
  protected:
-    inline bool sendAttributeValueReply(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    inline bool sendAttributeValueReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusSignature_);
         DBusOutputStream dbusOutputStream(dbusMessageReply);
 
-        dbusOutputStream << (dbusStubAdapterHelper.getStub().get()->*getStubFunctor_)();
+        dbusOutputStream << (stub.get()->*getStubFunctor_)();
         dbusOutputStream.flush();
 
         return dbusStubAdapterHelper.getDBusConnection()->sendDBusMessage(dbusMessageReply);
@@ -288,10 +287,10 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
                     onRemoteChangedFunctor_(onRemoteChangedFunctor) {
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         bool attributeValueChanged;
 
-        if (!setAttributeValue(dbusMessage, dbusStubAdapterHelper, attributeValueChanged))
+        if (!setAttributeValue(dbusMessage, stub, dbusStubAdapterHelper, attributeValueChanged))
             return false;
 
         if (attributeValueChanged)
@@ -301,7 +300,10 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
     }
 
  protected:
-    inline bool setAttributeValue(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper, bool& attributeValueChanged) {
+    inline bool setAttributeValue(const DBusMessage& dbusMessage,
+    							  const std::shared_ptr<_StubClass>& stub,
+    							  DBusStubAdapterHelperType& dbusStubAdapterHelper,
+    							  bool& attributeValueChanged) {
         DBusInputStream dbusInputStream(dbusMessage);
         _AttributeType attributeValue;
         dbusInputStream >> attributeValue;
@@ -310,15 +312,15 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
 
         attributeValueChanged = (dbusStubAdapterHelper.getRemoteEventHandler()->*onRemoteSetFunctor_)(std::move(attributeValue));
 
-        return this->sendAttributeValueReply(dbusMessage, dbusStubAdapterHelper);
+        return this->sendAttributeValueReply(dbusMessage, stub, dbusStubAdapterHelper);
     }
 
     inline void notifyOnRemoteChanged(DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         (dbusStubAdapterHelper.getRemoteEventHandler()->*onRemoteChangedFunctor_)();
     }
 
-    inline const _AttributeType& getAttributeValue(DBusStubAdapterHelperType& dbusStubAdapterHelper) {
-        return (dbusStubAdapterHelper.getStub().get()->*(this->getStubFunctor_))();
+    inline const _AttributeType& getAttributeValue(const std::shared_ptr<_StubClass>& stub) {
+        return (stub.get()->*(this->getStubFunctor_))();
     }
 
     const OnRemoteSetFunctor onRemoteSetFunctor_;
@@ -349,21 +351,21 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
                     fireChangedFunctor_(fireChangedFunctor) {
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         bool attributeValueChanged;
-        if (!this->setAttributeValue(dbusMessage, dbusStubAdapterHelper, attributeValueChanged))
+        if (!this->setAttributeValue(dbusMessage, stub, dbusStubAdapterHelper, attributeValueChanged))
             return false;
 
         if (attributeValueChanged) {
-            fireAttributeValueChanged(dbusStubAdapterHelper);
+            fireAttributeValueChanged(dbusStubAdapterHelper, stub);
             this->notifyOnRemoteChanged(dbusStubAdapterHelper);
         }
         return true;
     }
 
  private:
-    inline void fireAttributeValueChanged(DBusStubAdapterHelperType& dbusStubAdapterHelper) {
-        (dbusStubAdapterHelper.getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(dbusStubAdapterHelper));
+    inline void fireAttributeValueChanged(DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
+        (dbusStubAdapterHelper.getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(stub));
     }
 
     const FireChangedFunctor fireChangedFunctor_;
