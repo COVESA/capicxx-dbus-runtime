@@ -20,6 +20,7 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> db
 
 DBusServiceRegistry::~DBusServiceRegistry() {
 	if(initialized_) {
+	    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 		dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
 		dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
 	}
