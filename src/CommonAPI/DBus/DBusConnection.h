@@ -134,6 +134,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 	BusType busType_;
 
 	::DBusConnection* libdbusConnection_;
+	std::mutex libdbusConnectionGuard_;
+	std::mutex signalGuard_;
 
 	std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;

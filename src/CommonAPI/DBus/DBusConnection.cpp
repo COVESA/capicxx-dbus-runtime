@@ -92,6 +92,7 @@ bool DBusConnection::connect(DBusError& dbusError) {
 }
 
 void DBusConnection::disconnect() {
+    std::lock_guard<std::mutex> dbusConnectionLock(libdbusConnectionGuard_);
     if (isConnected()) {
         if (!dbusSignalMatchRulesMap_.empty()) {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
@@ -276,8 +277,8 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
                     interfaceName,
                     interfaceMemberName,
                     interfaceMemberSignature);
+    std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     const bool isFirstSignalMemberHandler = dbusSignalHandlerTable_.find(dbusSignalHandlerPath) == dbusSignalHandlerTable_.end();
-
     dbusSignalHandlerTable_.insert(DBusSignalHandlerTable::value_type(dbusSignalHandlerPath, dbusSignalHandler));
 
     if (isFirstSignalMemberHandler) {
@@ -288,6 +289,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 }
 
 void DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) {
+    std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     auto equalRangeIteratorPair = dbusSignalHandlerTable_.equal_range(dbusSignalHandlerToken);
 
     // the range can't be empty!
@@ -522,6 +524,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     assert(interfaceMemberName);
     assert(interfaceMemberSignature);
 
+    std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     DBusSignalHandlerPath dbusSignalHandlerPath(objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature);
     auto equalRangeIteratorPair = dbusSignalHandlerTable_.equal_range(dbusSignalHandlerPath);
 
