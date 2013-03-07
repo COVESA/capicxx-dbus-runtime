@@ -20,14 +20,16 @@ namespace DBus {
 
 class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
  public:
-    DBusStubAdapter(const std::string& dbusBusName,
+    DBusStubAdapter(const std::string& commonApiAddress,
+                    const std::string& dbusInterfaceName,
+                    const std::string& dbusBusName,
                     const std::string& dbusObjectPath,
-                    const std::string& interfaceName,
                     const std::shared_ptr<DBusProxyConnection>& dbusConnection);
 
     virtual ~DBusStubAdapter();
 
     virtual void init();
+    virtual void deinit();
 
     virtual const std::string getAddress() const;
     virtual const std::string& getDomain() const;
@@ -35,6 +37,7 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
     virtual const std::string& getInstanceId() const;
 
     inline const std::string& getObjectPath() const;
+    inline const std::string& getInterfaceName() const;
 
     inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
 
@@ -45,9 +48,13 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
  private:
     bool onIntrospectionInterfaceDBusMessage(const DBusMessage& dbusMessage);
 
+    const std::string commonApiDomain_;
+    const std::string commonApiServiceId_;
+    const std::string commonApiParticipantId_;
+
     const std::string dbusBusName_;
     const std::string dbusObjectPath_;
-    const std::string interfaceName_;
+    const std::string dbusInterfaceName_;
     const std::shared_ptr<DBusProxyConnection> dbusConnection_;
 
     bool isInitialized_;
@@ -60,6 +67,10 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
 
 const std::string& DBusStubAdapter::getObjectPath() const {
     return dbusObjectPath_;
+}
+
+const std::string& DBusStubAdapter::getInterfaceName() const {
+    return dbusInterfaceName_;
 }
 
 const std::shared_ptr<DBusProxyConnection>& DBusStubAdapter::getDBusConnection() const {

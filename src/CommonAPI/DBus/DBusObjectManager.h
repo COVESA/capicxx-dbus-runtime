@@ -48,7 +48,7 @@ class DBusObjectManager {
     typedef std::unordered_map<DBusInterfaceHandlerPath, DBusMessageInterfaceHandler> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
 
-    std::shared_ptr<DBusConnection> dbusConnection_;
+    std::weak_ptr<DBusConnection> dbusConnection_;
 };
 
 } // namespace DBus

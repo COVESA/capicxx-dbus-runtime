@@ -13,12 +13,22 @@
 
 #include "CommonAPI/DBus/DBusStubAdapter.h"
 #include "DBusConnection.h"
+#include "DBusProxy.h"
 
 namespace CommonAPI {
 namespace DBus {
 
-typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const char* busName, const char* objectPath, std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
-typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (std::string busName, std::string objectPath, std::shared_ptr<DBusProxyConnection> dbusProxyConnection, std::shared_ptr<StubBase> stubBase);
+typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const std::string& commonApiAddress,
+                                                                const std::string& interfaceName,
+                                                                const std::string& busName,
+                                                                const std::string& objectPath,
+                                                                const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const std::string& commonApiAddress,
+                                                                        const std::string& interfaceName,
+                                                                        const std::string& busName,
+                                                                        const std::string& objectPath,
+                                                                        const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection,
+                                                                        const std::shared_ptr<StubBase>& stubBase);
 
 class DBusFactory: public Factory {
  public:
@@ -30,15 +40,19 @@ class DBusFactory: public Factory {
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
 
-    virtual bool isServiceInstanceAlive(const std::string& serviceInstanceID, const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
+    virtual bool isServiceInstanceAlive(const std::string& serviceAddress);
+    virtual bool isServiceInstanceAlive(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
-    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceName, const std::string& participantId, const std::string& domain);
+    virtual bool unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
-    virtual std::shared_ptr<StubAdapter> createAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceName, const std::string& participantId, const std::string& domain);
+ protected:
+    virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
+    virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::string acquiredConnectionName_;
+    std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> registeredServices_;
 };
 
 } // namespace DBus

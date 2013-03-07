@@ -57,7 +57,7 @@ TEST_F(InputStreamTest, ReadsEmptyMessages) {
 
 TEST_F(InputStreamTest, ReadsBytes) {
     uint8_t val = 0xff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_BYTE, &val);
     }
 
@@ -65,7 +65,7 @@ TEST_F(InputStreamTest, ReadsBytes) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         uint8_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -75,7 +75,7 @@ TEST_F(InputStreamTest, ReadsBytes) {
 TEST_F(InputStreamTest, ReadsBools) {
     dbus_bool_t f = FALSE;
     dbus_bool_t t = TRUE;
-    for (int i = 0; i < numOfElements; i += 2) {
+    for (unsigned int i = 0; i < numOfElements; i += 2) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_BOOLEAN, &t);
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_BOOLEAN, &f);
     }
@@ -84,7 +84,7 @@ TEST_F(InputStreamTest, ReadsBools) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*4, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 2) {
+    for (unsigned int i = 0; i < numOfElements; i += 2) {
         bool readVal;
         inStream >> readVal;
         EXPECT_EQ(t, readVal);
@@ -96,7 +96,7 @@ TEST_F(InputStreamTest, ReadsBools) {
 TEST_F(InputStreamTest, ReadsUint16) {
 
     uint16_t val = 0xffff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_UINT16, &val);
     }
 
@@ -104,7 +104,7 @@ TEST_F(InputStreamTest, ReadsUint16) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*2, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         uint16_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -114,7 +114,7 @@ TEST_F(InputStreamTest, ReadsUint16) {
 TEST_F(InputStreamTest, ReadsInt16) {
 
     int16_t val = 0x7fff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_INT16, &val);
     }
 
@@ -122,7 +122,7 @@ TEST_F(InputStreamTest, ReadsInt16) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*2, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         int16_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -132,7 +132,7 @@ TEST_F(InputStreamTest, ReadsInt16) {
 TEST_F(InputStreamTest, ReadsUint32) {
 
     uint32_t val = 0xffffffff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_UINT32, &val);
     }
 
@@ -140,7 +140,7 @@ TEST_F(InputStreamTest, ReadsUint32) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*4, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         uint32_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -150,7 +150,7 @@ TEST_F(InputStreamTest, ReadsUint32) {
 TEST_F(InputStreamTest, ReadsInt32) {
 
     int32_t val = 0x7fffffff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_INT32, &val);
     }
 
@@ -158,7 +158,7 @@ TEST_F(InputStreamTest, ReadsInt32) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*4, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         int32_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -168,7 +168,7 @@ TEST_F(InputStreamTest, ReadsInt32) {
 TEST_F(InputStreamTest, ReadsUint64) {
 
     uint64_t val = 0xffffffffffffffff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_UINT64, &val);
     }
 
@@ -176,7 +176,7 @@ TEST_F(InputStreamTest, ReadsUint64) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*8, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         uint64_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -186,7 +186,7 @@ TEST_F(InputStreamTest, ReadsUint64) {
 TEST_F(InputStreamTest, ReadsInt64) {
 
     int64_t val = 0x7fffffffffffffff;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_INT64, &val);
     }
 
@@ -194,7 +194,7 @@ TEST_F(InputStreamTest, ReadsInt64) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*8, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         int64_t readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -204,7 +204,7 @@ TEST_F(InputStreamTest, ReadsInt64) {
 TEST_F(InputStreamTest, ReadsDoubles) {
 
     double val = 13.37;
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_DOUBLE, &val);
     }
 
@@ -212,7 +212,7 @@ TEST_F(InputStreamTest, ReadsDoubles) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*8, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         double readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -222,7 +222,7 @@ TEST_F(InputStreamTest, ReadsDoubles) {
 TEST_F(InputStreamTest, ReadsStrings) {
 
     std::string val = "hai";
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_STRING, &val);
     }
 
@@ -230,7 +230,7 @@ TEST_F(InputStreamTest, ReadsStrings) {
     CommonAPI::DBus::DBusInputStream inStream(scopedMessage);
 
     EXPECT_EQ(numOfElements*4 + numOfElements*4, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         std::string readVal;
         inStream >> readVal;
         EXPECT_EQ(val, readVal);
@@ -316,14 +316,14 @@ TEST_F(InputStreamTest, ReadsArrays) {
     std::vector<int32_t> testVector;
     int32_t val1 = 0xffffffff;
     int32_t val2 = 0x7fffffff;
-    for (int i = 0; i < numOfElements; i += 2) {
+    for (unsigned int i = 0; i < numOfElements; i += 2) {
         testVector.push_back(val1);
         testVector.push_back(val2);
     }
 
     DBusMessageIter subIter;
     dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_ARRAY, "i", &subIter);
-    for (int i = 0; i < numOfElements; i++) {
+    for (unsigned int i = 0; i < numOfElements; i++) {
         dbus_message_iter_append_basic(&subIter, DBUS_TYPE_INT32, &testVector[i]);
     }
     dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
@@ -336,7 +336,7 @@ TEST_F(InputStreamTest, ReadsArrays) {
     inStream >> verifyVector;
     int32_t res1;
     int32_t res2;
-    for (int i = 0; i < numOfElements; i += 2) {
+    for (unsigned int i = 0; i < numOfElements; i += 2) {
         res1 = verifyVector[i];
         EXPECT_EQ(val1, res1);
         res2 = verifyVector[i + 1];
@@ -355,9 +355,9 @@ TEST_F(InputStreamTest, ReadsArraysInArrays) {
     std::vector<std::vector<int32_t>> testVector;
     int32_t val1 = 0xffffffff;
     int32_t val2 = 0x7fffffff;
-    for (int i = 0; i < numOfElements; i++) {
+    for (unsigned int i = 0; i < numOfElements; i++) {
         std::vector<int32_t> inner;
-        for (int j = 0; j < numOfElements; j += 2) {
+        for (unsigned int j = 0; j < numOfElements; j += 2) {
             inner.push_back(val1);
             inner.push_back(val2);
         }
@@ -366,10 +366,10 @@ TEST_F(InputStreamTest, ReadsArraysInArrays) {
 
     DBusMessageIter subIter;
     dbus_message_iter_open_container(&writeIter, DBUS_TYPE_ARRAY, "ai", &subIter);
-    for (int i = 0; i < numOfElements; i++) {
+    for (unsigned int i = 0; i < numOfElements; i++) {
         DBusMessageIter subsubIter;
         dbus_message_iter_open_container(&subIter, DBUS_TYPE_ARRAY, "i", &subsubIter);
-        for (int j = 0; j < numOfElements; j++) {
+        for (unsigned int j = 0; j < numOfElements; j++) {
             dbus_message_iter_append_basic(&subsubIter, DBUS_TYPE_INT32, &(testVector[i][j]));
         }
         dbus_message_iter_close_container(&subIter, &subsubIter);
@@ -386,9 +386,9 @@ TEST_F(InputStreamTest, ReadsArraysInArrays) {
 
     int32_t res1;
     int32_t res2;
-    for (int i = 0; i < numOfElements; i++) {
+    for (unsigned int i = 0; i < numOfElements; i++) {
         std::vector<int32_t> innerVerify = verifyVector[i];
-        for (int j = 0; j < numOfElements; j += 2) {
+        for (unsigned int j = 0; j < numOfElements; j += 2) {
             res1 = innerVerify[j];
             EXPECT_EQ(val1, res1);
             res2 = innerVerify[j + 1];
@@ -403,7 +403,7 @@ TEST_F(InputStreamTest, ReadsInt32Variants) {
     int32_t fromInt = 5;
     int8_t variantTypeIndex = 3;
 
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         DBusMessageIter subIter;
         dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
         dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
@@ -420,7 +420,7 @@ TEST_F(InputStreamTest, ReadsInt32Variants) {
     TestedVariantType referenceVariant(fromInt);
 
     EXPECT_EQ(numOfElements*4 + numOfElements*4, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
@@ -439,7 +439,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     std::string fromString = "Hello World with CommonAPI Variants!";
     int8_t variantTypeIndex = 1;
 
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         DBusMessageIter subIter;
         dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
         dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
@@ -458,7 +458,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     //Variant: type-index(1) + signature(2) + padding(1) + stringLength(4) + string(37) = 45
     //         +struct-padding inbetween (alignment 8)
     EXPECT_EQ(numOfElements * (1+3+4+fromString.length()+1) + (numOfElements - 1) * (8-((fromString.length()+1)%8)) , scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
@@ -470,67 +470,6 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     }
 }
 
-TEST_F(InputStreamTest, ReadsWriteVariantsWithAnArrayOfStrings) {
-
-    size_t numOfElements;
-    CommonAPI::DBus::DBusMessage message;
-    const char* busName;
-    const char* objectPath;
-    const char* interfaceName;
-    const char* methodName;
-
-    busName = "no.bus.here";
-    objectPath = "/no/object/here";
-    interfaceName = "no.interface.here";
-    methodName = "noMethodHere";
-
-    const char* signature = "yyyyyyyyyy";
-    message = CommonAPI::DBus::DBusMessage::createMethodCall(busName, objectPath, interfaceName, methodName, signature);
-    CommonAPI::DBus::DBusOutputStream outputStream(message);
-
-
-
-    typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
-
-    std::string testString1 = "Hello World with CommonAPI Variants!";
-    std::string testString2 = "What a beautiful world if there are working Arrays within Variants!!";
-
-    std::vector<std::string> testInnerVector;
-
-    for (int i = 0; i < numOfElements; i += 2) {
-        testInnerVector.push_back(testString1);
-        testInnerVector.push_back(testString2);
-    }
-
-    TestedVariantType writtenVariant(testInnerVector);
-
-
-    for (int i = 0; i < numOfElements; i += 1) {
-
-        outputStream << writtenVariant;
-
-    }
-
-    CommonAPI::DBus::DBusInputStream inStream(message);
-
-    TestedVariantType referenceVariant(testInnerVector);
-
-    //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
-    //         string(37) + padding(3) + stringLength(4) + string(69) = 129
-//    EXPECT_EQ(129 + 7 + 129, message.getBodyLength());
-//    for (int i = 0; i < numOfElements; i += 1) {
-//        TestedVariantType readVariant;
-//        inStream >> readVariant;
-//
-//        bool readSuccess;
-//        std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>(readSuccess);
-//        EXPECT_TRUE(readSuccess);
-//
-//        bool variantsAreEqual = (referenceVariant == readVariant);
-//        EXPECT_TRUE(variantsAreEqual);
-//        EXPECT_EQ(testInnerVector, actualResult);
-//    }
-}
 
 TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     typedef CommonAPI::Variant<int32_t, double, std::vector<std::string>> TestedVariantType;
@@ -541,12 +480,12 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
 
     std::vector<std::string> testInnerVector;
 
-    for (int i = 0; i < numOfElements; i += 2) {
+    for (unsigned int i = 0; i < numOfElements; i += 2) {
         testInnerVector.push_back(testString1);
         testInnerVector.push_back(testString2);
     }
 
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         DBusMessageIter subIter;
         dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &subIter);
         dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
@@ -555,7 +494,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
 
         DBusMessageIter innerArrayIter;
         dbus_message_iter_open_container(&subSubIter, DBUS_TYPE_ARRAY, "s", &innerArrayIter);
-        for (int i = 0; i < numOfElements; i++) {
+        for (unsigned int i = 0; i < numOfElements; i++) {
             dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testInnerVector[i]);
         }
         dbus_message_iter_close_container(&subSubIter, &innerArrayIter);
@@ -572,7 +511,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     //Variant: structAlign + type-index(1) + variantSignature(4) + padding(3) + arrayLength(4) + stringLength(4) +
     //         string(37) + padding(3) + stringLength(4) + string(69) = 129
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
-    for (int i = 0; i < numOfElements; i += 1) {
+    for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
@@ -602,7 +541,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
     const uint32_t byteBufferElementCount = numOfElements*10;
 
     CommonAPI::ByteBuffer innerVariant1Value;
-    for (int i = 0; i < byteBufferElementCount; ++i) {
+    for (unsigned int i = 0; i < byteBufferElementCount; ++i) {
         innerVariant1Value.push_back((char) (i+40));
     }
 
@@ -628,7 +567,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
 
     //begin inner variant content
     dbus_message_iter_open_container(&innerVariantActualIterator, DBUS_TYPE_ARRAY, "y", &innerArrayIter);
-    for (int i = 0; i < byteBufferElementCount; i++) {
+    for (unsigned int i = 0; i < byteBufferElementCount; i++) {
         dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_BYTE, &innerVariant1Value[i]);
     }
     dbus_message_iter_close_container(&innerVariantActualIterator, &innerArrayIter);

@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 
+
 namespace CommonAPI {
 namespace DBus {
 
@@ -23,7 +24,7 @@ class DBusMultiEvent {
 	typedef typename ListenersMap::iterator Subscription;
 
 	Subscription subscribeAll(const Listener& listener);
-	Subscription subscribe(const std::string& name, const Listener& listener);
+	Subscription subscribe(const std::string& eventName, const Listener& listener);
 
 	void unsubscribe(Subscription listenerSubscription);
 
@@ -53,15 +54,16 @@ DBusMultiEvent<_Arguments...>::subscribeAll(const Listener& listener) {
 
 template <typename... _Arguments>
 typename DBusMultiEvent<_Arguments...>::Subscription
-DBusMultiEvent<_Arguments...>::subscribe(const std::string& name, const Listener& listener) {
+DBusMultiEvent<_Arguments...>::subscribe(const std::string& eventName, const Listener& listener) {
 	const bool firstListenerAdded = listenersMap_.empty();
 
-	auto listenerSubscription = listenersMap_.insert({name, listener});
+	auto listenerSubscription = listenersMap_.insert({eventName, listener});
 
-	if (firstListenerAdded)
-		onFirstListenerAdded(name, listener);
+	if (firstListenerAdded) {
+		onFirstListenerAdded(eventName, listener);
+	}
 
-	onListenerAdded(name, listener);
+	onListenerAdded(eventName, listener);
 
 	return listenerSubscription;
 }
@@ -95,16 +97,14 @@ SubscriptionStatus DBusMultiEvent<_Arguments...>::notifyListenersRange(
 		const std::string& name,
 		IteratorRange listenersRange,
 		const _Arguments&... eventArguments) {
-	for (auto iterator = listenersRange.first; iterator != listenersRange.second; ) {
+	for (auto iterator = listenersRange.first; iterator != listenersRange.second; iterator++) {
 		const Listener& listener = iterator->second;
 		const SubscriptionStatus listenerSubcriptionStatus = listener(name, eventArguments...);
 
 		if (listenerSubcriptionStatus == SubscriptionStatus::CANCEL) {
 			auto listenerIterator = iterator;
 			listenersMap_.erase(listenerIterator);
-			iterator++;
-		} else
-			iterator++;
+		}
 	}
 
 	return listenersMap_.empty() ? SubscriptionStatus::CANCEL : SubscriptionStatus::RETAIN;

@@ -18,11 +18,18 @@
 namespace CommonAPI {
 namespace DBus {
 
-class DBusConnection;
 class DBusObjectManager;
 
-class DBusConnectionStatusEvent: public Event<AvailabilityStatus> {
+class DBusConnectionStatusEvent: public DBusProxyConnection::ConnectionStatusEvent {
     friend class DBusConnection;
+
+ public:
+    DBusConnectionStatusEvent(DBusConnection* dbusConnection);
+
+ protected:
+    virtual void onListenerAdded(const CancellableListener& listener);
+
+    DBusConnection* dbusConnection_;
 };
 
 
@@ -34,6 +41,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 		STARTER = DBUS_BUS_STARTER,
 		WRAPPED
 	};
+
+	DBusConnection(BusType busType);
 
 	inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
 	inline static std::shared_ptr<DBusConnection> wrapLibDBus(::DBusConnection* libDbusConnection);
@@ -55,7 +64,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	virtual bool isConnected() const;
 
-	virtual DBusConnectionStatusEvent& getConnectionStatusEvent();
+	virtual ConnectionStatusEvent& getConnectionStatusEvent();
 
 	virtual bool requestServiceNameAndBlock(const std::string& serviceName) const;
 	virtual bool releaseServiceName(const std::string& serviceName) const;
@@ -86,17 +95,14 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	bool readWriteDispatch(int timeoutMilliseconds = -1);
 
-	virtual const std::shared_ptr<DBusDaemonProxy>& getDBusDaemonProxy();
-    virtual const std::shared_ptr<DBusServiceRegistry>& getDBusServiceRegistry();
-    virtual const std::shared_ptr<DBusObjectManager>& getDBusObjectManager();
+    virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();
+    virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
 
  private:
     void dispatch();
 
     std::thread dispatchThread_;
     bool stopDispatching_;
-
-	DBusConnection(BusType busType);
 
 	void addLibdbusSignalMatchRule(const std::string& objectPath,
 	                               const std::string& interfaceName,
@@ -114,7 +120,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	::DBusHandlerResult onLibdbusSignalFilter(::DBusMessage* libdbusMessage);
 
-	static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void *userData);
+	static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
 	static void onLibdbusDataCleanup(void* userData);
 
 	static ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
@@ -128,9 +134,10 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 	BusType busType_;
 
 	::DBusConnection* libdbusConnection_;
+	std::mutex libdbusConnectionGuard_;
+	std::mutex signalGuard_;
 
-	std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy_;
-	std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
+	std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
 
 	DBusConnectionStatusEvent dbusConnectionStatusEvent_;
@@ -152,11 +159,11 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {
-	return std::shared_ptr<DBusConnection>(new DBusConnection(busType));
+	return std::make_shared<DBusConnection>(busType);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::wrapLibDBus(::DBusConnection* libDbusConnection) {
-    return std::shared_ptr<DBusConnection>(new DBusConnection(libDbusConnection));
+    return std::make_shared<DBusConnection>(libDbusConnection);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::getSessionBus() {

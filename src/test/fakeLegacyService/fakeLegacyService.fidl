@@ -1,0 +1,24 @@
+package fake.legacy.service
+
+interface LegacyInterface {
+    version { major 1 minor 0 }
+
+    method TestMethod {
+        in {
+            Int32 input
+        }
+        out {
+            Int32 val1
+            Int32 val2
+        }
+    }
+
+    method OtherTestMethod {
+        out {
+            String greeting
+            Int32 identifier
+        }
+    }
+    
+    method finish {}
+}

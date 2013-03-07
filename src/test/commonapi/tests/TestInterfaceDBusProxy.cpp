@@ -6,21 +6,29 @@
 namespace commonapi {
 namespace tests {
 
-std::shared_ptr<CommonAPI::DBus::DBusProxy> createTestInterfaceDBusProxy(const char* busName,
-                                       const char* objectPath,
-                                       std::shared_ptr<CommonAPI::DBus::DBusProxyConnection> dbusProxyConnection) {
-    return std::make_shared<TestInterfaceDBusProxy>(busName, objectPath, dbusProxyConnection);
+std::shared_ptr<CommonAPI::DBus::DBusProxy> createTestInterfaceDBusProxy(
+                    const std::string& commonApiAddress,
+                    const std::string& interfaceName,
+                    const std::string& busName,
+                    const std::string& objectPath,
+                    const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyConnection) {
+    return std::make_shared<TestInterfaceDBusProxy>(commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
 __attribute__((constructor)) void registerTestInterfaceDBusProxy(void) {
-    CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(TestInterface::getInterfaceName(),
+    CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(TestInterface::getInterfaceId(),
        &createTestInterfaceDBusProxy);
 }
 
-TestInterfaceDBusProxy::TestInterfaceDBusProxy(const std::string& busName, const std::string& objectPath, const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection):
-        CommonAPI::DBus::DBusProxy(busName, objectPath, TestInterface::getInterfaceName(), dbusProxyconnection)
+TestInterfaceDBusProxy::TestInterfaceDBusProxy(
+                    const std::string& commonApiAddress,
+                    const std::string& interfaceName,
+                    const std::string& busName,
+                    const std::string& objectPath,
+                    const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection):
+        CommonAPI::DBus::DBusProxy(commonApiAddress, interfaceName, busName, objectPath, dbusProxyconnection)
 ,        testPredefinedTypeAttribute_(*this, "onTestPredefinedTypeAttributeAttributeChanged", "setTestPredefinedTypeAttributeAttribute", "u", "getTestPredefinedTypeAttributeAttribute"),
-        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqi)", "getTestDerivedStructAttributeAttribute"),
+        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqii)", "getTestDerivedStructAttributeAttribute"),
         testDerivedArrayAttribute_(*this, "onTestDerivedArrayAttributeAttributeChanged", "setTestDerivedArrayAttributeAttribute", "at", "getTestDerivedArrayAttributeAttribute")
 ,        testPredefinedTypeBroadcast_(*this, "TestPredefinedTypeBroadcast", "us")
                  {
@@ -114,25 +122,6 @@ std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::testDerivedTypeMethod
         "testDerivedTypeMethod",
         "ia{ua(sq)}",
         testEnumExtended2InValue, testMapInValue, 
-        std::move(callback));
-}
-void TestInterfaceDBusProxy::testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam) {
-    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestUnionIn>,
-                                     CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestUnionIn> >::callMethodWithReply(
-        *this,
-        "testUnionMethod",
-        "(yv)",
-        inParam, 
-        callStatus
-        , outParam);
-}
-std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback) {
-    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestUnionIn>,
-                                     CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestUnionIn> >::callMethodAsync(
-        *this,
-        "testUnionMethod",
-        "(yv)",
-        inParam, 
         std::move(callback));
 }
 

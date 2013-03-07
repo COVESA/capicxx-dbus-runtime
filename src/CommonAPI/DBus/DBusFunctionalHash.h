@@ -36,6 +36,12 @@ struct hash< tuple<string, string, string> >:
 	size_t operator()(const tuple<string, string, string>& t) const;
 };
 
+template<>
+struct hash< tuple<string, string, string, bool> >:
+        public unary_function< tuple<string, string, string, bool>, size_t > {
+
+    size_t operator()(const tuple<string, string, string, bool>& t) const;
+};
 
 template<>
 struct hash< tuple<string, string, string, string> >:

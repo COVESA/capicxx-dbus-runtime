@@ -36,9 +36,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
 
-    virtual void testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam);
-    virtual std::future<CommonAPI::CallStatus> testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback);
-
     virtual std::string getAddress() const;
     virtual const std::string& getDomain() const;
     virtual const std::string& getServiceId() const;
@@ -184,16 +181,6 @@ void TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethod(const De
 template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) {
     return delegate_->testDerivedTypeMethodAsync(testEnumExtended2InValue, testMapInValue, callback);
-}
-
-template <typename ... _AttributeExtensions>
-void TestInterfaceProxy<_AttributeExtensions...>::testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam) {
-    delegate_->testUnionMethod(inParam, callStatus, outParam);
-}
-
-template <typename ... _AttributeExtensions>
-std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback) {
-    return delegate_->testUnionMethodAsync(inParam, callback);
 }
 
 

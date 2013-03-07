@@ -10,16 +10,17 @@
 #include "DBusProxyConnection.h"
 #include "DBusMessage.h"
 #include "DBusSerializableArguments.h"
+#include "DBusHelper.h"
 
 #include <CommonAPI/Event.h>
 
 namespace CommonAPI {
 namespace DBus {
 
-class DBusProxy;
+class DBusProxyBase;
 
 
-template <typename _EventType, typename _DBusProxy = DBusProxy>
+template <typename _EventType, typename _DBusProxy = DBusProxyBase>
 class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandler {
  public:
 	typedef typename _EventType::ArgumentsTuple ArgumentsTuple;

@@ -4,7 +4,7 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_DBUS_PROXY_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_DBUS_PROXY_H_
 
-#include <test/commonapi/tests/TestInterfaceProxyBase.h>
+#include "TestInterfaceProxyBase.h"
 #include <CommonAPI/DBus/DBusFactory.h>
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusAttribute.h>
@@ -17,7 +17,14 @@ namespace tests {
 
 class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual public CommonAPI::DBus::DBusProxy {
  public:
-    TestInterfaceDBusProxy(const std::string& busName, const std::string& objectPath, const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection);
+    TestInterfaceDBusProxy(
+                    const std::string& commonApiAddress,
+                    const std::string& interfaceName,
+                    const std::string& busName,
+                    const std::string& objectPath,
+                    const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection);
+
+    virtual ~TestInterfaceDBusProxy() { }
 
     virtual TestPredefinedTypeAttributeAttribute& getTestPredefinedTypeAttributeAttribute();
     virtual TestDerivedStructAttributeAttribute& getTestDerivedStructAttributeAttribute();
@@ -37,9 +44,6 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
 
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
-
-    virtual void testUnionMethod(const DerivedTypeCollection::TestUnionIn& inParam, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestUnionIn& outParam);
-    virtual std::future<CommonAPI::CallStatus> testUnionMethodAsync(const DerivedTypeCollection::TestUnionIn& inParam, TestUnionMethodAsyncCallback callback);
     
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
 

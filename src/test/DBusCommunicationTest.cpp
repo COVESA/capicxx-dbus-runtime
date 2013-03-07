@@ -35,27 +35,6 @@
 #include "commonapi/tests/TestInterfaceDBusProxy.h"
 
 
-class DBusCommunicationTest: public ::testing::Test {
- protected:
-    virtual void SetUp() {
-        runtime_ = CommonAPI::Runtime::load();
-        ASSERT_TRUE((bool)runtime_);
-        CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime_));
-        ASSERT_TRUE(dbusRuntime != NULL);
-    }
-
-    virtual void TearDown() {
-    }
-
-    std::shared_ptr<CommonAPI::Runtime> runtime_;
-
-    static const std::string serviceAddress_;
-};
-
-const std::string DBusCommunicationTest::serviceAddress_ = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
-
-
-
 namespace myExtensions {
 
 template<typename _AttributeType>
@@ -78,29 +57,75 @@ public:
 
 } // namespace myExtensions
 
-//####################################################################################################################
+
+class DBusCommunicationTest: public ::testing::Test {
+ protected:
+    virtual void SetUp() {
+        runtime_ = CommonAPI::Runtime::load();
+        ASSERT_TRUE((bool)runtime_);
+        CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime_));
+        ASSERT_TRUE(dbusRuntime != NULL);
+
+        proxyFactory_ = runtime_->createFactory();
+        ASSERT_TRUE((bool)proxyFactory_);
+        stubFactory_ = runtime_->createFactory();
+        ASSERT_TRUE((bool)stubFactory_);
+    }
+
+    virtual void TearDown() {
+    }
+
+    std::shared_ptr<CommonAPI::Runtime> runtime_;
+    std::shared_ptr<CommonAPI::Factory> proxyFactory_;
+    std::shared_ptr<CommonAPI::Factory> stubFactory_;
+
+    static const std::string serviceAddress_;
+    static const std::string nonstandardAddress_;
+};
+
+const std::string DBusCommunicationTest::serviceAddress_ = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
+const std::string DBusCommunicationTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
+
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
-    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
-    ASSERT_TRUE((bool)proxyFactory);
-
-    auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
-    std::shared_ptr<CommonAPI::Factory> stubFactory = runtime_->createFactory();
-    ASSERT_TRUE((bool)stubFactory);
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+    bool success = stubFactory_->registerService(stub, serviceAddress_);
+    ASSERT_TRUE(success);
+
+    sleep(1);
+
+    uint32_t v1 = 5;
+    std::string v2 = "Ciao ;)";
+    CommonAPI::CallStatus stat;
+    defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
+
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+
+    stubFactory_->unregisterService(serviceAddress_);
+}
+
+
+TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(nonstandardAddress_);
+    ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    bool success = stubFactory->registerService(stub, serviceAddress_);
+    bool success = stubFactory_->registerService(stub, nonstandardAddress_);
     ASSERT_TRUE(success);
+
+    sleep(1);
 
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
-    ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    stubFactory_->unregisterService(nonstandardAddress_);
 }
 
 

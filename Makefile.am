@@ -4,9 +4,11 @@ EXTRA_DIST = LICENSE LICENSE_dbus_patch LICENSE_MurmurHash
 MOSTLYCLEANFILES =
 
 AM_CPPFLAGS = \
+		-I$(top_srcdir)/src \
+		-I$(top_srcdir)/src/test \
 		${COMMONAPI_CFLAGS} \
-		${DBUS_CFLAGS} \
-		-I$(top_srcdir)/src
+		${DBUS_CFLAGS}
+		
 
 LDADD = \
 		${COMMONAPI_LIBS} \
@@ -26,6 +28,7 @@ libmurmurhash_internal_la_SOURCES = \
 lib_LTLIBRARIES += libCommonAPI-DBus.la
 
 libCommonAPI_DBus_la_SOURCES = \
+		src/CommonAPI/DBus/DBusAddressTranslator.cpp \
 		src/CommonAPI/DBus/DBusConnection.cpp \
 		src/CommonAPI/DBus/DBusDaemonProxy.cpp \
 		src/CommonAPI/DBus/DBusError.cpp \
@@ -34,6 +37,7 @@ libCommonAPI_DBus_la_SOURCES = \
 		src/CommonAPI/DBus/DBusMessage.cpp \
 		src/CommonAPI/DBus/DBusObjectManager.cpp \
 		src/CommonAPI/DBus/DBusOutputStream.cpp \
+		src/CommonAPI/DBus/DBusProxyBase.cpp \
 		src/CommonAPI/DBus/DBusProxy.cpp \
 		src/CommonAPI/DBus/DBusFactory.cpp \
 		src/CommonAPI/DBus/DBusRuntime.cpp \
@@ -47,6 +51,7 @@ libCommonAPI_DBus_la_LIBADD = \
 
 CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
+		src/CommonAPI/DBus/DBusAddressTranslator.h \
 		src/CommonAPI/DBus/DBusAttribute.h \
         src/CommonAPI/DBus/DBusConnection.h \
         src/CommonAPI/DBus/DBusDaemonProxy.h \
@@ -59,6 +64,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusMultiEvent.h \
         src/CommonAPI/DBus/DBusObjectManager.h \
         src/CommonAPI/DBus/DBusOutputStream.h \
+        src/CommonAPI/DBus/DBusProxyBase.h \
         src/CommonAPI/DBus/DBusProxy.h \
         src/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.h \
         src/CommonAPI/DBus/DBusProxyConnection.h \
@@ -82,14 +88,17 @@ TestInterfaceSources = \
 		src/test/commonapi/tests/DerivedTypeCollection.cpp \
 		src/test/commonapi/tests/TestInterfaceDBusProxy.cpp \
 		src/test/commonapi/tests/TestInterfaceDBusStubAdapter.cpp \
-		src/test/commonapi/tests/TestInterfaceStubDefault.cpp
+		src/test/commonapi/tests/TestInterfaceStubDefault.cpp \
+		src/test/fakeLegacyService/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
 
 check_PROGRAMS = \
+		DBusServiceRegistryTest \
+		DBusProxyTest \
+		DBusAddressTranslatorTest \
 		DBusInputStreamTest \
 		DBusOutputStreamTest \
 		DBusRuntimeTest \
 		DBusFactoryTest \
-		DBusProxyTest \
 		DBusVariantTest \
 		DBusTypeStreamTest \
 		DBusVariantOutputStreamTest \
@@ -100,7 +109,21 @@ check_PROGRAMS = \
 
 
 TESTS =	${check_PROGRAMS}
-LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} -lpthread ${LDADD} -lpthread
+LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} ${LDADD}
+
+DBusServiceRegistryTest_SOURCES = \
+		src/test/DBusServiceRegistryTest.cpp \
+		${TestInterfaceSources}
+DBusServiceRegistryTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusServiceRegistryTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusServiceRegistryTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusAddressTranslatorTest_SOURCES = \
+		src/test/DBusAddressTranslatorTest.cpp \
+		${TestInterfaceSources}
+DBusAddressTranslatorTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusAddressTranslatorTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusAddressTranslatorTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusTypeStreamTest_SOURCES = src/test/DBusTypeStreamTest.cpp
 DBusTypeStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
@@ -129,12 +152,16 @@ DBusDaemonProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusDaemonProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusDaemonProxyTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusInputStreamTest_SOURCES = src/test/DBusInputStreamTest.cpp
+DBusInputStreamTest_SOURCES = \
+		src/test/DBusInputStreamTest.cpp \
+		${TestInterfaceSources}
 DBusInputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusInputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusInputStreamTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusOutputStreamTest_SOURCES = src/test/DBusOutputStreamTest.cpp
+DBusOutputStreamTest_SOURCES = \
+		src/test/DBusOutputStreamTest.cpp \
+		${TestInterfaceSources}
 DBusOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusOutputStreamTest_LDADD = ${LDADD_FOR_GTEST}
@@ -162,7 +189,9 @@ DBusMultipleConnectionTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusMultipleConnectionTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusMultipleConnectionTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusProxyTest_SOURCES = src/test/DBusProxyTest.cpp
+DBusProxyTest_SOURCES = \
+		src/test/DBusProxyTest.cpp \
+		${TestInterfaceSources}
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <test/commonapi/tests/TestInterfaceStubDefault.h>
+#include "TestInterfaceStubDefault.h"
 
 namespace commonapi {
 namespace tests {
@@ -13,6 +13,10 @@ TestInterfaceStubDefault::TestInterfaceStubDefault():
 TestInterfaceStubRemoteEvent* TestInterfaceStubDefault::initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter) {
     stubAdapter_ = stubAdapter;
     return &remoteEventHandler_;
+}
+
+void TestInterfaceStubDefault::deinitStubAdapter() {
+	stubAdapter_.reset();
 }
 
 const uint32_t& TestInterfaceStubDefault::getTestPredefinedTypeAttributeAttribute() {
@@ -110,10 +114,6 @@ void TestInterfaceStubDefault::testVoidDerivedTypeMethod(DerivedTypeCollection::
 }
 
 void TestInterfaceStubDefault::testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) {
-    // No operation in default
-}
-
-void TestInterfaceStubDefault::testUnionMethod(DerivedTypeCollection::TestUnionIn inParam, DerivedTypeCollection::TestUnionIn& outParam) {
     // No operation in default
 }
 

@@ -98,11 +98,13 @@ typedef CommonAPI::DBus::DBusStubAdapterHelper<TestStub> TestStubAdapterHelper;
 
 class TestDBusStubAdapter: public TestStubAdapter,  public TestStubAdapterHelper {
  public:
-    TestDBusStubAdapter(const std::string& dbusBusName,
-                    const std::string& dbusObjectPath,
-                    const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection,
-                    const std::shared_ptr<TestStub>& testStub) :
+    TestDBusStubAdapter(const std::string& commonApiAddress,
+                        const std::string& dbusBusName,
+                        const std::string& dbusObjectPath,
+                        const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection,
+                        const std::shared_ptr<TestStub>& testStub) :
                     TestStubAdapterHelper(
+                                    commonApiAddress,
                                     dbusBusName,
                                     dbusObjectPath,
                                     "org.genivi.CommonAPI.DBus.TestInterface",
@@ -197,6 +199,7 @@ int main(void) {
 
     auto testStub = std::make_shared<TestStub>();
     auto testStubAdapter = std::make_shared<TestDBusStubAdapter>(
+                    "my:common.api:address.for.dbus",
                     "org.genivi.CommonAPI.DBus.TestDBusInterfaceAdapter",
                     "/common/api/dbus/TestDBusInterfaceAdapter",
                     dbusConnection,
@@ -212,11 +215,9 @@ int main(void) {
     const bool messageSent = dbusConnection->sendDBusMessage(dbusMessageCall);
     assert(messageSent);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++) {
         dbusConnection->readWriteDispatch(100);
-
-//    while (dbusConnection->readWriteDispatch(100))
-//        ;
+    }
 
     assert(dispatchedMessageCount > 0);
 

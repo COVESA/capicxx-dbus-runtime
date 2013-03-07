@@ -11,6 +11,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <unistd.h>
+#include <future>
 
 namespace CommonAPI {
 namespace DBus {
@@ -29,23 +31,21 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
     return split(s, delim, elems);
 }
 
-inline void findFallbackInstanceIdMapping(const std::string& instanceId,
-                                          std::string& connectionName,
-                                          std::string& objectPath) {
-    connectionName = instanceId;
-    objectPath = '/' + instanceId;
-    std::replace(objectPath.begin(), objectPath.end(), '.', '/');
-}
 
-inline std::string findCommonAPIAddressForDBusAddress(const std::string& conName,
-                                               const std::string& objName,
-                                               const std::string& intName) {
+inline std::string getCurrentBinaryFileFQN() {
+    char fqnOfBinary[FILENAME_MAX];
+    char pathToProcessImage[FILENAME_MAX];
 
-    return "local:" + intName + ":" + conName;
-}
+    sprintf(pathToProcessImage, "/proc/%d/exe", getpid());
+    const ssize_t lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
 
-inline std::string findFallbackInstanceIdMapping(const std::string& connectionName, const std::string& objectPath) {
-    return connectionName;
+    if (lengthOfFqn != -1) {
+        fqnOfBinary[lengthOfFqn] = '\0';
+        return std::string(std::move(fqnOfBinary));
+    } else {
+        //TODO fail of readlink, i.e. it returns -1, sets errno. See http://linux.die.net/man/3/readlink
+        return std::string("");
+    }
 }
 
 template<typename _FutureWaitType>

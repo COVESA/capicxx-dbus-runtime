@@ -57,10 +57,13 @@ class DBusProxyConnection {
     typedef std::unordered_multimap<DBusSignalHandlerPath, DBusSignalHandler*> DBusSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
+    typedef Event<AvailabilityStatus> ConnectionStatusEvent;
 
 	virtual ~DBusProxyConnection() { }
 
 	virtual bool isConnected() const =  0;
+
+	virtual ConnectionStatusEvent& getConnectionStatusEvent() = 0;
 
 	virtual bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const = 0;
 
@@ -85,9 +88,8 @@ class DBusProxyConnection {
 
 	virtual void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
 
-    virtual const std::shared_ptr<DBusDaemonProxy>& getDBusDaemonProxy() = 0;
-    virtual const std::shared_ptr<DBusServiceRegistry>& getDBusServiceRegistry() = 0;
-    virtual const std::shared_ptr<DBusObjectManager>& getDBusObjectManager() = 0;
+    virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry() = 0;
+    virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
 };
 
 

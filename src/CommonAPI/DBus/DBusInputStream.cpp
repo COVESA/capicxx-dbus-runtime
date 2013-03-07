@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DBusInputStream.h"
 
+
 namespace CommonAPI {
 namespace DBus {
 
@@ -56,7 +57,9 @@ DBusInputStream& DBusInputStream::readBasicTypeValue<float>(float& val) {
 
 InputStream& DBusInputStream::readValue(bool& boolValue) {
     alignToBoundary(4);
-    return readBasicTypeValue(boolValue);
+    readBasicTypeValue(boolValue);
+    alignToBoundary(4);
+    return *this;
 }
 
 InputStream& DBusInputStream::readValue(int8_t& int8Value)  { return readBasicTypeValue(int8Value); }
@@ -287,6 +290,11 @@ void DBusInputStream::endReadMap() {
     bytesToRead_.pop();
     savedStreamPositions_.pop();
 }
+
+void DBusInputStream::beginReadMapElement() {
+    alignToBoundary(8);
+}
+void DBusInputStream::endReadMapElement() {}
 
 
 } // namespace DBus

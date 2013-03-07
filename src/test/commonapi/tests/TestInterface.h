@@ -13,11 +13,11 @@ class TestInterface {
  public:
     virtual ~TestInterface() { }
 
-    static inline const char* getInterfaceName();
+    static inline const char* getInterfaceId();
     static inline CommonAPI::Version getInterfaceVersion();
 };
 
-const char* TestInterface::getInterfaceName() {
+const char* TestInterface::getInterfaceId() {
     return "commonapi.tests.TestInterface";
 }
 
@@ -31,6 +31,10 @@ CommonAPI::Version TestInterface::getInterfaceVersion() {
 
 namespace CommonAPI {
 
+}
+
+
+namespace std {
 }
 
 #endif // COMMONAPI_TESTS_TEST_INTERFACE_H_

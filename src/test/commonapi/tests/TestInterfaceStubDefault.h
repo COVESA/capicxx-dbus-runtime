@@ -4,7 +4,7 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 
-#include <test/commonapi/tests/TestInterfaceStub.h>
+#include "TestInterfaceStub.h"
 
 namespace commonapi {
 namespace tests {
@@ -14,15 +14,16 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     TestInterfaceStubDefault();
 
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
+    void deinitStubAdapter();
 
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute();
-    void setTestPredefinedTypeAttributeAttribute(uint32_t value);
+    virtual void setTestPredefinedTypeAttributeAttribute(uint32_t value);
 
     virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute();
-    void setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
+    virtual void setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
 
     virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute();
-    void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
+    virtual void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
 
 
     virtual void testVoidPredefinedTypeMethod(uint32_t uint32Value, std::string stringValue);
@@ -33,23 +34,21 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
 
     virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
 
-    virtual void testUnionMethod(DerivedTypeCollection::TestUnionIn inParam, DerivedTypeCollection::TestUnionIn& outParam);
-
     
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
 
  protected:
-    void onRemoteTestPredefinedTypeAttributeAttributeChanged();
-    bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
-    bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
+    virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged();
+    virtual bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
+    virtual bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
 
-    void onRemoteTestDerivedStructAttributeAttributeChanged();
-    bool trySetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
-    bool validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value);
+    virtual void onRemoteTestDerivedStructAttributeAttributeChanged();
+    virtual bool trySetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
+    virtual bool validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value);
 
-    void onRemoteTestDerivedArrayAttributeAttributeChanged();
-    bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
-    bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
+    virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
+    virtual bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
+    virtual bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
 
     
  private:
