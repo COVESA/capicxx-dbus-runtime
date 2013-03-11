@@ -147,8 +147,6 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 	typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
 	DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
-    bool isLibdbusSignalFilterAdded_;
-
     DBusSignalHandlerTable dbusSignalHandlerTable_;
 
     // referenceCount, objectPath

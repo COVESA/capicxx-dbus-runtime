@@ -38,7 +38,6 @@ DBusConnection::DBusConnection(BusType busType) :
                 busType_(busType),
                 libdbusConnection_(NULL),
                 dbusConnectionStatusEvent_(this),
-                isLibdbusSignalFilterAdded_(false),
                 stopDispatching_(false) {
     dbus_threads_init_default();
 }
@@ -47,7 +46,6 @@ DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
                 busType_(WRAPPED),
                 libdbusConnection_(libDbusConnection),
                 dbusConnectionStatusEvent_(this),
-                isLibdbusSignalFilterAdded_(false),
                 stopDispatching_(false)  {
     dbus_threads_init_default();
 }
@@ -242,6 +240,8 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
 DBusMessage DBusConnection::sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
                                                              DBusError& dbusError,
                                                              int timeoutMilliseconds) const {
+	auto selfReference = this->shared_from_this();
+
     assert(dbusMessage);
     assert(!dbusError);
     assert(isConnected());
@@ -291,25 +291,23 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 void DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) {
     std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     auto equalRangeIteratorPair = dbusSignalHandlerTable_.equal_range(dbusSignalHandlerToken);
+    if (equalRangeIteratorPair.first != equalRangeIteratorPair.second) {
+		// advance to the next element
+		equalRangeIteratorPair.first++;
 
-    // the range can't be empty!
-    assert(equalRangeIteratorPair.first != equalRangeIteratorPair.second);
+		// check if the first element was the only element
+		const bool isLastSignalMemberHandler = equalRangeIteratorPair.first == equalRangeIteratorPair.second;
 
-    // advance to the next element
-    equalRangeIteratorPair.first++;
+		if (isLastSignalMemberHandler) {
+			const std::string& objectPath = std::get<0>(dbusSignalHandlerToken);
+			const std::string& interfaceName = std::get<1>(dbusSignalHandlerToken);
+			const std::string& interfaceMemberName = std::get<2>(dbusSignalHandlerToken);
 
-    // check if the first element was the only element
-    const bool isLastSignalMemberHandler = equalRangeIteratorPair.first == equalRangeIteratorPair.second;
+			removeLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName);
+		}
 
-    if (isLastSignalMemberHandler) {
-        const std::string& objectPath = std::get<0>(dbusSignalHandlerToken);
-        const std::string& interfaceName = std::get<1>(dbusSignalHandlerToken);
-        const std::string& interfaceMemberName = std::get<2>(dbusSignalHandlerToken);
-
-        removeLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName);
+		dbusSignalHandlerTable_.erase(dbusSignalHandlerToken);
     }
-
-    dbusSignalHandlerTable_.erase(dbusSignalHandlerToken);
 }
 
 void DBusConnection::registerObjectPath(const std::string& objectPath) {
@@ -446,8 +444,9 @@ void DBusConnection::initLibdbusObjectPathHandlerAfterConnect() {
     assert(isConnected());
 
     // nothing to do if there aren't any registered object path handlers
-    if (libdbusRegisteredObjectPaths_.empty())
+    if (libdbusRegisteredObjectPaths_.empty()) {
         return;
+    }
 
     DBusError dbusError;
     dbus_bool_t libdbusSuccess;
@@ -511,8 +510,9 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     auto selfReference = this->shared_from_this();
 
     // handle only signal messages
-    if (dbus_message_get_type(libdbusMessage) != DBUS_MESSAGE_TYPE_SIGNAL)
+    if (dbus_message_get_type(libdbusMessage) != DBUS_MESSAGE_TYPE_SIGNAL) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
 
     const char* objectPath = dbus_message_get_path(libdbusMessage);
     const char* interfaceName = dbus_message_get_interface(libdbusMessage);
@@ -536,9 +536,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
             const SubscriptionStatus dbusSignalHandlerSubscriptionStatus = dbusSignalHandler->onSignalDBusMessage(dbusMessage);
 
             if (dbusSignalHandlerSubscriptionStatus == SubscriptionStatus::CANCEL) {
-            	auto dbusSignalHandlerSubscription = equalRangeIteratorPair.first;
-            	equalRangeIteratorPair.first++;
-            	dbusSignalHandlerTable_.erase(dbusSignalHandlerSubscription);
+            	equalRangeIteratorPair.first = dbusSignalHandlerTable_.erase(equalRangeIteratorPair.first);
             } else {
             	equalRangeIteratorPair.first++;
             }
