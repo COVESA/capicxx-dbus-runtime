@@ -38,13 +38,14 @@ class DBusMultipleConnectionTest: public ::testing::Test {
         bool success = stubFactory->registerService(stub, serviceAddress);
         ASSERT_TRUE(success);
 
+        sleep(1);
+
         proxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress);
         ASSERT_TRUE((bool)proxy);
     }
 
     virtual void TearDown() {
     	stubFactory->unregisterService(serviceAddress);
-    	sleep(1);
     }
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory;
@@ -71,7 +72,7 @@ TEST_F(DBusMultipleConnectionTest, Broadcast) {
     std::promise<bool> promise;
     auto future = promise.get_future();
 
-    proxy->getTestPredefinedTypeBroadcastEvent().subscribe([&](
+    auto subscription = proxy->getTestPredefinedTypeBroadcastEvent().subscribe([&](
                     const uint32_t intVal, const std::string& strVal) {
         v3 = intVal;
         promise.set_value(true);
@@ -81,6 +82,8 @@ TEST_F(DBusMultipleConnectionTest, Broadcast) {
 
     ASSERT_TRUE(future.get());
     ASSERT_EQ(v1, v3);
+
+    proxy->getTestPredefinedTypeBroadcastEvent().unsubscribe(subscription);
 }
 
 TEST_F(DBusMultipleConnectionTest, SetAttribute) {
@@ -100,7 +103,7 @@ TEST_F(DBusMultipleConnectionTest, SetAttributeBroadcast) {
     std::promise<bool> promise;
     auto future = promise.get_future();
 
-    proxy->getTestPredefinedTypeAttributeAttribute().getChangedEvent().subscribe([&](
+    auto subscription = proxy->getTestPredefinedTypeAttributeAttribute().getChangedEvent().subscribe([&](
                     const uint32_t intVal) {
         v3 = intVal;
         promise.set_value(true);
@@ -113,6 +116,8 @@ TEST_F(DBusMultipleConnectionTest, SetAttributeBroadcast) {
 
     ASSERT_TRUE(future.get());
     ASSERT_EQ(v1, v3);
+
+    proxy->getTestPredefinedTypeAttributeAttribute().getChangedEvent().unsubscribe(subscription);
 }
 
 
