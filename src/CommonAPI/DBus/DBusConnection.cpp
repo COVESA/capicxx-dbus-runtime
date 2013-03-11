@@ -29,9 +29,17 @@ DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
                 &DBusConnection::onLibdbusObjectPathMessageThunk
 };
 
-void DBusConnection::dispatch() {
-    while (!stopDispatching_ && readWriteDispatch(10)) {
+void DBusConnection::dispatch(std::shared_ptr<DBusConnection> selfReference) {
+    while (!stopDispatching_ && readWriteDispatch(10) && (selfReference.use_count() > 1)) {}
+}
+
+bool DBusConnection::readWriteDispatch(int timeoutMilliseconds) {
+    if(isConnected()) {
+        const dbus_bool_t libdbusSuccess = dbus_connection_read_write_dispatch(libdbusConnection_,
+                                                                               timeoutMilliseconds);
+        return libdbusSuccess;
     }
+    return false;
 }
 
 DBusConnection::DBusConnection(BusType busType) :
@@ -51,9 +59,7 @@ DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
 }
 
 DBusConnection::~DBusConnection() {
-    if (isConnected()) {
-        disconnect();
-    }
+    disconnect();
 }
 
 bool DBusConnection::connect() {
@@ -82,7 +88,7 @@ bool DBusConnection::connect(DBusError& dbusError) {
     initLibdbusSignalFilterAfterConnect();
 
     stopDispatching_ = false;
-    dispatchThread_ = std::thread(std::bind(&DBusConnection::dispatch, this));
+    dispatchThread_ = std::thread(&DBusConnection::dispatch, this, this->shared_from_this());
 
     dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::AVAILABLE);
 
@@ -255,16 +261,6 @@ DBusMessage DBusConnection::sendDBusMessageWithReplyAndBlock(const DBusMessage& 
 
     const bool increaseLibdbusMessageReferenceCount = false;
     return DBusMessage(libdbusMessageReply, increaseLibdbusMessageReferenceCount);
-}
-
-
-bool DBusConnection::readWriteDispatch(int timeoutMilliseconds) {
-    if(isConnected()) {
-        const dbus_bool_t libdbusSuccess = dbus_connection_read_write_dispatch(libdbusConnection_,
-                                                                               timeoutMilliseconds);
-        return libdbusSuccess;
-    }
-    return false;
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandler(const std::string& objectPath,

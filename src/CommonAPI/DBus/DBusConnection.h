@@ -99,7 +99,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
 
  private:
-    void dispatch();
+    void dispatch(std::shared_ptr<DBusConnection> selfReference);
 
     std::thread dispatchThread_;
     bool stopDispatching_;
