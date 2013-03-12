@@ -8,20 +8,6 @@ Remaining issues:
   * When one of the defined error codes is thrown
 - Incorporate checks on binary-file-name-retrieval in unit test.
 - Incorporate test on cooperation of "Factory::getAvailableServices" and the DBusAddressTranslator
-- Aufräumen in DBusServiceRegistry! Hier ist scheinbar einiges doppelt und/oder undurchsichtig.
-  * "IsServiceInstanceAlive": Sollte bereits true returnen, wenn nur die Connection dazu lebt.
-    --> Use Cases:
-        # Legacy services implementieren eher nicht "getManagedObjects"
-        # Dienste sollen nicht aufgeweckt werden, wenn z.B. nur ein Proxy für sie angelegt wird
-    --> Macht das den ObjectManager obsolet?
-    --> Können beide Mechanismen sinnvoll nebeneinander existieren?
-  * If service disconnects: Is the proxy correctly marked as not available?
-Discussion: Does the ServiceRegistry really NEED to ask ALL targets EVERY startup for their managed objects?
-Alternatives:
-- On demand, as this is only necessary for the factory method "getAllAvailableServices"
-- Specific proxy asks only for its own defined service, does not implicitly start the registration
-  of all services with the local ObjectManager
-
 
 -----
 MainLoop-Integration:
@@ -70,44 +56,22 @@ Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat abe
 Remains to be sorted/checked/done:
 -----
 Generierte Map-Datentypen:
-- Für sämtliche legale key-Typen sollte eine Hash-Spezialisierung verfügbar sein, z.B. auch für Variants und Structs.
 - D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!
-  --> Definitiv nachrangig, aber dennoch wünschenswert, da in Franca erlaubt.
-
-Test-Fehler:
-        [ RUN      ] ProxyTest.IsAvailableBlocking
-        src/test/DBusProxyTest.cpp:144: Failure
-        Value of: isAvailable
-          Actual: true
-        Expected: registered
-        Which is: false
-- Vermuteter Grund: In dem Test davor wird die Connection desselben Namens bereits besetzt und nicht abgebaut, bis dieser Test läuft.
-- Connection sollte bei out-of-scope von allen zusammenhängenden Factory und Proxies eigentlich ebenfalls zerstört werden...
-
-Test-Fehler:
-        [ RUN      ] DBusMultipleConnectionTest.Broadcast
-        /bin/sh: line 5: 16324 Segmentation fault      (core dumped) ${dir}$tst
-        FAIL: DBusMultipleConnectionTest
-- Einer dieser "Hin und wieder passierts"-Fehler
+  --> Verwendung von solchen sollte in Franca verboten oder in CommonAPI erlaubt oder
+      als Fehler behandelt werden!
 
 Vererbung von Variants
 * Per generierung vollspezialisierter equality- und assignment-operatoren
 * Tests dafür
 
-* Fehler im InStream: Spezialisierungen für Vektor und allgemeiner "ByteBuffer"-Fall (welcher std::vector<uint8_t> ist) behandeln
-  das selbe Thema doppelt!
-* Problem auch im OutStream?
-* Wird der "readByteBufferValue" und "readVectorOfByteBuffers" korrekt aufgerufen? Oder fällt er da auch in die Vektor-Fälle zurück?
-* Entsprechend: Auflösung von Vektoren von ByteBuffern landen in dem vector<vector<_Type>> template Fall, nicht in dem vector<ByteBuffer>.
+* Fehler im InStream und OutStream: Spezialisierungen für Vektor und allgemeiner "ByteBuffer"-Fall
+  (welcher std::vector<uint8_t> ist) behandeln das selbe Thema doppelt!
 
 Serialisierung: Verwenden des Endianness-Flags von D-Bus! Prüfen und beachten von dieser!
-Performance tests für Variants?
+
 Factory: Template-Vorlagen für Attributs-Extensions vlt auslagern in eigenes file?
 
-Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
-- DBusNameCacheTest
-- ?
-
+Bestehende Tests durchgehen und in aktuelle Version überführen!
 
 * Move Version checking to the ServiceRegistry:
     Currently, ensuring the interface-version based compatibility of the local proxy and
@@ -125,54 +89,12 @@ Bestehende Tests durchgehen und in aktuelle Version überführen! Nicht aktuell:
 
 * Dedicated Test of multiple connect/disconnect cycles
 
-* DBusProxyHelper.h:
-  // TODO: Must implement available checks on method calls, and wait for valid avalable status in sync case
-  /*
-   * XXX DBusProxy declares a private DBusReadonlyAttribute variable, which
-   * cuases a circular dependency. As a workaround the DBusProxy must be
-   * forward declared and set as default parameter to the template attribute
-   * classes.
-   *
-   * Since DBus*Attribute use the DBusProxyHelper, we have to use the
-   * DBusProxy class as a template typename.
-   */
-
-* DBusMultiEvent.h:
-  /*
-   * XXX DBusProxy declares a private DBusReadonlyAttribute variable, which
-   * cuases a circular dependency. As a workaround the DBusProxy must be
-   * forward declared and set as default parameter to the template attribute
-   * classes.
-   *
-   * Since DBus*Attribute use the DBusProxyHelper, we have to use the
-   * DBusProxy class as a template typename.
-   */
-  //TODO: if rehashing occurs, then all iterators are invalidated.
-  //TODO: rework with pointers, since this is D-Bus only
-  typedef typename ListenersMap::iterator Subscription;
-
-* DBusAttribute.h:
-  /*
-   * XXX DBusProxy declares a private DBusReadonlyAttribute variable, which
-   * causes a circular dependency. As a workaround the DBusProxy must be
-   * forward declared and set as default parameter to the template attribute
-   * classes.
-   */
-
-* DBusServiceRegistry.h:
-  isServiceInstanceAlive: //TODO Fallback for services not in dbus object manager
-
 * DBus Generator: implizite Array-Deklaration via "[]" (z.B. UInt32[] in Methoden-Aufruf) unterstützen!
-
-
 
 - Fall für Structs (und generell):
   * Methode wird aufgerufen, die eine Basis-Struct akzeptieren
   * Struct ist tatsächlich eine vererbte Struct
   * Gesendet wird damit die vererbte Struct, da wir alles über virtual implizit lösen! Problem mit Signatur!
-
-
-
 
 Future development (2.1):
 
@@ -188,12 +110,6 @@ Future development (2.1):
 - Handling of D-Bus properties!! Sollte auf Franca attributes gemapped sein (Grund: Interoperabilität)
 
 * getValue on attributes is inconsisten with other methods, CallStatus should be in signature not return
-
-
-
-DBusServiceRegistry.cpp::updateListeners
-* Sollte der "bool available"-Parameter einen Sinn haben? Prüfen und ihm ggf einen geben, sonst entfernen!
-
 
 
 -----
