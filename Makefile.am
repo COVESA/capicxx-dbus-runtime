@@ -17,6 +17,11 @@ LDADD = \
 lib_LTLIBRARIES =
 lib_LIBRARIES = 
 
+# Library interface (not package version!)
+LIBCOMMONAPI_DBUS_CURRENT=2
+LIBCOMMONAPI_DBUS_REVISION=0
+LIBCOMMONAPI_DBUS_AGE=0
+
 # ------------------------------------------------------------------------------
 lib_LTLIBRARIES += libmurmurhash-internal.la
 
@@ -48,6 +53,9 @@ libCommonAPI_DBus_la_SOURCES = \
 libCommonAPI_DBus_la_LIBADD = \
 		libmurmurhash-internal.la \
 		${COMMONAPI_LIBS}
+libCommonAPI_DBus_la_LDFLAGS = \
+		${AM_LDFLAGS} \
+		-version-info ${LIBCOMMONAPI_DBUS_CURRENT}:${LIBCOMMONAPI_DBUS_REVISION}:${LIBCOMMONAPI_DBUS_AGE}
 
 CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
