@@ -37,3 +37,4 @@
 /DBusAddressTranslatorTest
 /.pydevproject
 /DBusServiceRegistryTest
+/DBusConnectionTest
