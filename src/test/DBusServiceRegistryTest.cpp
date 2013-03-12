@@ -82,6 +82,7 @@ TEST_F(DBusServiceRegistryTest, CanBeConstructed) {
 	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
     CommonAPI::DBus::DBusServiceRegistry* registry = new CommonAPI::DBus::DBusServiceRegistry(dbusConnection);
     ASSERT_TRUE(registry != NULL);
+    delete registry;
 }
 
 
@@ -138,7 +139,7 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
     auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
 
     ASSERT_TRUE(stubDBusConnection->connect());
-    stubDBusConnection->requestServiceNameAndBlock(dbusServiceName);
+	ASSERT_TRUE(stubDBusConnection->requestServiceNameAndBlock(dbusServiceName));
 
     auto proxyDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
     auto dbusServiceRegistry = proxyDBusConnection->getDBusServiceRegistry();
