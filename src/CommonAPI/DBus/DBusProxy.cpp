@@ -64,7 +64,7 @@ bool DBusProxy::isAvailable() const {
 
 bool DBusProxy::isAvailableBlocking() const {
     if (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
-        std::chrono::milliseconds singleWaitDuration(100);
+        std::chrono::milliseconds singleWaitDuration(2);
 
         // Wait for the service registry
         while (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
@@ -85,7 +85,6 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
 
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     availabilityStatus_ = availabilityStatus;
-
     dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
 }
 
