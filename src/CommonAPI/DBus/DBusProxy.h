@@ -48,6 +48,15 @@ class DBusProxy: public DBusProxyBase {
 
     virtual bool isAvailableBlocking() const;
 
+    virtual std::string getAddress() const;
+    virtual const std::string& getDomain() const;
+    virtual const std::string& getServiceId() const;
+    virtual const std::string& getInstanceId() const;
+
+    virtual const std::string& getDBusBusName() const;
+    virtual const std::string& getDBusObjectPath() const;
+    virtual const std::string& getInterfaceName() const;
+
  private:
     DBusProxy(const DBusProxy&) = delete;
 
@@ -61,6 +70,13 @@ class DBusProxy: public DBusProxyBase {
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
 
     std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
+
+    const std::string commonApiServiceId_;
+    const std::string commonApiParticipantId_;
+
+    const std::string dbusBusName_;
+    const std::string dbusObjectPath_;
+    const std::string dbusInterfaceName_;
 };
 
 

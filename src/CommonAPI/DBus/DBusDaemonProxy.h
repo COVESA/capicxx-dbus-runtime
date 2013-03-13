@@ -61,9 +61,23 @@ class DBusDaemonProxy: public DBusProxyBase {
 
     std::future<CallStatus> getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback) const;
 
+    virtual std::string getAddress() const;
+    virtual const std::string& getDomain() const;
+    virtual const std::string& getServiceId() const;
+    virtual const std::string& getInstanceId() const;
+
+    virtual const std::string& getDBusBusName() const;
+    virtual const std::string& getDBusObjectPath() const;
+    virtual const std::string& getInterfaceName() const;
+
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
     static StaticInterfaceVersionAttribute interfaceVersionAttribute_;
+
+    static const std::string dbusBusName_;
+    static const std::string dbusObjectPath_;
+    static const std::string commonApiParticipantId_;
+    static const std::string dbusInterfaceName_;
 };
 
 const char* DBusDaemonProxy::getInterfaceId() {

@@ -12,54 +12,16 @@ namespace DBus {
 
 const std::string DBusProxyBase::commonApiDomain_ = "local";
 
-DBusProxyBase::DBusProxyBase(const std::string& commonApiServiceId,
-                             const std::string& commonApiParticipantId,
-                             const std::string& dbusInterfaceName,
-                             const std::string& dbusBusName,
-                             const std::string& dbusObjectPath,
-                             const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
-                commonApiServiceId_(commonApiServiceId),
-                commonApiParticipantId_(commonApiParticipantId),
-                dbusBusName_(dbusBusName),
-                dbusObjectPath_(dbusObjectPath),
-                dbusInterfaceName_(dbusInterfaceName),
+DBusProxyBase::DBusProxyBase(const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
                 dbusConnection_(dbusConnection) {
-}
-
-DBusProxyBase::DBusProxyBase(const std::string& dbusInterfaceName,
-                             const std::string& dbusBusName,
-                             const std::string& dbusObjectPath,
-                             const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
-                commonApiServiceId_(dbusInterfaceName),
-                commonApiParticipantId_(dbusBusName + "-" + dbusObjectPath),
-                dbusBusName_(dbusBusName),
-                dbusObjectPath_(dbusObjectPath),
-                dbusInterfaceName_(dbusInterfaceName),
-                dbusConnection_(dbusConnection) {
-}
-
-std::string DBusProxyBase::getAddress() const {
-    return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
-}
-
-const std::string& DBusProxyBase::getDomain() const {
-    return commonApiDomain_;
-}
-
-const std::string& DBusProxyBase::getServiceId() const {
-    return commonApiServiceId_;
-}
-
-const std::string& DBusProxyBase::getInstanceId() const {
-    return commonApiParticipantId_;
 }
 
 DBusMessage DBusProxyBase::createMethodCall(const char* methodName,
                                         const char* methodSignature) const {
     return DBusMessage::createMethodCall(
-                    dbusBusName_.c_str(),
-                    dbusObjectPath_.c_str(),
-                    dbusInterfaceName_.c_str(),
+                    getDBusBusName().c_str(),
+                    getDBusObjectPath().c_str(),
+                    getInterfaceName().c_str(),
                     methodName,
                     methodSignature);
 }

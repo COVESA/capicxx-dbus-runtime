@@ -32,10 +32,38 @@ std::future<CallStatus> StaticInterfaceVersionAttribute::getValueAsync(Attribute
 
 
 StaticInterfaceVersionAttribute DBusDaemonProxy::interfaceVersionAttribute_(1, 0);
+const std::string DBusDaemonProxy::dbusBusName_ = "org.freedesktop.DBus";
+const std::string DBusDaemonProxy::dbusObjectPath_ = "/org/freedesktop/DBus";
+const std::string DBusDaemonProxy::dbusInterfaceName_ = getInterfaceId();
+const std::string DBusDaemonProxy::commonApiParticipantId_ = "org.freedesktop.DBus-/org/freedesktop/DBus";
+
 
 DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
-                DBusProxyBase(getInterfaceId(), "org.freedesktop.DBus", "/org/freedesktop/DBus", dbusConnection),
+                DBusProxyBase(dbusConnection),
                 nameOwnerChangedEvent_(*this, "NameOwnerChanged", "sss") {
+}
+
+std::string DBusDaemonProxy::getAddress() const {
+    return getDomain() + ":" + getServiceId() + ":" + getInstanceId();
+}
+const std::string& DBusDaemonProxy::getDomain() const {
+    return commonApiDomain_;
+}
+const std::string& DBusDaemonProxy::getServiceId() const {
+    return dbusInterfaceName_;
+}
+const std::string& DBusDaemonProxy::getInstanceId() const {
+    return commonApiParticipantId_;
+}
+
+const std::string& DBusDaemonProxy::getDBusBusName() const {
+    return dbusBusName_;
+}
+const std::string& DBusDaemonProxy::getDBusObjectPath() const {
+    return dbusObjectPath_;
+}
+const std::string& DBusDaemonProxy::getInterfaceName() const {
+    return dbusInterfaceName_;
 }
 
 bool DBusDaemonProxy::isAvailable() const {

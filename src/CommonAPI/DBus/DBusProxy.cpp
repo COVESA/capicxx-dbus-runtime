@@ -33,12 +33,12 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
                      const std::string& dbusBusName,
                      const std::string& dbusObjectPath,
                      const std::shared_ptr<DBusProxyConnection>& dbusConnection):
-                DBusProxyBase(split(commonApiAddress, ':')[1],
-                              split(commonApiAddress, ':')[2],
-                              dbusInterfaceName,
-                              dbusBusName,
-                              dbusObjectPath,
-                              dbusConnection),
+                DBusProxyBase(dbusConnection),
+                commonApiServiceId_(split(commonApiAddress, ':')[1]),
+                commonApiParticipantId_(split(commonApiAddress, ':')[2]),
+                dbusBusName_(dbusBusName),
+                dbusObjectPath_(dbusObjectPath),
+                dbusInterfaceName_(dbusInterfaceName),
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
                 interfaceVersionAttribute_(*this, "getInterfaceVersion"),
@@ -86,6 +86,34 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     availabilityStatus_ = availabilityStatus;
     dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+}
+
+const std::string& DBusProxy::getDBusBusName() const {
+    return dbusBusName_;
+}
+
+const std::string& DBusProxy::getDBusObjectPath() const {
+    return dbusObjectPath_;
+}
+
+const std::string& DBusProxy::getInterfaceName() const {
+    return dbusInterfaceName_;
+}
+
+const std::string& DBusProxy::getDomain() const {
+    return commonApiDomain_;
+}
+
+const std::string& DBusProxy::getServiceId() const {
+    return commonApiServiceId_;
+}
+
+const std::string& DBusProxy::getInstanceId() const {
+    return commonApiParticipantId_;
+}
+
+std::string DBusProxy::getAddress() const {
+    return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
 }
 
 } // namespace DBus
