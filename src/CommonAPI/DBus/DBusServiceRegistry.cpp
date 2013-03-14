@@ -20,7 +20,6 @@ DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> db
 
 DBusServiceRegistry::~DBusServiceRegistry() {
 	if(initialized_) {
-	    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 		dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
 		dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
 	}
@@ -234,10 +233,11 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
 
     DBusServiceList::iterator dbusServiceIterator = dbusServices_.find(dbusServiceName);
 
-    // add service for the first time
+    // Service not known, so just add it to the list of unkown or definitely not available services
     if (dbusServiceIterator == dbusServices_.end()) {
         DBusServiceState dbusConnectionNameState = DBusServiceState::UNKNOWN;
 
+        // Service is definitely not available if the complete list of available services is known and it is not in there
         if (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE) {
             dbusConnectionNameState = DBusServiceState::RESOLVED;
         }
