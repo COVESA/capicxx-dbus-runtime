@@ -35,17 +35,25 @@ class DBusMultipleConnectionTest: public ::testing::Test {
         ASSERT_TRUE((bool)stubFactory);
 
         stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-        bool success = stubFactory->registerService(stub, serviceAddress);
-        ASSERT_TRUE(success);
+        bool serviceNameAcquired = stubFactory->registerService(stub, serviceAddress);
 
-        sleep(1);
+        for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+            usleep(10000);
+            serviceNameAcquired = stubFactory->registerService(stub, serviceAddress);
+        }
+        ASSERT_TRUE(serviceNameAcquired);
 
         proxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress);
         ASSERT_TRUE((bool)proxy);
+
+        for(unsigned int i = 0; !proxy->isAvailable() && i < 100; ++i) {
+            usleep(10000);
+        }
     }
 
     virtual void TearDown() {
     	stubFactory->unregisterService(serviceAddress);
+    	usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory;

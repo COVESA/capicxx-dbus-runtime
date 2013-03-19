@@ -73,6 +73,7 @@ class DBusCommunicationTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
+        usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Runtime> runtime_;
@@ -93,10 +94,18 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    bool success = stubFactory_->registerService(stub, serviceAddress_);
-    ASSERT_TRUE(success);
 
-    sleep(1);
+    bool serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+    for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+    for(unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
 
     uint32_t v1 = 5;
     std::string v2 = "Ciao ;)";
@@ -114,10 +123,17 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    bool success = stubFactory_->registerService(stub, nonstandardAddress_);
-    ASSERT_TRUE(success);
 
-    sleep(1);
+    bool serviceRegistered = stubFactory_->registerService(stub, nonstandardAddress_);
+    for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = stubFactory_->registerService(stub, nonstandardAddress_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+    for(unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
 
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";

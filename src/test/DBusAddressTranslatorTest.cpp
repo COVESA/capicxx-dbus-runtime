@@ -120,6 +120,7 @@ protected:
     }
 
     virtual void TearDown() {
+        usleep(30000);
     }
 };
 
@@ -158,28 +159,32 @@ TEST_F(AddressTranslatorTest, ParsesCommonAPIAddresses) {
 
 
 TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
-    std::shared_ptr<CommonAPI::Runtime> runtime;
-    std::shared_ptr<CommonAPI::Factory> proxyFactory;
-    std::shared_ptr<CommonAPI::Factory> stubFactory;
-
-    runtime = CommonAPI::Runtime::load();
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
     CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
     ASSERT_TRUE(dbusRuntime != NULL);
 
-    proxyFactory = runtime->createFactory();
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
-    stubFactory = runtime->createFactory();
+    std::shared_ptr<CommonAPI::Factory> stubFactory = runtime->createFactory();
     ASSERT_TRUE((bool)stubFactory);
 
     auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(commonApiAddresses[0]);
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    bool success = stubFactory->registerService(stub, commonApiAddresses[0]);
-    ASSERT_TRUE(success);
 
-    sleep(1);
+    bool serviceNameAcquired = stubFactory->registerService(stub, commonApiAddresses[0]);
+    for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+        serviceNameAcquired = stubFactory->registerService(stub, commonApiAddresses[0]);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceNameAcquired);
+
+    for(unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
 
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
@@ -223,7 +228,7 @@ void fakeLegacyServiceThread() {
 
 TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
     std::thread fakeServiceThread = std::thread(fakeLegacyServiceThread);
-    sleep(1);
+    usleep(500000);
 
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
@@ -259,7 +264,7 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
 
     //end the fake legacy service via dbus
     int resultCode = system("python ./src/test/fakeLegacyService/sendToFakeLegacyService.py finish");
-    EXPECT_EQ(0, resultCode);
+    ASSERT_EQ(0, resultCode);
 
     fakeServiceThread.join();
 }

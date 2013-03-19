@@ -54,7 +54,7 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
 	});
 
-	auto status = future.wait_for(std::chrono::milliseconds(200));
+	auto status = future.wait_for(std::chrono::milliseconds(500));
 	bool waitResult = CommonAPI::DBus::checkReady(status);
     ASSERT_EQ(waitResult, true);
 

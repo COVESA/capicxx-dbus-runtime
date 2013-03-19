@@ -45,6 +45,7 @@ class DBusProxyFactoryTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
+        usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Runtime> runtime_;

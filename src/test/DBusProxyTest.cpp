@@ -52,6 +52,7 @@ protected:
     }
 
     virtual void TearDown() {
+        usleep(30000);
     }
 
     void registerTestStub() {
@@ -94,12 +95,11 @@ protected:
     }
 
     bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
-        std::chrono::milliseconds loopWaitDuration(100);
-
         if (proxyAvailabilityStatus_ == availabilityStatus)
             return true;
 
-        for (int i = 0; i < 10; i++) {
+        std::chrono::milliseconds loopWaitDuration(10);
+        for (int i = 0; i < 100; i++) {
             std::this_thread::sleep_for(loopWaitDuration);
 
             if (proxyAvailabilityStatus_ == availabilityStatus)
@@ -155,6 +155,8 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     EXPECT_NE(proxyAvailabilityStatus_, CommonAPI::AvailabilityStatus::AVAILABLE);
 
     registerTestStub();
+
+    usleep(500000);
 
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 
@@ -227,13 +229,11 @@ TEST_F(ProxyTest, IsAvailableBlocking) {
     registerTestStub();
 
     // blocking in terms of "if it's still unknown"
-    bool isAvailable = proxy_->isAvailableBlocking();
-    for (int i = 0; !isAvailable && i < 10; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        isAvailable = proxy_->isAvailableBlocking();
+    for (int i = 0; !proxy_->isAvailableBlocking() && i < 3; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    EXPECT_TRUE(isAvailable);
+    EXPECT_TRUE(proxy_->isAvailableBlocking());
 
     deregisterTestStub();
 }
