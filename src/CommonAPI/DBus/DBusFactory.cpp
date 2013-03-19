@@ -120,27 +120,29 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
     DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
 
     if(acquiredConnectionName_ == "") {
-        dbusConnection_->requestServiceNameAndBlock(connectionName);
+        bool isServiceNameAcquired = dbusConnection_->requestServiceNameAndBlock(connectionName);
+        if(!isServiceNameAcquired) {
+            return false;
+        }
         acquiredConnectionName_ = connectionName;
     } else if (acquiredConnectionName_ != connectionName) {
-        return NULL;
+        return false;
     }
 
     if(!registeredAdapterFactoryFunctions_) {
         registeredAdapterFactoryFunctions_ = new std::unordered_map<std::string, DBusAdapterFactoryFunction> {};
     }
 
-    for (auto it = registeredAdapterFactoryFunctions_->begin(); it != registeredAdapterFactoryFunctions_->end(); ++it) {
-        if(it->first == interfaceId) {
-            std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (it->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
-        	if(!dbusStubAdapter) {
-        		return false;
-        	}
-        	std::string address = domain + ":" + serviceName + ":" + participantId;
-        	if(registeredServices_.insert( {std::move(address), dbusStubAdapter} ).second) {
-        		dbusStubAdapter->init();
-        		return true;
-        	}
+    auto foundFunction = registeredAdapterFactoryFunctions_->find(interfaceId);
+    if(foundFunction != registeredAdapterFactoryFunctions_->end()) {
+        std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (foundFunction->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
+        if(!dbusStubAdapter) {
+            return false;
+        }
+        std::string address = domain + ":" + serviceName + ":" + participantId;
+        if(registeredServices_.insert( {std::move(address), dbusStubAdapter} ).second) {
+            dbusStubAdapter->init();
+            return true;
         }
     }
 
