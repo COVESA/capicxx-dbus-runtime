@@ -149,9 +149,13 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
 const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
     std::shared_ptr<DBusServiceRegistry> serviceRegistry = dbusServiceRegistry_.lock();
     if (!serviceRegistry || dbusServiceRegistry_.expired()) {
-        serviceRegistry = std::make_shared<DBusServiceRegistry>(shared_from_this());
-        serviceRegistry->init();
-        dbusServiceRegistry_ = serviceRegistry;
+        serviceRegistryGuard_.lock();
+        if (!serviceRegistry || dbusServiceRegistry_.expired()) {
+            serviceRegistry = std::make_shared<DBusServiceRegistry>(shared_from_this());
+            serviceRegistry->init();
+            dbusServiceRegistry_ = serviceRegistry;
+        }
+        serviceRegistryGuard_.unlock();
     }
 
     return serviceRegistry;
@@ -159,7 +163,11 @@ const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistr
 
 const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() {
     if (!dbusObjectManager_) {
-        dbusObjectManager_ = std::make_shared<DBusObjectManager>(shared_from_this());
+        objectManagerGuard_.lock();
+        if (!dbusObjectManager_) {
+            dbusObjectManager_ = std::make_shared<DBusObjectManager>(shared_from_this());
+        }
+        objectManagerGuard_.unlock();
     }
 
     return dbusObjectManager_;
@@ -531,7 +539,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     resumeDispatching();
 }
 
-::DBusHandlerResult DBusConnection::onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) const {
+::DBusHandlerResult DBusConnection::onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) {
     assert(libdbusMessage);
 
     // handle only method call messages
@@ -539,7 +547,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
-    bool isDBusMessageHandled = dbusObjectManager_->handleMessage(DBusMessage(libdbusMessage));
+    bool isDBusMessageHandled = getDBusObjectManager()->handleMessage(DBusMessage(libdbusMessage));
     return isDBusMessageHandled ? DBUS_HANDLER_RESULT_HANDLED : DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
@@ -607,7 +615,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     assert(libdbusMessage);
     assert(userData);
 
-    const DBusConnection* dbusConnection = reinterpret_cast<DBusConnection*>(userData);
+    DBusConnection* dbusConnection = reinterpret_cast<DBusConnection*>(userData);
 
     assert(dbusConnection->libdbusConnection_ == libdbusConnection);
 

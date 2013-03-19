@@ -122,7 +122,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	void initLibdbusSignalFilterAfterConnect();
 
-	::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) const;
+	::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage);
 
 	::DBusHandlerResult onLibdbusSignalFilter(::DBusMessage* libdbusMessage);
 
@@ -142,6 +142,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 	::DBusConnection* libdbusConnection_;
 	std::mutex libdbusConnectionGuard_;
 	std::mutex signalGuard_;
+    std::mutex objectManagerGuard_;
+    std::mutex serviceRegistryGuard_;
 
 	std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
