@@ -36,7 +36,7 @@ class DBusObjectManager {
 
     void unregisterInterfaceHandler(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken);
 
-    bool handleMessage(const DBusMessage&) const;
+    bool handleMessage(const DBusMessage&);
 
 
  private:
@@ -49,6 +49,7 @@ class DBusObjectManager {
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
 
     std::weak_ptr<DBusConnection> dbusConnection_;
+    std::recursive_mutex objectPathLock_;
 };
 
 } // namespace DBus

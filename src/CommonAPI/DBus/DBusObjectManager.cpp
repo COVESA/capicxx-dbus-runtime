@@ -24,11 +24,15 @@ DBusInterfaceHandlerToken DBusObjectManager::registerInterfaceHandler(const std:
                                                                       const std::string& interfaceName,
                                                                       const DBusMessageInterfaceHandler& dbusMessageInterfaceHandler) {
     DBusInterfaceHandlerPath handlerPath(objectPath, interfaceName);
+
+    objectPathLock_.lock();
     bool noSuchHandlerRegistered = dbusRegisteredObjectsTable_.find(handlerPath) == dbusRegisteredObjectsTable_.end();
 
     assert(noSuchHandlerRegistered);
 
     dbusRegisteredObjectsTable_.insert({handlerPath, dbusMessageInterfaceHandler});
+    objectPathLock_.unlock();
+
     std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
     if(lockedConnection) {
         lockedConnection->registerObjectPath(objectPath);
@@ -38,6 +42,7 @@ DBusInterfaceHandlerToken DBusObjectManager::registerInterfaceHandler(const std:
 }
 
 void DBusObjectManager::unregisterInterfaceHandler(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken) {
+    objectPathLock_.lock();
     const std::string& objectPath = dbusInterfaceHandlerToken.first;
 
     std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
@@ -46,9 +51,10 @@ void DBusObjectManager::unregisterInterfaceHandler(const DBusInterfaceHandlerTok
     }
 
     dbusRegisteredObjectsTable_.erase(dbusInterfaceHandlerToken);
+    objectPathLock_.unlock();
 }
 
-bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) const {
+bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
     const char* objectPath = dbusMessage.getObjectPath();
     const char* interfaceName = dbusMessage.getInterfaceName();
 
@@ -56,6 +62,8 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) const {
     assert(interfaceName);
 
     DBusInterfaceHandlerPath handlerPath(objectPath, interfaceName);
+
+    objectPathLock_.lock();
     auto handlerIterator = dbusRegisteredObjectsTable_.find(handlerPath);
     const bool foundDBusInterfaceHandler = handlerIterator != dbusRegisteredObjectsTable_.end();
     bool dbusMessageHandled = false;
@@ -64,13 +72,12 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) const {
         const DBusMessageInterfaceHandler& interfaceHandlerDBusMessageHandler = handlerIterator->second;
         dbusMessageHandled = interfaceHandlerDBusMessageHandler(dbusMessage);
     }
+    objectPathLock_.unlock();
 
     return dbusMessageHandled;
 }
 
 bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessage) {
-    DBusDaemonProxy::DBusObjectToInterfaceDict dictToSend;
-
     const char* interfaceName = callMessage.getInterfaceName();
     const char* signature = callMessage.getSignatureString();
 
@@ -78,6 +85,9 @@ bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessag
     assert(!strcmp(signature, ""));
     assert(callMessage.getType() == DBusMessage::Type::MethodCall);
 
+    DBusDaemonProxy::DBusObjectToInterfaceDict dictToSend;
+
+    objectPathLock_.lock();
     auto registeredObjectsIterator = dbusRegisteredObjectsTable_.begin();
 
     while(registeredObjectsIterator != dbusRegisteredObjectsTable_.end()) {
@@ -92,6 +102,7 @@ bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessag
 
         ++registeredObjectsIterator;
     }
+    objectPathLock_.unlock();
 
     const char* getManagedObjectsDBusSignature = "a{oa{sa{sv}}}";
     DBusMessage replyMessage = callMessage.createMethodReturn(getManagedObjectsDBusSignature);
