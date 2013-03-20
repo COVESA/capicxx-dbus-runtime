@@ -49,12 +49,6 @@ CommonAPI-D-Bus-Tools - The eclipse based tools for CommonAPI D-Bus. This is the
 
 To build this package the CommonAPI library and a version of libdbus patched with the marshaling patch must be available through PkgConfig.
 
-
-== Build Instructions
-
-
-To build this package CommonAPI and a version of libdbus patched with the marshaling patch must be available.
-
 Instructions for making a patched version of libdbus available in /usr/local:
 ----
 # wget http://dbus.freedesktop.org/releases/dbus/dbus-1.4.16.tar.gz
@@ -88,6 +82,54 @@ Use autotools to build this package withthe above requirements available through
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
 If the environment variable GTEST_CONFIG is set to the path of the gtest-config script in a Gtest tree test will also be built.
+
+=== Defining D-Bus Service Parameters
+Normally, a CommonAPI address, format
+----
+<Domain>:<ServiceID>:<InstanceID>
+----
+
+is mapped to a D-Bus address the following way:
+----
+# D-Bus Interface Name = ServiceID 
+# D-Bus Connection Name = InstanceID
+# D-Bus Object Path = InstanceID with a preceding '/' and all '.' replaced with '/' 
+----
+For Domain, only the value "local" is allowed in this context, and it has no influence on the associated D-Bus service address values.
+
+In case a proxy or a service should not use the default mapping, it is possible to define config files that use the CommonAPI Address
+as a key in order to map any combination of D-Bus address values to it. The config files can be defined locally per binary, globally
+per binary or globally for all binaries. If more than one config file is defined and a CommonAPI address is defined more than once
+across several config files, the locally defined values override the global ones. If a CommonAPI address is defined more than once
+within a single file, the first definition found will be the only definition used.
+
+Config files have to be named this way:
+----
+# Binary local: "<FqnOfBinary>_dbus.conf", e.g. "/usr/bin/myBinary_dbus.conf" if the binary is "/usr/bin/myBinary"
+# Binary global: "/etc/CommonApiDBus/<NameOfBinary>_dbus.conf", e.g. "/etc/CommonApiDBus/myBinary_dbus.conf"
+# Global: "/etc/CommonApiDBus/dbusAddresses.conf"
+----
+
+Each config file may have an arbitrary number of entries of the following format, with each entry being separated from the others by a newline:
+----
+[<CommonAPI Address>]
+dbus_connection=<valid D-Bus Connection Name>
+dbus_object=<valid D-Bus Object Path>
+dbus_interface=<valid D-Bus Interface Name>
+dbus_predefined=<true/false>
+----
+All "dbus_*"-values are optional. For each such omitted value the default value as described above will be used. For "dbus_predefined",
+the default value is "false".
+
+"dbus_predefined" should be used if the associated service of a proxy is a legacy service that does not provide the
+"org.freedesktop.DBus.ObjectManager" interface.
+----
+# If "dbus_predefined" is set to "false" (which is default), a proxy will try to verify the existence of the specific interface
+  at the specific connection name and object path, using the "org.freedesktop.DBus.ObjectManager" interface, before it is marked as available.
+# If "dbus_predefined" is set to "true", a proxy is marked as available as soon as the connection name of the associated
+  service is visible. No further checks will be executed.
+----
+
 
 == Working on the code & contribution
 
