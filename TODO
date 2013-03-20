@@ -53,8 +53,19 @@ Ich hätte daher ein Objekt bevorzugt das zwar das Interface des Futures hat abe
 
 
 -----
-Remains to be sorted/checked/done:
+Remains to be done:
 -----
+
+Problem bei Registrierung mehrerer Interfaces auf selbem ObjectPath (server-seitig):
+- Auch "Introspectable" soll damit mehrfach für den selben ObjectPath registriert werden
+- Folge: DBusObjectManager beschwert sich wegen:
+	  bool noSuchHandlerRegistered = dbusRegisteredObjectsTable_.find(handlerPath) == dbusRegisteredObjectsTable_.end();
+	  assert(noSuchHandlerRegistered);
+- Allgemeineres Konzept f. Introspection muss her (mehrere Interfaces pro ObjectPath müssen unterstützt werden)
+  * Generiert wird nur noch der "Mittelteil" der Introspection XML
+  * Ein "globalere" Handler setzt die generierten "Mittelteile" zu einer einzigen Introspection XML zusammen
+
+
 Generierte Map-Datentypen:
 - D-Bus eraubt KEINE non-basic-types als key-Werte (siehe spec)!
   --> Verwendung von solchen sollte in Franca verboten oder in CommonAPI erlaubt oder
@@ -105,9 +116,9 @@ Future development (2.1):
     Probably we'll have to keep a list of all owned names and request a new one on registration
     if required.
 
-* Doxygen in CommonAPI source code.
-
-- Handling of D-Bus properties!! Sollte auf Franca attributes gemapped sein (Grund: Interoperabilität)
+- Handling of D-Bus properties!
+  * Nur wenn im deployment gefordert
+  * Sollten auf Franca attributes gemapped sein
 
 * getValue on attributes is inconsisten with other methods, CallStatus should be in signature not return
 
