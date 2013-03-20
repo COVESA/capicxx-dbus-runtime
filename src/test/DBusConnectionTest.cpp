@@ -170,8 +170,6 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
 
 	dbus_message_set_signature(libdbusMessageCall, "");
 
-    bool hasHappened = false;
-
     DBusPendingCall* libdbusPendingCall;
     dbus_bool_t libdbusSuccess;
 

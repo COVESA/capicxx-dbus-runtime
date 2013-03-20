@@ -84,7 +84,7 @@ class DBusCommunicationTest: public ::testing::Test {
     static const std::string nonstandardAddress_;
 };
 
-const std::string DBusCommunicationTest::serviceAddress_ = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
+const std::string DBusCommunicationTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
 const std::string DBusCommunicationTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
 
 
@@ -134,6 +134,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     for(unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
         usleep(10000);
     }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
 
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
@@ -143,6 +144,94 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
     stubFactory_->unregisterService(nonstandardAddress_);
 }
+
+
+//XXX This test case requires CommonAPI::DBus::DBusConnection::suspendDispatching and ...::resumeDispatching to be public!
+
+//static const std::string commonApiAddress = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
+//static const std::string interfaceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
+//static const std::string busName = "CommonAPI.DBus.tests.DBusProxyTestService";
+//static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
+
+//TEST_F(DBusCommunicationTest, AsyncCallsAreQueuedCorrectly) {
+//    auto proxyDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+//    ASSERT_TRUE(proxyDBusConnection->connect());
+//
+//    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+//
+//    bool serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+//    for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+//        serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+//        usleep(10000);
+//    }
+//    ASSERT_TRUE(serviceRegistered);
+//
+//    auto defaultTestProxy = std::make_shared<commonapi::tests::TestInterfaceDBusProxy>(
+//                            commonApiAddress,
+//                            interfaceName,
+//                            busName,
+//                            objectPath,
+//                            proxyDBusConnection);
+//
+//    for(unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+//        usleep(10000);
+//    }
+//    ASSERT_TRUE(defaultTestProxy->isAvailable());
+//
+//    auto val1 = commonapi::tests::DerivedTypeCollection::TestEnumExtended2::E_OK;
+//    commonapi::tests::DerivedTypeCollection::TestMap val2;
+//    CommonAPI::CallStatus status;
+//    unsigned int numCalled = 0;
+//    const unsigned int maxNumCalled = 1000;
+//    for(unsigned int i = 0; i < maxNumCalled/2; ++i) {
+//        defaultTestProxy->testVoidDerivedTypeMethodAsync(val1, val2,
+//                [&] (CommonAPI::CallStatus stat) {
+//                    if(stat == CommonAPI::CallStatus::SUCCESS) {
+//                        numCalled++;
+//                    }
+//                }
+//        );
+//    }
+//
+//    proxyDBusConnection->suspendDispatching();
+//
+//    for(unsigned int i = maxNumCalled/2; i < maxNumCalled; ++i) {
+//        defaultTestProxy->testVoidDerivedTypeMethodAsync(val1, val2,
+//                [&] (CommonAPI::CallStatus stat) {
+//                    if(stat == CommonAPI::CallStatus::SUCCESS) {
+//                        numCalled++;
+//                    }
+//                }
+//        );
+//    }
+//    sleep(2);
+//
+//    proxyDBusConnection->resumeDispatching();
+//
+//    sleep(2);
+//
+//    ASSERT_EQ(maxNumCalled, numCalled);
+//
+//    numCalled = 0;
+//
+//    defaultTestProxy->getTestPredefinedTypeBroadcastEvent().subscribe(
+//            [&] (uint32_t, std::string) {
+//                numCalled++;
+//            }
+//    );
+//
+//    proxyDBusConnection->suspendDispatching();
+//
+//    for(unsigned int i = 0; i < maxNumCalled; ++i) {
+//        stub->fireTestPredefinedTypeBroadcastEvent(0, "Nonething");
+//    }
+//
+//    sleep(2);
+//    proxyDBusConnection->resumeDispatching();
+//    sleep(2);
+//
+//    ASSERT_EQ(maxNumCalled, numCalled);
+//}
 
 
 int main(int argc, char** argv) {
