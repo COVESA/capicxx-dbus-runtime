@@ -115,6 +115,8 @@ bool DBusConnection::connect(DBusError& dbusError) {
 void DBusConnection::disconnect() {
     std::lock_guard<std::mutex> dbusConnectionLock(libdbusConnectionGuard_);
     if (isConnected()) {
+        dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::NOT_AVAILABLE);
+
         if (!dbusSignalMatchRulesMap_.empty()) {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
@@ -133,8 +135,6 @@ void DBusConnection::disconnect() {
 
         dbus_connection_unref(libdbusConnection_);
         libdbusConnection_ = NULL;
-
-        dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::NOT_AVAILABLE);
     }
 }
 

@@ -100,15 +100,14 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
  private:
     void dispatch(std::shared_ptr<DBusConnection> selfReference);
+    void suspendDispatching() const;
+    void resumeDispatching() const;
 
     std::thread dispatchThread_;
     bool stopDispatching_;
 
     mutable bool pauseDispatching_;
     mutable std::mutex dispatchSuspendLock_;
-
-	void suspendDispatching() const;
-	void resumeDispatching() const;
 
 	void addLibdbusSignalMatchRule(const std::string& objectPath,
 	                               const std::string& interfaceName,
