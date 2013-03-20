@@ -41,26 +41,25 @@ void DBusServiceRegistry::init() {
 }
 
 bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout) {
-    bool dbusServicesStatusIsKnown = (dbusNameListStatus_ != AvailabilityStatus::UNKNOWN);
+    bool dbusServicesStatusIsKnown = (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE);
 
-    while (!dbusServicesStatusIsKnown && timeout.count() > 0) {
+    if(!dbusServicesStatusIsKnown) {
         typedef std::chrono::high_resolution_clock clock;
         clock::time_point startTimePoint = clock::now();
 
-        dbusServicesStatusIsKnown = dbusServiceChanged_.wait_for(
-                                        lock,
-                                        timeout,
-                                        [&]{ return dbusNameListStatus_ != AvailabilityStatus::UNKNOWN; });
+        while (!dbusServicesStatusIsKnown && timeout.count() > 0) {
+            dbusServicesStatusIsKnown = dbusServiceChanged_.wait_for(
+                                            lock,
+                                            timeout / 10,
+                                            [&]{ return dbusNameListStatus_ == AvailabilityStatus::AVAILABLE; });
 
-        std::chrono::milliseconds elapsedWaitTime =
-                                    std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - startTimePoint);
+            std::chrono::milliseconds elapsedWaitTime =
+                                        std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - startTimePoint);
 
-        if (elapsedWaitTime > timeout) {
-            timeout = std::chrono::milliseconds::zero();
-            break;
+            if (elapsedWaitTime > timeout) {
+                break;
+            }
         }
-
-        timeout -= elapsedWaitTime;
     }
 
     return (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE);
@@ -71,7 +70,7 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
         return false;
     }
 
-    std::chrono::milliseconds timeout(2000);
+    std::chrono::milliseconds timeout(1000);
     std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     if (!waitDBusServicesAvailable(dbusServicesLock, timeout)) {
@@ -127,7 +126,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         return availableServiceInstances;
     }
 
-    std::chrono::milliseconds timeout(2000);
+    std::chrono::milliseconds timeout(1000);
     std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     if (!waitDBusServicesAvailable(dbusServicesLock, timeout)) {
