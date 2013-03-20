@@ -166,12 +166,9 @@ std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::strin
                     "GetManagedObjects",
                     "");
 
-    const int timeoutMilliseconds = 100;
-
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMethodCallMessage,
-                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback),
-                    timeoutMilliseconds);
+                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback));
 }
 
 
