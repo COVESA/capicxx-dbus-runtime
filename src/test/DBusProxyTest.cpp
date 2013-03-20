@@ -13,11 +13,12 @@
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusStubAdapter.h>
-#include <CommonAPI/DBus/DBusUtils.h>
 
 #include <commonapi/tests/TestInterfaceDBusProxy.h>
 #include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
 #include <commonapi/tests/TestInterfaceStubDefault.h>
+
+#include "DBusTestUtils.h"
 
 #include <gtest/gtest.h>
 
@@ -59,8 +60,6 @@ protected:
         stubDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         ASSERT_TRUE(stubDBusConnection_->connect());
 
-        ASSERT_TRUE(stubDBusConnection_->requestServiceNameAndBlock(busName));
-
         auto stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
         stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
                         commonApiAddress,
@@ -70,6 +69,15 @@ protected:
                         stubDBusConnection_,
                         stubDefault);
         stubAdapter_->init();
+
+        bool serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+
+        for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+            usleep(10000);
+            serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+        }
+        ASSERT_TRUE(serviceNameAcquired);
+        usleep(500000);
     }
 
     void deregisterTestStub() {
@@ -88,6 +96,7 @@ protected:
         proxyStatusSubscription_ = proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
             proxyAvailabilityStatus_ = availabilityStatus;
         });
+        usleep(100000);
     }
 
     void proxyDeregisterForAvailabilityStatus() {
@@ -95,15 +104,11 @@ protected:
     }
 
     bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
-        if (proxyAvailabilityStatus_ == availabilityStatus)
-            return true;
-
-        std::chrono::milliseconds loopWaitDuration(10);
-        for (int i = 0; i < 100; i++) {
-            std::this_thread::sleep_for(loopWaitDuration);
-
+        for (int i = 0; i < 10; i++) {
+            std::cout << "Current status is: " << toString(proxyAvailabilityStatus_) << std::endl;
             if (proxyAvailabilityStatus_ == availabilityStatus)
                 return true;
+            usleep(100000);
         }
 
         return false;
@@ -156,8 +161,6 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
 
     registerTestStub();
 
-    usleep(500000);
-
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 
     stubDBusConnection_->disconnect();
@@ -192,6 +195,7 @@ TEST_F(ProxyTest, ServiceStatus) {
 
     std::vector<std::string> availableDBusServices;
 
+    //Service actually IS available!
     for (int i = 0; i < 5; i++) {
         availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
                         commonApiServiceName,
