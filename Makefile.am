@@ -4,6 +4,7 @@ EXTRA_DIST = LICENSE LICENSE_dbus_patch LICENSE_MurmurHash
 MOSTLYCLEANFILES =
 
 AM_CPPFLAGS = \
+		-include $(top_builddir)/build-aux/config.h \
 		-I$(top_srcdir)/src \
 		-I$(top_srcdir)/src/test \
 		${COMMONAPI_CFLAGS} \

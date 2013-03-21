@@ -1,8 +1,10 @@
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 AC_INIT([GENIVI Common API DBus C++ Library],
         [2.0],
         [],
         [CommonAPI-DBus])
+
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_CONFIG_MACRO_DIR([m4])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
