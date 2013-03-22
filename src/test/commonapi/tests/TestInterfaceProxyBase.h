@@ -7,8 +7,7 @@
 #include "TestInterface.h"
 #include <unordered_map>
 #include <cstdint>
-#include "PredefinedTypeCollection.h"
-#include "DerivedTypeCollection.h"
+#include <commonapi/tests/DerivedTypeCollection.h>
 #include <CommonAPI/InputStream.h>
 #include <vector>
 #include <CommonAPI/OutputStream.h>
@@ -27,6 +26,7 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
     typedef CommonAPI::ObservableAttribute<DerivedTypeCollection::TestStructExtended> TestDerivedStructAttributeAttribute;
     typedef CommonAPI::ObservableAttribute<DerivedTypeCollection::TestArrayUInt64> TestDerivedArrayAttributeAttribute;
     typedef CommonAPI::Event<uint32_t, std::string> TestPredefinedTypeBroadcastEvent;
+    typedef std::function<void(const CommonAPI::CallStatus&)> TestEmptyMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&)> TestVoidPredefinedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&, const uint32_t&, const std::string&)> TestPredefinedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&)> TestVoidDerivedTypeMethodAsyncCallback;
@@ -38,6 +38,9 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
 
     virtual TestPredefinedTypeBroadcastEvent& getTestPredefinedTypeBroadcastEvent() = 0;
 
+
+    virtual void testEmptyMethod(CommonAPI::CallStatus& callStatus) = 0;
+    virtual std::future<CommonAPI::CallStatus> testEmptyMethodAsync(TestEmptyMethodAsyncCallback callback) = 0;
 
     virtual void testVoidPredefinedTypeMethod(const uint32_t& uint32Value, const std::string& stringValue, CommonAPI::CallStatus& callStatus) = 0;
     virtual std::future<CommonAPI::CallStatus> testVoidPredefinedTypeMethodAsync(const uint32_t& uint32Value, const std::string& stringValue, TestVoidPredefinedTypeMethodAsyncCallback callback) = 0;

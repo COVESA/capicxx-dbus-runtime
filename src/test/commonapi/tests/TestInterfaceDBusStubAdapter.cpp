@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "TestInterfaceDBusStubAdapter.h"
-#include "TestInterface.h"
+#include <commonapi/tests/TestInterface.h>
 
 namespace commonapi {
 namespace tests {
@@ -45,14 +45,14 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"changedValue\" type=\"u\" />\n"
         "</signal>\n"
         "<method name=\"getTestDerivedStructAttributeAttribute\">\n"
-        	"<arg name=\"value\" type=\"(sqii)\" direction=\"out\" />"
+        	"<arg name=\"value\" type=\"(sqi)\" direction=\"out\" />"
         "</method>\n"
         "<method name=\"setTestDerivedStructAttributeAttribute\">\n"
-            "<arg name=\"requestedValue\" type=\"(sqii)\" direction=\"in\" />\n"
-            "<arg name=\"setValue\" type=\"(sqii)\" direction=\"out\" />\n"
+            "<arg name=\"requestedValue\" type=\"(sqi)\" direction=\"in\" />\n"
+            "<arg name=\"setValue\" type=\"(sqi)\" direction=\"out\" />\n"
         "</method>\n"
         "<signal name=\"onTestDerivedStructAttributeAttributeChanged\">\n"
-            "<arg name=\"changedValue\" type=\"(sqii)\" />\n"
+            "<arg name=\"changedValue\" type=\"(sqi)\" />\n"
         "</signal>\n"
         "<method name=\"getTestDerivedArrayAttributeAttribute\">\n"
         	"<arg name=\"value\" type=\"at\" direction=\"out\" />"
@@ -68,6 +68,8 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"uint32Value\" type=\"u\" />\n"
             "<arg name=\"stringValue\" type=\"s\" />\n"
         "</signal>\n"
+        "<method name=\"testEmptyMethod\">\n"
+        "</method>\n"
         "<method name=\"testVoidPredefinedTypeMethod\">\n"
             "<arg name=\"uint32Value\" type=\"u\" direction=\"in\" />\n"
             "<arg name=\"stringValue\" type=\"s\" direction=\"in\" />\n"
@@ -109,7 +111,7 @@ static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
 static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestStructExtended
-        > getTestDerivedStructAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedStructAttributeAttribute, "(sqii)");
+        > getTestDerivedStructAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedStructAttributeAttribute, "(sqi)");
 static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestStructExtended
@@ -118,7 +120,7 @@ static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestDerivedStructAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged,
                 &TestInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged,
-                "(sqii)");
+                "(sqi)");
 
 static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
@@ -134,6 +136,12 @@ static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
                 &TestInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged,
                 "at");
 
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<>,
+    std::tuple<>
+    > testEmptyMethodStubDispatcher(&TestInterfaceStub::testEmptyMethod, "");
 
 static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
@@ -165,10 +173,11 @@ const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable TestInterfaceDBusS
     { { "getTestPredefinedTypeAttributeAttribute", "" }, &commonapi::tests::getTestPredefinedTypeAttributeAttributeStubDispatcher }
     , { { "setTestPredefinedTypeAttributeAttribute", "u" }, &commonapi::tests::setTestPredefinedTypeAttributeAttributeStubDispatcher },
     { { "getTestDerivedStructAttributeAttribute", "" }, &commonapi::tests::getTestDerivedStructAttributeAttributeStubDispatcher }
-    , { { "setTestDerivedStructAttributeAttribute", "(sqii)" }, &commonapi::tests::setTestDerivedStructAttributeAttributeStubDispatcher },
+    , { { "setTestDerivedStructAttributeAttribute", "(sqi)" }, &commonapi::tests::setTestDerivedStructAttributeAttributeStubDispatcher },
     { { "getTestDerivedArrayAttributeAttribute", "" }, &commonapi::tests::getTestDerivedArrayAttributeAttributeStubDispatcher }
     , { { "setTestDerivedArrayAttributeAttribute", "at" }, &commonapi::tests::setTestDerivedArrayAttributeAttributeStubDispatcher }
     ,
+    { { "testEmptyMethod", "" }, &commonapi::tests::testEmptyMethodStubDispatcher },
     { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::testVoidPredefinedTypeMethodStubDispatcher },
     { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
     { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
@@ -189,7 +198,7 @@ void TestInterfaceDBusStubAdapter::fireTestDerivedStructAttributeAttributeChange
         ::sendSignal(
             *this,
             "onTestDerivedStructAttributeAttributeChanged",
-            "(sqii)",
+            "(sqi)",
             value
     );
 }

@@ -6,6 +6,15 @@ package commonapi.tests
 import commonapi.tests.* from "test-predefined-types.fidl"
 
 typeCollection DerivedTypeCollection {
+
+	map TestMap { UInt32 to TestArrayTestStruct }
+	
+	struct TestStructExtended extends TestStruct {
+		TestEnumExtended2 testEnumExtended2
+	}
+
+	map TestEnumMap { TestEnum to String }
+
 	<** @description : Common errors. **>
 	enumeration TestEnum {
 		 <** @description : default **>
@@ -16,6 +25,13 @@ typeCollection DerivedTypeCollection {
 		E_OUT_OF_RANGE = "0x02"
 	    <** @description : not used **>
 		E_NOT_USED = "0x03"
+	}
+	
+	array TestArrayTestStruct of TestStruct
+	
+	enumeration TestEnumExtended2 extends TestEnumExtended {
+		<** @description : new error **>
+		E_NEW2 = "0x05"
 	}
 	
 	enumeration TestEnumMissingValue {
@@ -29,11 +45,8 @@ typeCollection DerivedTypeCollection {
 		<** @description : new error **>
 		E_NEW = "0x04"
 	}
-	
-	enumeration TestEnumExtended2 extends TestEnumExtended {
-		<** @description : new error **>
-		E_NEW2 = "0x05"
-	}
+
+	array TestArrayUInt64 of UInt64
 	
 	struct TestStruct {
 		<** @description : the name of the property **>
@@ -42,15 +55,6 @@ typeCollection DerivedTypeCollection {
 		<** @description : the actual value **>
 		UInt16 uintValue
 	}
-	
-	struct TestStructExtended extends TestStruct {
-		TestEnumExtended2 testEnumExtended2
-	}
-	
-	array TestArrayUInt64 of UInt64
-	array TestArrayTestStruct of TestStruct
-
-	map TestMap { UInt32 to TestArrayTestStruct }
 }
 
 

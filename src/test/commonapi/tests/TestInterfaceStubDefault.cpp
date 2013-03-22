@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "TestInterfaceStubDefault.h"
+#include <commonapi/tests/TestInterfaceStubDefault.h>
 
 namespace commonapi {
 namespace tests {
@@ -13,10 +13,6 @@ TestInterfaceStubDefault::TestInterfaceStubDefault():
 TestInterfaceStubRemoteEvent* TestInterfaceStubDefault::initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter) {
     stubAdapter_ = stubAdapter;
     return &remoteEventHandler_;
-}
-
-void TestInterfaceStubDefault::deinitStubAdapter() {
-	stubAdapter_.reset();
 }
 
 const uint32_t& TestInterfaceStubDefault::getTestPredefinedTypeAttributeAttribute() {
@@ -46,6 +42,14 @@ bool TestInterfaceStubDefault::validateTestPredefinedTypeAttributeAttributeReque
     return true;
 }
 
+bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestPredefinedTypeAttributeAttribute(uint32_t value) {
+    return defaultStub_->trySetTestPredefinedTypeAttributeAttribute(std::move(value));
+}
+
+void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestPredefinedTypeAttributeAttributeChanged() {
+    defaultStub_->onRemoteTestPredefinedTypeAttributeAttributeChanged();
+}
+
 const DerivedTypeCollection::TestStructExtended& TestInterfaceStubDefault::getTestDerivedStructAttributeAttribute() {
     return testDerivedStructAttributeAttributeValue_;
 }
@@ -71,6 +75,14 @@ bool TestInterfaceStubDefault::trySetTestDerivedStructAttributeAttribute(Derived
 
 bool TestInterfaceStubDefault::validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value) {
     return true;
+}
+
+bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value) {
+    return defaultStub_->trySetTestDerivedStructAttributeAttribute(std::move(value));
+}
+
+void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestDerivedStructAttributeAttributeChanged() {
+    defaultStub_->onRemoteTestDerivedStructAttributeAttributeChanged();
 }
 
 const DerivedTypeCollection::TestArrayUInt64& TestInterfaceStubDefault::getTestDerivedArrayAttributeAttribute() {
@@ -100,6 +112,18 @@ bool TestInterfaceStubDefault::validateTestDerivedArrayAttributeAttributeRequest
     return true;
 }
 
+bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value) {
+    return defaultStub_->trySetTestDerivedArrayAttributeAttribute(std::move(value));
+}
+
+void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestDerivedArrayAttributeAttributeChanged() {
+    defaultStub_->onRemoteTestDerivedArrayAttributeAttributeChanged();
+}
+
+
+void TestInterfaceStubDefault::testEmptyMethod() {
+    // No operation in default
+}
 
 void TestInterfaceStubDefault::testVoidPredefinedTypeMethod(uint32_t uint32Value, std::string stringValue) {
     // No operation in default
@@ -125,31 +149,6 @@ void TestInterfaceStubDefault::fireTestPredefinedTypeBroadcastEvent(const uint32
 TestInterfaceStubDefault::RemoteEventHandler::RemoteEventHandler(TestInterfaceStubDefault* defaultStub):
         defaultStub_(defaultStub) {
 }
-
-bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestPredefinedTypeAttributeAttribute(uint32_t value) {
-    return defaultStub_->trySetTestPredefinedTypeAttributeAttribute(std::move(value));
-}
-
-void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestPredefinedTypeAttributeAttributeChanged() {
-    defaultStub_->onRemoteTestPredefinedTypeAttributeAttributeChanged();
-}
-
-bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value) {
-    return defaultStub_->trySetTestDerivedStructAttributeAttribute(std::move(value));
-}
-
-void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestDerivedStructAttributeAttributeChanged() {
-    defaultStub_->onRemoteTestDerivedStructAttributeAttributeChanged();
-}
-
-bool TestInterfaceStubDefault::RemoteEventHandler::onRemoteSetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value) {
-    return defaultStub_->trySetTestDerivedArrayAttributeAttribute(std::move(value));
-}
-
-void TestInterfaceStubDefault::RemoteEventHandler::onRemoteTestDerivedArrayAttributeAttributeChanged() {
-    defaultStub_->onRemoteTestDerivedArrayAttributeAttributeChanged();
-}
-
 
 } // namespace tests
 } // namespace commonapi

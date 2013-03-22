@@ -4,17 +4,26 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_STUB_DEFAULT_H_
 
-#include "TestInterfaceStub.h"
+#include <commonapi/tests/TestInterfaceStub.h>
 
 namespace commonapi {
 namespace tests {
 
+/**
+ * Provides a default implementation for TestInterfaceStubRemoteEvent and
+ * TestInterfaceStub. Method callbacks have an empty implementation,
+ * remote set calls on attributes will always change the value of the attribute
+ * to the one received.
+ * 
+ * Override this stub if you only want to provide a subset of the functionality
+ * that would be defined for this service, and/or if you do not need any non-default
+ * behaviour.
+ */
 class TestInterfaceStubDefault : public TestInterfaceStub {
  public:
     TestInterfaceStubDefault();
 
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
-    void deinitStubAdapter();
 
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute();
     virtual void setTestPredefinedTypeAttributeAttribute(uint32_t value);
@@ -25,6 +34,8 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute();
     virtual void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
 
+
+    virtual void testEmptyMethod();
 
     virtual void testVoidPredefinedTypeMethod(uint32_t uint32Value, std::string stringValue);
 

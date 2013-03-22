@@ -4,7 +4,7 @@
 #ifndef COMMONAPI_TESTS_TEST_INTERFACE_DBUS_STUB_ADAPTER_H_
 #define COMMONAPI_TESTS_TEST_INTERFACE_DBUS_STUB_ADAPTER_H_
 
-#include "TestInterfaceStub.h"
+#include <commonapi/tests/TestInterfaceStub.h>
 
 #include <CommonAPI/DBus/DBusStubAdapterHelper.h>
 #include <CommonAPI/DBus/DBusFactory.h>
