@@ -11,12 +11,12 @@ AM_CPPFLAGS = \
 		${DBUS_CFLAGS}
 		
 
-LDADD = \
+AM_LDFLAGS = \
 		${COMMONAPI_LIBS} \
 		${DBUS_LIBS}
 
+noinst_LTLIBRARIES =
 lib_LTLIBRARIES =
-lib_LIBRARIES = 
 
 # Library interface (not package version!)
 LIBCOMMONAPI_DBUS_CURRENT=2
@@ -24,7 +24,7 @@ LIBCOMMONAPI_DBUS_REVISION=0
 LIBCOMMONAPI_DBUS_AGE=0
 
 # ------------------------------------------------------------------------------
-lib_LTLIBRARIES += libmurmurhash-internal.la
+noinst_LTLIBRARIES += libmurmurhash-internal.la
 
 libmurmurhash_internal_la_SOURCES = \
 		src/murmurhash/MurmurHash3.h \
