@@ -373,6 +373,36 @@ void DBusConnection::registerObjectPath(const std::string& objectPath) {
     }
 }
 
+void DBusConnection::registerObjectPath(const std::string& objectPath, void* clas, DBusObjectPathVTable* table) {
+    assert(!objectPath.empty());
+    assert(objectPath[0] == '/');
+
+    auto handlerIterator = libdbusRegisteredObjectPaths_.find(objectPath);
+    const bool foundRegisteredObjectPathHandler = handlerIterator != libdbusRegisteredObjectPaths_.end();
+
+    if (foundRegisteredObjectPathHandler) {
+        uint32_t& referenceCount = handlerIterator->second;
+
+        referenceCount++;
+
+        return;
+    }
+
+    libdbusRegisteredObjectPaths_.insert(LibdbusRegisteredObjectPathHandlersTable::value_type(objectPath, 1));
+
+    if (isConnected()) {
+        DBusError dbusError;
+        const dbus_bool_t libdbusSuccess = dbus_connection_try_register_object_path(libdbusConnection_,
+                                                                                    objectPath.c_str(),
+                                                                                    table,
+                                                                                    clas,
+                                                                                    &dbusError.libdbusError_);
+        assert(libdbusSuccess);
+        assert(!dbusError);
+    }
+}
+
+
 void DBusConnection::unregisterObjectPath(const std::string& objectPath) {
     assert(!objectPath.empty());
     assert(objectPath[0] == '/');

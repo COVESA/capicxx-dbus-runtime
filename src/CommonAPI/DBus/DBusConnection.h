@@ -89,7 +89,11 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 	                                              DBusSignalHandler* dbusSignalHandler);
 
 	void registerObjectPath(const std::string& objectPath);
+
+	void registerObjectPath(const std::string& objectPath, void* clas, DBusObjectPathVTable* table);
+
 	void unregisterObjectPath(const std::string& objectPath);
+
 
 	void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
 
