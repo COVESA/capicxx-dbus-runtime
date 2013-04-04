@@ -22,7 +22,7 @@ class DBusConnection;
 
 class DBusObjectManager {
  public:
-    DBusObjectManager(const std::shared_ptr<DBusConnection>&);
+    DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
 
     void init();
 
@@ -48,7 +48,7 @@ class DBusObjectManager {
     typedef std::unordered_map<DBusInterfaceHandlerPath, DBusMessageInterfaceHandler> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
 
-    std::weak_ptr<DBusConnection> dbusConnection_;
+    std::weak_ptr<DBusProxyConnection> dbusConnection_;
     std::recursive_mutex objectPathLock_;
 };
 

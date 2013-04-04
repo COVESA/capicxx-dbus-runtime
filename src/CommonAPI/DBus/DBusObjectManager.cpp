@@ -12,7 +12,7 @@
 namespace CommonAPI {
 namespace DBus {
 
-DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusConnection>& dbusConnection):
+DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
         dbusConnection_(dbusConnection) {
 
     registerInterfaceHandler("/",
@@ -33,7 +33,7 @@ DBusInterfaceHandlerToken DBusObjectManager::registerInterfaceHandler(const std:
     dbusRegisteredObjectsTable_.insert({handlerPath, dbusMessageInterfaceHandler});
     objectPathLock_.unlock();
 
-    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
     if(lockedConnection) {
         lockedConnection->registerObjectPath(objectPath);
     }
@@ -45,7 +45,7 @@ void DBusObjectManager::unregisterInterfaceHandler(const DBusInterfaceHandlerTok
     objectPathLock_.lock();
     const std::string& objectPath = dbusInterfaceHandlerToken.first;
 
-    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
     if(lockedConnection) {
         lockedConnection->unregisterObjectPath(objectPath);
     }
@@ -111,7 +111,7 @@ bool DBusObjectManager::onGetDBusObjectManagerData(const DBusMessage& callMessag
     outStream << dictToSend;
     outStream.flush();
 
-    std::shared_ptr<DBusConnection> lockedConnection = dbusConnection_.lock();
+    std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
     if(lockedConnection) {
         return lockedConnection->sendDBusMessage(replyMessage);
     }
