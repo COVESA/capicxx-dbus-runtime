@@ -90,10 +90,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
 	void registerObjectPath(const std::string& objectPath);
 
-	void registerObjectPath(const std::string& objectPath, void* clas, DBusObjectPathVTable* table);
-
 	void unregisterObjectPath(const std::string& objectPath);
-
 
 	void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
 
@@ -101,6 +98,9 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
+
+    void setObjectPathMessageHandler(DBusObjectPathMessageHandler);
+    bool isObjectPathMessageHandlerSet();
 
  private:
     void dispatch(std::shared_ptr<DBusConnection> selfReference);
@@ -165,6 +165,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     LibdbusRegisteredObjectPathHandlersTable libdbusRegisteredObjectPaths_;
 
     static DBusObjectPathVTable libdbusObjectPathVTable_;
+
+    DBusObjectPathMessageHandler dbusObjectMessageHandler_;
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {

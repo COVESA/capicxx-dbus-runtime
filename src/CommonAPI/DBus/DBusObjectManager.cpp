@@ -15,6 +15,14 @@ namespace DBus {
 DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
         dbusConnection_(dbusConnection) {
 
+    std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
+    if (lockedConnection) {
+        if (!lockedConnection->isObjectPathMessageHandlerSet()) {
+            lockedConnection->setObjectPathMessageHandler(
+                            std::bind(&DBusObjectManager::handleMessage, this, std::placeholders::_1));
+        }
+    }
+
     registerInterfaceHandler("/",
                              "org.freedesktop.DBus.ObjectManager",
                              std::bind(&DBusObjectManager::onGetDBusObjectManagerData, this, std::placeholders::_1));
