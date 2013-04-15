@@ -11,6 +11,7 @@
 #include "DBusInputStream.h"
 #include "DBusOutputStream.h"
 #include "DBusHelper.h"
+#include "DBusSerializableArguments.h"
 
 #include <memory>
 #include <initializer_list>

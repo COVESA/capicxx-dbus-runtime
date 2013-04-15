@@ -7,8 +7,6 @@
 #include "DBusStubAdapter.h"
 #include "DBusUtils.h"
 
-#include <dbus/dbus-protocol.h>
-
 #include <cassert>
 #include <functional>
 #include <sstream>
@@ -47,23 +45,17 @@ DBusStubAdapter::~DBusStubAdapter() {
 void DBusStubAdapter::deinit() {
 	assert(dbusConnection_);
 
-	if(isInitialized_) {
-		dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusIntrospectionInterfaceHandlerToken_);
-		dbusConnection_->getDBusObjectManager()->unregisterInterfaceHandler(dbusInterfaceHandlerToken_);
+	if (isInitialized_) {
+		dbusConnection_->getDBusObjectManager()->unregisterDBusStubAdapter(dbusInterfaceHandlerToken_);
 		isInitialized_ = false;
 	}
 }
 
 void DBusStubAdapter::init() {
-    dbusIntrospectionInterfaceHandlerToken_ = dbusConnection_->getDBusObjectManager()->registerInterfaceHandler(
-                    dbusObjectPath_,
-                    "org.freedesktop.DBus.Introspectable",
-                    std::bind(&DBusStubAdapter::onIntrospectionInterfaceDBusMessage, this, std::placeholders::_1));
-
-    dbusInterfaceHandlerToken_ = dbusConnection_->getDBusObjectManager()->registerInterfaceHandler(
+    dbusInterfaceHandlerToken_ = dbusConnection_->getDBusObjectManager()->registerDBusStubAdapter(
                     dbusObjectPath_,
                     dbusInterfaceName_,
-                    std::bind(&DBusStubAdapter::onInterfaceDBusMessage, this, std::placeholders::_1));
+                    this);
 
     isInitialized_ = true;
 }
@@ -82,35 +74,6 @@ const std::string& DBusStubAdapter::getServiceId() const {
 
 const std::string& DBusStubAdapter::getInstanceId() const {
     return commonApiParticipantId_;
-}
-
-bool DBusStubAdapter::onIntrospectionInterfaceDBusMessage(const DBusMessage& dbusMessage) {
-    bool dbusMessageHandled = false;
-
-    if (dbusMessage.isMethodCallType() && dbusMessage.hasMemberName("Introspect")) {
-        std::stringstream xmlData(std::ios_base::out);
-        xmlData << "<!DOCTYPE node PUBLIC \"" DBUS_INTROSPECT_1_0_XML_PUBLIC_IDENTIFIER "\"\n\""
-                        DBUS_INTROSPECT_1_0_XML_SYSTEM_IDENTIFIER"\">\n"
-                   "<node name=\"" << dbusObjectPath_ << "\">\n"
-                       "<interface name=\"org.freedesktop.DBus.Introspectable\">\n"
-                           "<method name=\"Introspect\">\n"
-                               "<arg type=\"s\" name=\"xml_data\" direction=\"out\"/>\n"
-                           "</method>\n"
-                       "</interface>\n"
-                       "<interface name=\"" << dbusInterfaceName_ << "\">\n"
-                           << getMethodsDBusIntrospectionXmlData() << "\n"
-                       "</interface>\n"
-                   "</node>";
-
-        DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("s");
-        DBusOutputStream dbusOutputStream(dbusMessageReply);
-        dbusOutputStream << xmlData.str();
-        dbusOutputStream.flush();
-
-        dbusMessageHandled = dbusConnection_->sendDBusMessage(dbusMessageReply);
-    }
-
-    return dbusMessageHandled;
 }
 
 } // namespace dbus

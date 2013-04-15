@@ -7,10 +7,11 @@
 #ifndef COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_
 #define COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_
 
-#include "DBusConnection.h"
+#include "DBusProxyConnection.h"
+#include "DBusObjectManager.h"
+#include "DBusMessage.h"
 
 #include <CommonAPI/Stub.h>
-#include <CommonAPI/DBus/DBusMessage.h>
 
 #include <string>
 #include <memory>
@@ -41,13 +42,10 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
 
     inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
 
- protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
 
  private:
-    bool onIntrospectionInterfaceDBusMessage(const DBusMessage& dbusMessage);
-
     const std::string commonApiDomain_;
     const std::string commonApiServiceId_;
     const std::string commonApiParticipantId_;
@@ -59,7 +57,6 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
 
     bool isInitialized_;
 
-    DBusInterfaceHandlerToken dbusIntrospectionInterfaceHandlerToken_;
     DBusInterfaceHandlerToken dbusInterfaceHandlerToken_;
 
     static const std::string domain_;

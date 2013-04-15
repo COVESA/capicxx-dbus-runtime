@@ -7,18 +7,17 @@
 #ifndef COMMONAPI_DBUS_DBUS_OBJECT_MANAGER_H_
 #define COMMONAPI_DBUS_DBUS_OBJECT_MANAGER_H_
 
+#include "DBusProxyConnection.h"
 #include "DBusMessage.h"
-#include "DBusConnection.h"
 
 namespace CommonAPI {
 namespace DBus {
 
 // objectPath, interfaceName
-typedef std::function<bool(const DBusMessage&)> DBusMessageInterfaceHandler;
 typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
 typedef DBusInterfaceHandlerPath DBusInterfaceHandlerToken;
 
-class DBusConnection;
+class DBusStubAdapter;
 
 class DBusObjectManager {
  public:
@@ -26,15 +25,11 @@ class DBusObjectManager {
 
     void init();
 
-    const DBusInterfaceHandlerToken registerInterfaceHandlerForDBusObject(const std::string& objectPath,
-                                                                          const std::string& interfaceName,
-                                                                          const DBusMessageInterfaceHandler& dbusMessageInterfaceHandler);
+    DBusInterfaceHandlerToken registerDBusStubAdapter(const std::string& objectPath,
+                                                      const std::string& interfaceName,
+                                                      DBusStubAdapter* dbusStubAdapter);
 
-    DBusInterfaceHandlerToken registerInterfaceHandler(const std::string& objectPath,
-                                                       const std::string& interfaceName,
-                                                       const DBusMessageInterfaceHandler& dbusMessageInterfaceHandler);
-
-    void unregisterInterfaceHandler(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken);
+    void unregisterDBusStubAdapter(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken);
 
     bool handleMessage(const DBusMessage&);
 
@@ -43,9 +38,10 @@ class DBusObjectManager {
     void addLibdbusObjectPathHandler(const std::string& objectPath);
     void removeLibdbusObjectPathHandler(const std::string& objectPath);
 
-    bool onGetDBusObjectManagerData(const DBusMessage& callMessage);
+    bool onObjectManagerInterfaceDBusMessage(const DBusMessage& callMessage);
+    bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
 
-    typedef std::unordered_map<DBusInterfaceHandlerPath, DBusMessageInterfaceHandler> DBusRegisteredObjectsTable;
+    typedef std::unordered_map<DBusInterfaceHandlerPath, DBusStubAdapter*> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
 
     std::weak_ptr<DBusProxyConnection> dbusConnection_;

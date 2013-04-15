@@ -199,6 +199,24 @@ const char* DBusMessage::getErrorName() const {
 	return dbus_message_get_error_name(libdbusMessage_);
 }
 
+bool DBusMessage::hasObjectPath(const char* objectPath) const {
+    const char* dbusMessageObjectPath = getObjectPath();
+
+    assert(objectPath);
+    assert(dbusMessageObjectPath);
+
+    return !strcmp(dbusMessageObjectPath, objectPath);
+}
+
+bool DBusMessage::hasInterfaceName(const char* interfaceName) const {
+    const char* dbusMessageInterfaceName = getInterfaceName();
+
+    assert(interfaceName);
+    assert(dbusMessageInterfaceName);
+
+    return !strcmp(dbusMessageInterfaceName, interfaceName);
+}
+
 bool DBusMessage::hasMemberName(const char* memberName) const {
     const char* dbusMessageMemberName = getMemberName();
 
