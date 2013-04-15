@@ -22,6 +22,7 @@ class DBusStubAdapter;
 class DBusObjectManager {
  public:
     DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
+    ~DBusObjectManager();
 
     void init();
 

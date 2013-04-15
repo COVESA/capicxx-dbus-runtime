@@ -27,6 +27,14 @@ DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&
     dbusConnection->registerObjectPath("/");
 }
 
+DBusObjectManager::~DBusObjectManager() {
+    std::shared_ptr<DBusProxyConnection> dbusConnection = dbusConnection_.lock();
+    if (dbusConnection) {
+        dbusConnection->unregisterObjectPath("/");
+        dbusConnection->setObjectPathMessageHandler(DBusProxyConnection::DBusObjectPathMessageHandler());
+    }
+}
+
 DBusInterfaceHandlerToken DBusObjectManager::registerDBusStubAdapter(const std::string& objectPath,
                                                                      const std::string& interfaceName,
                                                                      DBusStubAdapter* dbusStubAdapter) {
