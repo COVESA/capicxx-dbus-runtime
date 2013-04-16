@@ -105,7 +105,6 @@ protected:
 
     bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
         for (int i = 0; i < 10; i++) {
-            std::cout << "Current status is: " << toString(proxyAvailabilityStatus_) << std::endl;
             if (proxyAvailabilityStatus_ == availabilityStatus)
                 return true;
             usleep(100000);
