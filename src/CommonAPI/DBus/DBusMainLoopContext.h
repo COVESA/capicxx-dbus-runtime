@@ -20,13 +20,13 @@
 namespace CommonAPI {
 namespace DBus {
 
-class DBusProxyConnection;
+class DBusConnection;
 
 
 
 class DBusDispatchSource: public DispatchSource {
  public:
-    DBusDispatchSource(DBusProxyConnection* dbusConnection);
+    DBusDispatchSource(DBusConnection* dbusConnection);
     ~DBusDispatchSource();
 
     bool prepare(int64_t& timeout);
@@ -34,7 +34,7 @@ class DBusDispatchSource: public DispatchSource {
     bool dispatch();
 
  private:
-    DBusProxyConnection* dbusConnection_;
+    DBusConnection* dbusConnection_;
 };
 
 class DBusWatch: public Watch {
