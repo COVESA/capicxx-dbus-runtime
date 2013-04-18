@@ -4,6 +4,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "DBusProxy.h"
 #include "DBusConnection.h"
 #include "DBusFactory.h"
@@ -19,6 +20,7 @@
 
 namespace CommonAPI {
 namespace DBus {
+
 
 std::unordered_map<std::string, DBusProxyFactoryFunction>* registeredProxyFactoryFunctions_;
 std::unordered_map<std::string, DBusAdapterFactoryFunction>* registeredAdapterFactoryFunctions_;
@@ -39,12 +41,16 @@ void DBusFactory::registerAdapterFactoryMethod(std::string interfaceName, DBusAd
 }
 
 
-
-DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo) :
+DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext) :
                 CommonAPI::Factory(runtime, middlewareInfo),
                 dbusConnection_(CommonAPI::DBus::DBusConnection::getSessionBus()),
-                acquiredConnectionName_("") {
-    dbusConnection_->connect();
+                acquiredConnectionName_(""),
+                mainLoopContext_(mainLoopContext) {
+    bool startDispatchThread = !mainLoopContext_;
+    dbusConnection_->connect(startDispatchThread);
+    if(mainLoopContext_) {
+        dbusConnection_->attachMainLoopContext(mainLoopContext);
+    }
 }
 
 
@@ -139,8 +145,7 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
         if(!dbusStubAdapter) {
             return false;
         }
-        std::string address = domain + ":" + serviceName + ":" + participantId;
-        if(registeredServices_.insert( {std::move(address), dbusStubAdapter} ).second) {
+        if(registeredServices_.insert( {std::move(commonApiAddress), dbusStubAdapter} ).second) {
             dbusStubAdapter->init();
             return true;
         }
