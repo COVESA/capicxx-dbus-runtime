@@ -44,7 +44,10 @@ struct WatchContext {
 class DBusConnection: public DBusProxyConnection, public std::enable_shared_from_this<DBusConnection> {
  public:
     enum BusType {
-        SESSION = DBUS_BUS_SESSION, SYSTEM = DBUS_BUS_SYSTEM, STARTER = DBUS_BUS_STARTER, WRAPPED
+        SESSION = DBUS_BUS_SESSION,
+        SYSTEM = DBUS_BUS_SYSTEM,
+        STARTER = DBUS_BUS_STARTER,
+        WRAPPED
     };
 
     DBusConnection(BusType busType);
