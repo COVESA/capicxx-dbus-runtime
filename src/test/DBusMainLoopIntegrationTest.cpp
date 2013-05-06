@@ -367,7 +367,7 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
 
     std::map<CommonAPI::DispatchSource*, GSource*> gSourceMappings;
 
-    GIOChannel* dbusChannel_ = NULL;
+    GIOChannel* dbusChannel_;
 
     void watchAddedCallback(CommonAPI::Watch* watch, const CommonAPI::DispatchPriority dispatchPriority) {
         const pollfd& fileDesc = watch->getAssociatedFileDescriptor();
