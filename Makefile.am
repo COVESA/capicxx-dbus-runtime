@@ -103,6 +103,7 @@ TestInterfaceSources = \
         src/test/fakeLegacyService/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
 
 check_PROGRAMS = \
+        DBusMainLoopIntegrationTest \
         DBusConnectionTest \
         DBusServiceRegistryTest \
         DBusProxyTest \
@@ -120,8 +121,15 @@ check_PROGRAMS = \
         DBusBenchmarkingTest
 
 
-TESTS =	${check_PROGRAMS}
+TESTS = ${check_PROGRAMS}
 LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} ${LDADD}
+
+DBusMainLoopIntegrationTest_SOURCES = \
+        src/test/DBusMainLoopIntegrationTest.cpp \
+        ${TestInterfaceSources}
+DBusMainLoopIntegrationTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS} ${GLIB_CFLAGS}
+DBusMainLoopIntegrationTest_CXXFLAGS = ${GTEST_CXXFLAGS} ${GLIB_CFLAGS}
+DBusMainLoopIntegrationTest_LDADD = ${LDADD_FOR_GTEST} ${GLIB_LIBS}
 
 DBusServiceRegistryTest_SOURCES = \
         src/test/DBusServiceRegistryTest.cpp \
