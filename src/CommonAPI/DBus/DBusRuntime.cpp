@@ -23,8 +23,8 @@ std::shared_ptr<Runtime> DBusRuntime::getInstance() {
     return singleton_;
 }
 
-std::shared_ptr<Factory> DBusRuntime::createFactory() {
-    auto factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_);
+std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopContext> mainLoopContext) {
+    auto factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_, mainLoopContext);
     return factory;
 }
 

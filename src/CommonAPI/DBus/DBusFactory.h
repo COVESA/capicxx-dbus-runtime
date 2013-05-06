@@ -18,11 +18,14 @@
 namespace CommonAPI {
 namespace DBus {
 
+class DBusMainLoopContext;
+
 typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const std::string& commonApiAddress,
                                                                 const std::string& interfaceName,
                                                                 const std::string& busName,
                                                                 const std::string& objectPath,
                                                                 const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+
 typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const std::string& commonApiAddress,
                                                                         const std::string& interfaceName,
                                                                         const std::string& busName,
@@ -32,7 +35,7 @@ typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const st
 
 class DBusFactory: public Factory {
  public:
-    DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo);
+    DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext = std::shared_ptr<MainLoopContext>(NULL));
     virtual ~DBusFactory();
 
     static void registerProxyFactoryMethod(std::string interfaceName, DBusProxyFactoryFunction proxyFactoryFunction);
@@ -53,6 +56,7 @@ class DBusFactory: public Factory {
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::string acquiredConnectionName_;
     std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> registeredServices_;
+    std::shared_ptr<MainLoopContext> mainLoopContext_;
 };
 
 } // namespace DBus
