@@ -92,9 +92,6 @@ class DBusProxyConnection {
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry() = 0;
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
 
-    virtual bool isDispatchReady() = 0;
-    virtual bool singleDispatch() = 0;
-
     virtual void registerObjectPath(const std::string& objectPath) = 0;
     virtual void unregisterObjectPath(const std::string& objectPath) = 0;
 

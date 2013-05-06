@@ -17,7 +17,7 @@ namespace CommonAPI {
 namespace DBus {
 
 
-DBusDispatchSource::DBusDispatchSource(DBusProxyConnection* dbusConnection):
+DBusDispatchSource::DBusDispatchSource(DBusConnection* dbusConnection):
     dbusConnection_(dbusConnection) {
 }
 
