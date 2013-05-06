@@ -229,7 +229,8 @@ void DBusOutputStream::flush() {
     memcpy(destinationDataPtr, payload_.c_str(), toWrite);
 }
 
-void DBusOutputStream::setError() {}
+void DBusOutputStream::setError() {
+}
 
 /**
  * Reserves the given number of bytes for writing, thereby negating the need to dynamically allocate memory while writing.
@@ -241,12 +242,6 @@ void DBusOutputStream::reserveMemory(size_t numOfBytes) {
     assert(numOfBytes >= 0);
     payload_.reserve(numOfBytes);
 }
-
-/**
- * @return current data position where later writing is possible
- */
-size_t getCurrentPosition();
-
 
 DBusOutputStream& DBusOutputStream::writeString(const char* cString, const uint32_t& length) {
     assert(cString != NULL);
