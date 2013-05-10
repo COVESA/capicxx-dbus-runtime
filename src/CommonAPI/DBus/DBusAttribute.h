@@ -31,11 +31,9 @@ class DBusReadonlyAttribute: public _AttributeType {
 		assert(getMethodName);
 	}
 
-	CallStatus getValue(ValueType& value) const {
-		CallStatus callStatus;
+	void getValue(CallStatus& callStatus, ValueType& value) const {
 		DBusProxyHelper<DBusSerializableArguments<>,
 						DBusSerializableArguments<ValueType> >::callMethodWithReply(dbusProxy_, getMethodName_, "", callStatus, value);
-		return callStatus;
 	}
 
 	std::future<CallStatus> getValueAsync(AttributeAsyncCallback attributeAsyncCallback) {

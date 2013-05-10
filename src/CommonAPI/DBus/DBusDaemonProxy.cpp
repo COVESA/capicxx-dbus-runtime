@@ -15,10 +15,9 @@ StaticInterfaceVersionAttribute::StaticInterfaceVersionAttribute(const uint32_t&
                 version_(majorValue, minorValue) {
 }
 
-CallStatus StaticInterfaceVersionAttribute::getValue(Version& version) const {
+void StaticInterfaceVersionAttribute::getValue(CallStatus& callStatus, Version& version) const {
     version = version_;
-
-    return CallStatus::SUCCESS;
+    callStatus = CallStatus::SUCCESS;
 }
 
 std::future<CallStatus> StaticInterfaceVersionAttribute::getValueAsync(AttributeAsyncCallback attributeAsyncCallback) {

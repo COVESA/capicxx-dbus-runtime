@@ -22,7 +22,7 @@ class StaticInterfaceVersionAttribute: public InterfaceVersionAttribute {
  public:
     StaticInterfaceVersionAttribute(const uint32_t& majorValue, const uint32_t& minorValue);
 
-    CallStatus getValue(Version& version) const;
+    void getValue(CallStatus& callStatus, Version& version) const;
     std::future<CallStatus> getValueAsync(AttributeAsyncCallback attributeAsyncCallback);
 
  private:
