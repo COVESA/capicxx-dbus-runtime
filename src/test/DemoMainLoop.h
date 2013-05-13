@@ -203,9 +203,9 @@ class MainLoop {
                 watchIterator++) {
             Watch* watch = std::get<0>(watchIterator->second);
             const unsigned int flags = std::get<1>(watchIterator->second);
+            const auto& dependentSources = watch->getDependentDispatchSources();
             watch->dispatch(flags);
 
-            const auto& dependentSources = watch->getDependentDispatchSources();
             for (auto dependentSourceIterator = dependentSources.begin();
                     dependentSourceIterator != dependentSources.end();
                     dependentSourceIterator++) {

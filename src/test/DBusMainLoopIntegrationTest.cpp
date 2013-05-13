@@ -46,6 +46,7 @@ const std::string testAddress4 = "local:my.fourth.test:commonapi.address.four";
 const std::string testAddress5 = "local:my.fifth.test:commonapi.address.five";
 const std::string testAddress6 = "local:my.sixth.test:commonapi.address.six";
 const std::string testAddress7 = "local:my.seventh.test:commonapi.address.seven";
+const std::string testAddress8 = "local:my.eigth.test:commonapi.address.eight";
 
 //####################################################################################################################
 
@@ -257,6 +258,73 @@ TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanCommunicate) {
     mainLoop_->run();
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
+
+    mainloopFactory_->unregisterService(testAddress4);
+}
+
+
+class BigDataTestStub: public commonapi::tests::TestInterfaceStubDefault {
+    void testDerivedTypeMethod(
+            commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue,
+            commonapi::tests::DerivedTypeCollection::TestMap testMapInValue,
+            commonapi::tests::DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue,
+            commonapi::tests::DerivedTypeCollection::TestMap& testMapOutValue) {
+        testEnumExtended2OutValue = testEnumExtended2InValue;
+        testMapOutValue = testMapInValue;
+    }
+};
+
+
+TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanHandleBigData) {
+    std::shared_ptr<BigDataTestStub> stub = std::make_shared<
+                    BigDataTestStub>();
+    ASSERT_TRUE(mainloopFactory_->registerService(stub, testAddress8));
+
+    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress8);
+    ASSERT_TRUE((bool) proxy);
+
+    while (!proxy->isAvailable()) {
+        mainLoop_->doSingleIteration();
+        usleep(50000);
+    }
+
+    uint32_t uint32Value = 42;
+    std::string stringValue = "Hai :)";
+    bool running = true;
+
+    commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue =
+            commonapi::tests::DerivedTypeCollection::TestEnumExtended2::E_OK;
+    commonapi::tests::DerivedTypeCollection::TestMap testMapInValue;
+
+    // Estimated amount of data (differring padding at beginning/end of Map/Array etc. not taken into account):
+    // 4 + 4 + 100 * (4 + (4 + 4 + 100 * (11 + 1 + 4)) + 4 ) = 161608
+    for(uint32_t i = 0; i < 500; ++i) {
+        commonapi::tests::DerivedTypeCollection::TestArrayTestStruct testArrayTestStruct;
+        for(uint32_t j = 0; j < 100; ++j) {
+            commonapi::tests::DerivedTypeCollection::TestStruct testStruct("Hai all (:", j);
+            testArrayTestStruct.push_back(testStruct);
+        }
+        testMapInValue.insert( {i, testArrayTestStruct} );
+    }
+
+    std::future<CommonAPI::CallStatus> futureStatus = proxy->testDerivedTypeMethodAsync(
+            testEnumExtended2InValue,
+            testMapInValue,
+            [&] (const CommonAPI::CallStatus& status,
+                    commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2OutValue,
+                    commonapi::tests::DerivedTypeCollection::TestMap testMapOutValue) {
+                EXPECT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(status));
+                EXPECT_EQ(testEnumExtended2InValue, testEnumExtended2OutValue);
+                EXPECT_EQ(testMapInValue.size(), testMapOutValue.size());
+                mainLoop_->stop();
+            }
+    );
+
+    mainLoop_->run();
+
+    ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
+
+    mainloopFactory_->unregisterService(testAddress8);
 }
 
 TEST_F(DBusMainLoopTest, DemoMainloopClientsHandleNonavailableServices) {
