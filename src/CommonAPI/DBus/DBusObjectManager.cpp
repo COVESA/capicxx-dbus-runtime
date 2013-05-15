@@ -20,10 +20,10 @@ namespace DBus {
 DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
         dbusConnection_(dbusConnection) {
 
-    assert(!dbusConnection->isObjectPathMessageHandlerSet());
-    dbusConnection->setObjectPathMessageHandler(
-                    std::bind(&DBusObjectManager::handleMessage, this, std::placeholders::_1));
-
+    if (!dbusConnection->isObjectPathMessageHandlerSet()) {
+        dbusConnection->setObjectPathMessageHandler(
+                        std::bind(&DBusObjectManager::handleMessage, this, std::placeholders::_1));
+    }
     dbusConnection->registerObjectPath("/");
 }
 
