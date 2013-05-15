@@ -131,7 +131,8 @@ TEST_F(DBusMultipleConnectionTest, SetAttributeBroadcast) {
 
 TEST_F(DBusMultipleConnectionTest, GetAttribute) {
     uint32_t v1;
-    CommonAPI::CallStatus stat = proxy->getTestPredefinedTypeAttributeAttribute().getValue(v1);
+    CommonAPI::CallStatus stat;
+    proxy->getTestPredefinedTypeAttributeAttribute().getValue(stat, v1);
     ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, stat);
 }
 

@@ -250,7 +250,7 @@ TEST_F(ProxyTest, TestInterfaceVersionAttribute) {
 	CommonAPI::InterfaceVersionAttribute& versionAttribute = proxy_->getInterfaceVersionAttribute();
 	CommonAPI::Version version;
 	CommonAPI::CallStatus status;
-	ASSERT_NO_THROW(status = versionAttribute.getValue(version));
+	ASSERT_NO_THROW(versionAttribute.getValue(status, version));
 	ASSERT_EQ(CommonAPI::CallStatus::NOT_AVAILABLE, status);
 }
 
