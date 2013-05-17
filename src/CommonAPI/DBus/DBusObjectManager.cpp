@@ -8,11 +8,14 @@
 #include "DBusDaemonProxy.h"
 #include "DBusStubAdapter.h"
 #include "DBusOutputStream.h"
+#include "DBusUtils.h"
 
 #include <dbus/dbus-protocol.h>
 
 #include <cassert>
 #include <sstream>
+
+#include <unordered_set>
 
 namespace CommonAPI {
 namespace DBus {
@@ -151,6 +154,7 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
                             "</method>\n"
                         "</interface>\n";
 
+    std::unordered_set<std::string> nodeSet;
     for (auto& registeredObjectsIterator : dbusRegisteredObjectsTable_) {
         const DBusInterfaceHandlerPath& handlerPath = registeredObjectsIterator.first;
         const std::string& dbusObjectPath = handlerPath.first;
@@ -163,6 +167,42 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
             xmlData << "<interface name=\"" << dbusInterfaceName << "\">\n"
                             << dbusStubAdapter->getMethodsDBusIntrospectionXmlData() << "\n"
                             "</interface>\n";
+        } else {
+            std::vector<std::string> elems = CommonAPI::DBus::split(dbusObjectPath, '/');
+            if (dbusMessage.hasObjectPath("/") && elems.size() > 1) {
+                if (nodeSet.find(elems[1]) == nodeSet.end()) {
+                    if (nodeSet.size() == 0) {
+                        xmlData.str("");
+                        xmlData << "<!DOCTYPE node PUBLIC \"" DBUS_INTROSPECT_1_0_XML_PUBLIC_IDENTIFIER "\"\n\""
+                        DBUS_INTROSPECT_1_0_XML_SYSTEM_IDENTIFIER"\">\n"
+                        "<node>\n";
+                    }
+                    xmlData << "    <node name=\"" << elems[1] << "\"/>\n";
+                    nodeSet.insert(elems[1]);
+                    foundRegisteredObjects = true;
+                }
+            } else {
+                for (int i = 1; i < elems.size() - 1; i++) {
+                    std::string build;
+                    for (int j = 1; j <= i; j++) {
+                        build = build + "/" + elems[j];
+                        if (dbusMessage.hasObjectPath(dbusObjectPath)) {
+                            if (nodeSet.find(elems[j + 1]) == nodeSet.end()) {
+                                if (nodeSet.size() == 0) {
+                                    xmlData.str("");
+                                    xmlData << "<!DOCTYPE node PUBLIC \"" DBUS_INTROSPECT_1_0_XML_PUBLIC_IDENTIFIER "\"\n\""
+                                            DBUS_INTROSPECT_1_0_XML_SYSTEM_IDENTIFIER"\">\n"
+                                            "<node>\n";
+                                }
+                                xmlData << "    <node name=\"" << elems[j + 1] << "\"/>\n";
+                                nodeSet.insert(elems[j + 1]);
+                                foundRegisteredObjects = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -170,7 +210,8 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("s");
         DBusOutputStream dbusOutputStream(dbusMessageReply);
 
-        xmlData << "</node>";
+        xmlData << "</node>"
+                        "";
 
         dbusOutputStream << xmlData.str();
         dbusOutputStream.flush();
