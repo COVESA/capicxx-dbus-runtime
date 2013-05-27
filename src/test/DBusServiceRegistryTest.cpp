@@ -82,6 +82,7 @@ TEST_F(DBusServiceRegistryTest, CanBeConstructed) {
 	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
     CommonAPI::DBus::DBusServiceRegistry* registry = new CommonAPI::DBus::DBusServiceRegistry(dbusConnection);
     ASSERT_TRUE(registry != NULL);
+    delete registry;
 }
 
 
@@ -138,7 +139,7 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
     auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
 
     ASSERT_TRUE(stubDBusConnection->connect());
-    stubDBusConnection->requestServiceNameAndBlock(dbusServiceName);
+	ASSERT_TRUE(stubDBusConnection->requestServiceNameAndBlock(dbusServiceName));
 
     auto proxyDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
     auto dbusServiceRegistry = proxyDBusConnection->getDBusServiceRegistry();
@@ -188,8 +189,8 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
 
 
         bool isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
-        for (int i = 0; !isInstanceAlive && i < 5; i++) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        for (int i = 0; !isInstanceAlive && i < 100; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
         }
 
@@ -223,7 +224,13 @@ class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
 
         auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
-        dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
+        bool serviceNameAcquired = dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
+        for(unsigned int i = 0; !serviceNameAcquired && i < 100; ++i) {
+            usleep(10000);
+            serviceNameAcquired = dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
+        }
+        ASSERT_TRUE(serviceNameAcquired);
+
         stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
                         "local:test.service.name:test.instance.name",
                         "test.service.name",
@@ -232,10 +239,12 @@ class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
                         dbusStubConnection_,
                         stub);
         stubAdapter_->init();
+        usleep(200000);
     }
 
     virtual void TearDown() {
     	stubAdapter_->deinit();
+    	usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
@@ -247,13 +256,11 @@ class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
 
 
 TEST_F(DBusServiceRegistryTestWithPredefinedRemote, RecognizesCommonAPIDBusServiceInstanceAsAlive) {
-    sleep(1);
     ASSERT_TRUE(dbusServiceRegistry_->isServiceInstanceAlive("test.service.name", "test.instance.name", "/test/instance/name"));
 }
 
 
 TEST_F(DBusServiceRegistryTestWithPredefinedRemote, FindsCommonAPIDBusServiceInstance) {
-	sleep(1);
     auto availableServices = dbusServiceRegistry_->getAvailableServiceInstances("test.service.name", "local");
     ASSERT_EQ(1, availableServices.size());
     bool serviceFound;

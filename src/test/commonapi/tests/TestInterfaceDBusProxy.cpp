@@ -28,7 +28,7 @@ TestInterfaceDBusProxy::TestInterfaceDBusProxy(
                     const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection):
         CommonAPI::DBus::DBusProxy(commonApiAddress, interfaceName, busName, objectPath, dbusProxyconnection)
 ,        testPredefinedTypeAttribute_(*this, "onTestPredefinedTypeAttributeAttributeChanged", "setTestPredefinedTypeAttributeAttribute", "u", "getTestPredefinedTypeAttributeAttribute"),
-        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqii)", "getTestDerivedStructAttributeAttribute"),
+        testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqi)", "getTestDerivedStructAttributeAttribute"),
         testDerivedArrayAttribute_(*this, "onTestDerivedArrayAttributeAttributeChanged", "setTestDerivedArrayAttributeAttribute", "at", "getTestDerivedArrayAttributeAttribute")
 ,        testPredefinedTypeBroadcast_(*this, "TestPredefinedTypeBroadcast", "us")
                  {
@@ -48,6 +48,23 @@ TestInterfaceDBusProxy::TestPredefinedTypeBroadcastEvent& TestInterfaceDBusProxy
     return testPredefinedTypeBroadcast_;
 }
 
+void TestInterfaceDBusProxy::testEmptyMethod(CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "testEmptyMethod",
+        "",
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::testEmptyMethodAsync(TestEmptyMethodAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "testEmptyMethod",
+        "",
+        std::move(callback));
+}
 void TestInterfaceDBusProxy::testVoidPredefinedTypeMethod(const uint32_t& uint32Value, const std::string& stringValue, CommonAPI::CallStatus& callStatus) {
     CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t, std::string>,
                                      CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(

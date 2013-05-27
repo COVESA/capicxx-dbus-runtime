@@ -220,6 +220,7 @@ int main(void) {
     }
 
     assert(dispatchedMessageCount > 0);
+    testStubAdapter->deinit();
 
     return 0;
 }

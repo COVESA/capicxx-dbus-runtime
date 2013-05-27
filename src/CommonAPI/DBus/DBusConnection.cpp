@@ -29,17 +29,43 @@ DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
                 &DBusConnection::onLibdbusObjectPathMessageThunk
 };
 
-void DBusConnection::dispatch() {
-    while (!stopDispatching_ && readWriteDispatch(10)) {
+void DBusConnection::dispatch(std::shared_ptr<DBusConnection> selfReference) {
+    while (!stopDispatching_ && readWriteDispatch(10) && !selfReference.unique()) {
+        if(pauseDispatching_) {
+            dispatchSuspendLock_.lock();
+            dispatchSuspendLock_.unlock();
+        }
     }
+}
+
+bool DBusConnection::readWriteDispatch(int timeoutMilliseconds) {
+    if(isConnected()) {
+        const dbus_bool_t libdbusSuccess = dbus_connection_read_write_dispatch(libdbusConnection_,
+                                                                               timeoutMilliseconds);
+        return libdbusSuccess;
+    }
+    return false;
+}
+
+void DBusConnection::suspendDispatching() const {
+    dispatchSuspendLock_.lock();
+    pauseDispatching_ = true;
+}
+
+void DBusConnection::resumeDispatching() const {
+    pauseDispatching_ = false;
+    dispatchSuspendLock_.unlock();
 }
 
 DBusConnection::DBusConnection(BusType busType) :
                 busType_(busType),
                 libdbusConnection_(NULL),
                 dbusConnectionStatusEvent_(this),
-                isLibdbusSignalFilterAdded_(false),
-                stopDispatching_(false) {
+                stopDispatching_(false),
+                pauseDispatching_(false),
+                dispatchThread_(NULL),
+                dbusObjectMessageHandler_(),
+                watchContext_(NULL)  {
     dbus_threads_init_default();
 }
 
@@ -47,27 +73,176 @@ DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
                 busType_(WRAPPED),
                 libdbusConnection_(libDbusConnection),
                 dbusConnectionStatusEvent_(this),
-                isLibdbusSignalFilterAdded_(false),
-                stopDispatching_(false)  {
+                stopDispatching_(false),
+                pauseDispatching_(false),
+                dispatchThread_(NULL),
+                dbusObjectMessageHandler_(),
+                watchContext_(NULL) {
     dbus_threads_init_default();
 }
 
+void DBusConnection::setObjectPathMessageHandler(DBusObjectPathMessageHandler handler) {
+    dbusObjectMessageHandler_ = handler;
+}
+
+bool DBusConnection::isObjectPathMessageHandlerSet() {
+    return dbusObjectMessageHandler_.operator bool();
+}
+
 DBusConnection::~DBusConnection() {
-    if (isConnected()) {
-        disconnect();
+    if(auto lockedContext = mainLoopContext_.lock()) {
+        dbus_connection_set_watch_functions(libdbusConnection_, NULL, NULL, NULL, NULL, NULL);
+        dbus_connection_set_timeout_functions(libdbusConnection_, NULL, NULL, NULL, NULL, NULL);
+
+        lockedContext->deregisterDispatchSource(dispatchSource_);
+        delete watchContext_;
+        delete dispatchSource_;
+    }
+
+    disconnect();
+}
+
+
+bool DBusConnection::attachMainLoopContext(std::weak_ptr<MainLoopContext> mainLoopContext) {
+    mainLoopContext_ = mainLoopContext;
+
+    if (auto lockedContext = mainLoopContext_.lock()) {
+        dispatchSource_ = new DBusDispatchSource(this);
+        watchContext_ = new WatchContext(mainLoopContext_, dispatchSource_);
+        lockedContext->registerDispatchSource(dispatchSource_);
+
+        dbus_connection_set_wakeup_main_function(
+                        libdbusConnection_,
+                        &DBusConnection::onWakeupMainContext,
+                        &mainLoopContext_,
+                        NULL);
+
+        bool success = dbus_connection_set_watch_functions(
+                libdbusConnection_,
+                &DBusConnection::onAddWatch,
+                &DBusConnection::onRemoveWatch,
+                &DBusConnection::onToggleWatch,
+                watchContext_,
+                NULL);
+
+        if (!success) {
+            return false;
+        }
+
+        success = dbus_connection_set_timeout_functions(
+                libdbusConnection_,
+                &DBusConnection::onAddTimeout,
+                &DBusConnection::onRemoveTimeout,
+                &DBusConnection::onToggleTimeout,
+                &mainLoopContext_,
+                NULL);
+
+        if (!success) {
+            dbus_connection_set_watch_functions(libdbusConnection_, NULL, NULL, NULL, NULL, NULL);
+            return false;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+void DBusConnection::onWakeupMainContext(void* data) {
+    std::weak_ptr<MainLoopContext>* mainloop = static_cast<std::weak_ptr<MainLoopContext>*>(data);
+    assert(mainloop);
+
+    if(auto lockedContext = mainloop->lock()) {
+        lockedContext->wakeup();
     }
 }
 
-bool DBusConnection::connect() {
-    DBusError dbusError;
-    return connect(dbusError);
+
+dbus_bool_t DBusConnection::onAddWatch(::DBusWatch* libdbusWatch, void* data) {
+    WatchContext* watchContext = static_cast<WatchContext*>(data);
+    assert(watchContext);
+
+    DBusWatch* dbusWatch = new DBusWatch(libdbusWatch, watchContext->mainLoopContext_);
+    dbusWatch->addDependentDispatchSource(watchContext->dispatchSource_);
+    dbus_watch_set_data(libdbusWatch, dbusWatch, NULL);
+
+    if (dbusWatch->isReadyToBeWatched()) {
+        dbusWatch->startWatching();
+    }
+
+    return TRUE;
 }
 
-bool DBusConnection::connect(DBusError& dbusError) {
+void DBusConnection::onRemoveWatch(::DBusWatch* libdbusWatch, void* data) {
+    assert(static_cast<WatchContext*>(data));
+
+    DBusWatch* dbusWatch = static_cast<DBusWatch*>(dbus_watch_get_data(libdbusWatch));
+    if(dbusWatch->isReadyToBeWatched()) {
+        dbusWatch->stopWatching();
+    }
+    dbus_watch_set_data(libdbusWatch, NULL, NULL);
+    delete dbusWatch;
+}
+
+void DBusConnection::onToggleWatch(::DBusWatch* libdbusWatch, void* data) {
+    assert(static_cast<WatchContext*>(data));
+
+    DBusWatch* dbusWatch = static_cast<DBusWatch*>(dbus_watch_get_data(libdbusWatch));
+
+    if (dbusWatch->isReadyToBeWatched()) {
+        dbusWatch->startWatching();
+    } else {
+        dbusWatch->stopWatching();
+    }
+}
+
+
+dbus_bool_t DBusConnection::onAddTimeout(::DBusTimeout* libdbusTimeout, void* data) {
+    std::weak_ptr<MainLoopContext>* mainloop = static_cast<std::weak_ptr<MainLoopContext>*>(data);
+    assert(mainloop);
+
+    DBusTimeout* dbusTimeout = new DBusTimeout(libdbusTimeout, *mainloop);
+    dbus_timeout_set_data(libdbusTimeout, dbusTimeout, NULL);
+
+    if (dbusTimeout->isReadyToBeMonitored()) {
+        dbusTimeout->startMonitoring();
+    }
+
+    return TRUE;
+}
+
+void DBusConnection::onRemoveTimeout(::DBusTimeout* libdbusTimeout, void* data) {
+    assert(static_cast<std::weak_ptr<MainLoopContext>*>(data));
+
+    DBusTimeout* dbusTimeout = static_cast<DBusTimeout*>(dbus_timeout_get_data(libdbusTimeout));
+    dbusTimeout->stopMonitoring();
+    dbus_timeout_set_data(libdbusTimeout, NULL, NULL);
+    delete dbusTimeout;
+}
+
+void DBusConnection::onToggleTimeout(::DBusTimeout* dbustimeout, void* data) {
+    assert(static_cast<std::weak_ptr<MainLoopContext>*>(data));
+
+    DBusTimeout* timeout = static_cast<DBusTimeout*>(dbus_timeout_get_data(dbustimeout));
+
+    if (timeout->isReadyToBeMonitored()) {
+        timeout->startMonitoring();
+    } else {
+        timeout->stopMonitoring();
+    }
+}
+
+
+bool DBusConnection::connect(bool startDispatchThread) {
+    DBusError dbusError;
+    return connect(dbusError, startDispatchThread);
+}
+
+bool DBusConnection::connect(DBusError& dbusError, bool startDispatchThread) {
     assert(!dbusError);
 
-    if (isConnected())
+    if (isConnected()) {
         return true;
+    }
 
     const ::DBusBusType libdbusType = static_cast<DBusBusType>(busType_);
 
@@ -83,8 +258,10 @@ bool DBusConnection::connect(DBusError& dbusError) {
 
     initLibdbusSignalFilterAfterConnect();
 
-    stopDispatching_ = false;
-    dispatchThread_ = std::thread(std::bind(&DBusConnection::dispatch, this));
+    if(startDispatchThread) {
+        dispatchThread_ = new std::thread(&DBusConnection::dispatch, this, this->shared_from_this());
+    }
+    stopDispatching_ = !startDispatchThread;
 
     dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::AVAILABLE);
 
@@ -94,6 +271,8 @@ bool DBusConnection::connect(DBusError& dbusError) {
 void DBusConnection::disconnect() {
     std::lock_guard<std::mutex> dbusConnectionLock(libdbusConnectionGuard_);
     if (isConnected()) {
+        dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::NOT_AVAILABLE);
+
         if (!dbusSignalMatchRulesMap_.empty()) {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
@@ -102,18 +281,20 @@ void DBusConnection::disconnect() {
 
         dbus_connection_close(libdbusConnection_);
 
-        //It is possible for the disconnect to be called from within a callback, i.e. from within the dispatch
-        //thread. Self-join is prevented this way.
-        if (dispatchThread_.joinable() && std::this_thread::get_id() != dispatchThread_.get_id()) {
-        	dispatchThread_.join();
-        } else {
-        	dispatchThread_.detach();
+        if(dispatchThread_) {
+            //It is possible for the disconnect to be called from within a callback, i.e. from within the dispatch
+            //thread. Self-join is prevented this way.
+            if (dispatchThread_->joinable() && std::this_thread::get_id() != dispatchThread_->get_id()) {
+                dispatchThread_->join();
+            } else {
+                dispatchThread_->detach();
+            }
+            delete dispatchThread_;
+            dispatchThread_ = NULL;
         }
 
         dbus_connection_unref(libdbusConnection_);
         libdbusConnection_ = NULL;
-
-        dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::NOT_AVAILABLE);
     }
 }
 
@@ -128,9 +309,13 @@ DBusProxyConnection::ConnectionStatusEvent& DBusConnection::getConnectionStatusE
 const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistry() {
     std::shared_ptr<DBusServiceRegistry> serviceRegistry = dbusServiceRegistry_.lock();
     if (!serviceRegistry || dbusServiceRegistry_.expired()) {
-        serviceRegistry = std::make_shared<DBusServiceRegistry>(this->shared_from_this());
-        serviceRegistry->init();
-        dbusServiceRegistry_ = serviceRegistry;
+        serviceRegistryGuard_.lock();
+        if (!serviceRegistry || dbusServiceRegistry_.expired()) {
+            serviceRegistry = std::make_shared<DBusServiceRegistry>(shared_from_this());
+            serviceRegistry->init();
+            dbusServiceRegistry_ = serviceRegistry;
+        }
+        serviceRegistryGuard_.unlock();
     }
 
     return serviceRegistry;
@@ -138,7 +323,11 @@ const std::shared_ptr<DBusServiceRegistry> DBusConnection::getDBusServiceRegistr
 
 const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() {
     if (!dbusObjectManager_) {
-        dbusObjectManager_ = std::make_shared<DBusObjectManager>(this->shared_from_this());
+        objectManagerGuard_.lock();
+        if (!dbusObjectManager_) {
+            dbusObjectManager_ = std::make_shared<DBusObjectManager>(shared_from_this());
+        }
+        objectManagerGuard_.unlock();
     }
 
     return dbusObjectManager_;
@@ -146,10 +335,16 @@ const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() 
 
 bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) const {
     DBusError dbusError;
+
+    suspendDispatching();
+
     const int libdbusStatus = dbus_bus_request_name(libdbusConnection_,
                                                     serviceName.c_str(),
                                                     DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                                     &dbusError.libdbusError_);
+
+    resumeDispatching();
+
     const bool isServiceNameAcquired = (libdbusStatus == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER);
 
     return isServiceNameAcquired;
@@ -157,9 +352,11 @@ bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) 
 
 bool DBusConnection::releaseServiceName(const std::string& serviceName) const {
     DBusError dbusError;
+    suspendDispatching();
     const int libdbusStatus = dbus_bus_release_name(libdbusConnection_,
                                                     serviceName.c_str(),
                                                     &dbusError.libdbusError_);
+    resumeDispatching();
     const bool isServiceNameReleased = (libdbusStatus == DBUS_RELEASE_NAME_REPLY_RELEASED);
 
     return isServiceNameReleased;
@@ -242,30 +439,38 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
 DBusMessage DBusConnection::sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
                                                              DBusError& dbusError,
                                                              int timeoutMilliseconds) const {
+	auto selfReference = this->shared_from_this();
+
     assert(dbusMessage);
     assert(!dbusError);
     assert(isConnected());
+
+    suspendDispatching();
 
     ::DBusMessage* libdbusMessageReply = dbus_connection_send_with_reply_and_block(libdbusConnection_,
                                                                                    dbusMessage.libdbusMessage_,
                                                                                    timeoutMilliseconds,
                                                                                    &dbusError.libdbusError_);
-    if (dbusError)
+
+    resumeDispatching();
+
+    if (dbusError) {
         return DBusMessage();
+    }
 
     const bool increaseLibdbusMessageReferenceCount = false;
     return DBusMessage(libdbusMessageReply, increaseLibdbusMessageReferenceCount);
 }
 
 
-bool DBusConnection::readWriteDispatch(int timeoutMilliseconds) {
-    if(isConnected()) {
-        const dbus_bool_t libdbusSuccess = dbus_connection_read_write_dispatch(libdbusConnection_,
-                                                                               timeoutMilliseconds);
-        return libdbusSuccess;
-    }
-    return false;
+bool DBusConnection::singleDispatch() {
+    return (dbus_connection_dispatch(libdbusConnection_) == DBUS_DISPATCH_DATA_REMAINS);
 }
+
+bool DBusConnection::isDispatchReady() {
+    return (dbus_connection_get_dispatch_status(libdbusConnection_) == DBUS_DISPATCH_DATA_REMAINS);
+}
+
 
 DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandler(const std::string& objectPath,
                                                                                    const std::string& interfaceName,
@@ -291,25 +496,23 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 void DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) {
     std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     auto equalRangeIteratorPair = dbusSignalHandlerTable_.equal_range(dbusSignalHandlerToken);
+    if (equalRangeIteratorPair.first != equalRangeIteratorPair.second) {
+		// advance to the next element
+		equalRangeIteratorPair.first++;
 
-    // the range can't be empty!
-    assert(equalRangeIteratorPair.first != equalRangeIteratorPair.second);
+		// check if the first element was the only element
+		const bool isLastSignalMemberHandler = equalRangeIteratorPair.first == equalRangeIteratorPair.second;
 
-    // advance to the next element
-    equalRangeIteratorPair.first++;
+		if (isLastSignalMemberHandler) {
+			const std::string& objectPath = std::get<0>(dbusSignalHandlerToken);
+			const std::string& interfaceName = std::get<1>(dbusSignalHandlerToken);
+			const std::string& interfaceMemberName = std::get<2>(dbusSignalHandlerToken);
 
-    // check if the first element was the only element
-    const bool isLastSignalMemberHandler = equalRangeIteratorPair.first == equalRangeIteratorPair.second;
+			removeLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName);
+		}
 
-    if (isLastSignalMemberHandler) {
-        const std::string& objectPath = std::get<0>(dbusSignalHandlerToken);
-        const std::string& interfaceName = std::get<1>(dbusSignalHandlerToken);
-        const std::string& interfaceMemberName = std::get<2>(dbusSignalHandlerToken);
-
-        removeLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName);
+		dbusSignalHandlerTable_.erase(dbusSignalHandlerToken);
     }
-
-    dbusSignalHandlerTable_.erase(dbusSignalHandlerToken);
 }
 
 void DBusConnection::registerObjectPath(const std::string& objectPath) {
@@ -397,6 +600,7 @@ void DBusConnection::addLibdbusSignalMatchRule(const std::string& objectPath,
 
     // if not connected the filter and the rules will be added as soon as the connection is established
     if (isConnected()) {
+        suspendDispatching();
         // add the libdbus message signal filter
         if (isFirstMatchRule) {
             const dbus_bool_t libdbusSuccess = dbus_connection_add_filter(libdbusConnection_,
@@ -410,6 +614,8 @@ void DBusConnection::addLibdbusSignalMatchRule(const std::string& objectPath,
         DBusError dbusError;
         dbus_bus_add_match(libdbusConnection_, matchRuleString.c_str(), &dbusError.libdbusError_);
         assert(!dbusError);
+
+        resumeDispatching();
     }
 }
 
@@ -430,8 +636,12 @@ void DBusConnection::removeLibdbusSignalMatchRule(const std::string& objectPath,
     }
 
     const std::string& matchRuleString = matchRuleIterator->second.second;
+
+    suspendDispatching();
+
     DBusError dbusError;
     dbus_bus_remove_match(libdbusConnection_, matchRuleString.c_str(), &dbusError.libdbusError_);
+
     assert(!dbusError);
 
     dbusSignalMatchRulesMap_.erase(matchRuleIterator);
@@ -440,14 +650,17 @@ void DBusConnection::removeLibdbusSignalMatchRule(const std::string& objectPath,
     if (isLastMatchRule) {
         dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
     }
+
+    resumeDispatching();
 }
 
 void DBusConnection::initLibdbusObjectPathHandlerAfterConnect() {
     assert(isConnected());
 
     // nothing to do if there aren't any registered object path handlers
-    if (libdbusRegisteredObjectPaths_.empty())
+    if (libdbusRegisteredObjectPaths_.empty()) {
         return;
+    }
 
     DBusError dbusError;
     dbus_bool_t libdbusSuccess;
@@ -476,6 +689,8 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     if (dbusSignalMatchRulesMap_.empty())
         return;
 
+    suspendDispatching();
+
     // first we add the libdbus message signal filter
     const dbus_bool_t libdbusSuccess = dbus_connection_add_filter(libdbusConnection_,
                                                                   &onLibdbusSignalFilterThunk,
@@ -492,9 +707,10 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
         dbus_bus_add_match(libdbusConnection_, matchRuleString.c_str(), &dbusError.libdbusError_);
         assert(!dbusError);
     }
+    resumeDispatching();
 }
 
-::DBusHandlerResult DBusConnection::onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) const {
+::DBusHandlerResult DBusConnection::onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) {
     assert(libdbusMessage);
 
     // handle only method call messages
@@ -502,7 +718,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
-    bool isDBusMessageHandled = dbusObjectManager_->handleMessage(DBusMessage(libdbusMessage));
+    bool isDBusMessageHandled = dbusObjectMessageHandler_(DBusMessage(libdbusMessage));
     return isDBusMessageHandled ? DBUS_HANDLER_RESULT_HANDLED : DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
@@ -511,8 +727,9 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     auto selfReference = this->shared_from_this();
 
     // handle only signal messages
-    if (dbus_message_get_type(libdbusMessage) != DBUS_MESSAGE_TYPE_SIGNAL)
+    if (dbus_message_get_type(libdbusMessage) != DBUS_MESSAGE_TYPE_SIGNAL) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
 
     const char* objectPath = dbus_message_get_path(libdbusMessage);
     const char* interfaceName = dbus_message_get_interface(libdbusMessage);
@@ -536,9 +753,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
             const SubscriptionStatus dbusSignalHandlerSubscriptionStatus = dbusSignalHandler->onSignalDBusMessage(dbusMessage);
 
             if (dbusSignalHandlerSubscriptionStatus == SubscriptionStatus::CANCEL) {
-            	auto dbusSignalHandlerSubscription = equalRangeIteratorPair.first;
-            	equalRangeIteratorPair.first++;
-            	dbusSignalHandlerTable_.erase(dbusSignalHandlerSubscription);
+            	equalRangeIteratorPair.first = dbusSignalHandlerTable_.erase(equalRangeIteratorPair.first);
             } else {
             	equalRangeIteratorPair.first++;
             }
@@ -571,7 +786,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     assert(libdbusMessage);
     assert(userData);
 
-    const DBusConnection* dbusConnection = reinterpret_cast<DBusConnection*>(userData);
+    DBusConnection* dbusConnection = reinterpret_cast<DBusConnection*>(userData);
 
     assert(dbusConnection->libdbusConnection_ == libdbusConnection);
 

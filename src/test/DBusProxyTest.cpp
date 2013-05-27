@@ -13,11 +13,12 @@
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusStubAdapter.h>
-#include <CommonAPI/DBus/DBusUtils.h>
 
 #include <commonapi/tests/TestInterfaceDBusProxy.h>
 #include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
 #include <commonapi/tests/TestInterfaceStubDefault.h>
+
+#include "DBusTestUtils.h"
 
 #include <gtest/gtest.h>
 
@@ -52,13 +53,12 @@ protected:
     }
 
     virtual void TearDown() {
+        usleep(30000);
     }
 
     void registerTestStub() {
         stubDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         ASSERT_TRUE(stubDBusConnection_->connect());
-
-        ASSERT_TRUE(stubDBusConnection_->requestServiceNameAndBlock(busName));
 
         auto stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
         stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
@@ -69,6 +69,15 @@ protected:
                         stubDBusConnection_,
                         stubDefault);
         stubAdapter_->init();
+
+        bool serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+
+        for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+            usleep(10000);
+            serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+        }
+        ASSERT_TRUE(serviceNameAcquired);
+        usleep(500000);
     }
 
     void deregisterTestStub() {
@@ -84,22 +93,21 @@ protected:
     void proxyRegisterForAvailabilityStatus() {
         proxyAvailabilityStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
 
-        proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
+        proxyStatusSubscription_ = proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
             proxyAvailabilityStatus_ = availabilityStatus;
         });
+        usleep(100000);
+    }
+
+    void proxyDeregisterForAvailabilityStatus() {
+    	proxy_->getProxyStatusEvent().unsubscribe(proxyStatusSubscription_);
     }
 
     bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
-        std::chrono::milliseconds loopWaitDuration(100);
-
-        if (proxyAvailabilityStatus_ == availabilityStatus)
-            return true;
-
         for (int i = 0; i < 10; i++) {
-            std::this_thread::sleep_for(loopWaitDuration);
-
             if (proxyAvailabilityStatus_ == availabilityStatus)
                 return true;
+            usleep(100000);
         }
 
         return false;
@@ -108,6 +116,8 @@ protected:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
     std::shared_ptr<commonapi::tests::TestInterfaceDBusProxy> proxy_;
     CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
+
+    CommonAPI::ProxyStatusEvent::Subscription proxyStatusSubscription_;
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> stubDBusConnection_;
     std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter_;
@@ -133,7 +143,11 @@ TEST_F(ProxyTest, IsNotAvailable) {
 	EXPECT_FALSE(isAvailable);
 }
 
-TEST_F(ProxyTest, ServiceRegistry) {
+TEST_F(ProxyTest, IsConnected) {
+  ASSERT_TRUE(proxy_->getDBusConnection()->isConnected());
+}
+
+TEST_F(ProxyTest, AssociatedConnectionHasServiceRegistry) {
 	std::shared_ptr<CommonAPI::DBus::DBusProxyConnection> connection = proxy_->getDBusConnection();
 	auto registry = connection->getDBusServiceRegistry();
 	ASSERT_FALSE(!registry);
@@ -153,6 +167,7 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 
     deregisterTestStub();
+    proxyDeregisterForAvailabilityStatus();
 }
 
 TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
@@ -171,6 +186,7 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 
     deregisterTestStub();
+    proxyDeregisterForAvailabilityStatus();
 }
 
 TEST_F(ProxyTest, ServiceStatus) {
@@ -178,6 +194,7 @@ TEST_F(ProxyTest, ServiceStatus) {
 
     std::vector<std::string> availableDBusServices;
 
+    //Service actually IS available!
     for (int i = 0; i < 5; i++) {
         availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
                         commonApiServiceName,
@@ -187,7 +204,7 @@ TEST_F(ProxyTest, ServiceStatus) {
             break;
         }
     }
-    sleep(1);
+
 	auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
 
 	EXPECT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
@@ -214,14 +231,12 @@ TEST_F(ProxyTest, isServiceInstanceAlive) {
 TEST_F(ProxyTest, IsAvailableBlocking) {
     registerTestStub();
 
-    // blocking in terms of "if it's still uknown"
-    bool isAvailable = proxy_->isAvailableBlocking();
-    for (int i = 0; !isAvailable && i < 10; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        isAvailable = proxy_->isAvailableBlocking();
+    // blocking in terms of "if it's still unknown"
+    for (int i = 0; !proxy_->isAvailableBlocking() && i < 3; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    EXPECT_TRUE(isAvailable);
+    EXPECT_TRUE(proxy_->isAvailableBlocking());
 
     deregisterTestStub();
 }
@@ -231,30 +246,27 @@ TEST_F(ProxyTest, HasNecessaryAttributesAndEvents) {
 	CommonAPI::ProxyStatusEvent& statusEvent = (proxy_->getProxyStatusEvent());
 }
 
-TEST_F(ProxyTest, IsConnected) {
-  ASSERT_TRUE(proxy_->getDBusConnection()->isConnected());
-}
-
 TEST_F(ProxyTest, TestInterfaceVersionAttribute) {
 	CommonAPI::InterfaceVersionAttribute& versionAttribute = proxy_->getInterfaceVersionAttribute();
 	CommonAPI::Version version;
-	CommonAPI::CallStatus status = versionAttribute.getValue(version);
+	CommonAPI::CallStatus status;
+	ASSERT_NO_THROW(versionAttribute.getValue(status, version));
 	ASSERT_EQ(CommonAPI::CallStatus::NOT_AVAILABLE, status);
 }
 
 TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
     commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testInputStruct;
     commonapi::tests::DerivedTypeCollection::TestMap testInputMap;
-    bool wasCalled = false;
+    std::promise<bool> wasCalledPromise;
+    std::future<bool> wasCalledFuture = wasCalledPromise.get_future();
     proxy_->testDerivedTypeMethodAsync(testInputStruct, testInputMap, [&] (const CommonAPI::CallStatus& callStatus,
                                                                           const commonapi::tests::DerivedTypeCollection::TestEnumExtended2&,
                                                                           const commonapi::tests::DerivedTypeCollection::TestMap&) {
                     ASSERT_EQ(callStatus, CommonAPI::CallStatus::NOT_AVAILABLE);
-                    wasCalled = true;
+                    wasCalledPromise.set_value(true);
             }
     );
-    sleep(1);
-    ASSERT_TRUE(wasCalled);
+    ASSERT_TRUE(wasCalledFuture.get());
 }
 
 int main(int argc, char** argv) {

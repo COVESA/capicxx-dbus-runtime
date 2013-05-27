@@ -11,9 +11,9 @@
 #include "DBusDaemonProxy.h"
 #include "DBusServiceRegistry.h"
 #include "DBusObjectManager.h"
+#include "DBusMainLoopContext.h"
 
 #include <dbus/dbus.h>
-
 
 namespace CommonAPI {
 namespace DBus {
@@ -32,134 +32,169 @@ class DBusConnectionStatusEvent: public DBusProxyConnection::ConnectionStatusEve
     DBusConnection* dbusConnection_;
 };
 
+struct WatchContext {
+    WatchContext(std::weak_ptr<MainLoopContext> mainLoopContext, DispatchSource* dispatchSource) :
+            mainLoopContext_(mainLoopContext), dispatchSource_(dispatchSource) {
+    }
+
+    std::weak_ptr<MainLoopContext> mainLoopContext_;
+    DispatchSource* dispatchSource_;
+};
 
 class DBusConnection: public DBusProxyConnection, public std::enable_shared_from_this<DBusConnection> {
  public:
-	enum BusType {
-		SESSION = DBUS_BUS_SESSION,
-		SYSTEM = DBUS_BUS_SYSTEM,
-		STARTER = DBUS_BUS_STARTER,
-		WRAPPED
-	};
+    enum BusType {
+        SESSION = DBUS_BUS_SESSION,
+        SYSTEM = DBUS_BUS_SYSTEM,
+        STARTER = DBUS_BUS_STARTER,
+        WRAPPED
+    };
 
-	DBusConnection(BusType busType);
+    DBusConnection(BusType busType);
 
-	inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
-	inline static std::shared_ptr<DBusConnection> wrapLibDBus(::DBusConnection* libDbusConnection);
-	inline static std::shared_ptr<DBusConnection> getSessionBus();
-	inline static std::shared_ptr<DBusConnection> getSystemBus();
-	inline static std::shared_ptr<DBusConnection> getStarterBus();
+    inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
+    inline static std::shared_ptr<DBusConnection> wrapLibDBus(::DBusConnection* libDbusConnection);
+    inline static std::shared_ptr<DBusConnection> getSessionBus();
+    inline static std::shared_ptr<DBusConnection> getSystemBus();
+    inline static std::shared_ptr<DBusConnection> getStarterBus();
 
-	DBusConnection(const DBusConnection&) = delete;
-	DBusConnection(::DBusConnection* libDbusConnection);
+    DBusConnection(const DBusConnection&) = delete;
+    DBusConnection(::DBusConnection* libDbusConnection);
 
-	DBusConnection& operator=(const DBusConnection&) = delete;
-	virtual ~DBusConnection();
+    DBusConnection& operator=(const DBusConnection&) = delete;
+    virtual ~DBusConnection();
 
-	BusType getBusType() const;
+    BusType getBusType() const;
 
-	bool connect();
-	bool connect(DBusError& dbusError);
-	void disconnect();
+    bool connect(bool startDispatchThread = true);
+    bool connect(DBusError& dbusError, bool startDispatchThread = true);
+    void disconnect();
 
-	virtual bool isConnected() const;
+    virtual bool isConnected() const;
 
-	virtual ConnectionStatusEvent& getConnectionStatusEvent();
+    virtual ConnectionStatusEvent& getConnectionStatusEvent();
 
-	virtual bool requestServiceNameAndBlock(const std::string& serviceName) const;
-	virtual bool releaseServiceName(const std::string& serviceName) const;
+    virtual bool requestServiceNameAndBlock(const std::string& serviceName) const;
+    virtual bool releaseServiceName(const std::string& serviceName) const;
 
-	bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const;
+    bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const;
 
-	static const int kDefaultSendTimeoutMs = 100 * 1000;
+    static const int kDefaultSendTimeoutMs = 5000;
 
-	std::future<CallStatus> sendDBusMessageWithReplyAsync(
-			const DBusMessage& dbusMessage,
-			std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
-			int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
+    std::future<CallStatus> sendDBusMessageWithReplyAsync(
+            const DBusMessage& dbusMessage,
+            std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
+            int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
 
-	DBusMessage sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
-	                                             DBusError& dbusError,
-	                                             int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
+    DBusMessage sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
+            DBusError& dbusError,
+            int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
 
-	DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
-	                                              const std::string& interfaceName,
-	                                              const std::string& interfaceMemberName,
-	                                              const std::string& interfaceMemberSignature,
-	                                              DBusSignalHandler* dbusSignalHandler);
+    DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
+            const std::string& interfaceName,
+            const std::string& interfaceMemberName,
+            const std::string& interfaceMemberSignature,
+            DBusSignalHandler* dbusSignalHandler);
 
-	void registerObjectPath(const std::string& objectPath);
-	void unregisterObjectPath(const std::string& objectPath);
+    void registerObjectPath(const std::string& objectPath);
+    void unregisterObjectPath(const std::string& objectPath);
 
-	void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
+    void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
 
-	bool readWriteDispatch(int timeoutMilliseconds = -1);
+    bool readWriteDispatch(int timeoutMilliseconds = -1);
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
 
- private:
-    void dispatch();
+    void setObjectPathMessageHandler(DBusObjectPathMessageHandler);
+    bool isObjectPathMessageHandlerSet();
 
-    std::thread dispatchThread_;
+    virtual bool attachMainLoopContext(std::weak_ptr<MainLoopContext>);
+
+    bool isDispatchReady();
+    bool singleDispatch();
+
+ private:
+    void dispatch(std::shared_ptr<DBusConnection> selfReference);
+    void suspendDispatching() const;
+    void resumeDispatching() const;
+
+    std::thread* dispatchThread_;
     bool stopDispatching_;
 
-	void addLibdbusSignalMatchRule(const std::string& objectPath,
-	                               const std::string& interfaceName,
-	                               const std::string& interfaceMemberName);
+    std::weak_ptr<MainLoopContext> mainLoopContext_;
+    DispatchSource* dispatchSource_;
+    WatchContext* watchContext_;
 
-	void removeLibdbusSignalMatchRule(const std::string& objectPath,
-	                                  const std::string& interfaceName,
-	                                  const std::string& interfaceMemberName);
+    mutable bool pauseDispatching_;
+    mutable std::mutex dispatchSuspendLock_;
 
-	void initLibdbusObjectPathHandlerAfterConnect();
+    void addLibdbusSignalMatchRule(const std::string& objectPath,
+            const std::string& interfaceName,
+            const std::string& interfaceMemberName);
 
-	void initLibdbusSignalFilterAfterConnect();
+    void removeLibdbusSignalMatchRule(const std::string& objectPath,
+            const std::string& interfaceName,
+            const std::string& interfaceMemberName);
 
-	::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage) const;
+    void initLibdbusSignalFilterAfterConnect();
+    ::DBusHandlerResult onLibdbusSignalFilter(::DBusMessage* libdbusMessage);
 
-	::DBusHandlerResult onLibdbusSignalFilter(::DBusMessage* libdbusMessage);
+    void initLibdbusObjectPathHandlerAfterConnect();
+    ::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage);
 
-	static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
-	static void onLibdbusDataCleanup(void* userData);
+    static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
+    static void onLibdbusDataCleanup(void* userData);
 
-	static ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
-	                                                           ::DBusMessage* libdbusMessage,
-	                                                            void* userData);
+    static ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
+            ::DBusMessage* libdbusMessage,
+            void* userData);
 
-	static ::DBusHandlerResult onLibdbusSignalFilterThunk(::DBusConnection* libdbusConnection,
-	                                                      ::DBusMessage* libdbusMessage,
-	                                                       void* userData);
+    static ::DBusHandlerResult onLibdbusSignalFilterThunk(::DBusConnection* libdbusConnection,
+            ::DBusMessage* libdbusMessage,
+            void* userData);
 
-	BusType busType_;
+    static dbus_bool_t onAddWatch(::DBusWatch* libdbusWatch, void* data);
+    static void onRemoveWatch(::DBusWatch* libdbusWatch, void* data);
+    static void onToggleWatch(::DBusWatch* libdbusWatch, void* data);
 
-	::DBusConnection* libdbusConnection_;
-	std::mutex libdbusConnectionGuard_;
-	std::mutex signalGuard_;
+    static dbus_bool_t onAddTimeout(::DBusTimeout* dbus_timeout, void* data);
+    static void onRemoveTimeout(::DBusTimeout* dbus_timeout, void* data);
+    static void onToggleTimeout(::DBusTimeout* dbus_timeout, void* data);
 
-	std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
+    static void onWakeupMainContext(void* data);
+
+    ::DBusConnection* libdbusConnection_;
+    std::mutex libdbusConnectionGuard_;
+    std::mutex signalGuard_;
+    std::mutex objectManagerGuard_;
+    std::mutex serviceRegistryGuard_;
+
+    BusType busType_;
+
+    std::weak_ptr<DBusServiceRegistry> dbusServiceRegistry_;
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
 
-	DBusConnectionStatusEvent dbusConnectionStatusEvent_;
+    DBusConnectionStatusEvent dbusConnectionStatusEvent_;
 
-	typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
-	typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
-	typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
-	DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
-
-    bool isLibdbusSignalFilterAdded_;
+    typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
+    typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
+    typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
+    DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
     DBusSignalHandlerTable dbusSignalHandlerTable_;
 
-    // referenceCount, objectPath
+    // objectPath, referenceCount
     typedef std::unordered_map<std::string, uint32_t> LibdbusRegisteredObjectPathHandlersTable;
     LibdbusRegisteredObjectPathHandlersTable libdbusRegisteredObjectPaths_;
 
     static DBusObjectPathVTable libdbusObjectPathVTable_;
+
+    DBusObjectPathMessageHandler dbusObjectMessageHandler_;
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {
-	return std::make_shared<DBusConnection>(busType);
+    return std::make_shared<DBusConnection>(busType);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::wrapLibDBus(::DBusConnection* libDbusConnection) {
@@ -167,17 +202,16 @@ std::shared_ptr<DBusConnection> DBusConnection::wrapLibDBus(::DBusConnection* li
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::getSessionBus() {
-	return getBus(BusType::SESSION);
+    return getBus(BusType::SESSION);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::getSystemBus() {
-	return getBus(BusType::SYSTEM);
+    return getBus(BusType::SYSTEM);
 }
 
 std::shared_ptr<DBusConnection> DBusConnection::getStarterBus() {
-	return getBus(BusType::STARTER);
+    return getBus(BusType::STARTER);
 }
-
 
 } // namespace DBus
 } // namespace CommonAPI

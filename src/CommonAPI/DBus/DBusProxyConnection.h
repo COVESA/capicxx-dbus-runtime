@@ -59,37 +59,46 @@ class DBusProxyConnection {
 
     typedef Event<AvailabilityStatus> ConnectionStatusEvent;
 
-	virtual ~DBusProxyConnection() { }
+    virtual ~DBusProxyConnection() {
+    }
 
-	virtual bool isConnected() const =  0;
+    virtual bool isConnected() const = 0;
 
-	virtual ConnectionStatusEvent& getConnectionStatusEvent() = 0;
+    virtual ConnectionStatusEvent& getConnectionStatusEvent() = 0;
 
-	virtual bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const = 0;
+    virtual bool sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* allocatedSerial = NULL) const = 0;
 
-	static const int kDefaultSendTimeoutMs = 100 * 1000;
+    static const int kDefaultSendTimeoutMs = 100 * 1000;
 
-	virtual std::future<CallStatus> sendDBusMessageWithReplyAsync(
-			const DBusMessage& dbusMessage,
-			std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
-			int timeoutMilliseconds = kDefaultSendTimeoutMs) const = 0;
+    virtual std::future<CallStatus> sendDBusMessageWithReplyAsync(
+            const DBusMessage& dbusMessage,
+            std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
+            int timeoutMilliseconds = kDefaultSendTimeoutMs) const = 0;
 
-	virtual DBusMessage sendDBusMessageWithReplyAndBlock(
-			const DBusMessage& dbusMessage,
-			DBusError& dbusError,
-			int timeoutMilliseconds = kDefaultSendTimeoutMs) const = 0;
+    virtual DBusMessage sendDBusMessageWithReplyAndBlock(
+            const DBusMessage& dbusMessage,
+            DBusError& dbusError,
+            int timeoutMilliseconds = kDefaultSendTimeoutMs) const = 0;
 
-	virtual DBusSignalHandlerToken addSignalMemberHandler(
-	                const std::string& objectPath,
-	                const std::string& interfaceName,
-	                const std::string& interfaceMemberName,
-	                const std::string& interfaceMemberSignature,
-	                DBusSignalHandler* dbusSignalHandler) = 0;
+    virtual DBusSignalHandlerToken addSignalMemberHandler(
+            const std::string& objectPath,
+            const std::string& interfaceName,
+            const std::string& interfaceMemberName,
+            const std::string& interfaceMemberSignature,
+            DBusSignalHandler* dbusSignalHandler) = 0;
 
-	virtual void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
+    virtual void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry() = 0;
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
+
+    virtual void registerObjectPath(const std::string& objectPath) = 0;
+    virtual void unregisterObjectPath(const std::string& objectPath) = 0;
+
+    typedef std::function<bool(const DBusMessage&)> DBusObjectPathMessageHandler;
+
+    virtual void setObjectPathMessageHandler(DBusObjectPathMessageHandler) = 0;
+    virtual bool isObjectPathMessageHandlerSet() = 0;
 };
 
 

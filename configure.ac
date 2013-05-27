@@ -1,17 +1,19 @@
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 AC_INIT([GENIVI Common API DBus C++ Library],
         [2.0],
         [],
         [CommonAPI-DBus])
+
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_CONFIG_MACRO_DIR([m4])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([build-aux/config.h])
 AC_CONFIG_FILES([
-		Makefile
-		CommonAPI-DBus.pc
-    	CommonAPI-DBus-uninstalled.pc])
+        Makefile
+        CommonAPI-DBus.pc
+        CommonAPI-DBus-uninstalled.pc])
 
 AC_CANONICAL_SYSTEM
 
@@ -31,6 +33,13 @@ LT_INIT
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES(COMMONAPI, [CommonAPI >= 0.7])
 PKG_CHECK_MODULES(DBUS, [dbus-1 >= 1.4.6])
+PKG_CHECK_MODULES(GLIB, [glib-2.0],
+        [],
+        [
+            echo "WARNING: No glib found, tests will not be compiled!"
+            TESTS_CAN_BE_EXECUTED=false
+        ]
+)
 
 GTEST_MIN_VERSION="1.6.0"
 GTEST_URL="http://code.google.com/p/googletest"
@@ -58,8 +67,7 @@ AS_IF([test -f "${GTEST_CONFIG}"],
       []
 )
 
-AM_CONDITIONAL(ENABLE_TESTS, [test -f "${GTEST_CONFIG}"])
-
+AM_CONDITIONAL(ENABLE_TESTS, [test -f "${GTEST_CONFIG}" && ${TESTS_CAN_BE_EXECUTED}])
 
 # Doxygen support
 DX_HTML_FEATURE(ON)
@@ -71,17 +79,17 @@ DX_XML_FEATURE(OFF)
 DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
 DX_INIT_DOXYGEN(${PACKAGE_NAME}, doxygen.cfg, doc)
-    
+
 AC_MSG_RESULT([
         $PACKAGE_NAME v$VERSION
 
         enable docs:       ${ENABLE_DOCS}
 
-		COMMONAPI_CFLAGS:  ${COMMONAPI_CFLAGS}
-		COMMONAPI_LIBS:    ${COMMONAPI_LIBS}
+        COMMONAPI_CFLAGS:  ${COMMONAPI_CFLAGS}
+        COMMONAPI_LIBS:    ${COMMONAPI_LIBS}
 
-		DBUS_CFLAGS:       ${DBUS_CFLAGS}
-		DBUS_LIBS:         ${DBUS_LIBS}
+        DBUS_CFLAGS:       ${DBUS_CFLAGS}
+        DBUS_LIBS:         ${DBUS_LIBS}
 
         GTEST_CONFIG:      ${GTEST_CONFIG}
         GTEST_CPPFLAGS:    ${GTEST_CPPFLAGS}

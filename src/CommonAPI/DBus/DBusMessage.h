@@ -69,6 +69,10 @@ class DBusMessage {
 	const char* getSignatureString() const;
 	const char* getErrorName() const;
 
+	inline bool hasObjectPath(const std::string& objectPath) const;
+
+	bool hasObjectPath(const char* objectPath) const;
+    bool hasInterfaceName(const char* interfaceName) const;
 	bool hasMemberName(const char* memberName) const;
 	bool hasSignature(const char* signature) const;
 
@@ -97,6 +101,10 @@ class DBusMessage {
 
 	friend class DBusConnection;
 };
+
+bool DBusMessage::hasObjectPath(const std::string& objectPath) const {
+    return hasObjectPath(objectPath.c_str());
+}
 
 bool DBusMessage::isInvalidType() const {
 	return (getType() == Type::Invalid);

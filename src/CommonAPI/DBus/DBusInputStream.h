@@ -193,11 +193,6 @@ class DBusInputStream: public InputStream {
         return *this;
     }
 
-    /**
-     * Returns the position of the reading pointer, relative to the beginning of the data stream.
-     */
-    position_t getCurrentPosition() const;
-
  private:
     inline void beginReadGenericVector() {
         uint32_t vectorByteSize;

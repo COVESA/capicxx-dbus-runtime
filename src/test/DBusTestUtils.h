@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <dbus/dbus.h>
+#include <CommonAPI/DBus/DBusServiceRegistry.h>
 
 
 inline char eliminateZeroes(char val) {
@@ -32,3 +33,43 @@ inline void printLibdbusMessage(DBusMessage* libdbusMessage) {
     printLibdbusMessage(libdbusMessage, 0, dbus_message_get_body_length(libdbusMessage));
 }
 
+inline std::string toString(CommonAPI::DBus::DBusServiceRegistry::DBusServiceState state) {
+    switch(state) {
+        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::AVAILABLE:
+            return "AVAILABLE";
+        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::NOT_AVAILABLE:
+            return "NOT_AVAILABLE";
+        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::RESOLVED:
+            return "RESOLVED";
+        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::RESOLVING:
+            return "RESOLVING";
+        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::UNKNOWN:
+            return "UNKNOWN";
+    }
+}
+
+inline std::string toString(CommonAPI::AvailabilityStatus state) {
+    switch(state) {
+        case CommonAPI::AvailabilityStatus::AVAILABLE:
+            return "AVAILABLE";
+        case CommonAPI::AvailabilityStatus::NOT_AVAILABLE:
+            return "NOT_AVAILABLE";
+        case CommonAPI::AvailabilityStatus::UNKNOWN:
+            return "UNKNOWN";
+    }
+}
+
+inline std::string toString(CommonAPI::CallStatus state) {
+    switch(state) {
+        case CommonAPI::CallStatus::CONNECTION_FAILED:
+            return "CONNECTION_FAILED";
+        case CommonAPI::CallStatus::NOT_AVAILABLE:
+            return "NOT_AVAILABLE";
+        case CommonAPI::CallStatus::OUT_OF_MEMORY:
+            return "OUT_OF_MEMORY";
+        case CommonAPI::CallStatus::REMOTE_ERROR:
+            return "REMOTE_ERROR";
+        case CommonAPI::CallStatus::SUCCESS:
+            return "SUCCESS";
+    }
+}

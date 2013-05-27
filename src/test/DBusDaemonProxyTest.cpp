@@ -25,8 +25,6 @@ class DBusDaemonProxyTest: public ::testing::Test {
  	}
 
 	virtual void TearDown() {
-		if (dbusConnection_ && dbusConnection_->isConnected()) {
-		}
 	}
 
 	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
@@ -56,7 +54,7 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
 	});
 
-	auto status = future.wait_for(std::chrono::milliseconds(200));
+	auto status = future.wait_for(std::chrono::milliseconds(500));
 	bool waitResult = CommonAPI::DBus::checkReady(status);
     ASSERT_EQ(waitResult, true);
 
@@ -98,12 +96,6 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
 		promise.set_value(std::tuple<CommonAPI::CallStatus, bool>(callStatus, std::move(nameHasOwner)));
 	});
 
-	//while (readWriteDispatchCount_ < 5) {
-	//	ASSERT_TRUE(doReadWriteDispatch());
-		//if (callStatusFuture.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready)
-		//	break;
-	//}
-	//ASSERT_NE(readWriteDispatchCount_, 5);
 	auto status = future.wait_for(std::chrono::milliseconds(100));
 	const bool waitResult = CommonAPI::DBus::checkReady(status);
     ASSERT_EQ(waitResult, true);
@@ -122,7 +114,7 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
 	std::promise<bool> promise;
 	auto future = promise.get_future();
 
-	dbusDaemonProxy_->getNameOwnerChangedEvent().subscribe(
+	auto subscription = dbusDaemonProxy_->getNameOwnerChangedEvent().subscribe(
 			[&](const std::string& name, const std::string& oldOwner, const std::string& newOwner) {
 	    static bool promiseIsSet = false;
 	    if(!promiseIsSet) {
@@ -134,14 +126,9 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
 	// Trigger NameOwnerChanged using a new DBusConnection
 	ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getSessionBus()->connect());
 
-	//while (readWriteDispatchCount_ < 5) {
-	//	ASSERT_TRUE(doReadWriteDispatch());
-		//if (future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready)
-		//	break;
-	//}
-
-	//ASSERT_NE(readWriteDispatchCount_, 5);
 	ASSERT_TRUE(future.get());
+
+	dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(subscription);
 }
 
 } // namespace

@@ -264,11 +264,6 @@ class DBusOutputStream: public OutputStream {
      */
     void reserveMemory(size_t numOfBytes);
 
-    /**
-     * @return current data position where later writing is possible
-     */
-    size_t getCurrentPosition();
-
     template<typename _BasicType>
     DBusOutputStream& writeBasicTypeValue(const _BasicType& basicValue) {
         if (sizeof(_BasicType) > 1)

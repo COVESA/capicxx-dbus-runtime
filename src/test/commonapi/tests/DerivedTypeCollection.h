@@ -8,7 +8,7 @@
 #include <CommonAPI/OutputStream.h>
 #include <CommonAPI/SerializableStruct.h>
 #include <CommonAPI/types.h>
-#include "PredefinedTypeCollection.h"
+#include <commonapi/tests/PredefinedTypeCollection.h>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -18,27 +18,6 @@ namespace commonapi {
 namespace tests {
 
 namespace DerivedTypeCollection {
-    enum class TestEnum: int32_t {
-        E_UNKNOWN = 0,
-        E_OK = 1,
-        E_OUT_OF_RANGE = 2,
-        E_NOT_USED = 3
-    };
-    
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
-    struct TestEnumComparator;
-    enum class TestEnumExtended: int32_t {
-        E_UNKNOWN = TestEnum::E_UNKNOWN,
-        E_OK = TestEnum::E_OK,
-        E_OUT_OF_RANGE = TestEnum::E_OUT_OF_RANGE,
-        E_NOT_USED = TestEnum::E_NOT_USED
-        ,
-        E_NEW = 4
-    };
-    
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
-    struct TestEnumExtendedComparator;
-    typedef std::unordered_map<TestEnum, std::string> TestEnumMap;
     struct TestStruct: CommonAPI::SerializableStruct {
         PredefinedTypeCollection::TestString testString;
         uint16_t uintValue;
@@ -54,7 +33,33 @@ namespace DerivedTypeCollection {
             typeOutputStream.writeUInt16Type();
         }
     };
+    
     typedef std::vector<TestStruct> TestArrayTestStruct;
+    
+    typedef std::unordered_map<uint32_t, TestArrayTestStruct> TestMap;
+    
+    enum class TestEnum: int32_t {
+        E_UNKNOWN = 0,
+        E_OK = 1,
+        E_OUT_OF_RANGE = 2,
+        E_NOT_USED = 3
+    };
+    
+    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    struct TestEnumComparator;
+    
+    enum class TestEnumExtended: int32_t {
+        E_UNKNOWN = TestEnum::E_UNKNOWN,
+        E_OK = TestEnum::E_OK,
+        E_OUT_OF_RANGE = TestEnum::E_OUT_OF_RANGE,
+        E_NOT_USED = TestEnum::E_NOT_USED
+        ,
+        E_NEW = 4
+    };
+    
+    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    struct TestEnumExtendedComparator;
+    
     enum class TestEnumExtended2: int32_t {
         E_UNKNOWN = TestEnum::E_UNKNOWN,
         E_OK = TestEnum::E_OK,
@@ -68,12 +73,12 @@ namespace DerivedTypeCollection {
     
     // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumExtended2Comparator;
+    
     struct TestStructExtended: TestStruct {
         TestEnumExtended2 testEnumExtended2;
-        PredefinedTypeCollection::WeirdStrangeAlienEnum alienEnum;
     
         TestStructExtended() = default;
-        TestStructExtended(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue, const TestEnumExtended2& testEnumExtended2, const PredefinedTypeCollection::WeirdStrangeAlienEnum& alienEnum);
+        TestStructExtended(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue, const TestEnumExtended2& testEnumExtended2);
     
         virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
         virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
@@ -81,10 +86,11 @@ namespace DerivedTypeCollection {
         static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
             TestStruct::writeToTypeOutputStream(typeOutputStream);
             typeOutputStream.writeInt32Type();
-            typeOutputStream.writeInt32Type();
         }
     };
-    typedef std::unordered_map<uint32_t, TestArrayTestStruct> TestMap;
+    
+    typedef std::unordered_map<TestEnum, std::string> TestEnumMap;
+    
     enum class TestEnumMissingValue: int32_t {
         E1 = 10,
         E2,
@@ -93,7 +99,9 @@ namespace DerivedTypeCollection {
     
     // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumMissingValueComparator;
+    
     typedef std::vector<uint64_t> TestArrayUInt64;
+    
 
 bool operator==(const TestStructExtended& lhs, const TestStructExtended& rhs);
 inline bool operator!=(const TestStructExtended& lhs, const TestStructExtended& rhs) {

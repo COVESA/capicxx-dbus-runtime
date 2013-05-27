@@ -21,26 +21,16 @@ namespace DBus {
 
 class DBusProxyBase: public virtual CommonAPI::Proxy {
  public:
-    DBusProxyBase(const std::string& commonApiServiceId,
-                  const std::string& commonApiParticipantId,
-                  const std::string& dbusInterfaceName,
-                  const std::string& dbusBusName,
-                  const std::string& dbusObjectPath,
-                  const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+    DBusProxyBase(const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
 
-    DBusProxyBase(const std::string& dbusInterfaceName,
-                  const std::string& dbusBusName,
-                  const std::string& dbusObjectPath,
-                  const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+    virtual std::string getAddress() const = 0;
+    virtual const std::string& getDomain() const = 0;
+    virtual const std::string& getServiceId() const = 0;
+    virtual const std::string& getInstanceId() const = 0;
 
-    virtual std::string getAddress() const;
-    virtual const std::string& getDomain() const;
-    virtual const std::string& getServiceId() const;
-    virtual const std::string& getInstanceId() const;
-
-    inline const std::string& getDBusBusName() const;
-    inline const std::string& getDBusObjectPath() const;
-    inline const std::string& getInterfaceName() const;
+    virtual const std::string& getDBusBusName() const = 0;
+    virtual const std::string& getDBusObjectPath() const = 0;
+    virtual const std::string& getInterfaceName() const = 0;
     inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
 
     DBusMessage createMethodCall(const char* methodName,
@@ -53,32 +43,14 @@ class DBusProxyBase: public virtual CommonAPI::Proxy {
 
     inline void removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
 
+ protected:
+    static const std::string commonApiDomain_;
+
  private:
     DBusProxyBase(const DBusProxyBase&) = delete;
 
-    const std::string commonApiServiceId_;
-    const std::string commonApiParticipantId_;
-
-    const std::string dbusBusName_;
-    const std::string dbusObjectPath_;
-    const std::string dbusInterfaceName_;
-
     std::shared_ptr<DBusProxyConnection> dbusConnection_;
-
-    static const std::string commonApiDomain_;
 };
-
-const std::string& DBusProxyBase::getDBusBusName() const {
-    return dbusBusName_;
-}
-
-const std::string& DBusProxyBase::getDBusObjectPath() const {
-    return dbusObjectPath_;
-}
-
-const std::string& DBusProxyBase::getInterfaceName() const {
-    return dbusInterfaceName_;
-}
 
 const std::shared_ptr<DBusProxyConnection>& DBusProxyBase::getDBusConnection() const {
     return dbusConnection_;
@@ -89,11 +61,11 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
         const std::string& signalSignature,
         DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
     return dbusConnection_->addSignalMemberHandler(
-                    dbusObjectPath_,
-                    getInterfaceName(),
-                    signalName,
-                    signalSignature,
-                    dbusSignalHandler);
+            getDBusObjectPath(),
+            getInterfaceName(),
+            signalName,
+            signalSignature,
+            dbusSignalHandler);
 }
 
 void DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken) {
