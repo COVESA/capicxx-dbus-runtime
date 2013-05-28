@@ -68,7 +68,10 @@ class DBusInputStream: public InputStream {
  	virtual void beginReadSerializableStruct(const SerializableStruct& serializableStruct);
  	virtual void endReadSerializableStruct(const SerializableStruct& serializableStruct);
 
-    virtual void readSerializableVariant(SerializableVariant& serializableVariant);
+ 	virtual void beginReadSerializablePolymorphicStruct(uint32_t& serialId);
+ 	virtual void endReadSerializablePolymorphicStruct(const uint32_t& serialId);
+
+ 	virtual void readSerializableVariant(SerializableVariant& serializableVariant);
 
     virtual void beginReadBoolVector();
     virtual void beginReadInt8Vector();

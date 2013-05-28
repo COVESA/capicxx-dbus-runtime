@@ -236,6 +236,9 @@ class DBusOutputStream: public OutputStream {
     virtual void beginWriteSerializableStruct(const SerializableStruct& serializableStruct);
     virtual void endWriteSerializableStruct(const SerializableStruct& serializableStruct);
 
+ 	virtual void beginWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
+	virtual void endWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
+
     virtual void beginWriteMap(size_t elementCount);
     virtual void endWriteMap();
     virtual void beginWriteMapElement();

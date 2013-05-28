@@ -115,6 +115,16 @@ void DBusInputStream::beginReadSerializableStruct(const SerializableStruct& seri
 
 void DBusInputStream::endReadSerializableStruct(const SerializableStruct& serializableStruct) { }
 
+void DBusInputStream::beginReadSerializablePolymorphicStruct(uint32_t& serialId) {
+	alignToBoundary(8);
+	readValue(serialId);
+	skipOverSignature();
+	alignToBoundary(8);
+}
+
+void DBusInputStream::endReadSerializablePolymorphicStruct(const uint32_t& serialId) {
+}
+
 void DBusInputStream::readSerializableVariant(SerializableVariant& serializableVariant) {
     alignToBoundary(8);
     uint8_t containedTypeIndex;

@@ -183,6 +183,24 @@ OutputStream& DBusOutputStream::writeVersionValue(const Version& versionValue) {
 void DBusOutputStream::beginWriteSerializableStruct(const SerializableStruct& serializableStruct) { alignToBoundary(8); }
 void DBusOutputStream::endWriteSerializableStruct(const SerializableStruct& serializableStruct) { }
 
+void DBusOutputStream::beginWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct) {
+	alignToBoundary(8);
+	writeValue(serializableStruct->getSerialId());
+
+	DBusTypeOutputStream typeOutputStream;
+    typeOutputStream.beginWriteStructType();
+    serializableStruct->createTypeSignature(typeOutputStream);
+    typeOutputStream.endWriteStructType();
+
+    writeSignature(std::move(typeOutputStream.retrieveSignature()));
+
+    beginWriteSerializableStruct(*serializableStruct);
+}
+
+void DBusOutputStream::endWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct) {
+	endWriteSerializableStruct(*serializableStruct);
+}
+
 void DBusOutputStream::beginWriteMap(size_t elementCount) {
     alignToBoundary(sizeof(uint32_t));
     rememberCurrentStreamPosition();
