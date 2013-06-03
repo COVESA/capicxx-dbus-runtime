@@ -39,8 +39,7 @@ bool DBusDispatchSource::dispatch() {
 
 DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& mainLoopContext):
                 libdbusWatch_(libdbusWatch),
-                mainLoopContext_(mainLoopContext),
-                channelFlags_(0) {
+                mainLoopContext_(mainLoopContext) {
     assert(libdbusWatch_);
 }
 
@@ -49,7 +48,9 @@ bool DBusWatch::isReadyToBeWatched() {
 }
 
 void DBusWatch::startWatching() {
-    channelFlags_ = dbus_watch_get_flags(libdbusWatch_);
+    if(!dbus_watch_get_enabled(libdbusWatch_)) stopWatching();
+
+    unsigned int channelFlags_ = dbus_watch_get_flags(libdbusWatch_);
     short int pollFlags = POLLERR | POLLHUP;
     if(channelFlags_ & DBUS_WATCH_READABLE) {
         pollFlags |= POLLIN;
@@ -77,7 +78,6 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
 
-//XXX Default hierfür die revent-flags?
 void DBusWatch::dispatch(unsigned int eventFlags) {
     dbus_watch_handle(libdbusWatch_, eventFlags);
 }

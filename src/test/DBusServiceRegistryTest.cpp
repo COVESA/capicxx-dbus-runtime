@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "DemoMainLoop.h"
+
 
 // all predefinedInstances will be added for this service
 static const std::string dbusServiceName = "DBusServiceRegistryTest.Predefined.Service";
@@ -151,9 +153,9 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
 
         instanceSubscriptions[commonApiAddress] = dbusServiceRegistry->subscribeAvailabilityListener(
                         commonApiAddress,
-                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) {
-            ASSERT_EQ(availabilityStatus, CommonAPI::AvailabilityStatus::AVAILABLE);
+                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
             instanceStatusPromises[commonApiAddress].set_value(availabilityStatus);
+            return CommonAPI::SubscriptionStatus::RETAIN;
         });
     }
 
@@ -173,9 +175,9 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
         std::promise<CommonAPI::AvailabilityStatus> postInstanceStatusPromise;
         auto postInstanceSubscription = dbusServiceRegistry->subscribeAvailabilityListener(
                         commonApiAddress,
-                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) {
-            ASSERT_EQ(availabilityStatus, CommonAPI::AvailabilityStatus::AVAILABLE);
+                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
             postInstanceStatusPromise.set_value(availabilityStatus);
+            return CommonAPI::SubscriptionStatus::RETAIN;
         });
 
         auto postInstanceStatusFuture = postInstanceStatusPromise.get_future();
@@ -212,66 +214,123 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
 }
 
 
-class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
+const char* serviceAddress_ = "local:test.service.name:test.instance.name";
+const char* serviceName_ = "test.service.name";
+const char* nonexistingServiceAddress_ = "local:nonexisting.service.name:nonexisting.instance.name";
+const char* nonexistingServiceName_ = "nonexisting.service.name";
+
+class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
  protected:
     virtual void SetUp() {
-        dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
-        dbusServiceRegistry_ = dbusConnection_->getDBusServiceRegistry();
-        dbusConnection_->connect();
-
-        dbusStubConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
-        dbusStubConnection_->connect();
-
+        runtime_ = CommonAPI::Runtime::load();
+        serviceFactory_ = runtime_->createFactory();
         auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-
-        bool serviceNameAcquired = dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
-        for(unsigned int i = 0; !serviceNameAcquired && i < 100; ++i) {
-            usleep(10000);
-            serviceNameAcquired = dbusStubConnection_->requestServiceNameAndBlock("test.instance.name");
-        }
-        ASSERT_TRUE(serviceNameAcquired);
-
-        stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
-                        "local:test.service.name:test.instance.name",
-                        "test.service.name",
-                        "test.instance.name",
-                        "/test/instance/name",
-                        dbusStubConnection_,
-                        stub);
-        stubAdapter_->init();
-        usleep(200000);
+        serviceFactory_->registerService(stub, serviceAddress_);
+        clientFactory_ = runtime_->createFactory();
+        usleep(500 * 1000);
     }
 
     virtual void TearDown() {
-    	stubAdapter_->deinit();
-    	usleep(30000);
+        serviceFactory_->unregisterService(serviceAddress_);
+        usleep(500 * 1000);
     }
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusStubConnection_;
-    std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> dbusServiceRegistry_;
+    std::shared_ptr<CommonAPI::Factory> clientFactory_;
 
-    std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter_;
+ private:
+    std::shared_ptr<CommonAPI::Runtime> runtime_;
+    std::shared_ptr<CommonAPI::Factory> serviceFactory_;
 };
 
 
-TEST_F(DBusServiceRegistryTestWithPredefinedRemote, RecognizesCommonAPIDBusServiceInstanceAsAlive) {
-    ASSERT_TRUE(dbusServiceRegistry_->isServiceInstanceAlive("test.service.name", "test.instance.name", "/test/instance/name"));
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfExistingServiceAsAlive) {
+    bool result = clientFactory_->isServiceInstanceAlive(serviceAddress_);
+    ASSERT_TRUE(result);
+}
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfNonexistingServiceAsDead) {
+    bool result = clientFactory_->isServiceInstanceAlive(nonexistingServiceAddress_);
+    ASSERT_FALSE(result);
 }
 
 
-TEST_F(DBusServiceRegistryTestWithPredefinedRemote, FindsCommonAPIDBusServiceInstance) {
-    auto availableServices = dbusServiceRegistry_->getAvailableServiceInstances("test.service.name", "local");
-    ASSERT_EQ(1, availableServices.size());
-    bool serviceFound;
-    for(auto it = availableServices.begin(); it != availableServices.end(); ++it) {
-        if(*it == "local:test.service.name:test.instance.name") {
-            serviceFound = true;
-        }
-    }
-    ASSERT_TRUE(serviceFound);
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfExistingServiceAsAliveAsync) {
+    //Wait for synchronous availability of the service, then verify the async version gets the same result
+    ASSERT_TRUE(clientFactory_->isServiceInstanceAlive(serviceAddress_));
+
+    std::promise<bool> promisedResult;
+    std::future<bool> futureResult = promisedResult.get_future();
+
+    clientFactory_->isServiceInstanceAliveAsync(
+                    [&] (bool isAlive) {
+                        promisedResult.set_value(isAlive);
+                    },
+                    serviceAddress_);
+
+    ASSERT_TRUE(futureResult.get());
 }
 
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfNonexistingServiceAsDeadAsync) {
+    //Wait for synchronous availability of the service, then verify the async version gets the same result
+    ASSERT_FALSE(clientFactory_->isServiceInstanceAlive(nonexistingServiceAddress_));
+
+    std::promise<bool> promisedResult;
+    std::future<bool> futureResult = promisedResult.get_future();
+
+    clientFactory_->isServiceInstanceAliveAsync(
+                    [&] (bool isAlive) {
+                        promisedResult.set_value(isAlive);
+                    },
+                    nonexistingServiceAddress_);
+
+    ASSERT_FALSE(futureResult.get());
+}
+
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsInstancesOfExistingTestService) {
+    ASSERT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
+}
+
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsInstancesOfExistingTestServiceAsync) {
+    //Wait for synchronous availability of the service, then verify the async version gets the same result
+    ASSERT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
+
+    std::promise<std::vector<std::string>> promisedResult;
+    std::future<std::vector<std::string>> futureResult = promisedResult.get_future();
+
+    clientFactory_->getAvailableServiceInstancesAsync(
+                    [&] (std::vector<std::string>& instances) {
+                        promisedResult.set_value(instances);
+                    },
+                    serviceName_);
+
+    ASSERT_EQ(1, futureResult.get().size());
+}
+
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsNoInstancesOfNonexistingTestService) {
+    std::vector<std::string> result = clientFactory_->getAvailableServiceInstances(nonexistingServiceName_);
+    ASSERT_EQ(0, result.size());
+}
+
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsNoInstancesOfNonexistingTestServiceAsync) {
+    //Wait for synchronous availability of the service, then verify the async version gets the same result
+    ASSERT_EQ(0, clientFactory_->getAvailableServiceInstances(nonexistingServiceName_).size());
+
+    std::promise<std::vector<std::string>> promisedResult;
+    std::future<std::vector<std::string>> futureResult = promisedResult.get_future();
+
+    clientFactory_->getAvailableServiceInstancesAsync(
+                    [&] (std::vector<std::string>& instances) {
+                        promisedResult.set_value(instances);
+                    },
+                    nonexistingServiceName_);
+
+    ASSERT_EQ(0, futureResult.get().size());
+}
 
 
 int main(int argc, char** argv) {

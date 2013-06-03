@@ -19,8 +19,9 @@ void DBusServiceStatusEvent::onFirstListenerAdded(const std::string& commonApiSe
 
 }
 
-void DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const AvailabilityStatus& availabilityStatus) {
+SubscriptionStatus DBusServiceStatusEvent::availabilityEvent(const std::string& commonApiServiceName, const AvailabilityStatus& availabilityStatus) {
     notifyListeners(commonApiServiceName, availabilityStatus);
+    return SubscriptionStatus::RETAIN;
 }
 
 void DBusServiceStatusEvent::onListenerAdded(const std::string& commonApiServiceName, const Listener& listener) {

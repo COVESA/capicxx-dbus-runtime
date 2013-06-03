@@ -60,7 +60,7 @@ class DBusProxy: public DBusProxyBase {
  private:
     DBusProxy(const DBusProxy&) = delete;
 
-    void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
+    SubscriptionStatus onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
     DBusServiceRegistry::Subscription dbusServiceRegistrySubscription_;

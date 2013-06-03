@@ -524,9 +524,7 @@ void DBusConnection::registerObjectPath(const std::string& objectPath) {
 
     if (foundRegisteredObjectPathHandler) {
         uint32_t& referenceCount = handlerIterator->second;
-
         referenceCount++;
-
         return;
     }
 

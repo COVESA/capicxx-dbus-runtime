@@ -424,8 +424,8 @@ TEST_F(InputStreamTest, ReadsInt32Variants) {
         TestedVariantType readVariant;
         inStream >> readVariant;
 
-        //TODO: EXPECT_NO_THROW   (oder so)
-        int32_t actualResult = readVariant.get<int32_t>();
+        int32_t actualResult;
+        EXPECT_NO_THROW(actualResult = readVariant.get<int32_t>());
 
         bool varEq = (referenceVariant == readVariant);
         EXPECT_TRUE(varEq);

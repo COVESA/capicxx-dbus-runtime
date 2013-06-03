@@ -60,9 +60,6 @@ class DBusWatch: public Watch {
     std::vector<DispatchSource*> dependentDispatchSources_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
-
-    //XXX Necessary? Are they not covered by the fd-events?
-    unsigned int channelFlags_;
 };
 
 

@@ -4,6 +4,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #ifndef COMMONAPI_DBUS_DBUS_FACTORY_H_
 #define COMMONAPI_DBUS_DBUS_FACTORY_H_
 
@@ -42,9 +43,12 @@ class DBusFactory: public Factory {
     static void registerAdapterFactoryMethod(std::string interfaceName, DBusAdapterFactoryFunction adapterFactoryMethod);
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& serviceInterfaceName, const std::string& serviceDomainName = "local");
-
     virtual bool isServiceInstanceAlive(const std::string& serviceAddress);
     virtual bool isServiceInstanceAlive(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
+
+    virtual void getAvailableServiceInstancesAsync(GetAvailableServiceInstancesCallback callback, const std::string& serviceName, const std::string& serviceDomainName = "local");
+    virtual void isServiceInstanceAliveAsync(IsServiceInstanceAliveCallback callback, const std::string& serviceAddress);
+    virtual void isServiceInstanceAliveAsync(IsServiceInstanceAliveCallback callback, const std::string& serviceInstanceID, const std::string& serviceName, const std::string& serviceDomainName = "local");
 
     virtual bool unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
@@ -53,9 +57,10 @@ class DBusFactory: public Factory {
     virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
+    SubscriptionStatus isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status);
+
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::string acquiredConnectionName_;
-    std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> registeredServices_;
     std::shared_ptr<MainLoopContext> mainLoopContext_;
 };
 

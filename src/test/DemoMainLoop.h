@@ -63,7 +63,10 @@ class MainLoop {
     }
 
     /**
-     * The given timeout will be overridden if a timeout-event is present that defines an earlier ready time.
+     * \brief Runs the mainloop indefinitely until stop() is called.
+     *
+     * Runs the mainloop indefinitely until stop() is called. The given timeout (milliseconds)
+     * will be overridden if a timeout-event is present that defines an earlier ready time.
      */
     void run(const int64_t& timeoutInterval = TIMEOUT_INFINITE) {
         running_ = true;

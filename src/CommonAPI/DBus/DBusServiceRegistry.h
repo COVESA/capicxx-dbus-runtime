@@ -10,6 +10,7 @@
 #include <CommonAPI/types.h>
 #include <CommonAPI/Attribute.h>
 #include <CommonAPI/Proxy.h>
+#include <CommonAPI/Factory.h>
 
 #include "DBusProxyConnection.h"
 #include "DBusAddressTranslator.h"
@@ -52,7 +53,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         NOT_AVAILABLE
     };
 
-    typedef std::function<void(const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
+    typedef std::function<SubscriptionStatus(const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
     typedef std::list<DBusServiceListener> DBusServiceListenerList;
     typedef DBusServiceListenerList::iterator Subscription;
 
@@ -77,6 +78,10 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
                                                                   const std::string& domainName = "local");
 
+    virtual void getAvailableServiceInstancesAsync(Factory::GetAvailableServiceInstancesCallback callback,
+                                                   const std::string& interfaceName,
+                                                   const std::string& domainName = "local");
+
  private:
     DBusServiceRegistry(const DBusServiceRegistry&) = delete;
     DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
@@ -89,7 +94,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     void resolveDBusServiceInstances(DBusServiceList::iterator& dbusServiceIterator);
     void onGetManagedObjectsCallback(const CallStatus& status, DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects, const std::string& dbusServiceName);
 
-    size_t getAvailableServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances);
+    size_t getResolvedServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances);
 
     bool waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout);
 

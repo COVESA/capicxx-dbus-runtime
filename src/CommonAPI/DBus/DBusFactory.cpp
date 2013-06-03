@@ -11,6 +11,7 @@
 #include "DBusAddressTranslator.h"
 #include "DBusServiceRegistry.h"
 #include "DBusUtils.h"
+#include "DBusServicePublisher.h"
 
 #include <algorithm>
 #include <cassert>
@@ -64,6 +65,11 @@ std::vector<std::string> DBusFactory::getAvailableServiceInstances(const std::st
 }
 
 
+void DBusFactory::getAvailableServiceInstancesAsync(Factory::GetAvailableServiceInstancesCallback callback, const std::string& serviceName, const std::string& serviceDomainName) {
+    dbusConnection_->getDBusServiceRegistry()->getAvailableServiceInstancesAsync(callback, serviceName, serviceDomainName);
+}
+
+
 bool DBusFactory::isServiceInstanceAlive(const std::string& serviceAddress) {
     std::vector<std::string> parts = split(serviceAddress, ':');
     assert(parts[0] == "local");
@@ -82,6 +88,33 @@ bool DBusFactory::isServiceInstanceAlive(const std::string& participantId,
                                          const std::string& domainName) {
     std::string serviceAddress = domainName + ":" + serviceName + ":" + participantId;
     return isServiceInstanceAlive(serviceAddress);
+}
+
+
+SubscriptionStatus DBusFactory::isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status) {
+    callback(status == AvailabilityStatus::AVAILABLE);
+    return SubscriptionStatus::CANCEL;
+}
+
+void DBusFactory::isServiceInstanceAliveAsync(Factory::IsServiceInstanceAliveCallback callback, const std::string& serviceAddress) {
+    std::string interfaceName;
+    std::string connectionName;
+    std::string objectPath;
+
+    DBusAddressTranslator::getInstance().searchForDBusAddress(serviceAddress, interfaceName, connectionName, objectPath);
+
+    dbusConnection_->getDBusServiceRegistry()->subscribeAvailabilityListener(
+                    serviceAddress,
+                    std::bind(&DBusFactory::isServiceInstanceAliveCallbackThunk,
+                              this,
+                              callback,
+                              std::placeholders::_1)
+    );
+}
+
+void DBusFactory::isServiceInstanceAliveAsync(Factory::IsServiceInstanceAliveCallback callback, const std::string& serviceInstanceID, const std::string& serviceName, const std::string& serviceDomainName) {
+    std::string commonApiAddress = serviceDomainName + ":" + serviceName + ":" + serviceInstanceID;
+    isServiceInstanceAliveAsync(callback, commonApiAddress);
 }
 
 
@@ -141,11 +174,11 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
 
     auto foundFunction = registeredAdapterFactoryFunctions_->find(interfaceId);
     if(foundFunction != registeredAdapterFactoryFunctions_->end()) {
-        std::shared_ptr<DBusStubAdapter> dbusStubAdapter =  (foundFunction->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
+        std::shared_ptr<DBusStubAdapter> dbusStubAdapter = (foundFunction->second)(commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
         if(!dbusStubAdapter) {
             return false;
         }
-        if(registeredServices_.insert( {std::move(commonApiAddress), dbusStubAdapter} ).second) {
+        if(DBusServicePublisher::getInstance()->registerService(commonApiAddress, dbusStubAdapter)) {
             dbusStubAdapter->init();
             return true;
         }
@@ -155,14 +188,8 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
 }
 
 bool DBusFactory::unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain) {
-    std::string commonApiAddress = domain + ":" + serviceName + ":" + participantId;
-	auto foundStubAdapter = registeredServices_.find(commonApiAddress);
-	if(foundStubAdapter != registeredServices_.end()) {
-		std::shared_ptr<DBusStubAdapter> stubAdapter = foundStubAdapter->second;
-		stubAdapter->deinit();
-		return registeredServices_.erase(commonApiAddress);
-	}
-	return false;
+    std::string serviceAddress(domain + ":" + serviceName + ":" + participantId);
+    return DBusServicePublisher::getInstance()->unregisterService(serviceAddress);
 }
 
 

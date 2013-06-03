@@ -10,6 +10,7 @@
 #include "CommonAPI/Runtime.h"
 
 #include "DBusFactory.h"
+#include "DBusServicePublisher.h"
 
 namespace CommonAPI {
 namespace DBus {
@@ -19,6 +20,8 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
     static std::shared_ptr<Runtime> getInstance();
 
     std::shared_ptr<Factory> createFactory(std::shared_ptr<MainLoopContext> = std::shared_ptr<MainLoopContext>(NULL));
+
+    std::shared_ptr<ServicePublisher> getServicePublisher();
 
     static const MiddlewareInfo middlewareInfo_;
 };

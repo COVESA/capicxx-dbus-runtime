@@ -43,11 +43,13 @@ inline std::string getCurrentBinaryFileFQN() {
         fqnOfBinary[lengthOfFqn] = '\0';
         return std::string(std::move(fqnOfBinary));
     } else {
-        //TODO fail of readlink, i.e. it returns -1, sets errno. See http://linux.die.net/man/3/readlink
         return std::string("");
     }
 }
 
+//In gcc 4.4.1, the enumeration "std::future_status" is defined, but the return values of some functions
+//are bool where the same functions in gcc 4.6. return a value from this enum. This template is a way
+//to ensure compatibility for this issue.
 template<typename _FutureWaitType>
 inline bool checkReady(_FutureWaitType&);
 

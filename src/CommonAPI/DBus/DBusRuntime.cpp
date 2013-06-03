@@ -28,5 +28,9 @@ std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopCont
     return factory;
 }
 
+std::shared_ptr<ServicePublisher> DBusRuntime::getServicePublisher() {
+    return DBusServicePublisher::getInstance();
+}
+
 } // namespace DBus
 } // namespace CommonAPI

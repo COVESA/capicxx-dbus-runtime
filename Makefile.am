@@ -48,6 +48,7 @@ libCommonAPI_DBus_la_SOURCES = \
         src/CommonAPI/DBus/DBusProxy.cpp \
         src/CommonAPI/DBus/DBusFactory.cpp \
         src/CommonAPI/DBus/DBusRuntime.cpp \
+        src/CommonAPI/DBus/DBusServicePublisher.cpp \
         src/CommonAPI/DBus/DBusServiceRegistry.cpp \
         src/CommonAPI/DBus/DBusServiceStatusEvent.cpp \
         src/CommonAPI/DBus/DBusStubAdapter.cpp
@@ -83,6 +84,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusProxyHelper.h \
         src/CommonAPI/DBus/DBusRuntime.h \
         src/CommonAPI/DBus/DBusSerializableArguments.h \
+        src/CommonAPI/DBus/DBusServicePublisher.h \
         src/CommonAPI/DBus/DBusServiceRegistry.h \
         src/CommonAPI/DBus/DBusServiceStatusEvent.h \
         src/CommonAPI/DBus/DBusStubAdapter.h \
@@ -118,7 +120,8 @@ check_PROGRAMS = \
         DBusDaemonProxyTest \
         DBusCommunicationTest \
         DBusMultipleConnectionTest \
-        DBusBenchmarkingTest
+        DBusBenchmarkingTest \
+        DBusServicePublisherTest
 
 
 TESTS = ${check_PROGRAMS}
@@ -216,6 +219,13 @@ DBusProxyTest_SOURCES = \
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusServicePublisherTest_SOURCES = \
+        src/test/DBusServicePublisherTest.cpp \
+        ${TestInterfaceSources}
+DBusServicePublisherTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusServicePublisherTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusServicePublisherTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusVariantTest_SOURCES = src/test/DBusVariantTest.cpp
 DBusVariantTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}

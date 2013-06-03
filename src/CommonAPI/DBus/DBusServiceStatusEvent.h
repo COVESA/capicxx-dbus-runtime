@@ -30,7 +30,7 @@ class DBusServiceStatusEvent: public DBusMultiEvent<AvailabilityStatus> {
 	void onListenerAdded(const std::string& commonApiServiceName, const Listener& listener);
 
  private:
-	void availabilityEvent(const std::string& commonApiServiceName, const AvailabilityStatus& availabilityStatus);
+	SubscriptionStatus availabilityEvent(const std::string& commonApiServiceName, const AvailabilityStatus& availabilityStatus);
 
 	std::shared_ptr<DBusServiceRegistry> registry_;
 };

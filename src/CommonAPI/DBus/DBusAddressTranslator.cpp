@@ -37,26 +37,29 @@ DBusAddressTranslator::DBusAddressTranslator() {}
 
 void DBusAddressTranslator::init() {
     std::string fqnOfConfigFile = getCurrentBinaryFileFQN();
-    fqnOfConfigFile += DBUS_CONFIG_SUFFIX;
-
     std::ifstream addressConfigFile;
-    addressConfigFile.open(fqnOfConfigFile.c_str());
 
-    if(addressConfigFile.is_open()) {
-        readConfigFile(addressConfigFile);
-        addressConfigFile.close();
+    if (fqnOfConfigFile != "") {
+        fqnOfConfigFile += DBUS_CONFIG_SUFFIX;
+
+        addressConfigFile.open(fqnOfConfigFile.c_str());
+
+        if (addressConfigFile.is_open()) {
+            readConfigFile(addressConfigFile);
+            addressConfigFile.close();
+        }
+
+        addressConfigFile.clear();
+        std::vector<std::string> splittedConfigFQN = split(fqnOfConfigFile, '/');
+        std::string globalConfigFQN = DBUS_GLOBAL_CONFIG_ROOT + splittedConfigFQN.at(splittedConfigFQN.size() - 1);
+        addressConfigFile.open(globalConfigFQN);
+        if (addressConfigFile.is_open()) {
+            readConfigFile(addressConfigFile);
+            addressConfigFile.close();
+        }
+        addressConfigFile.clear();
     }
 
-    addressConfigFile.clear();
-    std::vector<std::string> splittedConfigFQN = split(fqnOfConfigFile, '/');
-    std::string globalConfigFQN = DBUS_GLOBAL_CONFIG_ROOT + splittedConfigFQN.at(splittedConfigFQN.size() - 1);
-    addressConfigFile.open(globalConfigFQN);
-    if(addressConfigFile.is_open()) {
-        readConfigFile(addressConfigFile);
-        addressConfigFile.close();
-    }
-
-    addressConfigFile.clear();
     addressConfigFile.open(DBUS_GLOBAL_CONFIG_FQN);
     if(addressConfigFile.is_open()) {
         readConfigFile(addressConfigFile);

@@ -107,6 +107,7 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
     return false;
 }
 
+
 // Go through the list of available services and check their interface lists
 // If a list is still unknown, then send request to the remote object manager and count it as invalid
 // If a list is in acquiring state, then just count it as invalid and skip over it
@@ -116,9 +117,9 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
 // If the timeout didn't expire, then go through the list again and send requests for new UNKNOWN services, then wait again for them to complete
 // Known limitations:
 //   - if the method is called before the first "listNames()" call completes, this request will be blocked
-//   - if libdbus is broken and doesn't report errors to timed out requests, then this request will always block for the default 2 seconds (waitTimeLimit)
+//   - if a single one(!) of the addressed services is broken and doesn't respond correctly to non-handled requests, this request will always block for the default 2 seconds (waitTimeLimit)
 //   - the method has to be called many times, if you actually want to wait for all services, otherwise you'll always get a partial response. I.e. the more you call this method, the hotter the internal cache gets.
-std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const std::string& serviceName,
+std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const std::string& interfaceName,
                                                                            const std::string& domainName) {
     std::vector<std::string> availableServiceInstances;
 
@@ -126,7 +127,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         return availableServiceInstances;
     }
 
-    std::chrono::milliseconds timeout(1000);
+    std::chrono::milliseconds timeout(2000);
     std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     if (!waitDBusServicesAvailable(dbusServicesLock, timeout)) {
@@ -134,7 +135,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
     }
 
     while (timeout.count() > 0) {
-        size_t dbusServiceResolvingCount = getAvailableServiceInstances(serviceName, availableServiceInstances);
+        size_t dbusServiceResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
 
         if (!dbusServiceResolvingCount) {
             break;
@@ -154,7 +155,7 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
                         });
 
         if (wakeupCount > 1) {
-            getAvailableServiceInstances(serviceName, availableServiceInstances);
+            getResolvedServiceInstances(interfaceName, availableServiceInstances);
             break;
         }
 
@@ -167,7 +168,37 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
     return availableServiceInstances;
 }
 
-size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances) {
+
+void DBusServiceRegistry::getAvailableServiceInstancesAsync(Factory::GetAvailableServiceInstancesCallback callback,
+                                                            const std::string& interfaceName,
+                                                            const std::string& domainName) {
+    std::vector<std::string> availableServiceInstances;
+
+    if (!dbusDaemonProxy_->isAvailable()) {
+        callback(availableServiceInstances);
+    }
+
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+
+    size_t stillResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
+
+    if(stillResolvingCount == 0) {
+        callback(availableServiceInstances);
+    } else {
+        //This is a necessary hack, because libdbus never returns from async calls if a
+        //service handles it's answers the wrong way. Here an artificial timeout is
+        //added to circumvent this limitation.
+        std::thread(
+                [this, callback, interfaceName, domainName]() {
+                    auto availableServiceInstances = getAvailableServiceInstances(interfaceName, domainName);
+                    callback(availableServiceInstances);
+                }
+        ).detach();
+    }
+}
+
+
+size_t DBusServiceRegistry::getResolvedServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances) {
     size_t dbusServicesResolvingCount = 0;
 
     availableServiceInstances.clear();
@@ -179,7 +210,7 @@ size_t DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbus
         DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
         const DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
 
-        // count the resolving services and start aclquiring the objects for unknown ones
+        // count the resolving services and start acquiring the objects for unknown ones
         switch (dbusServiceState) {
             case DBusServiceState::AVAILABLE:
                 resolveDBusServiceInstances(dbusServiceIterator);
@@ -271,13 +302,21 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
 
         case DBusServiceState::RESOLVING:
             if (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE) {
-                serviceListener(dbusInstanceAvailabilityStatus);
+                const SubscriptionStatus status = serviceListener(dbusInstanceAvailabilityStatus);
+                if (status == SubscriptionStatus::CANCEL) {
+                    dbusServiceListenerList.erase(listenerSubscription);
+                    return dbusServiceListenerList.end();
+                }
             }
             break;
 
         case DBusServiceState::RESOLVED:
         case DBusServiceState::NOT_AVAILABLE:
-            serviceListener(dbusInstanceAvailabilityStatus);
+            const SubscriptionStatus status = serviceListener(dbusInstanceAvailabilityStatus);
+            if (status == SubscriptionStatus::CANCEL) {
+                dbusServiceListenerList.erase(listenerSubscription);
+                return dbusServiceListenerList.end();
+            }
             break;
     }
 
@@ -391,17 +430,18 @@ void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callS
     }
 }
 
+
 void DBusServiceRegistry::onDBusServiceAvailabilityStatus(const std::string& dbusServiceName, const AvailabilityStatus& availabilityStatus) {
     auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
 
     if (dbusServiceIterator != dbusServices_.end()) {
         onDBusServiceAvailabilityStatus(dbusServiceIterator, availabilityStatus);
-
     } else if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
         dbusServices_.insert({ dbusServiceName, { DBusServiceState::AVAILABLE, DBusInstanceList() } });
         dbusServiceChanged_.notify_all();
     }
 }
+
 
 DBusServiceRegistry::DBusServiceList::iterator DBusServiceRegistry::onDBusServiceAvailabilityStatus(DBusServiceList::iterator& dbusServiceIterator,
                                                                                                     const AvailabilityStatus& availabilityStatus) {
@@ -490,6 +530,7 @@ void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator&
     dbusDaemonProxy_->getManagedObjectsAsync(dbusServiceName, callback);
 }
 
+
 void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStatus,
                                                       DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects,
                                                       const std::string& dbusServiceName) {
@@ -502,7 +543,7 @@ void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStat
 
     auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
     if (dbusServiceIterator == dbusServices_.end()) {
-        return; // nothing we can do
+        return;
     }
 
     DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
@@ -536,6 +577,7 @@ void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStat
     }
 }
 
+
 void DBusServiceRegistry::onDBusServiceInstanceAvailable(DBusInstanceList& dbusInstanceList,
                                                          const std::string& dbusObjectPath,
                                                          const std::string& dbusInterfaceName) {
@@ -547,6 +589,7 @@ void DBusServiceRegistry::onDBusServiceInstanceAvailable(DBusInstanceList& dbusI
 
     notifyDBusServiceListeners(dbusServiceListenerList, dbusInstanceAvailabilityStatus);
 }
+
 
 DBusServiceRegistry::DBusInstanceList::iterator DBusServiceRegistry::addDBusServiceInstance(DBusInstanceList& dbusInstanceList,
                                                                                             const std::string& dbusObjectPath,
@@ -568,8 +611,11 @@ DBusServiceRegistry::DBusInstanceList::iterator DBusServiceRegistry::addDBusServ
 
 void DBusServiceRegistry::notifyDBusServiceListeners(DBusServiceListenerList& dbusServiceListenerList,
                                                      const AvailabilityStatus& availabilityStatus) {
-    for (auto& dbusServiceListener : dbusServiceListenerList) {
-        dbusServiceListener(availabilityStatus);
+    for (auto dbusServiceListenerIterator = dbusServiceListenerList.begin(); dbusServiceListenerIterator != dbusServiceListenerList.end(); ++dbusServiceListenerIterator) {
+        const SubscriptionStatus status = (*dbusServiceListenerIterator)(availabilityStatus);
+        if (status == SubscriptionStatus::CANCEL) {
+            dbusServiceListenerIterator = dbusServiceListenerList.erase(dbusServiceListenerIterator);
+        }
     }
 }
 

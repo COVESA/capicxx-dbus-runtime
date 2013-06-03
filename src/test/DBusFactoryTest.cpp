@@ -114,7 +114,7 @@ TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
     ASSERT_TRUE(attributeExtension.testExtensionMethod());
 }
 
-TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfStubAdapters) {
+TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfServices) {
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
 
@@ -131,7 +131,7 @@ TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfStubAdapters) {
     ASSERT_TRUE(success);
 }
 
-TEST_F(DBusProxyFactoryTest, GracefullyHandlesWrongAddresses) {
+TEST_F(DBusProxyFactoryTest, ServiceRegistrationGracefullyHandlesWrongAddresses) {
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
     auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();

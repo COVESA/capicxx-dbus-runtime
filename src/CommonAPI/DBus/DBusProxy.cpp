@@ -83,9 +83,10 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
     return interfaceVersionAttribute_;
 }
 
-void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
+SubscriptionStatus DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     availabilityStatus_ = availabilityStatus;
     dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+    return SubscriptionStatus::RETAIN;
 }
 
 const std::string& DBusProxy::getDBusBusName() const {

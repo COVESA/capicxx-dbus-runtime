@@ -38,3 +38,5 @@
 /.pydevproject
 /DBusServiceRegistryTest
 /DBusConnectionTest
+/DBusMainLoopIntegrationTest
+/DBusServicePublisherTest
