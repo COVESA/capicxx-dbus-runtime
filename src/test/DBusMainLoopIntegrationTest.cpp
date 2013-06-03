@@ -297,7 +297,7 @@ TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanHandleBigData) {
     commonapi::tests::DerivedTypeCollection::TestMap testMapInValue;
 
     // Estimated amount of data (differring padding at beginning/end of Map/Array etc. not taken into account):
-    // 4 + 4 + 100 * (4 + (4 + 4 + 100 * (11 + 1 + 4)) + 4 ) = 161608
+    // 4 + 4 + 500 * (4 + (4 + 4 + 100 * (11 + 1 + 4)) + 4 ) = 811008
     for(uint32_t i = 0; i < 500; ++i) {
         commonapi::tests::DerivedTypeCollection::TestArrayTestStruct testArrayTestStruct;
         for(uint32_t j = 0; j < 100; ++j) {

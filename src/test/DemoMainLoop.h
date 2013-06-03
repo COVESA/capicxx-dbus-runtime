@@ -33,7 +33,7 @@ class MainLoop {
     explicit MainLoop(std::shared_ptr<MainLoopContext> context) :
             context_(context), currentMinimalTimeoutInterval_(TIMEOUT_INFINITE), running_(false), breakLoop_(false) {
         wakeFd_.fd = eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
-        wakeFd_.events = POLLIN | POLLOUT | POLLERR;
+        wakeFd_.events = POLLIN | POLLOUT;
 
         assert(wakeFd_.fd != -1);
         registerFileDescriptor(wakeFd_);
@@ -142,7 +142,7 @@ class MainLoop {
             (*fileDescriptor).revents = 0;
         }
 
-        auto numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), currentMinimalTimeoutInterval_);
+        size_t numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), currentMinimalTimeoutInterval_);
 
         // If no FileDescriptors are ready, poll returned because of a timeout that has expired.
         // The only case in which this is not the reason is when the timeout handed in "prepare"
@@ -177,7 +177,7 @@ class MainLoop {
                 const auto& correspondingWatchPair = registeredWatchIterator->second;
 
                 if (std::get<0>(correspondingWatchPair) == fileDescriptor->fd && fileDescriptor->revents) {
-                    watchesToDispatch_.insert( { correspondingWatchPriority, {std::get<1>(correspondingWatchPair), fileDescriptor->revents} } );
+                    watchesToDispatch_.insert( { correspondingWatchPriority, {std::get<1>(correspondingWatchPair), fileDescriptor->revents & fileDescriptor->events} } );
                 }
             }
         }
@@ -203,16 +203,7 @@ class MainLoop {
                 watchIterator++) {
             Watch* watch = std::get<0>(watchIterator->second);
             const unsigned int flags = std::get<1>(watchIterator->second);
-            const auto& dependentSources = watch->getDependentDispatchSources();
             watch->dispatch(flags);
-
-            for (auto dependentSourceIterator = dependentSources.begin();
-                    dependentSourceIterator != dependentSources.end();
-                    dependentSourceIterator++) {
-                if((*dependentSourceIterator)->check()) {
-                    sourcesToDispatch_.insert( {watchIterator->first, *dependentSourceIterator} );
-                }
-            }
         }
 
         breakLoop_ = false;
