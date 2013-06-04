@@ -70,6 +70,9 @@ class DBusCommunicationTest: public ::testing::Test {
         ASSERT_TRUE((bool)proxyFactory_);
         stubFactory_ = runtime_->createFactory();
         ASSERT_TRUE((bool)stubFactory_);
+
+        servicePublisher_ = runtime_->getServicePublisher();
+        ASSERT_TRUE((bool)servicePublisher_);
     }
 
     virtual void TearDown() {
@@ -79,6 +82,7 @@ class DBusCommunicationTest: public ::testing::Test {
     std::shared_ptr<CommonAPI::Runtime> runtime_;
     std::shared_ptr<CommonAPI::Factory> proxyFactory_;
     std::shared_ptr<CommonAPI::Factory> stubFactory_;
+    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
 
     static const std::string serviceAddress_;
     static const std::string nonstandardAddress_;
@@ -95,9 +99,9 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
-    bool serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
     for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-        serviceRegistered = stubFactory_->registerService(stub, serviceAddress_);
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -114,7 +118,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
 
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
 
-    stubFactory_->unregisterService(serviceAddress_);
+    servicePublisher_->unregisterService(serviceAddress_);
 }
 
 
@@ -124,9 +128,9 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
-    bool serviceRegistered = stubFactory_->registerService(stub, nonstandardAddress_);
+    bool serviceRegistered = servicePublisher_->registerService(stub, nonstandardAddress_, stubFactory_);
     for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-        serviceRegistered = stubFactory_->registerService(stub, nonstandardAddress_);
+        serviceRegistered = servicePublisher_->registerService(stub, nonstandardAddress_, stubFactory_);
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -142,7 +146,7 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
-    stubFactory_->unregisterService(nonstandardAddress_);
+    servicePublisher_->unregisterService(nonstandardAddress_);
 }
 
 

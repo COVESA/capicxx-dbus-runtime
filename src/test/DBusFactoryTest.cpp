@@ -114,32 +114,6 @@ TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
     ASSERT_TRUE(attributeExtension.testExtensionMethod());
 }
 
-TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfServices) {
-    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
-    ASSERT_TRUE((bool)proxyFactory);
-
-    const std::string serviceAddress = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
-
-    auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-    bool success = proxyFactory->registerService(myStub, serviceAddress);
-    ASSERT_TRUE(success);
-
-    success = proxyFactory->unregisterService("SomeOther:Unknown:Service");
-    ASSERT_FALSE(success);
-
-    success = proxyFactory->unregisterService(serviceAddress);
-    ASSERT_TRUE(success);
-}
-
-TEST_F(DBusProxyFactoryTest, ServiceRegistrationGracefullyHandlesWrongAddresses) {
-    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
-    ASSERT_TRUE((bool)proxyFactory);
-    auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-
-    ASSERT_FALSE(proxyFactory->registerService(myStub, ""));
-    ASSERT_FALSE(proxyFactory->registerService(myStub, "too:much:stuff:here"));
-}
-
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

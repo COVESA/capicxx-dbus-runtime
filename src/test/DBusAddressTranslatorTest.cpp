@@ -169,14 +169,16 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     std::shared_ptr<CommonAPI::Factory> stubFactory = runtime->createFactory();
     ASSERT_TRUE((bool)stubFactory);
 
+    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher = runtime->getServicePublisher();
+
     auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(commonApiAddresses[0]);
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
-    bool serviceNameAcquired = stubFactory->registerService(stub, commonApiAddresses[0]);
+    bool serviceNameAcquired = servicePublisher->registerService(stub, commonApiAddresses[0], stubFactory);
     for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
-        serviceNameAcquired = stubFactory->registerService(stub, commonApiAddresses[0]);
+        serviceNameAcquired = servicePublisher->registerService(stub, commonApiAddresses[0], stubFactory);
         usleep(10000);
     }
     ASSERT_TRUE(serviceNameAcquired);
@@ -193,7 +195,7 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
 
-    stubFactory->unregisterService(commonApiAddresses[0]);
+    servicePublisher->unregisterService(commonApiAddresses[0]);
 }
 
 

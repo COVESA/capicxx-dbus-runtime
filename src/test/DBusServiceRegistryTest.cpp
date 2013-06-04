@@ -223,15 +223,16 @@ class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
  protected:
     virtual void SetUp() {
         runtime_ = CommonAPI::Runtime::load();
-        serviceFactory_ = runtime_->createFactory();
+        auto serviceFactory = runtime_->createFactory();
+        servicePublisher_ = runtime_->getServicePublisher();
         auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-        serviceFactory_->registerService(stub, serviceAddress_);
+        servicePublisher_->registerService(stub, serviceAddress_, serviceFactory);
         clientFactory_ = runtime_->createFactory();
         usleep(500 * 1000);
     }
 
     virtual void TearDown() {
-        serviceFactory_->unregisterService(serviceAddress_);
+        servicePublisher_->unregisterService(serviceAddress_);
         usleep(500 * 1000);
     }
 
@@ -239,7 +240,7 @@ class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
 
  private:
     std::shared_ptr<CommonAPI::Runtime> runtime_;
-    std::shared_ptr<CommonAPI::Factory> serviceFactory_;
+    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
 };
 
 
