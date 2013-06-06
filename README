@@ -81,7 +81,21 @@ Use autotools to build this package withthe above requirements available through
 # make
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
-If the environment variable GTEST_CONFIG is set to the path of the gtest-config script in a Gtest tree test will also be built.
+
+=== Building and executing the Unit Tests
+----
+# export GTEST_CONFIG=/path/to/gtest-1.6.0/scripts/gtest-config
+# autoreconf -i
+# ./configure
+# make check
+----
+In order to execute the unit tests, the test framework "Google Test" (available at https://code.google.com/p/googletest/)
+needs to be available on your system. Google Test comes with a subfolder called "scripts", there you will find a file called
+"gtest-config". The path to this script has to be set via the environment variable GTEST_CONFIG. After having done so,
+CommonAPI and CommonAPI-D-Bus can be built and the make command "check" can be executed.
+
+"make check" builds and executes all tests. As the tests are developed as regression tests, the test output is limited to
+"OK" and "ERROR" for each test performed.
 
 === Defining D-Bus Service Parameters
 Normally, a CommonAPI address, format
@@ -127,7 +141,7 @@ the default value is "false".
 # If "dbus_predefined" is set to "false" (which is default), a proxy will try to verify the existence of the specific interface
   at the specific connection name and object path, using the "org.freedesktop.DBus.ObjectManager" interface, before it is marked as available.
 # If "dbus_predefined" is set to "true", a proxy is marked as available as soon as the connection name of the associated
-  service is visible. No further checks will be executed.
+  service is visible. No further checks will be performed.
 ----
 
 
