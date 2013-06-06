@@ -59,6 +59,66 @@ struct DBusProxyHelper<_In<_InArgs...>, _Out<_OutArgs...>> {
 	}
 
 	template <typename _DBusProxy = DBusProxy>
+	        static void callMethodWithReply(
+	                const _DBusProxy& dbusProxy,
+	                DBusMessage& dbusMethodCall,
+	                const _InArgs&... inArgs,
+	                CommonAPI::CallStatus& callStatus,
+	                _OutArgs&... outArgs) {
+
+	    if (sizeof...(_InArgs) > 0) {
+	                    DBusOutputStream outputStream(dbusMethodCall);
+	                    const bool success = DBusSerializableArguments<_InArgs...>::serialize(outputStream, inArgs...);
+	                    if (!success) {
+	                        callStatus = CallStatus::OUT_OF_MEMORY;
+	                        return;
+	                    }
+	                    outputStream.flush();
+	                }
+
+	                DBusError dbusError;
+	                DBusMessage dbusMessageReply = dbusProxy.getDBusConnection()->sendDBusMessageWithReplyAndBlock(dbusMethodCall, dbusError);
+	                if (dbusError || !dbusMessageReply.isMethodReturnType()) {
+	                    callStatus = CallStatus::REMOTE_ERROR;
+	                    return;
+	                }
+
+	                if (sizeof...(_OutArgs) > 0) {
+	                    DBusInputStream inputStream(dbusMessageReply);
+	                    const bool success = DBusSerializableArguments<_OutArgs...>::deserialize(inputStream, outArgs...);
+	                    if (!success) {
+	                        callStatus = CallStatus::REMOTE_ERROR;
+	                        return;
+	                    }
+	                }
+	                callStatus = CallStatus::SUCCESS;
+	}
+
+    template <typename _DBusProxy = DBusProxy>
+        static void callMethodWithReply(
+                const _DBusProxy& dbusProxy,
+                const char* busName,
+                const char* objPath,
+                const char* interfaceName,
+                const char* methodName,
+                const char* methodSignature,
+                const _InArgs&... inArgs,
+                CommonAPI::CallStatus& callStatus,
+                _OutArgs&... outArgs) {
+        if (dbusProxy.isAvailableBlocking()) {
+            DBusMessage dbusMethodCall = DBusMessage::createMethodCall(
+                                busName,
+                                objPath,
+                                interfaceName,
+                                methodName,
+                                methodSignature);
+            callMethodWithReply(dbusProxy, dbusMethodCall, inArgs..., callStatus, outArgs...);
+        } else {
+            callStatus = CallStatus::NOT_AVAILABLE;
+        }
+    }
+
+	template <typename _DBusProxy = DBusProxy>
 	static void callMethodWithReply(
 			const _DBusProxy& dbusProxy,
 			const char* methodName,
@@ -71,49 +131,75 @@ struct DBusProxyHelper<_In<_InArgs...>, _Out<_OutArgs...>> {
 
 	        DBusMessage dbusMethodCall = dbusProxy.createMethodCall(methodName, methodSignature);
 
-	        if (sizeof...(_InArgs) > 0) {
-	            DBusOutputStream outputStream(dbusMethodCall);
-	            const bool success = DBusSerializableArguments<_InArgs...>::serialize(outputStream, inArgs...);
-	            if (!success) {
-	                callStatus = CallStatus::OUT_OF_MEMORY;
-	                return;
-	            }
-	            outputStream.flush();
-	        }
+	        callMethodWithReply(dbusProxy, dbusMethodCall, inArgs..., callStatus, outArgs...);
 
-	        DBusError dbusError;
-	        DBusMessage dbusMessageReply = dbusProxy.getDBusConnection()->sendDBusMessageWithReplyAndBlock(dbusMethodCall, dbusError);
-	        if (dbusError || !dbusMessageReply.isMethodReturnType()) {
-	            callStatus = CallStatus::REMOTE_ERROR;
-	            return;
-	        }
-
-	        if (sizeof...(_OutArgs) > 0) {
-	            DBusInputStream inputStream(dbusMessageReply);
-	            const bool success = DBusSerializableArguments<_OutArgs...>::deserialize(inputStream, outArgs...);
-	            if (!success) {
-	                callStatus = CallStatus::REMOTE_ERROR;
-	                return;
-	            }
-	        }
-
-	        callStatus = CallStatus::SUCCESS;
 	    } else {
 	        callStatus = CallStatus::NOT_AVAILABLE;
 	    }
 	}
 
 	template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+	    static std::future<CallStatus> callMethodAsync(
+	            const _DBusProxy& dbusProxy,
+	            const char* methodName,
+	            const char* methodSignature,
+	            const _InArgs&... inArgs,
+	            _AsyncCallback asyncCallback) {
+	    if (dbusProxy.isAvailable()) {
+	        DBusMessage dbusMethodCall = dbusProxy.createMethodCall(methodName, methodSignature);
+
+	        return callMethodAsync(dbusProxy, dbusMethodCall, inArgs..., asyncCallback);
+
+	    } else {
+
+	        CallStatus callStatus = CallStatus::NOT_AVAILABLE;
+
+	        callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
+
+	        std::promise<CallStatus> promise;
+	        promise.set_value(callStatus);
+	        return promise.get_future();
+	    }
+
+	}
+
+    template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+        static std::future<CallStatus> callMethodAsync(
+	                const _DBusProxy& dbusProxy,
+	                const char* busName,
+	                const char* objPath,
+	                const char* interfaceName,
+	                const char* methodName,
+	                const char* methodSignature,
+	                const _InArgs&... inArgs,
+	                _AsyncCallback asyncCallback) {
+        if (dbusProxy.isAvailable()) {
+	            DBusMessage dbusMethodCall = DBusMessage::createMethodCall(
+	                                busName,
+	                                objPath,
+	                                interfaceName,
+	                                methodName,
+	                                methodSignature);
+	            return callMethodAsync(dbusProxy, dbusMethodCall, inArgs..., asyncCallback);
+        } else {
+
+                    CallStatus callStatus = CallStatus::NOT_AVAILABLE;
+
+                    callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
+
+                    std::promise<CallStatus> promise;
+                    promise.set_value(callStatus);
+                    return promise.get_future();
+            }
+	    }
+
+
+	template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
 	static std::future<CallStatus> callMethodAsync(
 			const _DBusProxy& dbusProxy,
-			const char* methodName,
-			const char* methodSignature,
+			DBusMessage& dbusMessage,
 			const _InArgs&... inArgs,
 			_AsyncCallback asyncCallback) {
-
-	    if (dbusProxy.isAvailable()) {
-
-	        DBusMessage dbusMessage = dbusProxy.createMethodCall(methodName, methodSignature);
 
 	        if (sizeof...(_InArgs) > 0) {
 	            DBusOutputStream outputStream(dbusMessage);
@@ -129,16 +215,7 @@ struct DBusProxyHelper<_In<_InArgs...>, _Out<_OutArgs...>> {
 	        return dbusProxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
 	                        dbusMessage,
 	                        DBusProxyAsyncCallbackHandler<_OutArgs...>::create(std::move(asyncCallback)));
-	        } else {
 
-	            CallStatus callStatus = CallStatus::NOT_AVAILABLE;
-
-                callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
-
-	            std::promise<CallStatus> promise;
-	            promise.set_value(callStatus);
-	            return promise.get_future();
-	        }
 	   }
 
        template <int... _ArgIndices>

@@ -89,7 +89,8 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusServiceStatusEvent.h \
         src/CommonAPI/DBus/DBusStubAdapter.h \
         src/CommonAPI/DBus/DBusStubAdapterHelper.h \
-        src/CommonAPI/DBus/DBusUtils.h
+        src/CommonAPI/DBus/DBusUtils.h \
+        src/CommonAPI/DBus/DBusLegacyVariant.h
 
 pkgconfigdir = ${libdir}/pkgconfig
 pkgconfig_DATA = CommonAPI-DBus.pc

@@ -5,9 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef __DBUS_TEST_UTILS__
+#define __DBUS_TEST_UTILS__
+
 #include <dbus/dbus.h>
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
-
 
 inline char eliminateZeroes(char val) {
     return !val ? '0' : val;
@@ -73,3 +75,4 @@ inline std::string toString(CommonAPI::CallStatus state) {
             return "SUCCESS";
     }
 }
+#endif //__DBUS_TEST_UTILS__
