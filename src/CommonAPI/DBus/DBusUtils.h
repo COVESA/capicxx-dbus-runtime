@@ -31,11 +31,47 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
     return split(s, delim, elems);
 }
 
-inline bool checkValidCommonApiAddress(const std::string& commonApiAddress) {
-    if (split(commonApiAddress, ':').size() != 3) {
+inline bool containsOnlyAlphanumericCharacters(const std::string& toCheck) {
+    auto firstNonAlphanumericCharacterIt = std::find_if(toCheck.begin(),
+                    toCheck.end(),
+                    [](char c) {
+                        return !std::isalnum(c);
+                    });
+
+    return firstNonAlphanumericCharacterIt == toCheck.end();
+}
+
+inline bool isValidDomainName(const std::string& domainName) {
+    return containsOnlyAlphanumericCharacters(domainName);
+}
+
+inline bool isValidServiceName(const std::string& serviceName) {
+    bool isValid = serviceName[0] != '.' && serviceName[serviceName.size() - 1] != '.';
+
+    if (isValid) {
+        std::vector<std::string> splittedServiceName = split(serviceName, '.');
+
+        for (auto serviceNameElementIt = splittedServiceName.begin();
+                        serviceNameElementIt != splittedServiceName.end() && isValid;
+                        ++serviceNameElementIt) {
+            isValid &= containsOnlyAlphanumericCharacters(*serviceNameElementIt);
+        }
+    }
+
+    return isValid;
+}
+
+inline bool isValidInstanceId(const std::string& instanceId) {
+    //Validation rules for ServiceName and InstanceID are equivalent
+    return isValidServiceName(instanceId);
+}
+
+inline bool isValidCommonApiAddress(const std::string& commonApiAddress) {
+    std::vector<std::string> splittedAddress = split(commonApiAddress, ':');
+    if (splittedAddress.size() != 3) {
         return false;
     }
-    return true;
+    return isValidDomainName(splittedAddress[0]) && isValidServiceName(splittedAddress[1]) && isValidInstanceId(splittedAddress[2]);
 }
 
 

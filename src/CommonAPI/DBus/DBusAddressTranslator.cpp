@@ -129,7 +129,7 @@ void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
             }
             reset(serviceDetails);
             std::string newAddress = readLine.substr(1, readLineLength - 2);
-            if(checkValidCommonApiAddress(newAddress)) {
+            if (isValidCommonApiAddress(newAddress)) {
                 currentlyParsedCommonApiAddress = std::move(newAddress);
                 newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
             }
