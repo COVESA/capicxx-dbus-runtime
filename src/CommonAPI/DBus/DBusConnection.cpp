@@ -29,7 +29,7 @@ DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
                 &DBusConnection::onLibdbusObjectPathMessageThunk
 };
 
-void DBusConnection::dispatch(std::shared_ptr<DBusConnection> selfReference) {
+void DBusConnection::dispatch(std::shared_ptr<DBusConnection>& selfReference) {
     while (!stopDispatching_ && readWriteDispatch(10) && !selfReference.unique()) {
         if(pauseDispatching_) {
             dispatchSuspendLock_.lock();
