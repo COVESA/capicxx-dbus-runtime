@@ -31,6 +31,13 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
     return split(s, delim, elems);
 }
 
+inline bool checkValidCommonApiAddress(const std::string& commonApiAddress) {
+    if (split(commonApiAddress, ':').size() != 3) {
+        return false;
+    }
+    return true;
+}
+
 
 inline std::string getCurrentBinaryFileFQN() {
     char fqnOfBinary[FILENAME_MAX];

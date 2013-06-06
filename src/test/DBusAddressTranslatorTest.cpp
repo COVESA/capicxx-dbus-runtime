@@ -41,6 +41,17 @@ static const std::vector<std::string> commonApiAddresses = {
 };
 
 static const std::string fileString =
+""
+"[not#a$valid/address]\n"
+"[]\n"
+"   98t3hpgjvqpvnü0 t4b+qßk4 kv+üg4krgv+ß4krgv+ßkr\n"
+"[too.short:address]\n"
+"[incomplete:address:]\n"
+"[:address:incomplete]\n"
+"[]đwqervqerverver\n"
+"[too:long:address:here]\n"
+"jfgv2nqp3 riqpnvi39r[]"
+"\n"
 "[local:no.nothing.service:no.nothing.instance]\n"
 "\n"
 "[local:service:instance]\n"

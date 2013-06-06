@@ -128,8 +128,11 @@ void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
                 dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
             }
             reset(serviceDetails);
-            currentlyParsedCommonApiAddress = readLine.substr(1, readLineLength - 2);
-            newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
+            std::string newAddress = readLine.substr(1, readLineLength - 2);
+            if(checkValidCommonApiAddress(newAddress)) {
+                currentlyParsedCommonApiAddress = std::move(newAddress);
+                newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
+            }
 
         } else if (newAddressFound) {
             readValue(readLine, serviceDetails);
