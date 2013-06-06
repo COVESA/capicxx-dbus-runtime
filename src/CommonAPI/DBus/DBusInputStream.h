@@ -206,7 +206,6 @@ class DBusInputStream: public InputStream {
     inline void skipOverSignature() {
         uint8_t signatureLength;
         readValue(signatureLength);
-        assert(signatureLength < 256);
         readRawData(signatureLength + 1);
     }
 
