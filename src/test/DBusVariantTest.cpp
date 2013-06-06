@@ -17,7 +17,7 @@ class VariantTest: public ::testing::Test {
 
     void SetUp() {
         fromInt = 5;
-        fromDouble = 12.344d;
+        fromDouble = 12.344;
         fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
     }
 
