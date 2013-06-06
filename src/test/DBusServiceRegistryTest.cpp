@@ -8,8 +8,7 @@
 #define _GLIBCXX_USE_NANOSLEEP
 #endif
 
-#include <CommonAPI/Runtime.h>
-#include <CommonAPI/Factory.h>
+#include <CommonAPI/CommonAPI.h>
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusUtils.h>

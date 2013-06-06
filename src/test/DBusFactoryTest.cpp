@@ -18,9 +18,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include <CommonAPI/types.h>
-#include <CommonAPI/AttributeExtension.h>
-#include <CommonAPI/Runtime.h>
+#include <CommonAPI/CommonAPI.h>
 
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusProxy.h>

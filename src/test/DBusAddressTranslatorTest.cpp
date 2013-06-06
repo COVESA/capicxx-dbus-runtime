@@ -11,13 +11,10 @@
 #include <thread>
 #include <unistd.h>
 
+#include <CommonAPI/CommonAPI.h>
+
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 #include <CommonAPI/DBus/DBusUtils.h>
-
-#include <CommonAPI/types.h>
-#include <CommonAPI/AttributeExtension.h>
-#include <CommonAPI/Runtime.h>
-
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusRuntime.h>

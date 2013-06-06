@@ -17,8 +17,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include <CommonAPI/types.h>
-#include <CommonAPI/Runtime.h>
+#include <CommonAPI/CommonAPI.h>
 
 #include "commonapi/tests/TestInterfaceProxy.h"
 #include "commonapi/tests/TestInterfaceStubDefault.h"
