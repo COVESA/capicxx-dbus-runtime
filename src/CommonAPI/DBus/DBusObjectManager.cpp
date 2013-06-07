@@ -106,19 +106,20 @@ bool DBusObjectManager::onObjectManagerInterfaceDBusMessage(const DBusMessage& d
         return false;
     }
 
-    DBusDaemonProxy::DBusObjectToInterfaceDict ObjectPathsInterfacesAndPropertiesDict;
+    DBusDaemonProxy::DBusObjectToInterfaceDict resultObjectPathsInterfacesAndPropertiesDict;
 
     objectPathLock_.lock();
     auto registeredObjectsIterator = dbusRegisteredObjectsTable_.begin();
 
     while(registeredObjectsIterator != dbusRegisteredObjectsTable_.end()) {
         DBusInterfaceHandlerPath handlerPath = registeredObjectsIterator->first;
-        auto foundDictEntry = ObjectPathsInterfacesAndPropertiesDict.find(handlerPath.first);
+        auto foundDictEntry = resultObjectPathsInterfacesAndPropertiesDict.find(handlerPath.first);
 
-        if (foundDictEntry == ObjectPathsInterfacesAndPropertiesDict.end()) {
-            ObjectPathsInterfacesAndPropertiesDict.insert( { handlerPath.first, { { handlerPath.second, {} } } } );
+        if (foundDictEntry == resultObjectPathsInterfacesAndPropertiesDict.end()) {
+            resultObjectPathsInterfacesAndPropertiesDict.insert(
+            		{ handlerPath.first, { { handlerPath.second, DBusDaemonProxy::PropertyDictStub() } } } );
         } else {
-            foundDictEntry->second.insert( {handlerPath.second, {} } );
+            foundDictEntry->second.insert( {handlerPath.second, DBusDaemonProxy::PropertyDictStub() } );
         }
 
         ++registeredObjectsIterator;
@@ -129,7 +130,7 @@ bool DBusObjectManager::onObjectManagerInterfaceDBusMessage(const DBusMessage& d
     DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(getManagedObjectsDBusSignature);
     DBusOutputStream outStream(dbusMessageReply);
 
-    outStream << ObjectPathsInterfacesAndPropertiesDict;
+    outStream << resultObjectPathsInterfacesAndPropertiesDict;
     outStream.flush();
 
     return dbusConnection->sendDBusMessage(dbusMessageReply);

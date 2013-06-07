@@ -49,10 +49,10 @@ namespace DerivedTypeCollection {
     struct TestEnumComparator;
     
     enum class TestEnumExtended: int32_t {
-        E_UNKNOWN = TestEnum::E_UNKNOWN,
-        E_OK = TestEnum::E_OK,
-        E_OUT_OF_RANGE = TestEnum::E_OUT_OF_RANGE,
-        E_NOT_USED = TestEnum::E_NOT_USED
+        E_UNKNOWN = (int32_t) TestEnum::E_UNKNOWN,
+        E_OK = (int32_t) TestEnum::E_OK,
+        E_OUT_OF_RANGE = (int32_t) TestEnum::E_OUT_OF_RANGE,
+        E_NOT_USED = (int32_t) TestEnum::E_NOT_USED
         ,
         E_NEW = 4
     };
@@ -61,12 +61,12 @@ namespace DerivedTypeCollection {
     struct TestEnumExtendedComparator;
     
     enum class TestEnumExtended2: int32_t {
-        E_UNKNOWN = TestEnum::E_UNKNOWN,
-        E_OK = TestEnum::E_OK,
-        E_OUT_OF_RANGE = TestEnum::E_OUT_OF_RANGE,
-        E_NOT_USED = TestEnum::E_NOT_USED,
+        E_UNKNOWN = (int32_t) TestEnum::E_UNKNOWN,
+        E_OK = (int32_t) TestEnum::E_OK,
+        E_OUT_OF_RANGE = (int32_t) TestEnum::E_OUT_OF_RANGE,
+        E_NOT_USED = (int32_t) TestEnum::E_NOT_USED,
         
-        E_NEW = TestEnumExtended::E_NEW
+        E_NEW = (int32_t) TestEnumExtended::E_NEW
         ,
         E_NEW2 = 5
     };

@@ -308,10 +308,12 @@ void DBusOutputStream::beginWriteGenericVector() {
 }
 
 void DBusOutputStream::writeSignature(const std::string& signature) {
-    uint8_t length = (uint8_t) signature.length();
-    assert(length < 256);
-    *this << length;
-    writeRawData(signature.c_str(), length + 1);
+	const auto& signatureLength = signature.length();
+	assert(signatureLength > 0 && signatureLength < 256);
+
+	const uint8_t wireLength = (uint8_t) signatureLength;
+    *this << wireLength;
+    writeRawData(signature.c_str(), wireLength + 1);
 }
 
 void DBusOutputStream::rememberCurrentStreamPosition() {
