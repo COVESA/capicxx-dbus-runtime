@@ -161,6 +161,7 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
         const std::string& dbusObjectPath = handlerPath.first;
         const std::string& dbusInterfaceName = handlerPath.second;
         DBusStubAdapter* dbusStubAdapter = registeredObjectsIterator.second;
+        std::vector<std::string> elems = CommonAPI::DBus::split(dbusObjectPath, '/');
 
         if (dbusMessage.hasObjectPath(dbusObjectPath)) {
             foundRegisteredObjects = true;
@@ -168,8 +169,9 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
             xmlData << "<interface name=\"" << dbusInterfaceName << "\">\n"
                             << dbusStubAdapter->getMethodsDBusIntrospectionXmlData() << "\n"
                             "</interface>\n";
+            nodeSet.insert(elems.back());
+            //break;
         } else {
-            std::vector<std::string> elems = CommonAPI::DBus::split(dbusObjectPath, '/');
             if (dbusMessage.hasObjectPath("/") && elems.size() > 1) {
                 if (nodeSet.find(elems[1]) == nodeSet.end()) {
                     if (nodeSet.size() == 0) {
@@ -187,7 +189,7 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
                     std::string build;
                     for (int j = 1; j <= i; j++) {
                         build = build + "/" + elems[j];
-                        if (dbusMessage.hasObjectPath(dbusObjectPath)) {
+                        if (dbusMessage.hasObjectPath(build)) {
                             if (nodeSet.find(elems[j + 1]) == nodeSet.end()) {
                                 if (nodeSet.size() == 0) {
                                     xmlData.str("");
