@@ -276,59 +276,6 @@ class BigDataTestStub: public commonapi::tests::TestInterfaceStubDefault {
     }
 };
 
-
-TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanHandleBigData) {
-    std::shared_ptr<BigDataTestStub> stub = std::make_shared<
-                    BigDataTestStub>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress8, mainloopFactory_));
-
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress8);
-    ASSERT_TRUE((bool) proxy);
-
-    while (!proxy->isAvailable()) {
-        mainLoop_->doSingleIteration();
-        usleep(50000);
-    }
-
-    uint32_t uint32Value = 42;
-    std::string stringValue = "Hai :)";
-    bool running = true;
-
-    commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue =
-            commonapi::tests::DerivedTypeCollection::TestEnumExtended2::E_OK;
-    commonapi::tests::DerivedTypeCollection::TestMap testMapInValue;
-
-    // Estimated amount of data (differring padding at beginning/end of Map/Array etc. not taken into account):
-    // 4 + 4 + 500 * (4 + (4 + 4 + 100 * (11 + 1 + 4)) + 4 ) = 811008
-    for(uint32_t i = 0; i < 500; ++i) {
-        commonapi::tests::DerivedTypeCollection::TestArrayTestStruct testArrayTestStruct;
-        for(uint32_t j = 0; j < 100; ++j) {
-            commonapi::tests::DerivedTypeCollection::TestStruct testStruct("Hai all (:", j);
-            testArrayTestStruct.push_back(testStruct);
-        }
-        testMapInValue.insert( {i, testArrayTestStruct} );
-    }
-
-    std::future<CommonAPI::CallStatus> futureStatus = proxy->testDerivedTypeMethodAsync(
-            testEnumExtended2InValue,
-            testMapInValue,
-            [&] (const CommonAPI::CallStatus& status,
-                    commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2OutValue,
-                    commonapi::tests::DerivedTypeCollection::TestMap testMapOutValue) {
-                EXPECT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(status));
-                EXPECT_EQ(testEnumExtended2InValue, testEnumExtended2OutValue);
-                EXPECT_EQ(testMapInValue.size(), testMapOutValue.size());
-                mainLoop_->stop();
-            }
-    );
-
-    mainLoop_->run();
-
-    ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
-
-    servicePublisher_->unregisterService(testAddress8);
-}
-
 TEST_F(DBusMainLoopTest, DemoMainloopClientsHandleNonavailableServices) {
     auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress3);
     ASSERT_TRUE((bool) proxy);

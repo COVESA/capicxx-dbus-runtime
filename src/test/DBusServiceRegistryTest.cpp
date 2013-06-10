@@ -306,7 +306,10 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsInstancesOfExistingTes
                     },
                     serviceName_);
 
-    ASSERT_EQ(1, futureResult.get().size());
+
+    std::vector<std::string> result = futureResult.get();
+
+    ASSERT_EQ(1, result.size());
 }
 
 
