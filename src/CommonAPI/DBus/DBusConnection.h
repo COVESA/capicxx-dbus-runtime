@@ -115,7 +115,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     bool singleDispatch();
 
  private:
-    void dispatch(std::shared_ptr<DBusConnection>& selfReference);
+    void dispatch(std::shared_ptr<DBusConnection>* selfReference);
+    //void dispatch();
     void suspendDispatching() const;
     void resumeDispatching() const;
 

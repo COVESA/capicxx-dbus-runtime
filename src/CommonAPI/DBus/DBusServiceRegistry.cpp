@@ -182,17 +182,17 @@ void DBusServiceRegistry::getAvailableServiceInstancesAsync(Factory::GetAvailabl
 
     size_t stillResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
 
-    if(stillResolvingCount == 0) {
+    if(stillResolvingCount == 0 && !dbusServices_.empty()) {
         callback(availableServiceInstances);
     } else {
         //This is a necessary hack, because libdbus never returns from async calls if a
         //service handles it's answers the wrong way. Here an artificial timeout is
         //added to circumvent this limitation.
         std::thread(
-                [this, callback, interfaceName, domainName]() {
+                [this, callback, interfaceName, domainName](std::shared_ptr<DBusServiceRegistry> selfRef) {
                     auto availableServiceInstances = getAvailableServiceInstances(interfaceName, domainName);
                     callback(availableServiceInstances);
-                }
+                }, this->shared_from_this()
         ).detach();
     }
 }
