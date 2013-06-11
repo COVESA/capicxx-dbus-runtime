@@ -60,7 +60,6 @@ class DBusFactory: public Factory {
     SubscriptionStatus isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status);
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
-    std::string acquiredConnectionName_;
     std::shared_ptr<MainLoopContext> mainLoopContext_;
 };
 

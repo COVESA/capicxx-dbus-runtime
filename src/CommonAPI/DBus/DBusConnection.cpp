@@ -67,7 +67,8 @@ DBusConnection::DBusConnection(BusType busType) :
                 pauseDispatching_(false),
                 dispatchThread_(NULL),
                 dbusObjectMessageHandler_(),
-                watchContext_(NULL)  {
+                watchContext_(NULL),
+                connectionNameCount_() {
     dbus_threads_init_default();
 }
 
@@ -79,7 +80,8 @@ DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
                 pauseDispatching_(false),
                 dispatchThread_(NULL),
                 dbusObjectMessageHandler_(),
-                watchContext_(NULL) {
+                watchContext_(NULL),
+                connectionNameCount_() {
     dbus_threads_init_default();
 }
 
@@ -338,30 +340,52 @@ const std::shared_ptr<DBusObjectManager> DBusConnection::getDBusObjectManager() 
 
 bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) const {
     DBusError dbusError;
+    bool isServiceNameAcquired = false;
+    std::lock_guard<std::mutex> dbusConnectionLock(libdbusConnectionGuard_);
+    auto conIter = connectionNameCount_.find(serviceName);
+    if (conIter == connectionNameCount_.end()) {
+        suspendDispatching();
 
-    suspendDispatching();
+        const int libdbusStatus = dbus_bus_request_name(libdbusConnection_,
+                        serviceName.c_str(),
+                        DBUS_NAME_FLAG_DO_NOT_QUEUE,
+                        &dbusError.libdbusError_);
 
-    const int libdbusStatus = dbus_bus_request_name(libdbusConnection_,
-                                                    serviceName.c_str(),
-                                                    DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                                    &dbusError.libdbusError_);
+        resumeDispatching();
 
-    resumeDispatching();
-
-    const bool isServiceNameAcquired = (libdbusStatus == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER);
+        isServiceNameAcquired = (libdbusStatus == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER);
+        if (isServiceNameAcquired) {
+            connectionNameCount_.insert({serviceName, (uint16_t)1});
+        }
+    } else {
+        conIter->second = conIter->second + 1;
+        isServiceNameAcquired = true;
+    }
 
     return isServiceNameAcquired;
 }
 
 bool DBusConnection::releaseServiceName(const std::string& serviceName) const {
     DBusError dbusError;
-    suspendDispatching();
-    const int libdbusStatus = dbus_bus_release_name(libdbusConnection_,
-                                                    serviceName.c_str(),
-                                                    &dbusError.libdbusError_);
-    resumeDispatching();
-    const bool isServiceNameReleased = (libdbusStatus == DBUS_RELEASE_NAME_REPLY_RELEASED);
-
+    bool isServiceNameReleased = false;
+    std::lock_guard<std::mutex> dbusConnectionLock(libdbusConnectionGuard_);
+    auto conIter = connectionNameCount_.find(serviceName);
+    if (conIter != connectionNameCount_.end()) {
+        if (conIter->second == 1) {
+            suspendDispatching();
+            const int libdbusStatus = dbus_bus_release_name(libdbusConnection_,
+                            serviceName.c_str(),
+                            &dbusError.libdbusError_);
+            resumeDispatching();
+            isServiceNameReleased = (libdbusStatus == DBUS_RELEASE_NAME_REPLY_RELEASED);
+            if (isServiceNameReleased) {
+                connectionNameCount_.erase(conIter);
+            }
+        } else {
+            conIter->second = conIter->second - 1;
+            isServiceNameReleased = true;
+        }
+    }
     return isServiceNameReleased;
 }
 

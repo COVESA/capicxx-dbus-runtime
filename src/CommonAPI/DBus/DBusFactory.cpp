@@ -45,7 +45,6 @@ void DBusFactory::registerAdapterFactoryMethod(std::string interfaceName, DBusAd
 DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext) :
                 CommonAPI::Factory(runtime, middlewareInfo),
                 dbusConnection_(CommonAPI::DBus::DBusConnection::getSessionBus()),
-                acquiredConnectionName_(""),
                 mainLoopContext_(mainLoopContext) {
     bool startDispatchThread = !mainLoopContext_;
     dbusConnection_->connect(startDispatchThread);
@@ -158,13 +157,8 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
 
     DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
 
-    if(acquiredConnectionName_ == "") {
-        bool isServiceNameAcquired = dbusConnection_->requestServiceNameAndBlock(connectionName);
-        if(!isServiceNameAcquired) {
-            return false;
-        }
-        acquiredConnectionName_ = connectionName;
-    } else if (acquiredConnectionName_ != connectionName) {
+    bool isServiceNameAcquired = dbusConnection_->requestServiceNameAndBlock(connectionName);
+    if (!isServiceNameAcquired) {
         return false;
     }
 

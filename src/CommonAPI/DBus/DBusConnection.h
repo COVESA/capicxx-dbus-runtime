@@ -166,7 +166,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     static void onWakeupMainContext(void* data);
 
     ::DBusConnection* libdbusConnection_;
-    std::mutex libdbusConnectionGuard_;
+    mutable std::mutex libdbusConnectionGuard_;
     std::mutex signalGuard_;
     std::mutex objectManagerGuard_;
     std::mutex serviceRegistryGuard_;
@@ -192,6 +192,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     static DBusObjectPathVTable libdbusObjectPathVTable_;
 
     DBusObjectPathMessageHandler dbusObjectMessageHandler_;
+
+    mutable std::unordered_map<std::string, uint16_t> connectionNameCount_;
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {

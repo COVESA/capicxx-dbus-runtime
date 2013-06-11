@@ -95,6 +95,9 @@ class DBusProxyConnection {
     virtual void registerObjectPath(const std::string& objectPath) = 0;
     virtual void unregisterObjectPath(const std::string& objectPath) = 0;
 
+    virtual bool requestServiceNameAndBlock(const std::string& serviceName) const = 0;
+    virtual bool releaseServiceName(const std::string& serviceName) const = 0;
+
     typedef std::function<bool(const DBusMessage&)> DBusObjectPathMessageHandler;
 
     virtual void setObjectPathMessageHandler(DBusObjectPathMessageHandler) = 0;

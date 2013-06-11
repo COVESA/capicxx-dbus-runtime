@@ -47,6 +47,7 @@ void DBusStubAdapter::deinit() {
 
 	if (isInitialized_) {
 		dbusConnection_->getDBusObjectManager()->unregisterDBusStubAdapter(dbusInterfaceHandlerToken_);
+		dbusConnection_->releaseServiceName(dbusBusName_);
 		isInitialized_ = false;
 	}
 }
