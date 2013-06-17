@@ -282,6 +282,8 @@ void DBusConnection::disconnect() {
             dbus_connection_remove_filter(libdbusConnection_, &onLibdbusSignalFilterThunk, this);
         }
 
+        connectionNameCount_.clear();
+
         stopDispatching_ = true;
 
         dbus_connection_close(libdbusConnection_);
@@ -589,6 +591,7 @@ void DBusConnection::unregisterObjectPath(const std::string& objectPath) {
     if (isConnected()) {
         dbus_bool_t libdbusSuccess = dbus_connection_unregister_object_path(libdbusConnection_,
                                                                             objectPath.c_str());
+
         assert(libdbusSuccess);
     }
 }
