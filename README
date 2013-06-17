@@ -144,6 +144,16 @@ the default value is "false".
   service is visible. No further checks will be performed.
 ----
 
+=== Defining D-Bus Factory Parameters
+If a section in a config file starts with "factory$", it defines a factory configuration, which can be referred to at factory creation.
+The name of the factory configuration follows the $ sign.
+----
+[factory$<Factory Name>]
+dbus_bustype=<valid D-Bus Bustype>
+----
+All "dbus_*"-values are optional. For each such omitted value the default value as described below will be used. 
+----
+# dbus_bustype may be set to "session" or "system" for communication on the user's session bus or on the system wide bus. The default value is "session"
 
 == Working on the code & contribution
 

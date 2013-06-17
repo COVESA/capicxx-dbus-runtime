@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DBusRuntime.h"
+#include "DBusAddressTranslator.h"
 
 namespace CommonAPI {
 namespace DBus {
@@ -24,7 +25,48 @@ std::shared_ptr<Runtime> DBusRuntime::getInstance() {
 }
 
 std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopContext> mainLoopContext) {
-    auto factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_, mainLoopContext);
+    return createFactory(mainLoopContext, "");
+}
+
+std::shared_ptr<Factory> DBusRuntime::createFactory(const std::string factoryName,
+                                                       const bool nullOnInvalidName) {
+    return createFactory(std::shared_ptr<MainLoopContext>(NULL), factoryName, nullOnInvalidName);
+}
+
+
+
+std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
+                                                       const std::string factoryName,
+                                                       const bool nullOnInvalidName) {
+    auto factory = std::shared_ptr<DBusFactory>(NULL);
+
+    if (factoryName == "")
+        factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_, mainLoopContext);
+    else
+    {
+        DBusAddressTranslator::FactoryConfigDBus* factoryConfigDBus =
+                        DBusAddressTranslator::getInstance().searchForFactoryConfiguration(factoryName);
+        DBusAddressTranslator::FactoryConfigDBus defaultFactoryConfigDBus;
+
+        if (factoryConfigDBus == NULL)
+        {
+            // unknown / unconfigured Factory requested
+            if (nullOnInvalidName)
+                return (NULL);
+            else
+            {
+                DBusFactory::getDefaultFactoryConfig(defaultFactoryConfigDBus); // get default settings
+                factoryConfigDBus = &defaultFactoryConfigDBus;
+            }
+        }
+
+        factory = std::make_shared<DBusFactory>(
+                        this->shared_from_this(),
+                        &middlewareInfo_,
+                        *factoryConfigDBus,
+                        mainLoopContext);
+    }
+
     return factory;
 }
 

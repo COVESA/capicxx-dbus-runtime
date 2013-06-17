@@ -9,6 +9,9 @@
 #include "DBusAddressTranslator.h"
 #include "DBusUtils.h"
 
+#include "DBusConnection.h"
+#include "DBusFactory.h"
+
 #include <unordered_set>
 #include <string.h>
 #include <iostream>
@@ -24,11 +27,28 @@ enum class TypeEnum {
     DBUS_CONNECTION, DBUS_OBJECT, DBUS_INTERFACE, DBUS_PREDEFINED
 };
 
+enum class TypeEnumFactory
+{
+    DBUS_BUSTYPE
+};
+
+enum class FileParsingState
+{
+    UNDEFINED,
+    PARSING_ADDRESS,
+    PARSING_FACTORY
+};
+
+
 static const std::unordered_map<std::string, TypeEnum> allowedValueTypes = {
                 {"dbus_connection", TypeEnum::DBUS_CONNECTION},
                 {"dbus_object", TypeEnum::DBUS_OBJECT},
                 {"dbus_interface", TypeEnum::DBUS_INTERFACE},
                 {"dbus_predefined", TypeEnum::DBUS_PREDEFINED}
+};
+
+static const std::unordered_map<std::string, TypeEnumFactory> allowedValueTypesFactory = {
+                {"dbus_bustype", TypeEnumFactory::DBUS_BUSTYPE}
 };
 
 
@@ -67,6 +87,25 @@ void DBusAddressTranslator::init() {
     }
 }
 
+inline void readValue(std::string& readLine,
+                        DBusAddressTranslator::FactoryConfigDBus& factoryConfig) {
+    std::stringstream readStream(readLine);
+    std::string paramName;
+    std::string paramValue;
+
+    getline(readStream, paramName, '=');
+
+    auto typeEntry = allowedValueTypesFactory.find(paramName);
+    if (typeEntry != allowedValueTypesFactory.end()) {
+        getline(readStream, paramValue);
+        switch (typeEntry->second) {
+            case TypeEnumFactory::DBUS_BUSTYPE:
+                if (paramValue == "system")
+                    factoryConfig.busType = DBus::BusType::SYSTEM;
+                break;
+        }
+    }
+}
 
 inline void readValue(std::string& readLine, CommonApiServiceDetails& serviceDetails) {
     std::stringstream readStream(readLine);
@@ -77,9 +116,9 @@ inline void readValue(std::string& readLine, CommonApiServiceDetails& serviceDet
     getline(readStream, paramName, '=');
 
     auto typeEntry = allowedValueTypes.find(paramName);
-    if(typeEntry != allowedValueTypes.end()) {
+    if (typeEntry != allowedValueTypes.end()) {
         getline(readStream, paramValue);
-        switch(typeEntry->second) {
+        switch (typeEntry->second) {
             case TypeEnum::DBUS_CONNECTION:
                 std::get<0>(std::get<0>(serviceDetails)) = paramValue;
                 break;
@@ -111,10 +150,14 @@ inline void reset(CommonApiServiceDetails& serviceDetails) {
 
 void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
     std::string currentlyParsedCommonApiAddress;
+    DBusAddressTranslator::FactoryConfigDBus currentlyParsedFactoryConfig;
     CommonApiServiceDetails serviceDetails;
     reset(serviceDetails);
 
     bool newAddressFound = false;
+    bool newFactoryFound = false;
+
+    FileParsingState parsingState = FileParsingState::UNDEFINED;
 
     while (addressConfigFile.good()) {
         std::string readLine;
@@ -122,26 +165,64 @@ void DBusAddressTranslator::readConfigFile(std::ifstream& addressConfigFile) {
         const size_t readLineLength = readLine.length();
 
         if (readLine[0] == '[' && readLine[readLineLength - 1] == ']') {
-            if (newAddressFound) {
-                fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
-                commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
-                dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
-            }
-            reset(serviceDetails);
-            std::string newAddress = readLine.substr(1, readLineLength - 2);
-            if (isValidCommonApiAddress(newAddress)) {
-                currentlyParsedCommonApiAddress = std::move(newAddress);
-                newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
-            }
+            // entered section
+            std::string sectionName = readLine.substr(1, readLineLength - 2);
+            std::vector<std::string> addressParts = split(sectionName, '$');
 
-        } else if (newAddressFound) {
-            readValue(readLine, serviceDetails);
+            // check, if it is a factory configuration or address configuration section
+            if (addressParts.size() == 2 && addressParts[0] == "factory") {
+                if (newFactoryFound)
+                {
+                    factoryConfigurations.insert( {currentlyParsedFactoryConfig.factoryName,
+                                    currentlyParsedFactoryConfig});
+                }
+                // initialize with default values
+                DBusFactory::getDefaultFactoryConfig(currentlyParsedFactoryConfig);
+
+                currentlyParsedFactoryConfig.factoryName = addressParts[1];
+                newFactoryFound = factoryConfigurations.find(addressParts[1]) == factoryConfigurations.end();
+                parsingState = FileParsingState::PARSING_FACTORY;
+            }
+            else
+            {
+
+                if (newAddressFound) {
+                    fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
+                    commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
+                    dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
+                }
+                reset(serviceDetails);
+                if(isValidCommonApiAddress(sectionName)) {
+                    currentlyParsedCommonApiAddress = std::move(sectionName);
+                    newAddressFound = commonApiAddressDetails.find(currentlyParsedCommonApiAddress) == commonApiAddressDetails.end();
+                    parsingState = FileParsingState::PARSING_ADDRESS;
+                }
+            }
+        }
+        else
+        {
+            if (parsingState == FileParsingState::PARSING_FACTORY) {
+                readValue(readLine, currentlyParsedFactoryConfig);
+            }
+            else
+            {
+                if (newAddressFound) {
+                    readValue(readLine, serviceDetails);
+                }
+            }
         }
     }
-    if(newAddressFound) {
-        fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
-        commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
-        dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
+
+    if (newAddressFound || newFactoryFound) {
+        if (parsingState == FileParsingState::PARSING_ADDRESS) {
+            fillUndefinedValues(serviceDetails, currentlyParsedCommonApiAddress);
+            commonApiAddressDetails.insert( {currentlyParsedCommonApiAddress, serviceDetails});
+            dbusToCommonApiAddress.insert( {std::get<0>(serviceDetails), currentlyParsedCommonApiAddress});
+        }
+
+        if (parsingState == FileParsingState::PARSING_FACTORY) {
+            factoryConfigurations.insert( {currentlyParsedFactoryConfig.factoryName, currentlyParsedFactoryConfig});
+        }
     }
 }
 
@@ -234,6 +315,15 @@ void DBusAddressTranslator::findFallbackCommonAddress(std::string& commonApiAddr
     commonApiAddress = "local:" + interfaceName + ":" + connectionName;
 }
 
+DBusAddressTranslator::FactoryConfigDBus* DBusAddressTranslator::searchForFactoryConfiguration(const std::string& factoryName) {
+
+    const auto foundConfig = factoryConfigurations.find(factoryName);
+
+    if (foundConfig != factoryConfigurations.end())
+        return (&(foundConfig->second));
+    else
+        return (NULL);
+}
 
 }// namespace DBus
-}// namespace CommonAPI
+} // namespace CommonAPI

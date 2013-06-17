@@ -70,7 +70,22 @@ size_t hash< tuple<string, string, string, bool> >::operator()(const tuple<strin
     MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
     MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
     MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
-    seed + (int)d;
+    MurmurHash3_x86_32(&d, sizeof(bool), seed, &seed);
+
+    return static_cast<size_t>(seed);
+}
+
+size_t hash< tuple<string, string, string, int> >::operator()(const tuple<string, string, string, int>& t) const {
+    const string& a = get<0>(t);
+    const string& b = get<1>(t);
+    const string& c = get<2>(t);
+    const int d = get<3>(t);
+
+    uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
+    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
+    MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+    MurmurHash3_x86_32(&d, sizeof(d), seed, &seed);
 
     return static_cast<size_t>(seed);
 }

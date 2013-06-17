@@ -14,6 +14,9 @@
 
 #include "DBusFunctionalHash.h"
 
+#include <CommonAPI/types.h>
+#include "DBusConnectionBusType.h"
+
 #include <algorithm>
 #include <unordered_map>
 
@@ -26,6 +29,7 @@ static const char* DBUS_CONFIG_SUFFIX = "_dbus.conf";
 static const char* DBUS_GLOBAL_CONFIG_FQN = "/etc/CommonApiDBus/dbusAddresses.conf";
 static const char* DBUS_GLOBAL_CONFIG_ROOT = "/etc/CommonApiDBus/";
 
+
 //connectionName, objectPath, interfaceName
 typedef std::tuple<std::string, std::string, std::string> DBusServiceAddress;
 
@@ -35,6 +39,11 @@ typedef std::tuple<DBusServiceAddress, bool> CommonApiServiceDetails;
 
 class DBusAddressTranslator {
 public:
+    struct FactoryConfigDBus {
+        std::string factoryName;
+        BusType busType;
+    };
+
     ~DBusAddressTranslator();
 
     static DBusAddressTranslator& getInstance();
@@ -48,6 +57,8 @@ public:
                                 const std::string& connectionName,
                                 const std::string& objectPath,
                                 std::string& commonApiAddress);
+
+    FactoryConfigDBus* searchForFactoryConfiguration(const std::string& factoryName);
 
     void getPredefinedInstances(const std::string& connectionName,
                                    std::vector<DBusServiceAddress>& instances);
@@ -74,7 +85,9 @@ private:
 
     std::unordered_map<std::string, CommonApiServiceDetails> commonApiAddressDetails;
     std::unordered_map<DBusServiceAddress, std::string> dbusToCommonApiAddress;
-};
+    std::unordered_map<std::string, DBusAddressTranslator::FactoryConfigDBus> factoryConfigurations;
+
+ };
 
 
 }// namespace DBus

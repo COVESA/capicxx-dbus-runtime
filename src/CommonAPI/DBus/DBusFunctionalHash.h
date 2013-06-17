@@ -42,26 +42,32 @@ struct hash< tuple<string, string, string> >:
 };
 
 template<>
-struct hash< tuple<string, string, string, bool> >:
-        public unary_function< tuple<string, string, string, bool>, size_t > {
+struct hash<tuple<string, string, string, bool> > :
+                public unary_function<tuple<string, string, string, bool>, size_t> {
 
     size_t operator()(const tuple<string, string, string, bool>& t) const;
 };
 
 template<>
-struct hash< tuple<string, string, string, string> >:
-		public std::unary_function< tuple<string, string, string, string>, size_t > {
+struct hash<tuple<string, string, string, int> > :
+                public unary_function<tuple<string, string, string, int>, size_t> {
 
-	size_t operator()(const tuple<string, string, string, string>& t) const;
+    size_t operator()(const tuple<string, string, string, int>& t) const;
 };
 
+template<>
+struct hash<tuple<string, string, string, string> > :
+                public std::unary_function<tuple<string, string, string, string>, size_t> {
+
+    size_t operator()(const tuple<string, string, string, string>& t) const;
+};
 
 template<>
-struct equal_to< pair<const char*, const char*> >: public binary_function< pair<const char*, const char*>,
-																									 pair<const char*, const char*>,
-																									 bool> {
+struct equal_to<pair<const char*, const char*> > : public binary_function<pair<const char*, const char*>,
+                pair<const char*, const char*>,
+                bool> {
 
-  bool operator()(const pair<const char*, const char*>& a, const pair<const char*, const char*>& b) const;
+    bool operator()(const pair<const char*, const char*>& a, const pair<const char*, const char*>& b) const;
 };
 
 } // namespace std

@@ -66,6 +66,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusAddressTranslator.h \
         src/CommonAPI/DBus/DBusAttribute.h \
         src/CommonAPI/DBus/DBusConnection.h \
+        src/CommonAPI/DBus/DBusConnectionBusType.h \
         src/CommonAPI/DBus/DBusDaemonProxy.h \
         src/CommonAPI/DBus/DBusError.h \
         src/CommonAPI/DBus/DBusEvent.h \

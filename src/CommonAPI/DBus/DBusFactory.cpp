@@ -42,14 +42,36 @@ void DBusFactory::registerAdapterFactoryMethod(std::string interfaceName, DBusAd
 }
 
 
-DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext) :
+DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime,
+                         const MiddlewareInfo* middlewareInfo,
+                         std::shared_ptr<MainLoopContext> mainLoopContext) :
                 CommonAPI::Factory(runtime, middlewareInfo),
-                dbusConnection_(CommonAPI::DBus::DBusConnection::getSessionBus()),
                 mainLoopContext_(mainLoopContext) {
+
+    // init factoryConfigDBus_ with default parameters
+    DBusFactory::getDefaultFactoryConfig(factoryConfigDBus_);
+    connect();
+}
+
+DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime,
+                         const MiddlewareInfo* middlewareInfo,
+                         const DBusAddressTranslator::FactoryConfigDBus& factoryConfigDBus,
+                         std::shared_ptr<MainLoopContext> mainLoopContext) :
+                CommonAPI::Factory(runtime, middlewareInfo),
+                mainLoopContext_(mainLoopContext) {
+    factoryConfigDBus_ = factoryConfigDBus;
+    connect();
+}
+
+/**
+ * contains the common logic for building a connection used by default Factory and Factory with named configuration
+ */
+void DBusFactory::connect() {
+    dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(factoryConfigDBus_.busType);
     bool startDispatchThread = !mainLoopContext_;
     dbusConnection_->connect(startDispatchThread);
-    if(mainLoopContext_) {
-        dbusConnection_->attachMainLoopContext(mainLoopContext);
+    if (mainLoopContext_) {
+        dbusConnection_->attachMainLoopContext(mainLoopContext_);
     }
 }
 
@@ -186,6 +208,10 @@ bool DBusFactory::unregisterService(const std::string& participantId, const std:
     return DBusServicePublisher::getInstance()->unregisterService(serviceAddress);
 }
 
+
+void DBusFactory::getDefaultFactoryConfig(DBusAddressTranslator::FactoryConfigDBus& returnConfiguration) {
+	returnConfiguration = { "", BusType::SESSION };
+}
 
 } // namespace DBus
 } // namespace CommonAPI

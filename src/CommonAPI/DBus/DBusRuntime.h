@@ -24,11 +24,22 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
  public:
     static std::shared_ptr<Runtime> getInstance();
 
-    std::shared_ptr<Factory> createFactory(std::shared_ptr<MainLoopContext> = std::shared_ptr<MainLoopContext>(NULL));
+
+    //std::shared_ptr<Factory> createFactory(std::shared_ptr<MainLoopContext> = std::shared_ptr<MainLoopContext>(NULL));
+    std::shared_ptr<Factory> createFactory(std::shared_ptr<MainLoopContext> mainLoopContext = std::shared_ptr<MainLoopContext>(NULL));
+
+    std::shared_ptr<Factory> createFactory(const std::string factoryName,
+                                           const bool nullOnInvalidName = false);
+    std::shared_ptr<Factory> createFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
+                                           const std::string factoryName,
+                                           const bool nullOnInvalidName = false);
+
 
     std::shared_ptr<ServicePublisher> getServicePublisher();
 
     static const MiddlewareInfo middlewareInfo_;
+ private:
+    static std::unordered_map<std::string, DBusRuntime> registeredRuntimes;
 };
 
 } // namespace DBus
