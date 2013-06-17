@@ -13,6 +13,8 @@
 
 #include <CommonAPI/CommonAPI.h>
 
+#define COMMONAPI_INTERNAL_COMPILATION
+
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 #include <CommonAPI/DBus/DBusUtils.h>
 #include <CommonAPI/DBus/DBusConnection.h>

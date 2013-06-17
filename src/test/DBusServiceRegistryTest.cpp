@@ -9,6 +9,9 @@
 #endif
 
 #include <CommonAPI/CommonAPI.h>
+
+#define COMMONAPI_INTERNAL_COMPILATION
+
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusUtils.h>

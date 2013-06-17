@@ -8,7 +8,8 @@ AM_CPPFLAGS = \
         -I$(top_srcdir)/src \
         -I$(top_srcdir)/src/test \
         ${COMMONAPI_CFLAGS} \
-        ${DBUS_CFLAGS}
+        ${DBUS_CFLAGS} \
+        -DCOMMONAPI_INTERNAL_COMPILATION
 
 
 AM_LDFLAGS = \

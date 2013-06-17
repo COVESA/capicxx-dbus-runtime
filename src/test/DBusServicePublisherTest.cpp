@@ -19,6 +19,9 @@
 #include <type_traits>
 
 #include <CommonAPI/CommonAPI.h>
+
+#define COMMONAPI_INTERNAL_COMPILATION
+
 #include <CommonAPI/AttributeExtension.h>
 #include <CommonAPI/types.h>
 

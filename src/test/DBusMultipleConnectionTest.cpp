@@ -19,6 +19,8 @@
 
 #include <CommonAPI/CommonAPI.h>
 
+#define COMMONAPI_INTERNAL_COMPILATION
+
 #include "commonapi/tests/TestInterfaceProxy.h"
 #include "commonapi/tests/TestInterfaceStubDefault.h"
 
