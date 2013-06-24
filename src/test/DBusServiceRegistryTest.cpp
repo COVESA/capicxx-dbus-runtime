@@ -10,7 +10,9 @@
 
 #include <CommonAPI/CommonAPI.h>
 
+#ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
 #include <CommonAPI/DBus/DBusConnection.h>

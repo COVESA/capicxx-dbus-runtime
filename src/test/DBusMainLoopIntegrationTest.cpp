@@ -69,6 +69,18 @@ TEST_F(DBusBasicMainLoopTest, MainloopContextCanBeCreated) {
 }
 
 
+TEST_F(DBusBasicMainLoopTest, NoFactoryWillBeCreatedIfContextIsUninitialized) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    ASSERT_TRUE((bool) runtime);
+
+    std::shared_ptr<CommonAPI::MainLoopContext> context = runtime->getNewMainLoopContext();
+    ASSERT_TRUE((bool) context);
+
+    std::shared_ptr<CommonAPI::Factory> factory = runtime->createFactory(context);
+    ASSERT_FALSE((bool) factory);
+}
+
+
 TEST_F(DBusBasicMainLoopTest, SeveralMainloopContextsCanBeCreated) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);

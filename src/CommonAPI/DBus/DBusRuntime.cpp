@@ -24,37 +24,32 @@ std::shared_ptr<Runtime> DBusRuntime::getInstance() {
     return singleton_;
 }
 
-std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopContext> mainLoopContext) {
-    return createFactory(mainLoopContext, "");
+std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext) {
+    return doCreateFactory(mainLoopContext, "");
 }
 
-std::shared_ptr<Factory> DBusRuntime::createFactory(const std::string factoryName,
-                                                       const bool nullOnInvalidName) {
-    return createFactory(std::shared_ptr<MainLoopContext>(NULL), factoryName, nullOnInvalidName);
+std::shared_ptr<Factory> DBusRuntime::doCreateFactory(const std::string factoryName,
+                                                      const bool nullOnInvalidName) {
+    return doCreateFactory(std::shared_ptr<MainLoopContext>(NULL), factoryName, nullOnInvalidName);
 }
 
-
-
-std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
-                                                       const std::string factoryName,
-                                                       const bool nullOnInvalidName) {
+std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
+                                                      const std::string factoryName,
+                                                      const bool nullOnInvalidName) {
     auto factory = std::shared_ptr<DBusFactory>(NULL);
 
-    if (factoryName == "")
+    if (factoryName == "") {
         factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_, mainLoopContext);
-    else
-    {
+    } else {
         DBusAddressTranslator::FactoryConfigDBus* factoryConfigDBus =
                         DBusAddressTranslator::getInstance().searchForFactoryConfiguration(factoryName);
         DBusAddressTranslator::FactoryConfigDBus defaultFactoryConfigDBus;
 
-        if (factoryConfigDBus == NULL)
-        {
+        if (factoryConfigDBus == NULL) {
             // unknown / unconfigured Factory requested
-            if (nullOnInvalidName)
+            if (nullOnInvalidName) {
                 return (NULL);
-            else
-            {
+            } else {
                 DBusFactory::getDefaultFactoryConfig(defaultFactoryConfigDBus); // get default settings
                 factoryConfigDBus = &defaultFactoryConfigDBus;
             }
