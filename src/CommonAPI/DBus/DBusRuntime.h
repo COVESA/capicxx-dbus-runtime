@@ -28,9 +28,6 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
     static const MiddlewareInfo middlewareInfo_;
 
  protected:
-    std::shared_ptr<Factory> doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext);
-    std::shared_ptr<Factory> doCreateFactory(const std::string factoryName,
-                                             const bool nullOnInvalidName = false);
     std::shared_ptr<Factory> doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
                                              const std::string factoryName,
                                              const bool nullOnInvalidName = false);

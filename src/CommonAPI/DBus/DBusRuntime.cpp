@@ -24,15 +24,6 @@ std::shared_ptr<Runtime> DBusRuntime::getInstance() {
     return singleton_;
 }
 
-std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext) {
-    return doCreateFactory(mainLoopContext, "");
-}
-
-std::shared_ptr<Factory> DBusRuntime::doCreateFactory(const std::string factoryName,
-                                                      const bool nullOnInvalidName) {
-    return doCreateFactory(std::shared_ptr<MainLoopContext>(NULL), factoryName, nullOnInvalidName);
-}
-
 std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
                                                       const std::string factoryName,
                                                       const bool nullOnInvalidName) {
