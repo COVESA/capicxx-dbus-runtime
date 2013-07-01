@@ -9,7 +9,11 @@
 #define DEMO_MAIN_LOOP_H_
 
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
 #include <CommonAPI/MainLoopContext.h>
+#undef COMMONAPI_INTERNAL_COMPILATION
 
 #include <vector>
 #include <set>
@@ -173,14 +177,14 @@ class MainLoop {
     bool check() {
         //The first file descriptor always is the loop's wakeup-descriptor. All others need to be linked to a watch.
         for (auto fileDescriptor = managedFileDescriptors_.begin() + 1; fileDescriptor != managedFileDescriptors_.end(); ++fileDescriptor) {
-            for(auto registeredWatchIterator = registeredWatches_.begin();
+            for (auto registeredWatchIterator = registeredWatches_.begin();
                         registeredWatchIterator != registeredWatches_.end();
                         registeredWatchIterator++) {
                 const auto& correspondingWatchPriority = registeredWatchIterator->first;
                 const auto& correspondingWatchPair = registeredWatchIterator->second;
 
                 if (std::get<0>(correspondingWatchPair) == fileDescriptor->fd && fileDescriptor->revents) {
-                    watchesToDispatch_.insert( { correspondingWatchPriority, {std::get<1>(correspondingWatchPair), fileDescriptor->revents & fileDescriptor->events} } );
+                    watchesToDispatch_.insert( { correspondingWatchPriority, {std::get<1>(correspondingWatchPair)} } );
                 }
             }
         }
@@ -204,8 +208,8 @@ class MainLoop {
         for (auto watchIterator = watchesToDispatch_.begin();
                 watchIterator != watchesToDispatch_.end();
                 watchIterator++) {
-            Watch* watch = std::get<0>(watchIterator->second);
-            const unsigned int flags = std::get<1>(watchIterator->second);
+            Watch* watch = watchIterator->second;
+            const unsigned int flags = 7;
             watch->dispatch(flags);
         }
 
@@ -270,7 +274,7 @@ class MainLoop {
                 watchIterator != registeredWatches_.end();
                 watchIterator++) {
 
-            if(watchIterator->second.first == watch->getAssociatedFileDescriptor().fd) {
+            if(watchIterator->second.second == watch) {
                 registeredWatches_.erase(watchIterator);
                 break;
             }
@@ -307,7 +311,7 @@ class MainLoop {
     std::multimap<DispatchPriority, Timeout*> registeredTimeouts_;
 
     std::set<std::pair<DispatchPriority, DispatchSource*>> sourcesToDispatch_;
-    std::set<std::pair<DispatchPriority, std::pair<Watch*, unsigned short>>> watchesToDispatch_;
+    std::set<std::pair<DispatchPriority, Watch*>> watchesToDispatch_;
     std::set<std::pair<DispatchPriority, Timeout*>> timeoutsToDispatch_;
 
     DispatchSourceListenerSubscription dispatchSourceListenerSubscription_;
