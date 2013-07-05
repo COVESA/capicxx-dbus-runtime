@@ -107,7 +107,8 @@ std::future<CallStatus> DBusDaemonProxy::listNamesAsync(ListNamesAsyncCallback l
 
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
-                    DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(listNamesAsyncCallback));
+                    DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(listNamesAsyncCallback),
+                    2000);
 }
 
 void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const {
@@ -153,7 +154,8 @@ std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& bu
 
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
-                    DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback));
+                    DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback),
+                    2000);
 }
 
 std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback callback) const {
@@ -167,7 +169,8 @@ std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::strin
 
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMethodCallMessage,
-                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback));
+                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback),
+                    2000);
 }
 
 

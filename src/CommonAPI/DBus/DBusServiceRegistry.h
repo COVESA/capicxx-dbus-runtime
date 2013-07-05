@@ -100,6 +100,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     void onGetManagedObjectsCallback(const CallStatus& status, DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects, const std::string& dbusServiceName);
 
     size_t getResolvedServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances);
+    size_t getNumResolvingServiceInstances();
 
     bool waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout);
 

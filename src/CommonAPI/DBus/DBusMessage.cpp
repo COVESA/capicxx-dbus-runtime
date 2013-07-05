@@ -139,6 +139,14 @@ DBusMessage DBusMessage::createMethodReturn(const std::string& signature) const 
 	return createMethodReturn(signature.empty() ? NULL : signature.c_str());
 }
 
+DBusMessage DBusMessage::createMethodError(const std::string& name, const std::string& reason) const {
+    ::DBusMessage* libdbusMessageError = dbus_message_new_error(libdbusMessage_, name.c_str(), reason.c_str());
+    assert(libdbusMessageError);
+
+    const bool increaseLibdbusMessageReferenceCount = false;
+    return DBusMessage(libdbusMessageError, increaseLibdbusMessageReferenceCount);
+}
+
 DBusMessage DBusMessage::createSignal(const char* objectPath,
                                       const char* interfaceName,
                                       const char* signalName,

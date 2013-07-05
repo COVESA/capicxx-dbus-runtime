@@ -134,35 +134,20 @@ std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const
         return availableServiceInstances;
     }
 
-    while (timeout.count() > 0) {
-        size_t dbusServiceResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
+    size_t dbusServiceResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
 
-        if (!dbusServiceResolvingCount) {
-            break;
-        }
-
-        // wait for unknown and acquiring services, then restart from the beginning
-        typedef std::chrono::high_resolution_clock clock;
-        clock::time_point startTimePoint = clock::now();
-
-        size_t wakeupCount = 0;
-        dbusServiceChanged_.wait_for(
-                        dbusServicesLock,
-                        timeout,
-                        [&] {
-                            wakeupCount++;
-                            return wakeupCount > dbusServiceResolvingCount;
-                        });
-
-        if (wakeupCount > 1) {
-            getResolvedServiceInstances(interfaceName, availableServiceInstances);
-            break;
-        }
-
-        std::chrono::milliseconds elapsedWaitTime =
-                        std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - startTimePoint);
-        timeout -= elapsedWaitTime;
+    if (!dbusServiceResolvingCount) {
+        return availableServiceInstances;
     }
+
+    dbusServiceChanged_.wait(
+                    dbusServicesLock,
+                    [&] {
+                        return getNumResolvingServiceInstances() == 0;
+                    });
+
+    getResolvedServiceInstances(interfaceName, availableServiceInstances);
+
 
     // maybe partial list but it contains everything we know for now
     return availableServiceInstances;
@@ -182,12 +167,11 @@ void DBusServiceRegistry::getAvailableServiceInstancesAsync(Factory::GetAvailabl
 
     size_t stillResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
 
-    if(stillResolvingCount == 0 && !dbusServices_.empty()) {
+    if (stillResolvingCount == 0 && !dbusServices_.empty()) {
         callback(availableServiceInstances);
     } else {
-        //This is a necessary hack, because libdbus never returns from async calls if a
-        //service handles it's answers the wrong way. Here an artificial timeout is
-        //added to circumvent this limitation.
+        //Necessary as service discovery might need some time, but the async version of "getAvailableServiceInstances"
+        //shall return without delay.
         std::thread(
                 [this, callback, interfaceName, domainName](std::shared_ptr<DBusServiceRegistry> selfRef) {
                     auto availableServiceInstances = getAvailableServiceInstances(interfaceName, domainName);
@@ -195,6 +179,34 @@ void DBusServiceRegistry::getAvailableServiceInstancesAsync(Factory::GetAvailabl
                 }, this->shared_from_this()
         ).detach();
     }
+}
+
+
+size_t DBusServiceRegistry::getNumResolvingServiceInstances() {
+    size_t dbusServicesResolvingCount = 0;
+
+    // caller must hold lock
+    auto dbusServiceIterator = dbusServices_.begin();
+    while (dbusServiceIterator != dbusServices_.end()) {
+        DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
+
+        switch (dbusServiceState) {
+            case DBusServiceState::AVAILABLE:
+                dbusServicesResolvingCount++;
+                break;
+
+            case DBusServiceState::RESOLVING:
+                dbusServicesResolvingCount++;
+                break;
+
+            default:
+                break;
+        }
+
+        dbusServiceIterator++;
+    }
+
+    return dbusServicesResolvingCount;
 }
 
 

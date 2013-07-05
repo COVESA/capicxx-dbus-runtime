@@ -49,8 +49,6 @@ struct WatchContext {
 
 class DBusConnection: public DBusProxyConnection, public std::enable_shared_from_this<DBusConnection> {
  public:
-
-
     DBusConnection(BusType busType);
 
     inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
@@ -116,8 +114,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     bool singleDispatch();
 
  private:
-    void dispatch(std::shared_ptr<DBusConnection>* selfReference);
-    //void dispatch();
+    void dispatch();
     void suspendDispatching() const;
     void resumeDispatching() const;
 
@@ -166,6 +163,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
     static void onWakeupMainContext(void* data);
 
+    void enforceAsynchronousTimeouts() const;
+
     ::DBusConnection* libdbusConnection_;
     mutable std::mutex libdbusConnectionGuard_;
     std::mutex signalGuard_;
@@ -195,6 +194,11 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     DBusObjectPathMessageHandler dbusObjectMessageHandler_;
 
     mutable std::unordered_map<std::string, uint16_t> connectionNameCount_;
+
+    typedef std::pair<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage> > TimeoutMapElement;
+    mutable std::map<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage>> timeoutMap;
+    mutable std::thread* enforcerThread;
+    mutable std::mutex enforeTimeoutMutex;
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {

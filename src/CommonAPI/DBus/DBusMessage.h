@@ -57,6 +57,8 @@ class DBusMessage {
 
 	DBusMessage createMethodReturn(const std::string& signature) const;
 
+    DBusMessage createMethodError(const std::string& name, const std::string& reason = "") const;
+
 	static DBusMessage createSignal(const char* objectPath,
 			                        const char* interfaceName,
 			                        const char* signalName,
