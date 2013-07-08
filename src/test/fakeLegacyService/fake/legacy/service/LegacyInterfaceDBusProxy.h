@@ -8,7 +8,7 @@
 #ifndef FAKE_LEGACY_SERVICE_Legacy_Interface_DBUS_PROXY_H_
 #define FAKE_LEGACY_SERVICE_Legacy_Interface_DBUS_PROXY_H_
 
-#include <fake/legacy/service/LegacyInterfaceProxyBase.h>
+#include "fakeLegacyService/fake/legacy/service/LegacyInterfaceProxyBase.h"
 
 #define COMMONAPI_INTERNAL_COMPILATION
 
