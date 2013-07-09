@@ -10,7 +10,9 @@
 
 
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/ByteBuffer.h>
 #include <CommonAPI/types.h>
@@ -53,7 +55,8 @@ namespace PredefinedTypeCollection {
 
 
 static inline const char* getTypeCollectionName() {
-    return "commonapi.tests.PredefinedTypeCollection";
+    static const char* typeCollectionName = "commonapi.tests.PredefinedTypeCollection";
+    return typeCollectionName;
 }
 
 

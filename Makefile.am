@@ -36,6 +36,7 @@ lib_LTLIBRARIES += libCommonAPI-DBus.la
 
 libCommonAPI_DBus_la_SOURCES = \
         src/CommonAPI/DBus/DBusAddressTranslator.cpp \
+        src/CommonAPI/DBus/DBusConfiguration.cpp \
         src/CommonAPI/DBus/DBusConnection.cpp \
         src/CommonAPI/DBus/DBusDaemonProxy.cpp \
         src/CommonAPI/DBus/DBusError.cpp \
@@ -65,6 +66,7 @@ CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusAddressTranslator.h \
         src/CommonAPI/DBus/DBusAttribute.h \
+        src/CommonAPI/DBus/DBusConfiguration.h \
         src/CommonAPI/DBus/DBusConnection.h \
         src/CommonAPI/DBus/DBusConnectionBusType.h \
         src/CommonAPI/DBus/DBusDaemonProxy.h \
@@ -100,14 +102,58 @@ pkgconfig_DATA = CommonAPI-DBus.pc
 # ------------------------------------------------------------------------------
 if ENABLE_TESTS
 
+lib_LTLIBRARIES += libCommonAPI-Fake.la
+
+libCommonAPI_Fake_la_SOURCES = \
+        src/test/dbusDynamicLoadingTests/fakeTestBinding/FakeBinding.cpp
+
+libCommonAPI_Fake_la_LIBADD = \
+        ${COMMONAPI_LIBS}
+libCommonAPI_Fake_la_LDFLAGS = \
+        ${AM_LDFLAGS} \
+        -version-info 1:0:0
+
+CommonAPI_Fake_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/Fake
+CommonAPI_Fake_include_HEADERS = \
+        src/test/dbusDynamicLoadingTests/fakeTestBinding/FakeBinding.h
+
 TestInterfaceSources = \
         src/test/commonapi/tests/DerivedTypeCollection.cpp \
+        src/test/commonapi/tests/TestInterfaceStubDefault.cpp
+
+TestInterfaceDBusSources = \
+        ${TestInterfaceSources} \
         src/test/commonapi/tests/TestInterfaceDBusProxy.cpp \
         src/test/commonapi/tests/TestInterfaceDBusStubAdapter.cpp \
-        src/test/commonapi/tests/TestInterfaceStubDefault.cpp \
-        src/test/fakeLegacyService/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
+        src/test/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
+
+lib_LTLIBRARIES += libDBusGen-TestInterface.la
+libDBusGen_TestInterface_la_SOURCES = \
+        ${TestInterfaceDBusSources}
+libDBusGen_TestInterface_la_LIBADD = \
+        ${COMMONAPI_LIBS}
+libDBusGen_TestInterface_la_LDFLAGS = \
+        ${AM_LDFLAGS}
+
+lib_LTLIBRARIES += libSomeOtherNameForGeneratedDBus.la
+libSomeOtherNameForGeneratedDBus_la_SOURCES = \
+        ${TestInterfaceDBusSources}
+libSomeOtherNameForGeneratedDBus_la_LIBADD = \
+        ${COMMONAPI_LIBS}
+libSomeOtherNameForGeneratedDBus_la_LDFLAGS = \
+        ${AM_LDFLAGS}
+
+
+DYNAMIC_LOADING_TEST_SET = \
+        DBusDynamicLoadingBasicTest \
+        DBusDynamicLoadingMixedValidityTest \
+        DBusDynamicLoadingNoValidityTest \
+        DBusDynamicLoadingMultipleDefinitionTest \
+        DBusDynamicLoadingMultipleBindingsTest
 
 check_PROGRAMS = \
+        DBusRuntimeTest \
+        ${DYNAMIC_LOADING_TEST_SET} \
         DBusMainLoopIntegrationTest \
         DBusConnectionTest \
         DBusServiceRegistryTest \
@@ -115,7 +161,6 @@ check_PROGRAMS = \
         DBusAddressTranslatorTest \
         DBusInputStreamTest \
         DBusOutputStreamTest \
-        DBusRuntimeTest \
         DBusFactoryTest \
         DBusVariantTest \
         DBusTypeStreamTest \
@@ -127,25 +172,27 @@ check_PROGRAMS = \
 
 
 TESTS = ${check_PROGRAMS}
-LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} ${LDADD}
+LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS = ${GTEST_LIBS} ${LDADD}
+LDADD_FOR_GTEST = libCommonAPI-DBus.la ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
 
 DBusMainLoopIntegrationTest_SOURCES = \
         src/test/DBusMainLoopIntegrationTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusMainLoopIntegrationTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS} ${GLIB_CFLAGS}
 DBusMainLoopIntegrationTest_CXXFLAGS = ${GTEST_CXXFLAGS} ${GLIB_CFLAGS}
 DBusMainLoopIntegrationTest_LDADD = ${LDADD_FOR_GTEST} ${GLIB_LIBS}
 
 DBusServiceRegistryTest_SOURCES = \
         src/test/DBusServiceRegistryTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusServiceRegistryTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusServiceRegistryTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusServiceRegistryTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusAddressTranslatorTest_SOURCES = \
         src/test/DBusAddressTranslatorTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusAddressTranslatorTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusAddressTranslatorTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusAddressTranslatorTest_LDADD = ${LDADD_FOR_GTEST}
@@ -167,7 +214,7 @@ DBusVariantOutputStreamTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusCommunicationTest_SOURCES = \
         src/test/DBusCommunicationTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusCommunicationTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusCommunicationTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusCommunicationTest_LDADD = ${LDADD_FOR_GTEST}
@@ -179,47 +226,42 @@ DBusDaemonProxyTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusInputStreamTest_SOURCES = \
         src/test/DBusInputStreamTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusInputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusInputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusInputStreamTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusOutputStreamTest_SOURCES = \
         src/test/DBusOutputStreamTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusOutputStreamTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusFactoryTest_SOURCES = \
         src/test/DBusFactoryTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusFactoryTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusFactoryTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusFactoryTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusRuntimeTest_SOURCES = src/test/DBusRuntimeTest.cpp
-DBusRuntimeTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusRuntimeTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusRuntimeTest_LDADD = ${LDADD_FOR_GTEST}
-
 DBusMultipleConnectionTest_SOURCES = \
         src/test/DBusMultipleConnectionTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusMultipleConnectionTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusMultipleConnectionTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusMultipleConnectionTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusProxyTest_SOURCES = \
         src/test/DBusProxyTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusServicePublisherTest_SOURCES = \
         src/test/DBusServicePublisherTest.cpp \
-        ${TestInterfaceSources}
+        ${TestInterfaceDBusSources}
 DBusServicePublisherTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusServicePublisherTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusServicePublisherTest_LDADD = ${LDADD_FOR_GTEST}
@@ -228,6 +270,46 @@ DBusVariantTest_SOURCES = src/test/DBusVariantTest.cpp
 DBusVariantTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusVariantTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusVariantTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusRuntimeTest_SOURCES = src/test/DBusRuntimeTest.cpp
+DBusRuntimeTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusRuntimeTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusRuntimeTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusDynamicLoadingBasicTest_SOURCES = \
+        ${TestInterfaceSources} \
+        src/test/dbusDynamicLoadingTests/DBusDynamicLoadingBasicTest.cpp
+DBusDynamicLoadingBasicTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusDynamicLoadingBasicTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusDynamicLoadingBasicTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
+DBusDynamicLoadingMultipleDefinitionTest_SOURCES =  \
+        ${TestInterfaceSources} \
+        src/test/dbusDynamicLoadingTests/DBusDynamicLoadingMultipleDefinitionTest.cpp
+DBusDynamicLoadingMultipleDefinitionTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusDynamicLoadingMultipleDefinitionTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusDynamicLoadingMultipleDefinitionTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
+DBusDynamicLoadingMultipleBindingsTest_SOURCES =  \
+        ${TestInterfaceSources} \
+        src/test/dbusDynamicLoadingTests/DBusDynamicLoadingMultipleBindingsTest.cpp
+DBusDynamicLoadingMultipleBindingsTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusDynamicLoadingMultipleBindingsTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusDynamicLoadingMultipleBindingsTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
+DBusDynamicLoadingMixedValidityTest_SOURCES =  \
+        ${TestInterfaceSources} \
+        src/test/dbusDynamicLoadingTests/DBusDynamicLoadingMixedValidityTest.cpp
+DBusDynamicLoadingMixedValidityTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusDynamicLoadingMixedValidityTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusDynamicLoadingMixedValidityTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
+DBusDynamicLoadingNoValidityTest_SOURCES =  \
+        ${TestInterfaceSources} \
+        src/test/dbusDynamicLoadingTests/DBusDynamicLoadingNoValidityTest.cpp
+DBusDynamicLoadingNoValidityTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusDynamicLoadingNoValidityTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusDynamicLoadingNoValidityTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
 
 endif
 

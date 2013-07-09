@@ -10,7 +10,9 @@
 
 
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/types.h>
 
@@ -29,7 +31,8 @@ class LegacyInterface {
 };
 
 const char* LegacyInterface::getInterfaceId() {
-    return "fake.legacy.service.LegacyInterface";
+    static const char* interfaceId = "fake.legacy.service.LegacyInterface";
+    return interfaceId;
 }
 
 CommonAPI::Version LegacyInterface::getInterfaceVersion() {

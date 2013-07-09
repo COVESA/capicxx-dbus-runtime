@@ -56,7 +56,7 @@ class DBusProxyBase: public virtual CommonAPI::Proxy {
     inline void removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
 
  protected:
-    static const std::string commonApiDomain_;
+    const std::string commonApiDomain_;
 
  private:
     DBusProxyBase(const DBusProxyBase&) = delete;

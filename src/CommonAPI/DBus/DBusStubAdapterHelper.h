@@ -85,8 +85,8 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         assert(interfaceMemberSignature);
 
         DBusInterfaceMemberPath dbusInterfaceMemberPath(interfaceMemberName, interfaceMemberSignature);
-        auto findIterator = this->stubDispatcherTable_.find(dbusInterfaceMemberPath);
-        const bool foundInterfaceMemberHandler = (findIterator != this->stubDispatcherTable_.end());
+        auto findIterator = getStubDispatcherTable().find(dbusInterfaceMemberPath);
+        const bool foundInterfaceMemberHandler = (findIterator != getStubDispatcherTable().end());
         bool dbusMessageHandled = false;
 
         //To prevent the destruction of the stub whilst still handling a message
@@ -99,9 +99,10 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         return dbusMessageHandled;
     }
 
+    virtual const StubDispatcherTable& getStubDispatcherTable() = 0;
+
     std::shared_ptr<_StubClass> stub_;
     RemoteEventHandlerType* remoteEventHandler_;
-    static const StubDispatcherTable stubDispatcherTable_;
 };
 
 template< class >

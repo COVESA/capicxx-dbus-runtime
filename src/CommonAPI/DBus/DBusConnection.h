@@ -51,7 +51,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
  public:
     DBusConnection(BusType busType);
 
-    inline static std::shared_ptr<DBusConnection> getBus(const BusType& busType);
+    inline static std::shared_ptr<DBusConnection> getBus(const BusType& dbusBusType);
     inline static std::shared_ptr<DBusConnection> wrapLibDBus(::DBusConnection* libDbusConnection);
     inline static std::shared_ptr<DBusConnection> getSessionBus();
     inline static std::shared_ptr<DBusConnection> getSystemBus();
@@ -164,6 +164,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     static void onWakeupMainContext(void* data);
 
     void enforceAsynchronousTimeouts() const;
+    static const DBusObjectPathVTable* getDBusObjectPathVTable();
 
     ::DBusConnection* libdbusConnection_;
     mutable std::mutex libdbusConnectionGuard_;
@@ -188,8 +189,6 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     // objectPath, referenceCount
     typedef std::unordered_map<std::string, uint32_t> LibdbusRegisteredObjectPathHandlersTable;
     LibdbusRegisteredObjectPathHandlersTable libdbusRegisteredObjectPaths_;
-
-    static DBusObjectPathVTable libdbusObjectPathVTable_;
 
     DBusObjectPathMessageHandler dbusObjectMessageHandler_;
 

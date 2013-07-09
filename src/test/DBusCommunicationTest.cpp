@@ -85,12 +85,17 @@ class DBusCommunicationTest: public ::testing::Test {
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
 
     static const std::string serviceAddress_;
+    static const std::string serviceAddress2_;
+    static const std::string serviceAddress3_;
+    static const std::string serviceAddress4_;
     static const std::string nonstandardAddress_;
 };
 
 const std::string DBusCommunicationTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
+const std::string DBusCommunicationTest::serviceAddress2_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService2";
+const std::string DBusCommunicationTest::serviceAddress3_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService3";
+const std::string DBusCommunicationTest::serviceAddress4_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService4";
 const std::string DBusCommunicationTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
-
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
@@ -122,6 +127,57 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
 }
 
 
+TEST_F(DBusCommunicationTest, SameStubCanBeRegisteredSeveralTimes) {
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+    auto defaultTestProxy2 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress2_);
+    auto defaultTestProxy3 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress3_);
+    ASSERT_TRUE((bool)defaultTestProxy);
+    ASSERT_TRUE((bool)defaultTestProxy2);
+    ASSERT_TRUE((bool)defaultTestProxy3);
+
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    bool serviceRegistered2 = servicePublisher_->registerService(stub, serviceAddress2_, stubFactory_);
+    bool serviceRegistered3 = servicePublisher_->registerService(stub, serviceAddress3_, stubFactory_);
+    for (unsigned int i = 0; (!serviceRegistered || !serviceRegistered2 || !serviceRegistered3) && i < 100; ++i) {
+        if (!serviceRegistered) {
+            serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        }
+        if (!serviceRegistered2) {
+            serviceRegistered2 = servicePublisher_->registerService(stub, serviceAddress2_, stubFactory_);
+        }
+        if (!serviceRegistered3) {
+            serviceRegistered3 = servicePublisher_->registerService(stub, serviceAddress3_, stubFactory_);
+        }
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+    ASSERT_TRUE(serviceRegistered2);
+    ASSERT_TRUE(serviceRegistered3);
+
+    for(unsigned int i = 0; (!defaultTestProxy->isAvailable() || !defaultTestProxy2->isAvailable() || !defaultTestProxy3->isAvailable()) && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
+    ASSERT_TRUE(defaultTestProxy2->isAvailable());
+    ASSERT_TRUE(defaultTestProxy3->isAvailable());
+
+    uint32_t v1 = 5;
+    std::string v2 = "Ciao ;)";
+    CommonAPI::CallStatus stat, stat2, stat3;
+    defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
+    defaultTestProxy2->testVoidPredefinedTypeMethod(v1, v2, stat2);
+    defaultTestProxy3->testVoidPredefinedTypeMethod(v1, v2, stat3);
+
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat2, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat3, CommonAPI::CallStatus::SUCCESS);
+
+    servicePublisher_->unregisterService(serviceAddress_);
+}
+
+
 TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(nonstandardAddress_);
     ASSERT_TRUE((bool)defaultTestProxy);
@@ -147,6 +203,37 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
 
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
     servicePublisher_->unregisterService(nonstandardAddress_);
+}
+
+
+TEST_F(DBusCommunicationTest, RemoteMethodCallHeavyLoad) {
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    ASSERT_TRUE((bool)defaultTestProxy);
+
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+    for (unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
+
+    uint32_t v1 = 5;
+    std::string v2 = "Ciao ;)";
+    CommonAPI::CallStatus stat;
+
+    for (uint32_t i = 0; i < 1000; i++) {
+        defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
+        EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    }
+
+    servicePublisher_->unregisterService(serviceAddress4_);
 }
 
 

@@ -10,7 +10,9 @@
 
 #include "LegacyInterfaceProxyBase.h"
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 
 #undef COMMONAPI_INTERNAL_COMPILATION

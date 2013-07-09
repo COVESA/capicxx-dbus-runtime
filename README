@@ -97,6 +97,13 @@ CommonAPI and CommonAPI-D-Bus can be built and the make command "check" can be e
 "make check" builds and executes all tests. As the tests are developed as regression tests, the test output is limited to
 "OK" and "ERROR" for each test performed.
 
+
+== Configuring the D-Bus middleware binding
+
+=== Well known name
+The well known name that may be used to identify and dynamically load the D-Bus middleware binding is "DBus".
+
+
 === Defining D-Bus Service Parameters
 Normally, a CommonAPI address, format
 ----
@@ -117,7 +124,7 @@ per binary or globally for all binaries. If more than one config file is defined
 across several config files, the locally defined values override the global ones. If a CommonAPI address is defined more than once
 within a single file, the first definition found will be the only definition used.
 
-Config files have to be named this way:
+CommonAPI D-Bus Config files have to be named this way:
 ----
 # Binary local: "<FqnOfBinary>_dbus.conf", e.g. "/usr/bin/myBinary_dbus.conf" if the binary is "/usr/bin/myBinary"
 # Binary global: "/etc/CommonApiDBus/<NameOfBinary>_dbus.conf", e.g. "/etc/CommonApiDBus/myBinary_dbus.conf"

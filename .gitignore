@@ -40,3 +40,9 @@
 /DBusConnectionTest
 /DBusMainLoopIntegrationTest
 /DBusServicePublisherTest
+/DBusDynamicLoadingMixedValidityTest
+/DBusDynamicLoadingMultipleDefinitionTest
+/DBusDynamicLoadingWithConfigTest
+/DBusDynamicLoadingBasicTest
+/DBusDynamicLoadingMultipleBindingsTest
+/DBusDynamicLoadingNoValidityTest

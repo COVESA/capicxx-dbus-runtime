@@ -12,7 +12,9 @@
  
  
  
+ #if !defined (COMMONAPI_INTERNAL_COMPILATION)
  #define COMMONAPI_INTERNAL_COMPILATION
+ #endif
  
 
  #include <CommonAPI/Proxy.h>

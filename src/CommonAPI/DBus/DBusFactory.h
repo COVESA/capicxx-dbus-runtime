@@ -40,8 +40,7 @@ typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const st
 
 class DBusFactory: public Factory {
  public:
-    DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext = std::shared_ptr<MainLoopContext>(NULL));
-    DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, const DBusAddressTranslator::FactoryConfigDBus&, std::shared_ptr<MainLoopContext> mainLoopContext = std::shared_ptr<MainLoopContext>(NULL));
+    DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext, const DBusFactoryConfig& dbusFactoryConfig = DBusFactoryConfig());
 
 
     virtual ~DBusFactory();
@@ -59,8 +58,6 @@ class DBusFactory: public Factory {
 
     virtual bool unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
-    static void getDefaultFactoryConfig(DBusAddressTranslator::FactoryConfigDBus&);
-
  protected:
     virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
     virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
@@ -70,9 +67,7 @@ class DBusFactory: public Factory {
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::shared_ptr<MainLoopContext> mainLoopContext_;
-    DBusAddressTranslator::FactoryConfigDBus factoryConfigDBus_;
-
-    inline void connect();
+    DBusFactoryConfig DBusFactoryConfig_;
 };
 
 } // namespace DBus
