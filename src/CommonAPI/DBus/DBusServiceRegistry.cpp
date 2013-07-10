@@ -15,7 +15,7 @@ namespace DBus {
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection):
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
                 dbusNameListStatus_(AvailabilityStatus::UNKNOWN),
-                initialized_(false) {
+                initialized_(false), notificationThread_() {
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
@@ -271,8 +271,13 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
 
     DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, dbusInterfaceName, dbusServiceName, dbusObjectPath);
 
+    if (notificationThread_ == std::this_thread::get_id()) {
+        printf("You must not build proxies in callbacks of ProxyStatusEvent.\n"
+                        "Refer to the documentation for suggestions how to avoid this.\n");
+        assert(false);
+    }
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-
+    notificationThread_ = std::this_thread::get_id();
     DBusServiceList::iterator dbusServiceIterator = dbusServices_.find(dbusServiceName);
 
     // Service not known, so just add it to the list of unkown or definitely not available services
@@ -331,7 +336,7 @@ DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityList
             }
             break;
     }
-
+    notificationThread_ = std::thread::id();
     return listenerSubscription;
 }
 
@@ -410,8 +415,9 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(c
         }
 
         std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-
+        notificationThread_ = std::this_thread::get_id();
         onDBusServiceAvailabilityStatus(affectedName, dbusServiceAvailabilityStatus);
+        notificationThread_ = std::thread::id();
     }
 
     return SubscriptionStatus::RETAIN;
@@ -419,7 +425,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(c
 
 void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callStatus, std::vector<std::string> dbusNames) {
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-
+    notificationThread_ = std::this_thread::get_id();
     if (callStatus == CallStatus::SUCCESS) {
         for (const std::string& dbusName : dbusNames) {
             if (isDBusServiceName(dbusName)) {
@@ -440,6 +446,7 @@ void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callS
             dbusServiceIterator++;
         }
     }
+    notificationThread_ = std::thread::id();
 }
 
 

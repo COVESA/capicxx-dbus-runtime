@@ -130,6 +130,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     std::condition_variable dbusServiceChanged_;
 
     std::mutex dbusServicesMutex_;
+    std::thread::id notificationThread_;
 
     bool initialized_;
 
