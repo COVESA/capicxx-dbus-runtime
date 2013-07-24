@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <stdint.h>
@@ -52,7 +53,7 @@ class DBusProxyFactoryTest: public ::testing::Test {
         CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime_));
         ASSERT_TRUE(dbusRuntime != NULL);
 
-        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
+        configFileName_ = CommonAPI::getCurrentBinaryFileFQN();
         configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
         ASSERT_TRUE(configFile.is_open());

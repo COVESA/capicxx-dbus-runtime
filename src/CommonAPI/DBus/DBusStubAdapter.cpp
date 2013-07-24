@@ -7,6 +7,8 @@
 #include "DBusStubAdapter.h"
 #include "DBusUtils.h"
 
+#include <CommonAPI/utils.h>
+
 #include <cassert>
 #include <functional>
 #include <sstream>

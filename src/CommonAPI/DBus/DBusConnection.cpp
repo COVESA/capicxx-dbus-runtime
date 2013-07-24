@@ -33,10 +33,13 @@ void DBusConnectionStatusEvent::onListenerAdded(const CancellableListener& liste
 }
 
 
-DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
-                NULL, // no need to handle unregister callbacks
-                &DBusConnection::onLibdbusObjectPathMessageThunk
-};
+const DBusObjectPathVTable* DBusConnection::getDBusObjectPathVTable() {
+    static const DBusObjectPathVTable libdbusObjectPathVTable = {
+                    NULL, // no need to handle unregister callbacks
+                    &DBusConnection::onLibdbusObjectPathMessageThunk
+    };
+    return &libdbusObjectPathVTable;
+}
 
 
 //std::bind used to start the dispatch thread holds one reference, and the selfReference
@@ -643,7 +646,7 @@ void DBusConnection::registerObjectPath(const std::string& objectPath) {
         DBusError dbusError;
         const dbus_bool_t libdbusSuccess = dbus_connection_try_register_object_path(libdbusConnection_,
                                                                                     objectPath.c_str(),
-                                                                                    &libdbusObjectPathVTable_,
+                                                                                    getDBusObjectPathVTable(),
                                                                                     this,
                                                                                     &dbusError.libdbusError_);
         assert(libdbusSuccess);
@@ -782,7 +785,7 @@ void DBusConnection::initLibdbusObjectPathHandlerAfterConnect() {
 
         libdbusSuccess = dbus_connection_try_register_object_path(libdbusConnection_,
                                                                   objectPath.c_str(),
-                                                                  &libdbusObjectPathVTable_,
+                                                                  getDBusObjectPathVTable(),
                                                                   this,
                                                                   &dbusError.libdbusError_);
         assert(libdbusSuccess);

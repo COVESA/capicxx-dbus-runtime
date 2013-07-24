@@ -8,7 +8,6 @@
 #include "DBusProxy.h"
 #include "DBusConnection.h"
 #include "DBusFactory.h"
-#include "DBusAddressTranslator.h"
 #include "DBusServiceRegistry.h"
 #include "DBusUtils.h"
 #include "DBusServicePublisher.h"
@@ -44,30 +43,13 @@ void DBusFactory::registerAdapterFactoryMethod(std::string interfaceName, DBusAd
 
 DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime,
                          const MiddlewareInfo* middlewareInfo,
-                         std::shared_ptr<MainLoopContext> mainLoopContext) :
+                         std::shared_ptr<MainLoopContext> mainLoopContext,
+                         const DBusFactoryConfig& DBusFactoryConfig) :
                 CommonAPI::Factory(runtime, middlewareInfo),
-                mainLoopContext_(mainLoopContext) {
+                mainLoopContext_(mainLoopContext),
+                DBusFactoryConfig_(DBusFactoryConfig){
 
-    // init factoryConfigDBus_ with default parameters
-    DBusFactory::getDefaultFactoryConfig(factoryConfigDBus_);
-    connect();
-}
-
-DBusFactory::DBusFactory(std::shared_ptr<Runtime> runtime,
-                         const MiddlewareInfo* middlewareInfo,
-                         const DBusAddressTranslator::FactoryConfigDBus& factoryConfigDBus,
-                         std::shared_ptr<MainLoopContext> mainLoopContext) :
-                CommonAPI::Factory(runtime, middlewareInfo),
-                mainLoopContext_(mainLoopContext) {
-    factoryConfigDBus_ = factoryConfigDBus;
-    connect();
-}
-
-/**
- * contains the common logic for building a connection used by default Factory and Factory with named configuration
- */
-void DBusFactory::connect() {
-    dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(factoryConfigDBus_.busType);
+    dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(DBusFactoryConfig_.busType_);
     bool startDispatchThread = !mainLoopContext_;
     dbusConnection_->connect(startDispatchThread);
     if (mainLoopContext_) {
@@ -208,10 +190,6 @@ bool DBusFactory::unregisterService(const std::string& participantId, const std:
     return DBusServicePublisher::getInstance()->unregisterService(serviceAddress);
 }
 
-
-void DBusFactory::getDefaultFactoryConfig(DBusAddressTranslator::FactoryConfigDBus& returnConfiguration) {
-	returnConfiguration = { "", BusType::SESSION };
-}
 
 } // namespace DBus
 } // namespace CommonAPI

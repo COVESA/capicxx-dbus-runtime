@@ -274,7 +274,7 @@ DBusOutputStream& DBusOutputStream::writeString(const char* cString, const uint3
 
 
 //Additional 0-termination, so this is 8 byte of \0
-static const char* eightByteZeroString = "\0\0\0\0\0\0\0";
+static const char eightByteZeroString[] = "\0\0\0\0\0\0\0";
 
 void DBusOutputStream::alignToBoundary(const size_t alignBoundary) {
     assert(alignBoundary > 0 && alignBoundary <= 8 && (alignBoundary % 2 == 0 || alignBoundary == 1));

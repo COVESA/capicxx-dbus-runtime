@@ -27,7 +27,7 @@
 #include "commonapi/tests/TestInterfaceStubDefault.h"
 #include "commonapi/tests/TestInterfaceDBusStubAdapter.h"
 
-#include "fakeLegacyService/fake/legacy/service/LegacyInterfaceProxy.h"
+#include <fake/legacy/service/LegacyInterfaceProxy.h>
 
 
 static const std::vector<std::string> commonApiAddresses = {
@@ -108,7 +108,7 @@ public:
     }
 
     virtual void SetUp() {
-        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
+        configFileName_ = CommonAPI::getCurrentBinaryFileFQN();
         configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
         ASSERT_TRUE(configFile.is_open());

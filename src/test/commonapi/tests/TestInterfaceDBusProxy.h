@@ -10,7 +10,9 @@
 
 #include <commonapi/tests/TestInterfaceProxyBase.h>
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/DBus/DBusFactory.h>
 #include <CommonAPI/DBus/DBusProxy.h>

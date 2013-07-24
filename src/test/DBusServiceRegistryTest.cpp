@@ -8,6 +8,8 @@
 #define _GLIBCXX_USE_NANOSLEEP
 #endif
 
+#include <fstream>
+
 #include <CommonAPI/CommonAPI.h>
 
 #ifndef COMMONAPI_INTERNAL_COMPILATION
@@ -44,7 +46,7 @@ public:
     }
 
     virtual void SetUp() {
-        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
+        configFileName_ = CommonAPI::getCurrentBinaryFileFQN();
         configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
 
         std::ofstream configFile(configFileName_);
@@ -218,10 +220,10 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
 }
 
 
-const char* serviceAddress_ = "local:test.service.name:test.instance.name";
-const char* serviceName_ = "test.service.name";
-const char* nonexistingServiceAddress_ = "local:nonexisting.service.name:nonexisting.instance.name";
-const char* nonexistingServiceName_ = "nonexisting.service.name";
+const char serviceAddress_[] = "local:test.service.name:test.instance.name";
+const char serviceName_[] = "test.service.name";
+const char nonexistingServiceAddress_[] = "local:nonexisting.service.name:nonexisting.instance.name";
+const char nonexistingServiceName_[] = "nonexisting.service.name";
 
 class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
  protected:

@@ -10,6 +10,8 @@
 #include "DBusOutputStream.h"
 #include "DBusUtils.h"
 
+#include <CommonAPI/utils.h>
+
 #include <dbus/dbus-protocol.h>
 
 #include <cassert>
@@ -126,7 +128,7 @@ bool DBusObjectManager::onObjectManagerInterfaceDBusMessage(const DBusMessage& d
     }
     objectPathLock_.unlock();
 
-    const char* getManagedObjectsDBusSignature = "a{oa{sa{sv}}}";
+    const char getManagedObjectsDBusSignature[] = "a{oa{sa{sv}}}";
     DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(getManagedObjectsDBusSignature);
     DBusOutputStream outStream(dbusMessageReply);
 
@@ -161,7 +163,7 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
         const std::string& dbusObjectPath = handlerPath.first;
         const std::string& dbusInterfaceName = handlerPath.second;
         DBusStubAdapter* dbusStubAdapter = registeredObjectsIterator.second;
-        std::vector<std::string> elems = CommonAPI::DBus::split(dbusObjectPath, '/');
+        std::vector<std::string> elems = CommonAPI::split(dbusObjectPath, '/');
 
         if (dbusMessage.hasObjectPath(dbusObjectPath)) {
             foundRegisteredObjects = true;

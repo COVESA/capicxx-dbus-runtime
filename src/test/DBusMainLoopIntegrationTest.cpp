@@ -140,8 +140,9 @@ TEST_F(DBusBasicMainLoopTest, PrioritiesAreHandledCorrectlyInDemoMainloop) {
 
     mainLoop->doSingleIteration(CommonAPI::TIMEOUT_INFINITE);
 
-    std::string reference("ECABD");
-    ASSERT_EQ(reference, result);
+    std::string reference1("ECABD");
+    std::string reference2("ECBAD");
+    ASSERT_TRUE(reference1 == result || reference2 == result);
 }
 
 

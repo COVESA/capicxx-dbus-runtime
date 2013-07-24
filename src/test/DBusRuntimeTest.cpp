@@ -10,18 +10,16 @@
 
 #include <CommonAPI/DBus/DBusRuntime.h>
 #include <CommonAPI/DBus/DBusFactory.h>
-
-
+#include <CommonAPI/DBus/DBusServicePublisher.h>
 
 class DBusRuntimeTest: public ::testing::Test {
  protected:
-	virtual void SetUp() {
-	}
+    virtual void SetUp() {
+    }
 
-	virtual void TearDown() {
-	}
+    virtual void TearDown() {
+    }
 };
-
 
 
 TEST_F(DBusRuntimeTest, LoadsDefaultStaticallyLinkedDBusLibrary) {
@@ -71,6 +69,19 @@ TEST_F(DBusRuntimeTest, DBusRuntimeLoadsDBusFactory) {
     ASSERT_TRUE((bool)proxyFactory);
     CommonAPI::DBus::DBusFactory* dbusProxyFactory = dynamic_cast<CommonAPI::DBus::DBusFactory*>(&(*proxyFactory));
     ASSERT_TRUE(dbusProxyFactory != NULL);
+}
+
+
+TEST_F(DBusRuntimeTest, DBusRuntimeLoadsDBusServicePublisher) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    ASSERT_TRUE((bool)runtime);
+    CommonAPI::DBus::DBusRuntime* dbusRuntime = dynamic_cast<CommonAPI::DBus::DBusRuntime*>(&(*runtime));
+    ASSERT_TRUE(dbusRuntime != NULL);
+
+    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher = runtime->getServicePublisher();
+    ASSERT_TRUE((bool)servicePublisher);
+    CommonAPI::DBus::DBusServicePublisher* dbusServicePublisher = dynamic_cast<CommonAPI::DBus::DBusServicePublisher*>(&(*servicePublisher));
+    ASSERT_TRUE(dbusServicePublisher != NULL);
 }
 
 

@@ -25,12 +25,10 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
     static std::shared_ptr<Runtime> getInstance();
     std::shared_ptr<ServicePublisher> getServicePublisher();
 
-    static const MiddlewareInfo middlewareInfo_;
-
  protected:
     std::shared_ptr<Factory> doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
-                                             const std::string factoryName,
-                                             const bool nullOnInvalidName = false);
+                                             const std::string& factoryName,
+                                             const bool nullOnInvalidName);
 
  private:
     static std::unordered_map<std::string, DBusRuntime> registeredRuntimes;
@@ -40,10 +38,6 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
 } // namespace CommonAPI
 
 
-extern "C" {
-
-CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
-
-}
+extern "C" const CommonAPI::MiddlewareInfo middlewareInfo;
 
 #endif // COMMONAPI_DBUS_DBUS_RUNTIME_H_

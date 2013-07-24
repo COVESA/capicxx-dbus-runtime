@@ -11,7 +11,9 @@
 
 #include <commonapi/tests/PredefinedTypeCollection.h>
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/InputStream.h>
 #include <CommonAPI/OutputStream.h>
@@ -56,7 +58,7 @@ namespace DerivedTypeCollection {
         E_NOT_USED = 0x3
     };
     
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumComparator;
     
     enum class TestEnumExtended: int32_t {
@@ -68,7 +70,7 @@ namespace DerivedTypeCollection {
         E_NEW = 0x4
     };
     
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumExtendedComparator;
     
     enum class TestEnumExtended2: int32_t {
@@ -82,7 +84,7 @@ namespace DerivedTypeCollection {
         E_NEW2 = 0x5
     };
     
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumExtended2Comparator;
     
     struct TestStructExtended: TestStruct {
@@ -109,7 +111,7 @@ namespace DerivedTypeCollection {
         E3 = 2
     };
     
-    // XXX Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
+    // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumMissingValueComparator;
     
     typedef std::vector<uint64_t> TestArrayUInt64;
@@ -221,7 +223,8 @@ inline bool operator!=(const TestStruct& lhs, const TestStruct& rhs) {
 
 
 static inline const char* getTypeCollectionName() {
-    return "commonapi.tests.DerivedTypeCollection";
+    static const char* typeCollectionName = "commonapi.tests.DerivedTypeCollection";
+    return typeCollectionName;
 }
 
 

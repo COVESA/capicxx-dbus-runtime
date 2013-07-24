@@ -77,16 +77,12 @@ class DBusDaemonProxy: public DBusProxyBase {
 
  private:
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
-    static StaticInterfaceVersionAttribute interfaceVersionAttribute_;
-
-    static const std::string dbusBusName_;
-    static const std::string dbusObjectPath_;
-    static const std::string commonApiParticipantId_;
-    static const std::string dbusInterfaceName_;
+    StaticInterfaceVersionAttribute interfaceVersionAttribute_;
 };
 
 const char* DBusDaemonProxy::getInterfaceId() {
-    return "org.freedesktop.DBus";
+    static const char interfaceId[] = "org.freedesktop.DBus";
+    return interfaceId;
 }
 
 } // namespace DBus

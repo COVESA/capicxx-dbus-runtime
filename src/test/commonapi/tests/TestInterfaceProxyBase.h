@@ -13,7 +13,9 @@
  
  #include <commonapi/tests/DerivedTypeCollection.h>
  
+ #if !defined (COMMONAPI_INTERNAL_COMPILATION)
  #define COMMONAPI_INTERNAL_COMPILATION
+ #endif
  
  #include <CommonAPI/InputStream.h>
  #include <CommonAPI/OutputStream.h>

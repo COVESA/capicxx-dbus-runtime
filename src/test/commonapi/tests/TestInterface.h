@@ -10,7 +10,9 @@
 
 
 
+#if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include <CommonAPI/types.h>
 
@@ -28,7 +30,8 @@ class TestInterface {
 };
 
 const char* TestInterface::getInterfaceId() {
-    return "commonapi.tests.TestInterface";
+    static const char* interfaceId = "commonapi.tests.TestInterface";
+    return interfaceId;
 }
 
 CommonAPI::Version TestInterface::getInterfaceVersion() {
