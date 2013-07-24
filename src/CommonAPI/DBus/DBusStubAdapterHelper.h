@@ -17,6 +17,7 @@
 #include "DBusOutputStream.h"
 #include "DBusHelper.h"
 #include "DBusSerializableArguments.h"
+#include "DBusClientId.h"
 
 #include <memory>
 #include <initializer_list>
@@ -146,7 +147,7 @@ template <
 class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
-    typedef void (_StubClass::*_StubFunctor)(_InArgs...);
+    typedef void (_StubClass::*_StubFunctor)(CommonAPI::ClientId&, _InArgs...);
 
     DBusMethodStubDispatcher(_StubFunctor stubFunctor):
             stubFunctor_(stubFunctor) {
@@ -171,7 +172,9 @@ class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAda
                 return false;
         }
 
-        (stub.get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))...);
+        const DBusClientId clientId = DBusClientId(std::string(dbusMessage.getSenderName()));
+
+        (stub.get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))...);
 
         return true;
     }
@@ -191,7 +194,7 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
             public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
-    typedef void (_StubClass::*_StubFunctor)(_InArgs..., _OutArgs&...);
+    typedef void (_StubClass::*_StubFunctor)(const CommonAPI::ClientId&, _InArgs..., _OutArgs&...);
 
     DBusMethodWithReplyStubDispatcher(_StubFunctor stubFunctor, const char* dbusReplySignature):
             stubFunctor_(stubFunctor),
@@ -223,7 +226,9 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
                 return false;
         }
 
-        (stub.get()->*stubFunctor_)(std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
+        const DBusClientId clientId = DBusClientId(std::string(dbusMessage.getSenderName()));
+
+        (stub.get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
 
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusReplySignature_);
 
@@ -248,7 +253,7 @@ template <typename _StubClass, typename _AttributeType>
 class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
-    typedef const _AttributeType& (_StubClass::*GetStubFunctor)();
+    typedef const _AttributeType& (_StubClass::*GetStubFunctor)(const CommonAPI::ClientId&);
 
     DBusGetAttributeStubDispatcher(GetStubFunctor getStubFunctor, const char* dbusSignature):
         getStubFunctor_(getStubFunctor),
@@ -264,7 +269,9 @@ class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusSignature_);
         DBusOutputStream dbusOutputStream(dbusMessageReply);
 
-        dbusOutputStream << (stub.get()->*getStubFunctor_)();
+        const DBusClientId clientId = DBusClientId(std::string(dbusMessage.getSenderName()));
+
+        dbusOutputStream << (stub.get()->*getStubFunctor_)(clientId);
         dbusOutputStream.flush();
 
         return dbusStubAdapterHelper.getDBusConnection()->sendDBusMessage(dbusMessageReply);
@@ -282,7 +289,7 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
     typedef typename DBusStubAdapterHelperType::RemoteEventHandlerType RemoteEventHandlerType;
 
     typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
-    typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(_AttributeType);
+    typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(const CommonAPI::ClientId&, _AttributeType);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
 
     DBusSetAttributeStubDispatcher(GetStubFunctor getStubFunctor,
@@ -317,7 +324,9 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
         if (dbusInputStream.hasError())
             return false;
 
-        attributeValueChanged = (dbusStubAdapterHelper.getRemoteEventHandler()->*onRemoteSetFunctor_)(std::move(attributeValue));
+        const DBusClientId clientId = DBusClientId(std::string(dbusMessage.getSenderName()));
+
+        attributeValueChanged = (dbusStubAdapterHelper.getRemoteEventHandler()->*onRemoteSetFunctor_)(clientId, std::move(attributeValue));
 
         return this->sendAttributeValueReply(dbusMessage, stub, dbusStubAdapterHelper);
     }
@@ -326,8 +335,8 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
         (dbusStubAdapterHelper.getRemoteEventHandler()->*onRemoteChangedFunctor_)();
     }
 
-    inline const _AttributeType& getAttributeValue(const std::shared_ptr<_StubClass>& stub) {
-        return (stub.get()->*(this->getStubFunctor_))();
+    inline const _AttributeType& getAttributeValue(const CommonAPI::ClientId& clientId, const std::shared_ptr<_StubClass>& stub) {
+        return (stub.get()->*(this->getStubFunctor_))(clientId);
     }
 
     const OnRemoteSetFunctor onRemoteSetFunctor_;
@@ -364,15 +373,16 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
             return false;
 
         if (attributeValueChanged) {
-            fireAttributeValueChanged(dbusStubAdapterHelper, stub);
+            const DBusClientId clientId = DBusClientId(std::string(dbusMessage.getSenderName()));
+            fireAttributeValueChanged(clientId, dbusStubAdapterHelper, stub);
             this->notifyOnRemoteChanged(dbusStubAdapterHelper);
         }
         return true;
     }
 
  private:
-    inline void fireAttributeValueChanged(DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
-        (dbusStubAdapterHelper.getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(stub));
+    inline void fireAttributeValueChanged(const CommonAPI::ClientId& clientId, DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
+        (dbusStubAdapterHelper.getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
     }
 
     const FireChangedFunctor fireChangedFunctor_;

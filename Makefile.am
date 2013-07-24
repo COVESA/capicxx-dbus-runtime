@@ -36,6 +36,7 @@ lib_LTLIBRARIES += libCommonAPI-DBus.la
 
 libCommonAPI_DBus_la_SOURCES = \
         src/CommonAPI/DBus/DBusAddressTranslator.cpp \
+        src/CommonAPI/DBus/DBusClientId.cpp \
         src/CommonAPI/DBus/DBusConfiguration.cpp \
         src/CommonAPI/DBus/DBusConnection.cpp \
         src/CommonAPI/DBus/DBusDaemonProxy.cpp \
@@ -66,6 +67,7 @@ CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusAddressTranslator.h \
         src/CommonAPI/DBus/DBusAttribute.h \
+        src/CommonAPI/DBus/DBusClientId.h \
         src/CommonAPI/DBus/DBusConfiguration.h \
         src/CommonAPI/DBus/DBusConnection.h \
         src/CommonAPI/DBus/DBusConnectionBusType.h \
@@ -168,7 +170,8 @@ check_PROGRAMS = \
         DBusDaemonProxyTest \
         DBusCommunicationTest \
         DBusMultipleConnectionTest \
-        DBusServicePublisherTest
+        DBusServicePublisherTest \
+        DBusClientIdTest
 
 
 TESTS = ${check_PROGRAMS}
@@ -310,6 +313,12 @@ DBusDynamicLoadingNoValidityTest_SOURCES =  \
 DBusDynamicLoadingNoValidityTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusDynamicLoadingNoValidityTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusDynamicLoadingNoValidityTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
+
+
+DBusClientIdTest_SOURCES = src/test/DBusClientIdTest.cpp
+DBusClientIdTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusClientIdTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusClientIdTest_LDADD = ${LDADD_FOR_GTEST}
 
 endif
 
