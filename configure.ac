@@ -1,6 +1,6 @@
 AC_PREREQ([2.61])
 AC_INIT([GENIVI Common API DBus C++ Library],
-        [2.0],
+        [2.1],
         [],
         [CommonAPI-DBus])
 

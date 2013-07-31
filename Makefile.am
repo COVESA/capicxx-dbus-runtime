@@ -21,7 +21,7 @@ lib_LTLIBRARIES =
 
 # Library interface (not package version!)
 LIBCOMMONAPI_DBUS_CURRENT=2
-LIBCOMMONAPI_DBUS_REVISION=0
+LIBCOMMONAPI_DBUS_REVISION=1
 LIBCOMMONAPI_DBUS_AGE=0
 
 # ------------------------------------------------------------------------------
