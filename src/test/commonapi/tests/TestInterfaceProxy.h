@@ -57,7 +57,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
-     * Synchronous calls are not supported (will block indefinitely) when mainloop integration is used.
      */
     virtual void testEmptyMethod(CommonAPI::CallStatus& callStatus);
     /**
@@ -79,7 +78,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
-     * Synchronous calls are not supported (will block indefinitely) when mainloop integration is used.
      */
     virtual void testVoidPredefinedTypeMethod(const uint32_t& uint32Value, const std::string& stringValue, CommonAPI::CallStatus& callStatus);
     /**
@@ -102,7 +100,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
-     * Synchronous calls are not supported (will block indefinitely) when mainloop integration is used.
      */
     virtual void testPredefinedTypeMethod(const uint32_t& uint32InValue, const std::string& stringInValue, CommonAPI::CallStatus& callStatus, uint32_t& uint32OutValue, std::string& stringOutValue);
     /**
@@ -124,7 +121,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
-     * Synchronous calls are not supported (will block indefinitely) when mainloop integration is used.
      */
     virtual void testVoidDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, CommonAPI::CallStatus& callStatus);
     /**
@@ -147,7 +143,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
-     * Synchronous calls are not supported (will block indefinitely) when mainloop integration is used.
      */
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     /**
