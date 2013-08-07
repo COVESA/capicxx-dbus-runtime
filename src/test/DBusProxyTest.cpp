@@ -8,6 +8,10 @@
 #define _GLIBCXX_USE_NANOSLEEP
 #endif
 
+#ifndef COMMONAPI_INTERNAL_COMPILATION
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
+
 #include <CommonAPI/DBus/DBusInputStream.h>
 #include <CommonAPI/DBus/DBusMessage.h>
 #include <CommonAPI/DBus/DBusProxy.h>
@@ -17,6 +21,10 @@
 #include <commonapi/tests/TestInterfaceDBusProxy.h>
 #include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
 #include <commonapi/tests/TestInterfaceStubDefault.h>
+
+#ifndef COMMONAPI_INTERNAL_COMPILATION
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
 #include "DBusTestUtils.h"
 
