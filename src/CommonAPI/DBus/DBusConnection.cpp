@@ -29,13 +29,17 @@ DBusObjectPathVTable DBusConnection::libdbusObjectPathVTable_ = {
                 &DBusConnection::onLibdbusObjectPathMessageThunk
 };
 
-void DBusConnection::dispatch(std::shared_ptr<DBusConnection> selfReference) {
-    while (!stopDispatching_ && readWriteDispatch(10) && !selfReference.unique()) {
+void DBusConnection::dispatch(std::shared_ptr<DBusConnection>* selfReference) {
+//void DBusConnection::dispatch() {
+    //auto selfReference = this->shared_from_this();
+    while (!stopDispatching_ && readWriteDispatch(10) && !selfReference->unique()) {
         if(pauseDispatching_) {
             dispatchSuspendLock_.lock();
             dispatchSuspendLock_.unlock();
         }
     }
+    delete selfReference;
+
 }
 
 bool DBusConnection::readWriteDispatch(int timeoutMilliseconds) {
@@ -259,7 +263,8 @@ bool DBusConnection::connect(DBusError& dbusError, bool startDispatchThread) {
     initLibdbusSignalFilterAfterConnect();
 
     if(startDispatchThread) {
-        dispatchThread_ = new std::thread(&DBusConnection::dispatch, this, this->shared_from_this());
+        std::shared_ptr<DBusConnection>* ptr = new std::shared_ptr<DBusConnection>(this->shared_from_this());
+        dispatchThread_ = new std::thread(&DBusConnection::dispatch, this, ptr);
     }
     stopDispatching_ = !startDispatchThread;
 
