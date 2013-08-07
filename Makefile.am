@@ -117,9 +117,7 @@ check_PROGRAMS = \
         DBusVariantOutputStreamTest \
         DBusDaemonProxyTest \
         DBusCommunicationTest \
-        DBusMultipleConnectionTest \
-        DBusBenchmarkingTest
-
+        DBusMultipleConnectionTest
 
 TESTS = ${check_PROGRAMS}
 LDADD_FOR_GTEST = libCommonAPI-DBus.la ${GTEST_LIBS} ${LDADD}
@@ -159,11 +157,6 @@ DBusVariantOutputStreamTest_SOURCES = src/test/DBusVariantOutputStreamTest.cpp
 DBusVariantOutputStreamTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusVariantOutputStreamTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusVariantOutputStreamTest_LDADD = ${LDADD_FOR_GTEST}
-
-DBusBenchmarkingTest_SOURCES = src/test/DBusBenchmarkingTest.cpp
-DBusBenchmarkingTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusBenchmarkingTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusBenchmarkingTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusCommunicationTest_SOURCES = \
         src/test/DBusCommunicationTest.cpp \
