@@ -25,9 +25,10 @@ class DBusReadonlyAttribute: public _AttributeType {
 	typedef typename _AttributeType::ValueType ValueType;
 	typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
-	DBusReadonlyAttribute(_DBusProxyType& dbusProxy, const char* getMethodName):
+	DBusReadonlyAttribute(_DBusProxyType& dbusProxy, const char* setMethodSignature, const char* getMethodName):
 			dbusProxy_(dbusProxy),
-			getMethodName_(getMethodName) {
+			getMethodName_(getMethodName),
+			setMethodSignature_(setMethodSignature) {
 		assert(getMethodName);
 	}
 
@@ -44,6 +45,7 @@ class DBusReadonlyAttribute: public _AttributeType {
  protected:
 	_DBusProxyType& dbusProxy_;
 	const char* getMethodName_;
+	const char* setMethodSignature_;
 };
 
 
@@ -54,7 +56,7 @@ class DBusAttribute: public DBusReadonlyAttribute<_AttributeType> {
 	typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
 	DBusAttribute(_DBusProxyType& dbusProxy, const char* setMethodName, const char* setMethodSignature, const char* getMethodName):
-		DBusReadonlyAttribute<_AttributeType>(dbusProxy, getMethodName),
+		DBusReadonlyAttribute<_AttributeType>(dbusProxy, setMethodSignature, getMethodName),
 			setMethodName_(setMethodName),
 			setMethodSignature_(setMethodSignature) {
 		assert(setMethodName);
