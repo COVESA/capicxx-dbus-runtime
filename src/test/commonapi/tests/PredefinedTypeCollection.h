@@ -66,8 +66,8 @@ static inline const char* getTypeCollectionName() {
 } // namespace commonapi
 
 namespace CommonAPI {
-	
-	
+
+
 }
 
 

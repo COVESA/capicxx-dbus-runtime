@@ -18,6 +18,8 @@
 #include <CommonAPI/DBus/DBusProxy.h>
 #include <CommonAPI/DBus/DBusAttribute.h>
 #include <CommonAPI/DBus/DBusEvent.h>
+#include <CommonAPI/types.h>
+#include <CommonAPI/DBus/DBusSelectiveEvent.h>
 
 #undef COMMONAPI_INTERNAL_COMPILATION
 
@@ -42,23 +44,20 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
     virtual TestDerivedArrayAttributeAttribute& getTestDerivedArrayAttributeAttribute();
 
     virtual TestPredefinedTypeBroadcastEvent& getTestPredefinedTypeBroadcastEvent();
-
+    virtual TestSelectiveBroadcastSelectiveEvent& getTestSelectiveBroadcastSelectiveEvent();
+    virtual TestBroadcastWithOutArgsSelectiveEvent& getTestBroadcastWithOutArgsSelectiveEvent();
 
     virtual void testEmptyMethod(CommonAPI::CallStatus& callStatus);
     virtual std::future<CommonAPI::CallStatus> testEmptyMethodAsync(TestEmptyMethodAsyncCallback callback);
-
     virtual void testVoidPredefinedTypeMethod(const uint32_t& uint32Value, const std::string& stringValue, CommonAPI::CallStatus& callStatus);
     virtual std::future<CommonAPI::CallStatus> testVoidPredefinedTypeMethodAsync(const uint32_t& uint32Value, const std::string& stringValue, TestVoidPredefinedTypeMethodAsyncCallback callback);
-
     virtual void testPredefinedTypeMethod(const uint32_t& uint32InValue, const std::string& stringInValue, CommonAPI::CallStatus& callStatus, uint32_t& uint32OutValue, std::string& stringOutValue);
     virtual std::future<CommonAPI::CallStatus> testPredefinedTypeMethodAsync(const uint32_t& uint32InValue, const std::string& stringInValue, TestPredefinedTypeMethodAsyncCallback callback);
-
     virtual void testVoidDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, CommonAPI::CallStatus& callStatus);
     virtual std::future<CommonAPI::CallStatus> testVoidDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, TestVoidDerivedTypeMethodAsyncCallback callback);
-
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
-    
+
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
 
  private:
@@ -67,6 +66,8 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
     CommonAPI::DBus::DBusObservableAttribute<CommonAPI::DBus::DBusAttribute<TestDerivedArrayAttributeAttribute>> testDerivedArrayAttribute_;
 
     CommonAPI::DBus::DBusEvent<TestPredefinedTypeBroadcastEvent> testPredefinedTypeBroadcast_;
+    CommonAPI::DBus::DBusSelectiveEvent<TestSelectiveBroadcastSelectiveEvent> testSelectiveBroadcastSelective_;
+    CommonAPI::DBus::DBusSelectiveEvent<TestBroadcastWithOutArgsSelectiveEvent> testBroadcastWithOutArgsSelective_;
 };
 
 } // namespace tests

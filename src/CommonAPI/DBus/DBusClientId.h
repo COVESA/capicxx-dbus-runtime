@@ -18,6 +18,8 @@
 namespace CommonAPI {
 namespace DBus {
 
+class DBusMessage;
+
 /**
  * \brief Implementation of CommonAPI::ClientId for DBus
  *
@@ -25,11 +27,16 @@ namespace DBus {
  * It internally uses a string to identify clients. This string is the unique sender id used by dbus.
  */
 class DBusClientId: public CommonAPI::ClientId {
+    friend class std::hash<DBusClientId>;
+
 public:
     DBusClientId(std::string dbusId);
 
     bool operator==(CommonAPI::ClientId& clientIdToCompare);
     bool operator==(DBusClientId& clientIdToCompare);
+    size_t hashCode();
+
+    DBusMessage createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const;
 protected:
     std::string dbusId_;
 };

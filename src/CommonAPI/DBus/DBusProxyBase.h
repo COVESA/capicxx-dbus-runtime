@@ -42,19 +42,20 @@ class DBusProxyBase: public virtual CommonAPI::Proxy {
                                  const char* methodSignature = NULL) const;
 
     inline DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
-    		const std::string& signalName,
-    		const std::string& signalSignature,
-    		DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
+            const std::string& signalName,
+            const std::string& signalSignature,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+            const bool justAddFilter = false);
 
     inline DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
                 const std::string& objectPath,
                 const std::string& interfaceName,
                 const std::string& signalName,
                 const std::string& signalSignature,
-                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
+                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                const bool justAddFilter = false);
 
-    inline void removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
-
+    inline bool removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
  protected:
     const std::string commonApiDomain_;
 
@@ -71,13 +72,15 @@ const std::shared_ptr<DBusProxyConnection>& DBusProxyBase::getDBusConnection() c
 DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
         const std::string& signalName,
         const std::string& signalSignature,
-        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+        const bool justAddFilter) {
     return addSignalMemberHandler(
             getDBusObjectPath(),
             getInterfaceName(),
             signalName,
             signalSignature,
-            dbusSignalHandler);
+            dbusSignalHandler,
+            justAddFilter);
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
@@ -85,18 +88,21 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 const std::string& interfaceName,
                 const std::string& signalName,
                 const std::string& signalSignature,
-                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                const bool justAddFilter) {
     return dbusConnection_->addSignalMemberHandler(
                 objectPath,
                 interfaceName,
                 signalName,
                 signalSignature,
-                dbusSignalHandler);
+                dbusSignalHandler,
+                justAddFilter);
 }
 
-void DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken) {
+bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken) {
     return dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerToken);
 }
+
 
 } // namespace DBus
 } // namespace CommonAPI

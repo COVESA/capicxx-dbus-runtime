@@ -39,7 +39,7 @@ TestInterfaceDBusStubAdapter::TestInterfaceDBusStubAdapter(
 const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() const {
     static const char* introspectionData =
         "<method name=\"getTestPredefinedTypeAttributeAttribute\">\n"
-        	"<arg name=\"value\" type=\"u\" direction=\"out\" />"
+            "<arg name=\"value\" type=\"u\" direction=\"out\" />"
         "</method>\n"
         "<method name=\"setTestPredefinedTypeAttributeAttribute\">\n"
             "<arg name=\"requestedValue\" type=\"u\" direction=\"in\" />\n"
@@ -49,7 +49,7 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"changedValue\" type=\"u\" />\n"
         "</signal>\n"
         "<method name=\"getTestDerivedStructAttributeAttribute\">\n"
-        	"<arg name=\"value\" type=\"(sqi)\" direction=\"out\" />"
+            "<arg name=\"value\" type=\"(sqi)\" direction=\"out\" />"
         "</method>\n"
         "<method name=\"setTestDerivedStructAttributeAttribute\">\n"
             "<arg name=\"requestedValue\" type=\"(sqi)\" direction=\"in\" />\n"
@@ -59,7 +59,7 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"changedValue\" type=\"(sqi)\" />\n"
         "</signal>\n"
         "<method name=\"getTestDerivedArrayAttributeAttribute\">\n"
-        	"<arg name=\"value\" type=\"at\" direction=\"out\" />"
+            "<arg name=\"value\" type=\"at\" direction=\"out\" />"
         "</method>\n"
         "<method name=\"setTestDerivedArrayAttributeAttribute\">\n"
             "<arg name=\"requestedValue\" type=\"at\" direction=\"in\" />\n"
@@ -69,6 +69,12 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"changedValue\" type=\"at\" />\n"
         "</signal>\n"
         "<signal name=\"TestPredefinedTypeBroadcast\">\n"
+            "<arg name=\"uint32Value\" type=\"u\" />\n"
+            "<arg name=\"stringValue\" type=\"s\" />\n"
+        "</signal>\n"
+        "<signal name=\"TestSelectiveBroadcast\">\n"
+        "</signal>\n"
+        "<signal name=\"TestBroadcastWithOutArgs\">\n"
             "<arg name=\"uint32Value\" type=\"u\" />\n"
             "<arg name=\"stringValue\" type=\"s\" />\n"
         "</signal>\n"
@@ -169,7 +175,7 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     > testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
 
 void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {
-	CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
+    CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
         ::sendSignal(
             *this,
             "onTestPredefinedTypeAttributeAttributeChanged",
@@ -178,7 +184,7 @@ void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChang
     );
 }
 void TestInterfaceDBusStubAdapter::fireTestDerivedStructAttributeAttributeChanged(const DerivedTypeCollection::TestStructExtended& value) {
-	CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestStructExtended>>
+    CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestStructExtended>>
         ::sendSignal(
             *this,
             "onTestDerivedStructAttributeAttributeChanged",
@@ -187,7 +193,7 @@ void TestInterfaceDBusStubAdapter::fireTestDerivedStructAttributeAttributeChange
     );
 }
 void TestInterfaceDBusStubAdapter::fireTestDerivedArrayAttributeAttributeChanged(const DerivedTypeCollection::TestArrayUInt64& value) {
-	CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestArrayUInt64>>
+    CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::TestArrayUInt64>>
         ::sendSignal(
             *this,
             "onTestDerivedArrayAttributeAttributeChanged",
@@ -205,6 +211,130 @@ void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeBroadcastEvent(const ui
                 uint32Value, stringValue
         );
 }
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestSelectiveBroadcastSelective, "b");
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestSelectiveBroadcastSelective, "");
+
+
+void TestInterfaceDBusStubAdapter::fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
+    std::shared_ptr<CommonAPI::DBus::DBusClientId> dbusClientId = std::dynamic_pointer_cast<CommonAPI::DBus::DBusClientId, CommonAPI::ClientId>(clientId);
+
+    if(dbusClientId != NULL)
+    {
+        CommonAPI::DBus::DBusMessage dbusMethodCall = dbusClientId->createMessage(getObjectPath(), getInterfaceName(), "TestSelectiveBroadcast");
+        getDBusConnection()->sendDBusMessage(dbusMethodCall);
+    }
+}
+
+void TestInterfaceDBusStubAdapter::sendTestSelectiveBroadcastSelective(const CommonAPI::ClientIdList* receivers) {
+    const CommonAPI::ClientIdList* actualReceiverList;
+    actualReceiverList = receivers;
+
+    if(receivers == NULL)
+        actualReceiverList = &subscribersForTestSelectiveBroadcastSelective_;
+
+    for (auto clientIdIterator = actualReceiverList->cbegin();
+               clientIdIterator != actualReceiverList->cend();
+               clientIdIterator++) {
+        if(receivers == NULL || subscribersForTestSelectiveBroadcastSelective_.find(*clientIdIterator) != subscribersForTestSelectiveBroadcastSelective_.end()) {
+            fireTestSelectiveBroadcastSelective(*clientIdIterator);
+        }
+    }
+}
+
+void TestInterfaceDBusStubAdapter::subscribeForTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) {
+    bool ok = stub_->onTestSelectiveBroadcastSelectiveSubscriptionRequested(clientId);
+    if (ok) {
+        subscribersForTestSelectiveBroadcastSelective_.insert(clientId);
+        stub_->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
+        success = true;
+    } else {
+        success = false;
+    }
+}
+
+
+void TestInterfaceDBusStubAdapter::unsubscribeFromTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
+    subscribersForTestSelectiveBroadcastSelective_.erase(clientId);
+    stub_->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
+}
+
+CommonAPI::ClientIdList* const TestInterfaceDBusStubAdapter::getSubscribersForTestSelectiveBroadcastSelective() {
+    return &subscribersForTestSelectiveBroadcastSelective_;
+}
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestBroadcastWithOutArgsSelective, "b");
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestBroadcastWithOutArgsSelective, "");
+
+
+void TestInterfaceDBusStubAdapter::fireTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, const uint32_t& uint32Value, const std::string& stringValue) {
+    std::shared_ptr<CommonAPI::DBus::DBusClientId> dbusClientId = std::dynamic_pointer_cast<CommonAPI::DBus::DBusClientId, CommonAPI::ClientId>(clientId);
+
+    if(dbusClientId != NULL)
+    {
+        CommonAPI::DBus::DBusMessage dbusMethodCall = dbusClientId->createMessage(getObjectPath(), getInterfaceName(), "TestBroadcastWithOutArgs");
+        getDBusConnection()->sendDBusMessage(dbusMethodCall);
+    }
+}
+
+void TestInterfaceDBusStubAdapter::sendTestBroadcastWithOutArgsSelective(const uint32_t& uint32Value, const std::string& stringValue, const CommonAPI::ClientIdList* receivers) {
+    const CommonAPI::ClientIdList* actualReceiverList;
+    actualReceiverList = receivers;
+
+    if(receivers == NULL)
+        actualReceiverList = &subscribersForTestBroadcastWithOutArgsSelective_;
+
+    for (auto clientIdIterator = actualReceiverList->cbegin();
+               clientIdIterator != actualReceiverList->cend();
+               clientIdIterator++) {
+        if(receivers == NULL || subscribersForTestBroadcastWithOutArgsSelective_.find(*clientIdIterator) != subscribersForTestBroadcastWithOutArgsSelective_.end()) {
+            fireTestBroadcastWithOutArgsSelective(*clientIdIterator, uint32Value, stringValue);
+        }
+    }
+}
+
+void TestInterfaceDBusStubAdapter::subscribeForTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) {
+    bool ok = stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(clientId);
+    if (ok) {
+        subscribersForTestBroadcastWithOutArgsSelective_.insert(clientId);
+        stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
+        success = true;
+    } else {
+        success = false;
+    }
+}
+
+
+void TestInterfaceDBusStubAdapter::unsubscribeFromTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
+    subscribersForTestBroadcastWithOutArgsSelective_.erase(clientId);
+    stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
+}
+
+CommonAPI::ClientIdList* const TestInterfaceDBusStubAdapter::getSubscribersForTestBroadcastWithOutArgsSelective() {
+    return &subscribersForTestBroadcastWithOutArgsSelective_;
+}
+
 
 const TestInterfaceDBusStubAdapter::StubDispatcherTable& TestInterfaceDBusStubAdapter::getStubDispatcherTable() {
     static const TestInterfaceDBusStubAdapter::StubDispatcherTable stubDispatcherTable = {
@@ -220,6 +350,11 @@ const TestInterfaceDBusStubAdapter::StubDispatcherTable& TestInterfaceDBusStubAd
             { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
             { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
             { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher }
+            ,
+            { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::subscribeTestSelectiveBroadcastSelectiveStubDispatcher },
+            { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },
+            { { "subscribeForTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher },
+            { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
             };
     return stubDispatcherTable;
 }

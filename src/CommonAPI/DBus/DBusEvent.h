@@ -28,22 +28,23 @@ class DBusProxyBase;
 template <typename _EventType, typename _DBusProxy = DBusProxyBase>
 class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandler {
  public:
-	typedef typename _EventType::ArgumentsTuple ArgumentsTuple;
-	typedef typename _EventType::CancellableListener CancellableListener;
+    typedef typename _EventType::ArgumentsTuple ArgumentsTuple;
+    typedef typename _EventType::CancellableListener CancellableListener;
 
-	DBusEvent(_DBusProxy& dbusProxy, const char* eventName, const char* eventSignature):
-			dbusProxy_(dbusProxy),
-			eventName_(eventName),
-			eventSignature_(eventSignature) {
+
+    DBusEvent(_DBusProxy& dbusProxy, const char* eventName, const char* eventSignature):
+            dbusProxy_(dbusProxy),
+            eventName_(eventName),
+            eventSignature_(eventSignature) {
         interfaceName_ = dbusProxy.getInterfaceName().c_str();
         objectPath_ = dbusProxy_.getDBusObjectPath().c_str();
         assert(eventName_);
         assert(eventSignature_);
         assert(objectPath_);
         assert(interfaceName_);
-	}
+    }
 
-	DBusEvent(_DBusProxy& dbusProxy, const char* eventName, const char* eventSignature, const char* objPath, const char* interfaceName) :
+    DBusEvent(_DBusProxy& dbusProxy, const char* eventName, const char* eventSignature, const char* objPath, const char* interfaceName) :
                     dbusProxy_(dbusProxy),
                     eventName_(eventName),
                     eventSignature_(eventSignature),
@@ -55,29 +56,28 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
         assert(interfaceName);
     }
 
-	virtual ~DBusEvent() {
-		if (this->hasListeners())
-			dbusProxy_.removeSignalMemberHandler(subscription_);
-	}
+    virtual ~DBusEvent() {
+        if (this->hasListeners())
+            dbusProxy_.removeSignalMemberHandler(subscription_);
+    }
 
-	virtual SubscriptionStatus onSignalDBusMessage(const DBusMessage& dbusMessage) {
-		return unpackArgumentsAndHandleSignalDBusMessage(dbusMessage, ArgumentsTuple());
-	}
-
+    virtual SubscriptionStatus onSignalDBusMessage(const DBusMessage& dbusMessage) {
+        return unpackArgumentsAndHandleSignalDBusMessage(dbusMessage, ArgumentsTuple());
+    }
  protected:
-	virtual void onFirstListenerAdded(const CancellableListener&) {
-	 	subscription_ = dbusProxy_.addSignalMemberHandler(objectPath_, interfaceName_,
-	 	                eventName_, eventSignature_, this);
- 	}
+    virtual void onFirstListenerAdded(const CancellableListener&) {
+         subscription_ = dbusProxy_.addSignalMemberHandler(objectPath_, interfaceName_,
+                         eventName_, eventSignature_, this);
+     }
 
-	virtual void onLastListenerRemoved(const CancellableListener&) {
-	 	dbusProxy_.removeSignalMemberHandler(subscription_);
-	}
+    virtual void onLastListenerRemoved(const CancellableListener&) {
+        dbusProxy_.removeSignalMemberHandler(subscription_);
+    }
 
-	template <typename ... _Arguments>
-	inline SubscriptionStatus unpackArgumentsAndHandleSignalDBusMessage(const DBusMessage& dbusMessage, std::tuple<_Arguments...> argTuple) {
-		return handleSignalDBusMessage(dbusMessage, std::move(argTuple), typename make_sequence<sizeof...(_Arguments)>::type());
-	}
+    template <typename ... _Arguments>
+    inline SubscriptionStatus unpackArgumentsAndHandleSignalDBusMessage(const DBusMessage& dbusMessage, std::tuple<_Arguments...> argTuple) {
+        return handleSignalDBusMessage(dbusMessage, std::move(argTuple), typename make_sequence<sizeof...(_Arguments)>::type());
+    }
 
     template<typename ... _Arguments, int ... _ArgIndices>
     inline SubscriptionStatus handleSignalDBusMessage(const DBusMessage& dbusMessage,
@@ -91,12 +91,12 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
         return success ? this->notifyListeners(std::get<_ArgIndices>(argTuple)...) : SubscriptionStatus::RETAIN;
     }
 
- 	_DBusProxy& dbusProxy_;
-	const char* eventName_;
-	const char* eventSignature_;
-	const char* interfaceName_;
-	const char* objectPath_;
-	DBusProxyConnection::DBusSignalHandlerToken subscription_;
+    _DBusProxy& dbusProxy_;
+    const char* eventName_;
+    const char* eventSignature_;
+    const char* interfaceName_;
+    const char* objectPath_;
+    DBusProxyConnection::DBusSignalHandlerToken subscription_;
 };
 
 } // namespace DBus

@@ -18,7 +18,7 @@ namespace tests {
  * TestInterfaceStub. Method callbacks have an empty implementation,
  * remote set calls on attributes will always change the value of the attribute
  * to the one received.
- * 
+ *
  * Override this stub if you only want to provide a subset of the functionality
  * that would be defined for this service, and/or if you do not need any non-default
  * behaviour.
@@ -30,65 +30,69 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
 
     virtual const uint32_t& getTestPredefinedTypeAttributeAttribute();
-    virtual const uint32_t& getTestPredefinedTypeAttributeAttribute(const CommonAPI::ClientId& clientId);
+    virtual const uint32_t& getTestPredefinedTypeAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId);
     virtual void setTestPredefinedTypeAttributeAttribute(uint32_t value);
-    virtual void setTestPredefinedTypeAttributeAttribute(const CommonAPI::ClientId& clientId, uint32_t value);
+    virtual void setTestPredefinedTypeAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t value);
     virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute();
-    virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute(const CommonAPI::ClientId& clientId);
+    virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId);
     virtual void setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
-    virtual void setTestDerivedStructAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestStructExtended value);
+    virtual void setTestDerivedStructAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestStructExtended value);
     virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute();
-    virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute(const CommonAPI::ClientId& clientId);
+    virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId);
     virtual void setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
-    virtual void setTestDerivedArrayAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestArrayUInt64 value);
+    virtual void setTestDerivedArrayAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestArrayUInt64 value);
 
-    virtual void testEmptyMethod();
-    virtual void testEmptyMethod(const CommonAPI::ClientId& clientId);
+    virtual void testEmptyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId);
 
-    virtual void testVoidPredefinedTypeMethod(uint32_t uint32Value, std::string stringValue);
-    virtual void testVoidPredefinedTypeMethod(const CommonAPI::ClientId& clientId, uint32_t uint32Value, std::string stringValue);
+    virtual void testVoidPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t uint32Value, std::string stringValue);
 
-    virtual void testPredefinedTypeMethod(uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue);
-    virtual void testPredefinedTypeMethod(const CommonAPI::ClientId& clientId, uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue);
+    virtual void testPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue);
 
-    virtual void testVoidDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue);
-    virtual void testVoidDerivedTypeMethod(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue);
+    virtual void testVoidDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue);
 
-    virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
-    virtual void testDerivedTypeMethod(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
+    virtual void testDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
 
-    
+
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
+    virtual void fireTestSelectiveBroadcastSelective(const CommonAPI::ClientIdList* receivers = NULL);
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestSelectiveBroadcastSelective();
+    /// Hook method for reacting on new subscriptions or removed subscriptions respectively for selective broadcasts.
+    virtual void onTestSelectiveBroadcastSelectiveSubscriptionChanged(const std::shared_ptr<CommonAPI::ClientId> clientId, const CommonAPI::SelectiveBroadcastSubscriptionEvent event);
+    /// Hook method for reacting accepting or denying new subscriptions 
+    virtual bool onTestSelectiveBroadcastSelectiveSubscriptionRequested(const std::shared_ptr<CommonAPI::ClientId> clientId);
+    virtual void fireTestBroadcastWithOutArgsSelective(const uint32_t& uint32Value, const std::string& stringValue, const CommonAPI::ClientIdList* receivers = NULL);
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestBroadcastWithOutArgsSelective();
+    /// Hook method for reacting on new subscriptions or removed subscriptions respectively for selective broadcasts.
+    virtual void onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(const std::shared_ptr<CommonAPI::ClientId> clientId, const CommonAPI::SelectiveBroadcastSubscriptionEvent event);
+    /// Hook method for reacting accepting or denying new subscriptions 
+    virtual bool onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(const std::shared_ptr<CommonAPI::ClientId> clientId);
 
  protected:
     virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged();
     virtual bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
     virtual bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
-
     virtual void onRemoteTestDerivedStructAttributeAttributeChanged();
     virtual bool trySetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
     virtual bool validateTestDerivedStructAttributeAttributeRequestedValue(const DerivedTypeCollection::TestStructExtended& value);
-
     virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
     virtual bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
     virtual bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
-
-    
+    std::shared_ptr<TestInterfaceStubAdapter> stubAdapter_;
  private:
     class RemoteEventHandler: public TestInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(TestInterfaceStubDefault* defaultStub);
 
         virtual bool onRemoteSetTestPredefinedTypeAttributeAttribute(uint32_t value);
-        virtual bool onRemoteSetTestPredefinedTypeAttributeAttribute(const CommonAPI::ClientId& clientId, uint32_t value);
+        virtual bool onRemoteSetTestPredefinedTypeAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t value);
         virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged();
 
         virtual bool onRemoteSetTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value);
-        virtual bool onRemoteSetTestDerivedStructAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestStructExtended value);
+        virtual bool onRemoteSetTestDerivedStructAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestStructExtended value);
         virtual void onRemoteTestDerivedStructAttributeAttributeChanged();
 
         virtual bool onRemoteSetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
-        virtual bool onRemoteSetTestDerivedArrayAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestArrayUInt64 value);
+        virtual bool onRemoteSetTestDerivedArrayAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestArrayUInt64 value);
         virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
 
 
@@ -97,7 +101,6 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     };
 
     RemoteEventHandler remoteEventHandler_;
-    std::shared_ptr<TestInterfaceStubAdapter> stubAdapter_;
 
     uint32_t testPredefinedTypeAttributeAttributeValue_;
     DerivedTypeCollection::TestStructExtended testDerivedStructAttributeAttributeValue_;

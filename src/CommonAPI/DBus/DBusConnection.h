@@ -90,16 +90,28 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
             int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
 
     DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
-            const std::string& interfaceName,
-            const std::string& interfaceMemberName,
-            const std::string& interfaceMemberSignature,
-            DBusSignalHandler* dbusSignalHandler);
+                                                  const std::string& interfaceName,
+                                                  const std::string& interfaceMemberName,
+                                                  const std::string& interfaceMemberSignature,
+                                                  DBusSignalHandler* dbusSignalHandler,
+                                                  const bool justAddFilter = false);
+
+    DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcast(bool& subscriptionAccepted,
+                                                                               const std::string& objectPath,
+                                                                               const std::string& interfaceName,
+                                                                               const std::string& interfaceMemberName,
+                                                                               const std::string& interfaceMemberSignature,
+                                                                               DBusSignalHandler* dbusSignalHandler,
+                                                                               DBusProxy* callingProxy);
+
+    void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+                                          DBusProxyConnection::DBusSignalHandlerToken subscription,
+                                          DBusProxy* callingProxy);
 
     void registerObjectPath(const std::string& objectPath);
     void unregisterObjectPath(const std::string& objectPath);
 
-    void removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
-
+    bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
     bool readWriteDispatch(int timeoutMilliseconds = -1);
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();
@@ -113,6 +125,9 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     bool isDispatchReady();
     bool singleDispatch();
 
+    typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
+    typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
+    typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
  private:
     void dispatch();
     void suspendDispatching() const;
@@ -130,7 +145,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
     void addLibdbusSignalMatchRule(const std::string& objectPath,
             const std::string& interfaceName,
-            const std::string& interfaceMemberName);
+            const std::string& interfaceMemberName,
+            const bool justAddFilter = false);
 
     void removeLibdbusSignalMatchRule(const std::string& objectPath,
             const std::string& interfaceName,
@@ -179,9 +195,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
 
     DBusConnectionStatusEvent dbusConnectionStatusEvent_;
 
-    typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
-    typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
-    typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
+
     DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
     DBusSignalHandlerTable dbusSignalHandlerTable_;

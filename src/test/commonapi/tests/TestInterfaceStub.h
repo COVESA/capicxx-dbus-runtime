@@ -22,10 +22,10 @@
 #include <CommonAPI/OutputStream.h>
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <CommonAPI/Stub.h>
-#include <CommonAPI/types.h>
 
 #undef COMMONAPI_INTERNAL_COMPILATION
 
@@ -52,6 +52,31 @@ class TestInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public Te
      * Instead, the "fire<broadcastName>Event" methods of the stub should be used.
      */
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) = 0;
+    /**
+     * Sends a selective broadcast event for TestSelectiveBroadcast. Should not be called directly.
+     * Instead, the "fire<broadcastName>Event" methods of the stub should be used.
+     */
+    virtual void fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    virtual void sendTestSelectiveBroadcastSelective(const CommonAPI::ClientIdList* receivers = NULL) = 0;
+    virtual void subscribeForTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) = 0;
+    virtual void unsubscribeFromTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestSelectiveBroadcastSelective() = 0;
+    /**
+     * Sends a selective broadcast event for TestBroadcastWithOutArgs. Should not be called directly.
+     * Instead, the "fire<broadcastName>Event" methods of the stub should be used.
+     */
+    virtual void fireTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, const uint32_t& uint32Value, const std::string& stringValue) = 0;
+    virtual void sendTestBroadcastWithOutArgsSelective(const uint32_t& uint32Value, const std::string& stringValue, const CommonAPI::ClientIdList* receivers = NULL) = 0;
+    virtual void subscribeForTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) = 0;
+    virtual void unsubscribeFromTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestBroadcastWithOutArgsSelective() = 0;
+protected:
+    /**
+     * Defines properties for storing the ClientIds of clients / proxies that have
+     * subscribed to the selective broadcasts
+     */
+    CommonAPI::ClientIdList subscribersForTestSelectiveBroadcastSelective_;
+    CommonAPI::ClientIdList subscribersForTestBroadcastWithOutArgsSelective_;
 };
 
 
@@ -71,20 +96,20 @@ class TestInterfaceStubRemoteEvent {
  public:
     virtual ~TestInterfaceStubRemoteEvent() { }
 
-    /// Verification callback for remote set requests on the attribute TestPredefinedTypeAttribute.
-    virtual bool onRemoteSetTestPredefinedTypeAttributeAttribute(const CommonAPI::ClientId& clientId, uint32_t TestPredefinedTypeAttribute) = 0;
-    /// Action callback for remote set requests on the attribute TestPredefinedTypeAttribute.
-    virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged() = 0;
+    /// Verification callback for remote set requests on the attribute TestPredefinedTypeAttribute
+     virtual bool onRemoteSetTestPredefinedTypeAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t TestPredefinedTypeAttribute) = 0;
+     /// Action callback for remote set requests on the attribute TestPredefinedTypeAttribute
+     virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged() = 0;
 
-    /// Verification callback for remote set requests on the attribute TestDerivedStructAttribute.
-    virtual bool onRemoteSetTestDerivedStructAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestStructExtended TestDerivedStructAttribute) = 0;
-    /// Action callback for remote set requests on the attribute TestDerivedStructAttribute.
-    virtual void onRemoteTestDerivedStructAttributeAttributeChanged() = 0;
+    /// Verification callback for remote set requests on the attribute TestDerivedStructAttribute
+     virtual bool onRemoteSetTestDerivedStructAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestStructExtended TestDerivedStructAttribute) = 0;
+     /// Action callback for remote set requests on the attribute TestDerivedStructAttribute
+     virtual void onRemoteTestDerivedStructAttributeAttributeChanged() = 0;
 
-    /// Verification callback for remote set requests on the attribute TestDerivedArrayAttribute.
-    virtual bool onRemoteSetTestDerivedArrayAttributeAttribute(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestArrayUInt64 TestDerivedArrayAttribute) = 0;
-    /// Action callback for remote set requests on the attribute TestDerivedArrayAttribute.
-    virtual void onRemoteTestDerivedArrayAttributeAttributeChanged() = 0;
+    /// Verification callback for remote set requests on the attribute TestDerivedArrayAttribute
+     virtual bool onRemoteSetTestDerivedArrayAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestArrayUInt64 TestDerivedArrayAttribute) = 0;
+     /// Action callback for remote set requests on the attribute TestDerivedArrayAttribute
+     virtual void onRemoteTestDerivedArrayAttributeAttributeChanged() = 0;
 
 };
 
@@ -99,26 +124,49 @@ class TestInterfaceStub : public CommonAPI::Stub<TestInterfaceStubAdapter , Test
  public:
     virtual ~TestInterfaceStub() { }
 
-    /// Provides getter access to the attribute TestPredefinedTypeAttribute.
-    virtual const uint32_t& getTestPredefinedTypeAttributeAttribute(const CommonAPI::ClientId& clientId) = 0;
-    /// Provides getter access to the attribute TestDerivedStructAttribute.
-    virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute(const CommonAPI::ClientId& clientId) = 0;
-    /// Provides getter access to the attribute TestDerivedArrayAttribute.
-    virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute(const CommonAPI::ClientId& clientId) = 0;
+    /// Provides getter access to the attribute TestPredefinedTypeAttribute
+    virtual const uint32_t& getTestPredefinedTypeAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    /// Provides getter access to the attribute TestDerivedStructAttribute
+    virtual const DerivedTypeCollection::TestStructExtended& getTestDerivedStructAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    /// Provides getter access to the attribute TestDerivedArrayAttribute
+    virtual const DerivedTypeCollection::TestArrayUInt64& getTestDerivedArrayAttributeAttribute(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
 
     /// This is the method that will be called on remote calls on the method testEmptyMethod.
-    virtual void testEmptyMethod(const CommonAPI::ClientId& clientId) = 0;
+    virtual void testEmptyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
     /// This is the method that will be called on remote calls on the method testVoidPredefinedTypeMethod.
-    virtual void testVoidPredefinedTypeMethod(const CommonAPI::ClientId& clientId, uint32_t uint32Value, std::string stringValue) = 0;
+    virtual void testVoidPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t uint32Value, std::string stringValue) = 0;
     /// This is the method that will be called on remote calls on the method testPredefinedTypeMethod.
-    virtual void testPredefinedTypeMethod(const CommonAPI::ClientId& clientId, uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue) = 0;
+    virtual void testPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t uint32InValue, std::string stringInValue, uint32_t& uint32OutValue, std::string& stringOutValue) = 0;
     /// This is the method that will be called on remote calls on the method testVoidDerivedTypeMethod.
-    virtual void testVoidDerivedTypeMethod(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue) = 0;
+    virtual void testVoidDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue) = 0;
     /// This is the method that will be called on remote calls on the method testDerivedTypeMethod.
-    virtual void testDerivedTypeMethod(const CommonAPI::ClientId& clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
-    
+    virtual void testDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
     /// Sends a broadcast event for TestPredefinedTypeBroadcast.
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) = 0;
+    /**
+     * Sends a selective broadcast event for TestSelectiveBroadcast to the given ClientIds.
+     * The ClientIds must all be out of the set of subscribed clients.
+     * If no ClientIds are given, the selective broadcast is sent to all subscribed clients.
+     */
+    virtual void fireTestSelectiveBroadcastSelective(const CommonAPI::ClientIdList* receivers = NULL) = 0;
+    /// retreives the list of all subscribed clients for TestSelectiveBroadcast
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestSelectiveBroadcastSelective() = 0;
+    /// Hook method for reacting on new subscriptions or removed subscriptions respectively for selective broadcasts.
+    virtual void onTestSelectiveBroadcastSelectiveSubscriptionChanged(const std::shared_ptr<CommonAPI::ClientId> clientId, const CommonAPI::SelectiveBroadcastSubscriptionEvent event) = 0;
+    /// Hook method for reacting accepting or denying new subscriptions 
+    virtual bool onTestSelectiveBroadcastSelectiveSubscriptionRequested(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
+    /**
+     * Sends a selective broadcast event for TestBroadcastWithOutArgs to the given ClientIds.
+     * The ClientIds must all be out of the set of subscribed clients.
+     * If no ClientIds are given, the selective broadcast is sent to all subscribed clients.
+     */
+    virtual void fireTestBroadcastWithOutArgsSelective(const uint32_t& uint32Value, const std::string& stringValue, const CommonAPI::ClientIdList* receivers = NULL) = 0;
+    /// retreives the list of all subscribed clients for TestBroadcastWithOutArgs
+    virtual CommonAPI::ClientIdList* const getSubscribersForTestBroadcastWithOutArgsSelective() = 0;
+    /// Hook method for reacting on new subscriptions or removed subscriptions respectively for selective broadcasts.
+    virtual void onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(const std::shared_ptr<CommonAPI::ClientId> clientId, const CommonAPI::SelectiveBroadcastSubscriptionEvent event) = 0;
+    /// Hook method for reacting accepting or denying new subscriptions 
+    virtual bool onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(const std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
 };
 
 } // namespace tests

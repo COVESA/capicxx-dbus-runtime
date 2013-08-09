@@ -57,5 +57,15 @@ interface TestInterface {
 			String stringValue
 		}
 	}
+
+	broadcast TestSelectiveBroadcast selective {
+	}
+		
+	broadcast TestBroadcastWithOutArgs selective {
+        out {
+            UInt32 uint32Value
+            String stringValue
+        }	    
+	}
 }
 

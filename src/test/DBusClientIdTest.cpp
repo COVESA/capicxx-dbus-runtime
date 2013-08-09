@@ -29,6 +29,10 @@ public:
         return false; // doesn't matter, as we are just comparing this class with DBusClientId;
     }
 
+    std::size_t hashCode() {
+        return 0;
+    }
+
 };
 
 TEST_F(DBusClientIdTest, TestClientIdImplementation) {

@@ -32,24 +32,27 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
     virtual TestPredefinedTypeAttributeAttribute& getTestPredefinedTypeAttributeAttribute() {
         return delegate_->getTestPredefinedTypeAttributeAttribute();
     }
-
     /// Returns the wrapper class that provides access to the attribute TestDerivedStructAttribute.
     virtual TestDerivedStructAttributeAttribute& getTestDerivedStructAttributeAttribute() {
         return delegate_->getTestDerivedStructAttributeAttribute();
     }
-
     /// Returns the wrapper class that provides access to the attribute TestDerivedArrayAttribute.
     virtual TestDerivedArrayAttributeAttribute& getTestDerivedArrayAttributeAttribute() {
         return delegate_->getTestDerivedArrayAttributeAttribute();
     }
 
-
-    /// Returns the wrapper class that provides access to the broadcast TestPredefinedTypeBroadcast.
+    // Returns the wrapper class that provides access to the broadcast TestPredefinedTypeBroadcast.
     virtual TestPredefinedTypeBroadcastEvent& getTestPredefinedTypeBroadcastEvent() {
         return delegate_->getTestPredefinedTypeBroadcastEvent();
     }
-
-
+    // Returns the wrapper class that provides access to the broadcast TestSelectiveBroadcast.
+    virtual TestSelectiveBroadcastSelectiveEvent& getTestSelectiveBroadcastSelectiveEvent() {
+        return delegate_->getTestSelectiveBroadcastSelectiveEvent();
+    }
+    // Returns the wrapper class that provides access to the broadcast TestBroadcastWithOutArgs.
+    virtual TestBroadcastWithOutArgsSelectiveEvent& getTestBroadcastWithOutArgsSelectiveEvent() {
+        return delegate_->getTestBroadcastWithOutArgsSelectiveEvent();
+    }
 
     /**
      * Calls testEmptyMethod with synchronous semantics.
@@ -70,7 +73,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> testEmptyMethodAsync(TestEmptyMethodAsyncCallback callback);
-
     /**
      * Calls testVoidPredefinedTypeMethod with synchronous semantics.
      * 
@@ -91,7 +93,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> testVoidPredefinedTypeMethodAsync(const uint32_t& uint32Value, const std::string& stringValue, TestVoidPredefinedTypeMethodAsyncCallback callback);
-
     /**
      * Calls testPredefinedTypeMethod with synchronous semantics.
      * 
@@ -113,7 +114,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> testPredefinedTypeMethodAsync(const uint32_t& uint32InValue, const std::string& stringInValue, TestPredefinedTypeMethodAsyncCallback callback);
-
     /**
      * Calls testVoidDerivedTypeMethod with synchronous semantics.
      * 
@@ -134,7 +134,6 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> testVoidDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, TestVoidDerivedTypeMethodAsyncCallback callback);
-
     /**
      * Calls testDerivedTypeMethod with synchronous semantics.
      * 
@@ -270,7 +269,6 @@ template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testEmptyMethodAsync(TestEmptyMethodAsyncCallback callback) {
     return delegate_->testEmptyMethodAsync(callback);
 }
-
 template <typename ... _AttributeExtensions>
 void TestInterfaceProxy<_AttributeExtensions...>::testVoidPredefinedTypeMethod(const uint32_t& uint32Value, const std::string& stringValue, CommonAPI::CallStatus& callStatus) {
     delegate_->testVoidPredefinedTypeMethod(uint32Value, stringValue, callStatus);
@@ -280,7 +278,6 @@ template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testVoidPredefinedTypeMethodAsync(const uint32_t& uint32Value, const std::string& stringValue, TestVoidPredefinedTypeMethodAsyncCallback callback) {
     return delegate_->testVoidPredefinedTypeMethodAsync(uint32Value, stringValue, callback);
 }
-
 template <typename ... _AttributeExtensions>
 void TestInterfaceProxy<_AttributeExtensions...>::testPredefinedTypeMethod(const uint32_t& uint32InValue, const std::string& stringInValue, CommonAPI::CallStatus& callStatus, uint32_t& uint32OutValue, std::string& stringOutValue) {
     delegate_->testPredefinedTypeMethod(uint32InValue, stringInValue, callStatus, uint32OutValue, stringOutValue);
@@ -290,7 +287,6 @@ template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testPredefinedTypeMethodAsync(const uint32_t& uint32InValue, const std::string& stringInValue, TestPredefinedTypeMethodAsyncCallback callback) {
     return delegate_->testPredefinedTypeMethodAsync(uint32InValue, stringInValue, callback);
 }
-
 template <typename ... _AttributeExtensions>
 void TestInterfaceProxy<_AttributeExtensions...>::testVoidDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, CommonAPI::CallStatus& callStatus) {
     delegate_->testVoidDerivedTypeMethod(testEnumExtended2Value, testMapValue, callStatus);
@@ -300,7 +296,6 @@ template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testVoidDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, TestVoidDerivedTypeMethodAsyncCallback callback) {
     return delegate_->testVoidDerivedTypeMethodAsync(testEnumExtended2Value, testMapValue, callback);
 }
-
 template <typename ... _AttributeExtensions>
 void TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) {
     delegate_->testDerivedTypeMethod(testEnumExtended2InValue, testMapInValue, callStatus, testEnumExtended2OutValue, testMapOutValue);
@@ -310,7 +305,6 @@ template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) {
     return delegate_->testDerivedTypeMethodAsync(testEnumExtended2InValue, testMapInValue, callback);
 }
-
 
 template <typename ... _AttributeExtensions>
 std::string TestInterfaceProxy<_AttributeExtensions...>::getAddress() const {

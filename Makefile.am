@@ -89,6 +89,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusFactory.h \
         src/CommonAPI/DBus/DBusProxyHelper.h \
         src/CommonAPI/DBus/DBusRuntime.h \
+        src/CommonAPI/DBus/DBusSelectiveEvent.h \
         src/CommonAPI/DBus/DBusSerializableArguments.h \
         src/CommonAPI/DBus/DBusServicePublisher.h \
         src/CommonAPI/DBus/DBusServiceRegistry.h \
@@ -171,7 +172,8 @@ check_PROGRAMS = \
         DBusCommunicationTest \
         DBusMultipleConnectionTest \
         DBusServicePublisherTest \
-        DBusClientIdTest
+        DBusClientIdTest \
+        DBusSelectiveBroadcastTest
 
 
 TESTS = ${check_PROGRAMS}
@@ -314,11 +316,19 @@ DBusDynamicLoadingNoValidityTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusDynamicLoadingNoValidityTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusDynamicLoadingNoValidityTest_LDADD = ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
 
-
-DBusClientIdTest_SOURCES = src/test/DBusClientIdTest.cpp
+DBusClientIdTest_SOURCES =  \
+        src/test/DBusClientIdTest.cpp
 DBusClientIdTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusClientIdTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusClientIdTest_LDADD = ${LDADD_FOR_GTEST}
+
+
+DBusSelectiveBroadcastTest_SOURCES =  \
+        ${TestInterfaceDBusSources} \
+        src/test/DBusSelectiveBroadcastTest.cpp
+DBusSelectiveBroadcastTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusSelectiveBroadcastTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusSelectiveBroadcastTest_LDADD = ${LDADD_FOR_GTEST}
 
 endif
 

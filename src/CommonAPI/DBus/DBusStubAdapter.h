@@ -49,8 +49,7 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
 
     virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
-
- private:
+private:
     const std::string commonApiDomain_;
     const std::string commonApiServiceId_;
     const std::string commonApiParticipantId_;

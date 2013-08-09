@@ -33,12 +33,22 @@ class TestInterfaceDBusStubAdapter: public TestInterfaceStubAdapter, public Test
             const std::string& dbusObjectPath,
             const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
             const std::shared_ptr<CommonAPI::StubBase>& stub);
-    
+
     void fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value);
     void fireTestDerivedStructAttributeAttributeChanged(const DerivedTypeCollection::TestStructExtended& value);
     void fireTestDerivedArrayAttributeAttributeChanged(const DerivedTypeCollection::TestArrayUInt64& value);
 
     void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
+    void fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId);
+    void sendTestSelectiveBroadcastSelective(const CommonAPI::ClientIdList* receivers = NULL);
+    void subscribeForTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success);
+    void unsubscribeFromTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId);
+    CommonAPI::ClientIdList* const getSubscribersForTestSelectiveBroadcastSelective();
+    void fireTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, const uint32_t& uint32Value, const std::string& stringValue);
+    void sendTestBroadcastWithOutArgsSelective(const uint32_t& uint32Value, const std::string& stringValue, const CommonAPI::ClientIdList* receivers = NULL);
+    void subscribeForTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success);
+    void unsubscribeFromTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId);
+    CommonAPI::ClientIdList* const getSubscribersForTestBroadcastWithOutArgsSelective();
 
     const StubDispatcherTable& getStubDispatcherTable();
 

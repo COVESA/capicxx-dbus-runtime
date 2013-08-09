@@ -61,7 +61,15 @@ class DBusProxy: public DBusProxyBase {
     virtual const std::string& getDBusBusName() const;
     virtual const std::string& getDBusObjectPath() const;
     virtual const std::string& getInterfaceName() const;
-
+    DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcastOnConnection(
+              bool& subscriptionAccepted,
+              const std::string& objectPath,
+              const std::string& interfaceName,
+              const std::string& interfaceMemberName,
+              const std::string& interfaceMemberSignature,
+              DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
+    void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+                                          DBusProxyConnection::DBusSignalHandlerToken subscription);
  private:
     DBusProxy(const DBusProxy&) = delete;
 

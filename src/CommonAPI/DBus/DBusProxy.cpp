@@ -117,5 +117,28 @@ std::string DBusProxy::getAddress() const {
     return commonApiDomain_ + ":" + commonApiServiceId_ + ":" + commonApiParticipantId_;
 }
 
+DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroadcastOnConnection(
+                                                      bool& subscriptionAccepted,
+                                                      const std::string& objectPath,
+                                                      const std::string& interfaceName,
+                                                      const std::string& interfaceMemberName,
+                                                      const std::string& interfaceMemberSignature,
+                                                      DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+
+    return getDBusConnection()->subscribeForSelectiveBroadcast(
+                    subscriptionAccepted,
+                    objectPath,
+                    interfaceName,
+                    interfaceMemberName,
+                    interfaceMemberSignature,
+                    dbusSignalHandler,
+                    this);
+}
+
+void DBusProxy::unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+                                                 DBusProxyConnection::DBusSignalHandlerToken subscription) {
+    getDBusConnection()->unsubsribeFromSelectiveBroadcast(eventName, subscription, this);
+}
+
 } // namespace DBus
 } // namespace CommonAPI

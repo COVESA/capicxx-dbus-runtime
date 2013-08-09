@@ -34,7 +34,9 @@ TestInterfaceDBusProxy::TestInterfaceDBusProxy(
 ,        testPredefinedTypeAttribute_(*this, "onTestPredefinedTypeAttributeAttributeChanged", "setTestPredefinedTypeAttributeAttribute", "u", "getTestPredefinedTypeAttributeAttribute"),
         testDerivedStructAttribute_(*this, "onTestDerivedStructAttributeAttributeChanged", "setTestDerivedStructAttributeAttribute", "(sqi)", "getTestDerivedStructAttributeAttribute"),
         testDerivedArrayAttribute_(*this, "onTestDerivedArrayAttributeAttributeChanged", "setTestDerivedArrayAttributeAttribute", "at", "getTestDerivedArrayAttributeAttribute")
-,        testPredefinedTypeBroadcast_(*this, "TestPredefinedTypeBroadcast", "us")
+,        testPredefinedTypeBroadcast_(*this, "TestPredefinedTypeBroadcast", "us"),
+                        testSelectiveBroadcastSelective_(*this, "TestSelectiveBroadcast", ""),
+                        testBroadcastWithOutArgsSelective_(*this, "TestBroadcastWithOutArgs", "us")
                  {
 }
 
@@ -50,6 +52,12 @@ TestInterfaceDBusProxy::TestDerivedArrayAttributeAttribute& TestInterfaceDBusPro
 
 TestInterfaceDBusProxy::TestPredefinedTypeBroadcastEvent& TestInterfaceDBusProxy::getTestPredefinedTypeBroadcastEvent() {
     return testPredefinedTypeBroadcast_;
+}
+TestInterfaceDBusProxy::TestSelectiveBroadcastSelectiveEvent& TestInterfaceDBusProxy::getTestSelectiveBroadcastSelectiveEvent() {
+    return testSelectiveBroadcastSelective_;
+}
+TestInterfaceDBusProxy::TestBroadcastWithOutArgsSelectiveEvent& TestInterfaceDBusProxy::getTestBroadcastWithOutArgsSelectiveEvent() {
+    return testBroadcastWithOutArgsSelective_;
 }
 
 void TestInterfaceDBusProxy::testEmptyMethod(CommonAPI::CallStatus& callStatus) {
@@ -145,6 +153,7 @@ std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::testDerivedTypeMethod
         testEnumExtended2InValue, testMapInValue, 
         std::move(callback));
 }
+
 
 void TestInterfaceDBusProxy::getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const {
     ownVersionMajor = 1;
