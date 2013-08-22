@@ -82,6 +82,26 @@ Use autotools to build this package withthe above requirements available through
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
 
+== Linking against CommonAPI-D-Bus
+
+CommonAPI-D-Bus requires successful activation of all static initialization code on library load. Therefore it is necessary to
+activate certain linker flags to ensure this is always the case. These are specified in the pkg-config files, but are also
+listed here. In case of dynamic linking (.so) --no-as-needed must be specified for the CommonAPI-D-Bus library:
+----
+-Wl,--no-as-needed -lCommonAPI-DBus -Wl,--as-needed 
+----
+
+In case of static linking --whole-archive must be specified:
+----
+-Wl,--whole-archive libCommonAPI-DBus.a -Wl,--no-whole-archive 
+----
+
+=== Linking generated proxies & stubs
+
+Generated proxies and stubs also require successful activation of all static initialization code on load.
+If they are provided in either a static or dynamic library to the application they must also be linked wrapped in the
+flags described above.
+
 === Building and executing the Unit Tests
 ----
 # export GTEST_CONFIG=/path/to/gtest-1.6.0/scripts/gtest-config

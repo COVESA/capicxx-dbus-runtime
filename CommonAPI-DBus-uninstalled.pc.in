@@ -7,5 +7,5 @@ Name: Common API C++ D-Bus Middleware
 Description: GENIVI Common API C++ D-Bus Middleware (uninstalled copy)
 Version: @PACKAGE_VERSION@
 Requires: CommonAPI dbus-1
-Libs: ${abs_top_builddir}/libCommonAPI-DBus.la
+Libs: -Wl,--whole-archive ${abs_top_builddir}/libCommonAPI-DBus.la -Wl,--no-whole-archive
 Cflags: -I${abs_top_srcdir}/src
