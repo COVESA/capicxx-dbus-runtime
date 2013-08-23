@@ -58,13 +58,16 @@ TEST_F(DBusDynamicLoadingBasicTest, LoadsUnconfiguredDefaultDynamicallyLinkedLib
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, LoadsSpecificDynamicallyLinkedDBusLibrary) {
+    //DBus is defined as default binding in the configuration file
     std::shared_ptr<CommonAPI::Runtime> defaultRuntime = CommonAPI::Runtime::load();
+
+    //The Fake binding has "DBus" defined as its alias, so this call will access the Fake binding!
     std::shared_ptr<CommonAPI::Runtime> dbusRuntime = CommonAPI::Runtime::load("DBus");
+
     EXPECT_TRUE((bool)defaultRuntime);
     EXPECT_TRUE((bool)dbusRuntime);
-    //Even though Fake has "DBus" defined as an alias, the well known name of the DBus binding
-    //(which coincidentially is "DBus") has precedence.
-    ASSERT_EQ(dbusRuntime, defaultRuntime);
+
+    ASSERT_NE(dbusRuntime, defaultRuntime);
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, LoadsAliasedDynamicallyLinkedDBusLibrary) {
@@ -80,10 +83,14 @@ TEST_F(DBusDynamicLoadingBasicTest, ReturnsEmptyPointerOnRequestForUnknownMiddle
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, LoadsDBusLibraryAsSingleton) {
-    std::shared_ptr<CommonAPI::Runtime> runtime1 = CommonAPI::Runtime::load("DBus");
+    //"DBus" is set as default. Due to the alias definition in the Fake binding, it would not
+    //be accessible when passing this well known name as parameter, only the aliases still
+    //point to the DBus binding.
+    std::shared_ptr<CommonAPI::Runtime> runtime1 = CommonAPI::Runtime::load();
     std::shared_ptr<CommonAPI::Runtime> runtime2 = CommonAPI::Runtime::load("MyFirstAlias");
     std::shared_ptr<CommonAPI::Runtime> runtime3 = CommonAPI::Runtime::load("MySecondAlias");
-    std::shared_ptr<CommonAPI::Runtime> runtime4 = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime4 = CommonAPI::Runtime::load();
+
     EXPECT_TRUE((bool)runtime1);
     EXPECT_TRUE((bool)runtime2);
     EXPECT_TRUE((bool)runtime3);
@@ -98,7 +105,7 @@ TEST_F(DBusDynamicLoadingBasicTest, LoadsDBusLibraryAsSingleton) {
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, RuntimeLoadsFactory) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
@@ -106,7 +113,7 @@ TEST_F(DBusDynamicLoadingBasicTest, RuntimeLoadsFactory) {
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, RuntimeLoadsServicePublisher) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
 
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher = runtime->getServicePublisher();
@@ -114,7 +121,7 @@ TEST_F(DBusDynamicLoadingBasicTest, RuntimeLoadsServicePublisher) {
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, FactoryCanCreateProxies) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
@@ -124,24 +131,53 @@ TEST_F(DBusDynamicLoadingBasicTest, FactoryCanCreateProxies) {
     ASSERT_TRUE((bool)defaultTestProxy);
 }
 
-TEST_F(DBusDynamicLoadingBasicTest, ServicePublisherCanRegisterStubs) {
+TEST_F(DBusDynamicLoadingBasicTest, FakeFactoryCannotCreateProxies) {
+    //Fake has the alias "DBus". Therefore, the actual DBus-binding is NOT accessible via
+    //its well known name!
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
     ASSERT_TRUE((bool)runtime);
 
+    std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();
+    EXPECT_TRUE((bool)proxyFactory);
+
+    auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(testServiceAddress);
+    ASSERT_FALSE((bool)defaultTestProxy);
+}
+
+TEST_F(DBusDynamicLoadingBasicTest, ServicePublisherCanRegisterStubs) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    ASSERT_TRUE((bool)runtime);
+
     std::shared_ptr<CommonAPI::Factory> serviceFactory = runtime->createFactory();
-    EXPECT_TRUE((bool)serviceFactory);
+    ASSERT_TRUE((bool)serviceFactory);
 
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher = runtime->getServicePublisher();
-    EXPECT_TRUE((bool)servicePublisher);
+    ASSERT_TRUE((bool)servicePublisher);
 
     auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
-    servicePublisher->registerService(myStub, testServiceAddress, serviceFactory);
-    servicePublisher->unregisterService(testServiceAddress);
+    EXPECT_TRUE(servicePublisher->registerService(myStub, testServiceAddress, serviceFactory));
+    EXPECT_TRUE(servicePublisher->unregisterService(testServiceAddress));
+}
+
+TEST_F(DBusDynamicLoadingBasicTest, FakeServicePublisherTellsUsItWontRegisterStubs) {
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("Fake");
+    ASSERT_TRUE((bool)runtime);
+
+    std::shared_ptr<CommonAPI::Factory> serviceFactory = runtime->createFactory();
+    ASSERT_TRUE((bool)serviceFactory);
+
+    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher = runtime->getServicePublisher();
+    ASSERT_TRUE((bool)servicePublisher);
+
+    auto myStub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    EXPECT_FALSE(servicePublisher->registerService(myStub, testServiceAddress, serviceFactory));
+    EXPECT_FALSE(servicePublisher->unregisterService(testServiceAddress));
 }
 
 TEST_F(DBusDynamicLoadingBasicTest, CreatedProxiesAndServicesCanCommunicate) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load("DBus");
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
     ASSERT_TRUE((bool)runtime);
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime->createFactory();

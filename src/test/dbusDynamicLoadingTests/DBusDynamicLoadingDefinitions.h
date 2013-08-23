@@ -30,35 +30,12 @@ const std::string COMMONAPI_ENVIRONMENT_BINDING_PATH = "COMMONAPI_BINDING_PATH";
 const std::string currentBinaryFileFQN = CommonAPI::getCurrentBinaryFileFQN();
 const std::string currentWorkingDirectory = currentBinaryFileFQN.substr(0, currentBinaryFileFQN.find_last_of("/") + 1);
 
-const std::string firstAlias = "MyFirstAlias";
-const std::string secondAlias = "MySecondAlias";
-const std::string firstAliasDefinition = "alias=" + firstAlias + "\n";
-const std::string secondAliasDefinition = "alias=" + secondAlias + "\n";
-const std::string combinedAliasDefinition = "alias=" + firstAlias + ":" + secondAlias + "\n";
+const std::string firstAliasDefinition = "alias=MyFirstAlias\n";
+const std::string secondAliasDefinition = "alias=MySecondAlias\n";
+const std::string combinedAliasDefinition = "alias=MyFirstAlias:MySecondAlias\n";
 const std::string libraryDBusPathDefinition = "libpath=" + currentWorkingDirectory + "libCommonAPI-DBus.so\n";
 const std::string libraryFakePathDefinition = "libpath=" + currentWorkingDirectory + "libCommonAPI-Fake.so\n";
 const std::string generatedDBusPathDefinition = "genpath=" + currentWorkingDirectory + "libSomeOtherNameForGeneratedDBus.so\n";
-const std::string dbusBindingDefinitionStart = "{binding:DBus}\n";
-const std::string fakeBindingDefinitionStart = "{binding:Fake}\n";
-
-const std::string validForLocalDBusBinding =
-            dbusBindingDefinitionStart +
-            combinedAliasDefinition +
-            libraryDBusPathDefinition +
-            "default" +
-            fakeBindingDefinitionStart +
-            "alias=DBus\n";
-
-const std::string validForMultiplyDefinedDBusBinding =
-            dbusBindingDefinitionStart +
-            libraryDBusPathDefinition +
-            generatedDBusPathDefinition +
-            firstAliasDefinition +
-            "\n" +
-            dbusBindingDefinitionStart +
-            secondAliasDefinition +
-            "libpath=/useless/path";
-
 const std::string __garbageString =
             ""
             "{not#a$valid/binding+PATH}\n"
@@ -75,6 +52,25 @@ const std::string __garbageString =
             "\n"
             "{noBinding:/useless/path}\n"
             "{:incomplete}\n";
+
+
+const std::string validForLocalDBusBinding =
+            "{binding:DBus}\n" +
+            combinedAliasDefinition +
+            libraryDBusPathDefinition +
+            "default\n" +
+            "{binding:Fake}\n" +
+            "alias=DBus\n";
+
+const std::string validForMultiplyDefinedDBusBinding =
+            "{binding:DBus}\n" +
+            libraryDBusPathDefinition +
+            generatedDBusPathDefinition +
+            firstAliasDefinition +
+            "\n" +
+            "{binding:DBus}\n" +
+            secondAliasDefinition +
+            "libpath=/useless/path";
 
 const std::string mixedValidityValuesAndBindings =
             "{binding: InvalidBinding}\n" +
@@ -105,7 +101,7 @@ const std::string noValidityValuesAndBindings =
             "libpath=/some/path/to/nowhere\n" +
             "default\n" +
             __garbageString +
-            dbusBindingDefinitionStart +
+            "{binding:DBus}\n" +
             "genpath=" + currentWorkingDirectory + "libNonsense.so\n";
 
 
