@@ -229,7 +229,9 @@ TEST_F(VariantOutputStreamTest, CanWriteStructInVariant) {
     inputStream >> outVariant;
 
     EXPECT_TRUE(outVariant.isType<MyStruct>());
-    EXPECT_EQ(inVariant.get<MyStruct>(), outVariant.get<MyStruct>());
+    MyStruct iStr = inVariant.get<MyStruct>();
+    MyStruct oStr = outVariant.get<MyStruct>();
+    EXPECT_EQ(iStr, oStr);
     EXPECT_TRUE(inVariant == outVariant);
 }
 
