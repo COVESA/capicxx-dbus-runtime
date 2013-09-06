@@ -41,7 +41,7 @@ DBusProxy::DBusProxy(const std::string& commonApiAddress,
                 dbusInterfaceName_(dbusInterfaceName),
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
-                interfaceVersionAttribute_(*this, "getInterfaceVersion"),
+                interfaceVersionAttribute_(*this, "getInterfaceVersion", "uu"),
                 dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()) {
 
     const std::string commonApiDomain = split(commonApiAddress, ':')[0];
