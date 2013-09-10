@@ -209,9 +209,9 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     mutable std::unordered_map<std::string, uint16_t> connectionNameCount_;
 
     typedef std::pair<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage> > TimeoutMapElement;
-    mutable std::map<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage>> timeoutMap;
-    mutable std::thread* enforcerThread;
-    mutable std::mutex enforeTimeoutMutex;
+    mutable std::map<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage>> timeoutMap_;
+    mutable std::shared_ptr<std::thread> enforcerThread_;
+    mutable std::mutex enforceTimeoutMutex_;
 };
 
 std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {

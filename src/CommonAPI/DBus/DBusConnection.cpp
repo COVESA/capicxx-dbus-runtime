@@ -89,7 +89,7 @@ DBusConnection::DBusConnection(BusType busType) :
                 connectionNameCount_(),
                 dispatchSource_(),
                 mainLoopContext_(std::shared_ptr<MainLoopContext>(NULL)),
-                enforcerThread(NULL) {
+                enforcerThread_(NULL) {
     dbus_threads_init_default();
 }
 
@@ -105,7 +105,7 @@ DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
                 connectionNameCount_(),
                 dispatchSource_(),
                 mainLoopContext_(std::shared_ptr<MainLoopContext>(NULL)),
-                enforcerThread(NULL)   {
+                enforcerThread_(NULL)   {
     dbus_threads_init_default();
 }
 
@@ -118,7 +118,7 @@ bool DBusConnection::isObjectPathMessageHandlerSet() {
 }
 
 DBusConnection::~DBusConnection() {
-    if(auto lockedContext = mainLoopContext_.lock()) {
+    if (auto lockedContext = mainLoopContext_.lock()) {
         dbus_connection_set_watch_functions(libdbusConnection_, NULL, NULL, NULL, NULL, NULL);
         dbus_connection_set_timeout_functions(libdbusConnection_, NULL, NULL, NULL, NULL, NULL);
 
@@ -128,6 +128,29 @@ DBusConnection::~DBusConnection() {
     }
 
     disconnect();
+
+    //Assert that the enforcerThread_ is in a position to finish itself correctly even after destruction
+    //of the DBusConnection. Also assert all resources are cleaned up.
+    if (enforcerThread_) {
+        enforceTimeoutMutex_.lock();
+
+        auto it = timeoutMap_.begin();
+        while (it != timeoutMap_.end()) {
+            DBusPendingCall* libdbusPendingCall = it->first;
+
+            if (!dbus_pending_call_get_completed(libdbusPendingCall)) {
+                dbus_pending_call_cancel(libdbusPendingCall);
+                DBusMessageReplyAsyncHandler* asyncHandler = std::get<1>(it->second);
+                DBusMessage& dbusMessageCall = std::get<2>(it->second);
+                asyncHandler->onDBusMessageReply(CallStatus::REMOTE_ERROR, dbusMessageCall.createMethodError(DBUS_ERROR_TIMEOUT));
+                delete asyncHandler;
+            }
+            it = timeoutMap_.erase(it);
+            dbus_pending_call_unref(libdbusPendingCall);
+        }
+
+        enforceTimeoutMutex_.unlock();
+    }
 }
 
 
@@ -453,50 +476,62 @@ void DBusConnection::onLibdbusDataCleanup(void* userData) {
 
 //Would not be needed if libdbus would actually handle its timeouts for pending calls.
 void DBusConnection::enforceAsynchronousTimeouts() const {
-    enforeTimeoutMutex.lock();
+    enforceTimeoutMutex_.lock();
 
-    while (!timeoutMap.empty()) {
-        auto minTimeoutElement = std::min_element(timeoutMap.begin(), timeoutMap.end(),
+    //Assert that we DO have a reference to the executing thread, even if the DBusConnection is destroyed.
+    //We need it to assess whether we still may access the members of the DBusConnection.
+    std::shared_ptr<std::thread> threadPtr = enforcerThread_;
+
+    while (!timeoutMap_.empty()) {
+        auto minTimeoutElement = std::min_element(timeoutMap_.begin(), timeoutMap_.end(),
             [] (const TimeoutMapElement& lhs, const TimeoutMapElement& rhs) {
                     return std::get<0>(lhs.second) < std::get<0>(rhs.second);
         });
 
         int minTimeout = std::get<0>(minTimeoutElement->second);
 
-        enforeTimeoutMutex.unlock();
+        enforceTimeoutMutex_.unlock();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(minTimeout));
 
-        enforeTimeoutMutex.lock();
+        //Do not access members if the DBusConnection was destroyed during the unlocked phase.
+        if (!threadPtr.unique()) {
+            enforceTimeoutMutex_.lock();
+            auto it = timeoutMap_.begin();
+            while (!threadPtr.unique() && it != timeoutMap_.end()) {
+                int& currentTimeout = std::get<0>(it->second);
+                currentTimeout -= minTimeout;
+                if (currentTimeout <= 0) {
+                    DBusPendingCall* libdbusPendingCall = it->first;
 
-        for (auto it = timeoutMap.begin(); it != timeoutMap.end(); ) {
-            int& currentTimeout = std::get<0>(it->second);
-            currentTimeout -= minTimeout;
-            if (currentTimeout <= 0) {
-                DBusPendingCall* libdbusPendingCall = it->first;
+                    if (!dbus_pending_call_get_completed(libdbusPendingCall)) {
+                        dbus_pending_call_cancel(libdbusPendingCall);
+                        DBusMessageReplyAsyncHandler* asyncHandler = std::get<1>(it->second);
+                        DBusMessage& dbusMessageCall = std::get<2>(it->second);
+                        asyncHandler->onDBusMessageReply(CallStatus::REMOTE_ERROR, dbusMessageCall.createMethodError(DBUS_ERROR_TIMEOUT));
+                        delete asyncHandler;
+                    }
+                    it = timeoutMap_.erase(it);
 
-                if (!dbus_pending_call_get_completed(libdbusPendingCall)) {
-                    dbus_pending_call_cancel(libdbusPendingCall);
-                    DBusMessageReplyAsyncHandler* asyncHandler = std::get<1>(it->second);
-                    DBusMessage& dbusMessageCall = std::get<2>(it->second);
-                    asyncHandler->onDBusMessageReply(CallStatus::REMOTE_ERROR, dbusMessageCall.createMethodError(DBUS_ERROR_TIMEOUT));
-                    delete asyncHandler;
+                    //This unref MIGHT cause the destruction of the last callback object that references the DBusConnection.
+                    //So after this unref has been called, it has to be ensured that continuation of the loop is an option.
+                    dbus_pending_call_unref(libdbusPendingCall);
+                } else {
+                    ++it;
                 }
-                dbus_pending_call_unref(libdbusPendingCall);
-                it = timeoutMap.erase(it);
-            } else {
-                ++it;
             }
         }
     }
 
-    //Must be atomic with respect to local threading
-    auto threadPtr = enforcerThread;
-    enforcerThread = NULL;
-    enforeTimeoutMutex.unlock();
+    //Normally there is at least the member of DBusConnection plus the local copy of this pointer.
+    //If the local copy is the only one remaining, we have to assume that the DBusConnection was
+    //destroyed and therefore we must no longer access its members.
+    if (!threadPtr.unique()) {
+        enforcerThread_.reset();
+        enforceTimeoutMutex_.unlock();
+    }
 
     threadPtr->detach();
-    delete threadPtr;
 }
 
 std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
@@ -539,12 +574,12 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
         dbus_pending_call_ref(libdbusPendingCall);
         std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage> toInsert {timeoutMilliseconds, replyAsyncHandler, dbusMessage};
 
-        enforeTimeoutMutex.lock();
-        timeoutMap.insert( {libdbusPendingCall, toInsert } );
-        if (!enforcerThread) {
-            enforcerThread = new std::thread(std::bind(&DBusConnection::enforceAsynchronousTimeouts, this->shared_from_this()));
+        enforceTimeoutMutex_.lock();
+        timeoutMap_.insert( {libdbusPendingCall, toInsert } );
+        if (!enforcerThread_) {
+            enforcerThread_ = std::make_shared<std::thread>(std::bind(&DBusConnection::enforceAsynchronousTimeouts, this->shared_from_this()));
         }
-        enforeTimeoutMutex.unlock();
+        enforceTimeoutMutex_.unlock();
     }
 
     return replyAsyncHandler->getFuture();
@@ -593,13 +628,13 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::subscribeForSelectiv
                     DBusSignalHandler* dbusSignalHandler,
                     DBusProxy* callingProxy) {
 
-    const char* methodName = ("subscribeFor" + interfaceMemberName + "Selective").c_str();
+    std::string methodName = "subscribeFor" + interfaceMemberName + "Selective";
 
     subscriptionAccepted = false;
     CommonAPI::CallStatus callStatus;
     DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
                     CommonAPI::DBus::DBusSerializableArguments<bool>>::callMethodWithReply(
-                    *callingProxy, methodName, "", callStatus, subscriptionAccepted);
+                    *callingProxy, methodName.c_str(), "", callStatus, subscriptionAccepted);
 
     DBusProxyConnection::DBusSignalHandlerToken subscriptionToken;
 
@@ -625,11 +660,11 @@ void DBusConnection::unsubsribeFromSelectiveBroadcast(const std::string& eventNa
 
     if (lastListenerOnConnectionRemoved) {
         // send unsubscribe message to stub
-        const char* methodName = ("unsubscribeFrom" + eventName + "Selective").c_str();
+        std::string methodName = "unsubscribeFrom" + eventName + "Selective";
         CommonAPI::CallStatus callStatus;
         DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
                         CommonAPI::DBus::DBusSerializableArguments<>>::callMethodWithReply(
-                        *callingProxy, methodName, "", callStatus);
+                        *callingProxy, methodName.c_str(), "", callStatus);
     }
 }
 

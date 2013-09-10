@@ -58,7 +58,7 @@ public:
             const std::shared_ptr<CommonAPI::ClientId> clientId,
             const CommonAPI::SelectiveBroadcastSubscriptionEvent event) {
 
-        if(event == CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED)
+        if (event == CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED)
             lastSubscribedClient = clientId;
     }
 
@@ -118,10 +118,8 @@ protected:
    }
 
    virtual void TearDown() {
+       servicePublisher_->unregisterService(serviceAddress_);
    }
-
-
-
 
    std::shared_ptr<CommonAPI::Runtime> runtime_;
    std::shared_ptr<CommonAPI::Factory> proxyFactory_;
@@ -130,9 +128,6 @@ protected:
    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
 
    static const std::string serviceAddress_;
-   static const std::string serviceAddress2_;
-   static const std::string serviceAddress3_;
-   static const std::string serviceAddress4_;
    static const std::string nonstandardAddress_;
 
    int selectiveBroadcastArrivedAtProxyFromSameFactory1;
@@ -156,27 +151,23 @@ public:
 };
 
 const std::string DBusSelectiveBroadcastTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
-const std::string DBusSelectiveBroadcastTest::serviceAddress2_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService2";
-const std::string DBusSelectiveBroadcastTest::serviceAddress3_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService3";
-const std::string DBusSelectiveBroadcastTest::serviceAddress4_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService4";
 const std::string DBusSelectiveBroadcastTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
 
 
 TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
 {
-    auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromSameFactory1);
-    auto proxyFromSameFactory2 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    auto proxyFromSameFactory2 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromSameFactory2);
-    auto proxyFromOtherFactory = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    auto proxyFromOtherFactory = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromOtherFactory);
 
     auto stub = std::make_shared<SelectiveBroadcastSender>();
 
-
-    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
     for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -186,24 +177,26 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     }
     ASSERT_TRUE(proxyFromSameFactory1->isAvailable());
 
-    auto subscriptionResult1 = proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this));
+    auto subscriptionResult1 = proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(
+                    std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this));
 
+    usleep(20000);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
 
     stub->send();
 
-    usleep(20000);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 1);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 0);
+    usleep(200000);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 1);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 0);
 
 
     auto subscriptionResult2 = proxyFromSameFactory2->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory2, this));
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1); // should still be one because these were created by the same factory thus using the same connection
 
     stub->send();
-    usleep(20000);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 2);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
+    usleep(200000);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 2);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
 
     auto subscriptionResult3 = proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this));
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 2); // should still be two because proxyFromSameFactory1_ is still subscribed
@@ -212,36 +205,34 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 2); // should still be two because proxyFromSameFactory1_ is still subscribed
 
     stub->send();
-    usleep(20000);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 3);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromOtherFactory, 1);
+    usleep(200000);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 3);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromOtherFactory, 1);
 
     // now only the last subscribed client (which is the one from the other factory) should receive the signal
     stub->sendToLastSubscribedClient();
-    usleep(20000);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 3);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
-    ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromOtherFactory, 2);
+    usleep(200000);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 3);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
+    EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromOtherFactory, 2);
 
     proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().unsubscribe(subscriptionResult1);
-    ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
-
-    servicePublisher_->unregisterService(serviceAddress4_);
+    EXPECT_EQ(stub->getNumberOfSubscribedClients(), 1);
 }
 
 TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
-    auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromSameFactory1);
-    auto proxyFromOtherFactory = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    auto proxyFromOtherFactory = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromOtherFactory);
 
 
     auto stub = std::make_shared<SelectiveBroadcastSender>();
 
-    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
     for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);

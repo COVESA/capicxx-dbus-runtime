@@ -47,3 +47,5 @@
 /DBusDynamicLoadingBasicTest
 /DBusDynamicLoadingMultipleBindingsTest
 /DBusDynamicLoadingNoValidityTest
+/DBusClientIdTest
+/DBusSelectiveBroadcastTest
