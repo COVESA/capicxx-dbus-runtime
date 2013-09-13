@@ -134,6 +134,33 @@ struct DBusStubSignalHelper<_In<_InArgs...>> {
         const bool dbusMessageSent = dbusStub.getDBusConnection()->sendDBusMessage(dbusMessage);
         return dbusMessageSent;
     }
+
+    template <typename _DBusStub = DBusStubAdapter>
+       static bool sendSignal( const char* target,
+                       const _DBusStub& dbusStub,
+                       const char* signalName,
+                       const char* signalSignature,
+                       const _InArgs&... inArgs) {
+           DBusMessage dbusMessage = DBusMessage::createSignal(
+                           dbusStub.getObjectPath().c_str(),
+                           dbusStub.getInterfaceName(),
+                           signalName,
+                           signalSignature);
+
+           dbusMessage.setDestination(target);
+
+           if (sizeof...(_InArgs) > 0) {
+               DBusOutputStream outputStream(dbusMessage);
+               const bool success = DBusSerializableArguments<_InArgs...>::serialize(outputStream, inArgs...);
+               if (!success) {
+                   return false;
+               }
+               outputStream.flush();
+           }
+
+           const bool dbusMessageSent = dbusStub.getDBusConnection()->sendDBusMessage(dbusMessage);
+           return dbusMessageSent;
+       }
 };
 
 

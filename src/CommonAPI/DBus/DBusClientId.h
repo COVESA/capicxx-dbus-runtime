@@ -36,6 +36,8 @@ public:
     bool operator==(DBusClientId& clientIdToCompare);
     size_t hashCode();
 
+    const char * getDBusId();
+
     DBusMessage createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const;
 protected:
     std::string dbusId_;

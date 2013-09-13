@@ -47,6 +47,10 @@ size_t DBusClientId::hashCode()
     return std::hash<DBusClientId>()(this);
 }
 
+const char * DBusClientId::getDBusId() {
+    return dbusId_.c_str();
+}
+
 DBusMessage DBusClientId::createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const
 {
     DBusMessage returnMessage = DBusMessage::createSignal(objectPath, interfaceName, signalName);
