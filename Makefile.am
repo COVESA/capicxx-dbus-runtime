@@ -353,3 +353,6 @@ maintainer-clean-local:
 	-rm -f config.h.in*
 	-rm -f m4/libtool*.m4
 	-rm -f m4/lt*.m4
+	
+doc: doxygen-doc
+	 asciidoc -b html -o doc/html/README.html README
