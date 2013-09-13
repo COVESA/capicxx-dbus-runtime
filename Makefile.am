@@ -3,13 +3,20 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = LICENSE LICENSE_dbus_patch LICENSE_MurmurHash
 MOSTLYCLEANFILES =
 
+# Library interface (not package version!)
+LIBCOMMONAPI_DBUS_CURRENT=3
+LIBCOMMONAPI_DBUS_REVISION=0
+LIBCOMMONAPI_DBUS_AGE=0
+
 AM_CPPFLAGS = \
         -include $(top_builddir)/build-aux/config.h \
         -I$(top_srcdir)/src \
         -I$(top_srcdir)/src/test \
         ${COMMONAPI_CFLAGS} \
         ${DBUS_CFLAGS} \
-        -DCOMMONAPI_INTERNAL_COMPILATION
+        -DCOMMONAPI_INTERNAL_COMPILATION \
+        -DCOMMONAPI_DBUS_VERSION_MAJOR=${LIBCOMMONAPI_DBUS_CURRENT} \
+        -DCOMMONAPI_DBUS_VERSION_MINOR=${LIBCOMMONAPI_DBUS_REVISION}
 
 
 AM_LDFLAGS = \
@@ -18,11 +25,6 @@ AM_LDFLAGS = \
 
 noinst_LTLIBRARIES =
 lib_LTLIBRARIES =
-
-# Library interface (not package version!)
-LIBCOMMONAPI_DBUS_CURRENT=3
-LIBCOMMONAPI_DBUS_REVISION=0
-LIBCOMMONAPI_DBUS_AGE=0
 
 # ------------------------------------------------------------------------------
 noinst_LTLIBRARIES += libmurmurhash-internal.la

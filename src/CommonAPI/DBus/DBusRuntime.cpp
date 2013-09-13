@@ -13,7 +13,9 @@
 
 const char middlewareIdentifier[] = "DBus";
 
-const CommonAPI::MiddlewareInfo middlewareInfo(middlewareIdentifier, &CommonAPI::DBus::DBusRuntime::getInstance);
+const CommonAPI::MiddlewareInfo middlewareInfo(middlewareIdentifier,
+                                               &CommonAPI::DBus::DBusRuntime::getInstance,
+                                               {COMMONAPI_DBUS_VERSION_MAJOR, COMMONAPI_DBUS_VERSION_MINOR} );
 
 
 namespace CommonAPI {

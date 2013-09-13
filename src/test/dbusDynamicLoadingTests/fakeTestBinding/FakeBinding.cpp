@@ -7,7 +7,7 @@
 #include "FakeBinding.h"
 
 
-const CommonAPI::MiddlewareInfo middlewareInfo("Fake", &CommonAPI::Fake::FakeRuntime::getInstance);
+const CommonAPI::MiddlewareInfo middlewareInfo("Fake", &CommonAPI::Fake::FakeRuntime::getInstance, {55, 4} );
 
 
 namespace CommonAPI {
