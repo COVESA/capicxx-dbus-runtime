@@ -63,11 +63,6 @@ libCommonAPI_DBus_la_LDFLAGS = \
         ${AM_LDFLAGS} \
         -version-info ${LIBCOMMONAPI_DBUS_CURRENT}:${LIBCOMMONAPI_DBUS_REVISION}:${LIBCOMMONAPI_DBUS_AGE}
 
-CommonAPI_DBus_pugi_includedir=$(includedir)/CommonAPI-${VERSION}/pugixml
-CommonAPI_DBus_pugi_include_HEADERS = \
-        src/pugixml/pugixml.hpp \
-        src/pugixml/pugiconfig.hpp
-
 CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusAddressTranslator.h \
