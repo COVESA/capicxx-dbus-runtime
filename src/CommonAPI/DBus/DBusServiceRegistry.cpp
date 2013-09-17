@@ -8,397 +8,890 @@
 #include "DBusServiceRegistry.h"
 #include "DBusDaemonProxy.h"
 #include "DBusProxyAsyncCallbackHandler.h"
+#include "DBusUtils.h"
+
+#include <iostream>
+#include <iterator>
 
 namespace CommonAPI {
 namespace DBus {
 
-DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection):
+DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection) :
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
-                dbusNameListStatus_(AvailabilityStatus::UNKNOWN),
-                initialized_(false), notificationThread_() {
+                initialized_(false),
+                notificationThread_() {
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
-	if(initialized_) {
-		dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
-		dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
-	}
-}
+    if (!initialized_) {
+        return;
+    }
 
-void DBusServiceRegistry::init() {
-	dbusDaemonProxyStatusEventSubscription_ =
-					dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
-									std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, this, std::placeholders::_1));
+    dbusDaemonProxy_->getNameOwnerChangedEvent().unsubscribe(dbusDaemonProxyNameOwnerChangedEventSubscription_);
+    dbusDaemonProxy_->getProxyStatusEvent().unsubscribe(dbusDaemonProxyStatusEventSubscription_);
 
-	dbusDaemonProxyNameOwnerChangedEventSubscription_ =
-					dbusDaemonProxy_->getNameOwnerChangedEvent().subscribeCancellableListener(
-					std::bind(&DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent,
-							  this,
-							  std::placeholders::_1,
-							  std::placeholders::_2,
-							  std::placeholders::_3));
-	initialized_ = true;
-}
+    // notify only listeners of resolved services (online > offline)
+    for (auto& dbusServiceListenersIterator : dbusServiceListenersMap) {
+        auto& dbusServiceListenersRecord = dbusServiceListenersIterator.second;
 
-bool DBusServiceRegistry::waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout) {
-    bool dbusServicesStatusIsKnown = (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE);
+        // fulfill all open promises
+        std::promise<DBusRecordState> promiseOnResolve = std::move(dbusServiceListenersRecord.promiseOnResolve);
+        promiseOnResolve.set_value(DBusRecordState::NOT_AVAILABLE);
 
-    if(!dbusServicesStatusIsKnown) {
-        typedef std::chrono::high_resolution_clock clock;
-        clock::time_point startTimePoint = clock::now();
-
-        while (!dbusServicesStatusIsKnown && timeout.count() > 0) {
-            dbusServicesStatusIsKnown = dbusServiceChanged_.wait_for(
-                                            lock,
-                                            timeout / 10,
-                                            [&]{ return dbusNameListStatus_ == AvailabilityStatus::AVAILABLE; });
-
-            std::chrono::milliseconds elapsedWaitTime =
-                                        std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - startTimePoint);
-
-            if (elapsedWaitTime > timeout) {
-                break;
-            }
+        if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED) {
+            onDBusServiceNotAvailable(dbusServiceListenersRecord);
         }
     }
 
-    return (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE);
+    // remove all object manager signal member handlers
+    for (auto& dbusServiceUniqueNameIterator : dbusUniqueNamesMap_) {
+        const auto& dbusServiceUniqueName = dbusServiceUniqueNameIterator.first;
+
+        auto dbusProxyConnection = dbusDaemonProxy_->getDBusConnection();
+        const bool isSubscriptionCancelled = dbusProxyConnection->removeObjectManagerSignalMemberHandler(
+            dbusServiceUniqueName,
+            this);
+        assert(isSubscriptionCancelled);
+    }
 }
 
-bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusServiceName, const std::string& dbusObjectPath) {
-    if (!dbusDaemonProxy_->isAvailable()) {
-        return false;
+void DBusServiceRegistry::init() {
+    dbusDaemonProxyStatusEventSubscription_ =
+                    dbusDaemonProxy_->getProxyStatusEvent().subscribeCancellableListener(
+                        std::bind(&DBusServiceRegistry::onDBusDaemonProxyStatusEvent, shared_from_this(), std::placeholders::_1));
+
+    dbusDaemonProxyNameOwnerChangedEventSubscription_ =
+                    dbusDaemonProxy_->getNameOwnerChangedEvent().subscribeCancellableListener(
+                        std::bind(&DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent,
+                            this,
+                            std::placeholders::_1,
+                            std::placeholders::_2,
+                            std::placeholders::_3));
+
+    fetchAllServiceNames(); // initialize list of registered bus names
+
+    initialized_ = true;
+}
+
+DBusServiceRegistry::DBusServiceSubscription DBusServiceRegistry::subscribeAvailabilityListener(const std::string& commonApiAddress,
+                                                                                                DBusServiceListener serviceListener) {
+    std::string dbusInterfaceName;
+    std::string dbusServiceName;
+    std::string dbusObjectPath;
+
+    DBusAddressTranslator::getInstance().searchForDBusAddress(
+        commonApiAddress,
+        dbusInterfaceName,
+        dbusServiceName,
+        dbusObjectPath);
+
+    if (notificationThread_ == std::this_thread::get_id()) {
+        std::cerr << "ERROR: You must not build proxies in callbacks of ProxyStatusEvent."
+                        << " Refer to the documentation for suggestions how to avoid this.\n";
+        assert(false);
     }
 
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    auto& dbusServiceListenersRecord = dbusServiceListenersMap[dbusServiceName];
+    assert(dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::AVAILABLE);
+
+    auto& dbusInterfaceNameListenersMap = dbusServiceListenersRecord.dbusObjectPathListenersMap[dbusObjectPath];
+    auto& dbusInterfaceNameListenersRecord = dbusInterfaceNameListenersMap[dbusInterfaceName];
+
+    AvailabilityStatus availabilityStatus = AvailabilityStatus::UNKNOWN;
+
+    if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::UNKNOWN) {
+        dbusInterfaceNameListenersRecord.state = DBusRecordState::UNKNOWN;
+        if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::UNKNOWN) {
+            resolveDBusServiceName(dbusServiceName, dbusServiceListenersRecord);
+        }
+    } else if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::NOT_AVAILABLE) {
+        availabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
+    } else if (dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVING && dbusInterfaceNameListenersRecord.state == DBusRecordState::UNKNOWN) {
+        dbusInterfaceNameListenersRecord.state = resolveDBusInterfaceNameState(
+            dbusInterfaceName,
+            dbusObjectPath,
+            dbusServiceName,
+            dbusServiceListenersRecord);
+    }
+
+    if(availabilityStatus == AvailabilityStatus::UNKNOWN) {
+        switch (dbusInterfaceNameListenersRecord.state) {
+            case DBusRecordState::AVAILABLE:
+                availabilityStatus = AvailabilityStatus::AVAILABLE;
+                break;
+            case DBusRecordState::NOT_AVAILABLE:
+                availabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
+                break;
+            default:
+                availabilityStatus = AvailabilityStatus::UNKNOWN;
+        }
+    }
+
+
+    if (availabilityStatus != AvailabilityStatus::UNKNOWN) {
+        notificationThread_ = std::this_thread::get_id();
+        SubscriptionStatus subscriptionStatus = serviceListener(availabilityStatus);
+        notificationThread_ = std::thread::id();
+
+        if (subscriptionStatus == SubscriptionStatus::CANCEL) {
+            if (dbusInterfaceNameListenersRecord.listenerList.empty()) {
+                dbusInterfaceNameListenersMap.erase(dbusInterfaceName);
+                if (dbusInterfaceNameListenersMap.empty()) {
+                    dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(dbusObjectPath);
+                }
+            }
+
+            return DBusServiceSubscription();
+        }
+    }
+
+    dbusInterfaceNameListenersRecord.listenerList.push_front(std::move(serviceListener));
+
+    return dbusInterfaceNameListenersRecord.listenerList.begin();
+}
+
+void DBusServiceRegistry::unsubscribeAvailabilityListener(const std::string& commonApiAddress,
+                                                          DBusServiceSubscription& listenerSubscription) {
+    std::string dbusInterfaceName;
+    std::string dbusServiceName;
+    std::string dbusObjectPath;
+
+    DBusAddressTranslator::getInstance().searchForDBusAddress(
+        commonApiAddress,
+        dbusInterfaceName,
+        dbusServiceName,
+        dbusObjectPath);
+
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    auto dbusServiceListenersIterator = dbusServiceListenersMap.find(dbusServiceName);
+    const bool isDBusServiceListenersRecordFound = (dbusServiceListenersIterator != dbusServiceListenersMap.end());
+
+    if (!isDBusServiceListenersRecordFound) {
+        return; // already unsubscribed
+    }
+
+    auto& dbusServiceListenersRecord = dbusServiceListenersIterator->second;
+    auto dbusObjectPathListenersIterator =
+                    dbusServiceListenersRecord.dbusObjectPathListenersMap.find(dbusObjectPath);
+    const bool isDBusObjectPathListenersRecordFound =
+                    (dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end());
+
+    if (!isDBusObjectPathListenersRecordFound) {
+        return; // already unsubscribed
+    }
+
+    auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
+    auto dbusInterfaceNameListenersIterator = dbusInterfaceNameListenersMap.find(dbusInterfaceName);
+    const bool isDBusInterfaceNameListenersRecordFound =
+                    (dbusInterfaceNameListenersIterator != dbusInterfaceNameListenersMap.end());
+
+    if (!isDBusInterfaceNameListenersRecordFound) {
+        return; // already unsubscribed
+    }
+
+    auto& dbusInterfaceNameListenersRecord = dbusInterfaceNameListenersIterator->second;
+
+    dbusInterfaceNameListenersRecord.listenerList.erase(listenerSubscription);
+
+    if (dbusInterfaceNameListenersRecord.listenerList.empty()) {
+        dbusInterfaceNameListenersMap.erase(dbusInterfaceNameListenersIterator);
+
+        if (dbusInterfaceNameListenersMap.empty()) {
+            dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(dbusObjectPathListenersIterator);
+        }
+    }
+}
+
+// d-feet mode until service is found
+bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfaceName,
+                                                 const std::string& dbusServiceName,
+                                                 const std::string& dbusObjectPath) {
     std::chrono::milliseconds timeout(1000);
-    std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    bool uniqueNameFound = false;
 
-    if (!waitDBusServicesAvailable(dbusServicesLock, timeout)) {
+    DBusUniqueNameRecord* dbusUniqueNameRecord = NULL;
+    std::string uniqueName;
+
+    dbusServicesMutex_.lock();
+
+    findCachedDbusService(dbusServiceName, &dbusUniqueNameRecord);
+
+    if(dbusUniqueNameRecord != NULL) {
+        uniqueName = dbusUniqueNameRecord->uniqueName;
+        uniqueNameFound = true;
+    }
+
+    if(!uniqueNameFound) {
+        DBusServiceListenersRecord dbusServiceListenersRecord;
+        dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::RESOLVING;
+
+        dbusServiceListenersRecord.futureOnResolve = dbusServiceListenersRecord.promiseOnResolve.get_future();
+        std::unordered_map<std::string, DBusServiceListenersRecord>::value_type value(dbusServiceName, std::move(dbusServiceListenersRecord));
+        auto insertedDbusServiceListenerRecord = dbusServiceListenersMap.insert(std::move(value));
+
+        if(insertedDbusServiceListenerRecord.second) { // if dbusServiceListenerRecord was inserted, start resolving
+            resolveDBusServiceName(dbusServiceName, dbusServiceListenersMap[dbusServiceName]);
+        }
+
+        dbusServicesMutex_.unlock();
+
+        std::shared_future<DBusRecordState> futureNameResolved = insertedDbusServiceListenerRecord.first->second.futureOnResolve;
+        futureNameResolved.wait_for(timeout);
+
+        if(futureNameResolved.get() != DBusRecordState::RESOLVED) {
+            return false;
+        }
+
+        dbusServicesMutex_.lock();
+        auto dbusServiceListenersMapIterator = dbusServiceListenersMap.find(dbusServiceName);
+
+        if(dbusServiceListenersMapIterator == dbusServiceListenersMap.end()) {
+            dbusServicesMutex_.unlock();
+            return false;
+        }
+
+        uniqueName = dbusServiceListenersMapIterator->second.uniqueBusName;
+
+        if(uniqueName.empty() || dbusServiceListenersMapIterator->second.uniqueBusNameState != DBusRecordState::RESOLVED) {
+            dbusServicesMutex_.unlock();
+            return false;
+        }
+
+        auto dbusUniqueNameRecordIterator = dbusUniqueNamesMap_.find(uniqueName);
+
+        if(dbusUniqueNameRecordIterator == dbusUniqueNamesMap_.end()) {
+            dbusServicesMutex_.unlock();
+            return false;
+        }
+
+        dbusUniqueNameRecord = &dbusUniqueNameRecordIterator->second;
+    }
+
+    dbusServicesMutex_.unlock();
+
+    assert(dbusUniqueNameRecord != NULL);
+
+    auto* dbusObjectPathsCache = &(dbusUniqueNameRecord->dbusObjectPathsCache);
+    auto dbusObjectPathCacheIterator = dbusObjectPathsCache->find(dbusObjectPath);
+
+    DBusObjectPathCache* dbusObjectPathCache = NULL;
+
+
+    if(dbusObjectPathCacheIterator != dbusObjectPathsCache->end()) {
+        dbusObjectPathCache = &(dbusObjectPathCacheIterator->second);
+    }
+    else {
+        // try to resolve object paths
+        DBusObjectPathCache newDbusObjectPathCache;
+        newDbusObjectPathCache.state = DBusRecordState::RESOLVING;
+
+        dbusServicesMutex_.lock();
+        //std::unordered_map<std::string, DBusObjectPathCache>::value_type value(dbusObjectPath, std::move(newDbusObjectPathCache));
+        //auto dbusObjectPathCacheInserted = dbusObjectPathsCache->insert(std::move({dbusObjectPath, std::move(newDbusObjectPathCache)}));
+        auto dbusObjectPathCacheInserted =
+                        dbusObjectPathsCache->insert(std::make_pair(dbusObjectPath, std::move(newDbusObjectPathCache)));
+
+        dbusObjectPathCacheIterator = dbusObjectPathsCache->find(dbusObjectPath);
+
+        dbusObjectPathCache = &(dbusObjectPathCacheIterator->second);
+
+        std::future<DBusRecordState> futureObjectPathResolved = dbusObjectPathCache->promiseOnResolve.get_future();
+        dbusServicesMutex_.unlock();
+
+        introspectDBusObjectPath(uniqueName, dbusObjectPath);
+        futureObjectPathResolved.wait_for(timeout);
+    }
+
+    assert(dbusObjectPathCache != NULL);
+
+    dbusServicesMutex_.lock();
+    if(dbusObjectPathCache->state != DBusRecordState::RESOLVED) {
+        dbusServicesMutex_.unlock();
         return false;
     }
 
-    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
-    if (dbusServiceIterator == dbusServices_.end()) {
-        return false;
-    }
+    auto dbusInterfaceNamesIterator = dbusObjectPathCache->dbusInterfaceNamesCache.find(dbusInterfaceName);
+    bool result = dbusInterfaceNamesIterator != dbusObjectPathCache->dbusInterfaceNamesCache.end();
+    dbusServicesMutex_.unlock();
 
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-
-    if (dbusServiceState == DBusServiceState::AVAILABLE) {
-        resolveDBusServiceInstances(dbusServiceIterator);
-    }
-
-    if (dbusServiceState == DBusServiceState::RESOLVING) {
-        dbusServiceChanged_.wait_for(
-                        dbusServicesLock,
-                        timeout,
-                        [&] { return dbusServiceState != DBusServiceState::RESOLVING; });
-    }
-
-    const DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-    auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
-
-    if (dbusInstanceIterator != dbusInstanceList.end()) {
-        const AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
-
-        return (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE);
-    }
-
-    return false;
+    return(result);
 }
 
+void DBusServiceRegistry::fetchAllServiceNames() {
+    if (!dbusDaemonProxy_->isAvailable()) {
+        return;
+    }
 
-// Go through the list of available services and check their interface lists
-// If a list is still unknown, then send request to the remote object manager and count it as invalid
-// If a list is in acquiring state, then just count it as invalid and skip over it
-// Add all matching valid services to the available service list
-// If the invalid service count is set, then wait upto waitTimeLimit (2 seconds) for the object manager requests to complete
-// If the timeout expires, then go through the list for last time and add everything matching
-// If the timeout didn't expire, then go through the list again and send requests for new UNKNOWN services, then wait again for them to complete
-// Known limitations:
-//   - if the method is called before the first "listNames()" call completes, this request will be blocked
-//   - if a single one(!) of the addressed services is broken and doesn't respond correctly to non-handled requests, this request will always block for the default 2 seconds (waitTimeLimit)
-//   - the method has to be called many times, if you actually want to wait for all services, otherwise you'll always get a partial response. I.e. the more you call this method, the hotter the internal cache gets.
+    CallStatus callStatus;
+    std::vector<std::string> availableServiceNames;
+
+    dbusDaemonProxy_->listNames(callStatus, availableServiceNames);
+
+    if(callStatus == CallStatus::SUCCESS) {
+        for(std::string serviceName : availableServiceNames) {
+            if(isDBusServiceName(serviceName)) {
+                dbusServiceNameMap_[serviceName];
+            }
+        }
+    }
+}
+
+// d-feet mode
 std::vector<std::string> DBusServiceRegistry::getAvailableServiceInstances(const std::string& interfaceName,
                                                                            const std::string& domainName) {
     std::vector<std::string> availableServiceInstances;
 
-    if (!dbusDaemonProxy_->isAvailable()) {
-        return availableServiceInstances;
+    // resolve all service names
+    for (auto serviceNameIterator = dbusServiceNameMap_.begin();
+                    serviceNameIterator != dbusServiceNameMap_.end();
+                    serviceNameIterator++) {
+
+        std::string serviceName = serviceNameIterator->first;
+        DBusUniqueNameRecord* dbusUniqueNameRecord = serviceNameIterator->second;
+
+        if(dbusUniqueNameRecord == NULL) {
+            DBusServiceListenersRecord& serviceListenerRecord = dbusServiceListenersMap[serviceName];
+            if(serviceListenerRecord.uniqueBusNameState != DBusRecordState::RESOLVING) {
+                resolveDBusServiceName(serviceName, serviceListenerRecord);
+            }
+        }
     }
 
-    std::chrono::milliseconds timeout(2000);
-    std::unique_lock<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    std::mutex mutexResolveAllServices;
+    std::unique_lock<std::mutex> lockResolveAllServices(mutexResolveAllServices);
+    std::chrono::milliseconds timeout(5000);
 
-    if (!waitDBusServicesAvailable(dbusServicesLock, timeout)) {
-        return availableServiceInstances;
+    monitorResolveAllServices_.wait_for(lockResolveAllServices, timeout, [&] {
+        mutexServiceResolveCount.lock();
+        bool finished = servicesToResolve == 0;
+        mutexServiceResolveCount.unlock();
+
+        return finished;
+    });
+
+    for (auto serviceNameIterator = dbusServiceNameMap_.begin();
+                    serviceNameIterator != dbusServiceNameMap_.end();
+                    serviceNameIterator++) {
+
+        std::string serviceName = serviceNameIterator->first;
+        DBusUniqueNameRecord* dbusUniqueNameRecord = serviceNameIterator->second;
+
+        if(dbusUniqueNameRecord != NULL) {
+            if(dbusUniqueNameRecord->objectPathsState == DBusRecordState::UNKNOWN) {
+                DBusObjectPathCache& rootObjectPathCache = dbusUniqueNameRecord->dbusObjectPathsCache["/"];
+                if(rootObjectPathCache.state == DBusRecordState::UNKNOWN) {
+                    rootObjectPathCache.state = DBusRecordState::RESOLVING;
+                    introspectDBusObjectPath(dbusUniqueNameRecord->uniqueName, "/");
+                }
+            }
+        }
     }
 
-    size_t dbusServiceResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
+    std::mutex mutexResolveAllObjectPaths;
+    std::unique_lock<std::mutex> lockResolveAllObjectPaths(mutexResolveAllObjectPaths);
 
-    if (!dbusServiceResolvingCount) {
-        return availableServiceInstances;
+    // TODO: should use the remaining timeout not "used" during wait before
+    monitorResolveAllObjectPaths_.wait_for(lockResolveAllObjectPaths, timeout, [&] {
+        mutexServiceResolveCount.lock();
+        bool finished = objectPathsToResolve == 0;
+        mutexServiceResolveCount.unlock();
+
+        return finished;
+    });
+
+    DBusAddressTranslator& dbusAddressTranslator = DBusAddressTranslator::getInstance();
+
+    for (auto serviceNameIterator = dbusServiceNameMap_.begin();
+                    serviceNameIterator != dbusServiceNameMap_.end();
+                    serviceNameIterator++) {
+
+        std::string serviceName = serviceNameIterator->first;
+        DBusUniqueNameRecord* dbusUniqueNameRecord = serviceNameIterator->second;
+
+        if(dbusUniqueNameRecord != NULL) {
+            if(dbusUniqueNameRecord->objectPathsState == DBusRecordState::RESOLVED) {
+                for (auto dbusObjectPathCacheIterator = dbusUniqueNameRecord->dbusObjectPathsCache.begin();
+                                dbusObjectPathCacheIterator != dbusUniqueNameRecord->dbusObjectPathsCache.end();
+                                dbusObjectPathCacheIterator++) {
+                    if (dbusObjectPathCacheIterator->second.state == DBusRecordState::RESOLVED) {
+                        if (dbusObjectPathCacheIterator->second.dbusInterfaceNamesCache.find(interfaceName)
+                                        != dbusObjectPathCacheIterator->second.dbusInterfaceNamesCache.end()) {
+                            std::string commonApiAddress;
+                            dbusAddressTranslator.searchForCommonAddress(interfaceName, serviceName, dbusObjectPathCacheIterator->first, commonApiAddress);
+                            availableServiceInstances.push_back(commonApiAddress);
+                        }
+                    }
+                }
+            }
+        }
     }
-
-    dbusServiceChanged_.wait(
-                    dbusServicesLock,
-                    [&] {
-                        return getNumResolvingServiceInstances() == 0;
-                    });
-
-    getResolvedServiceInstances(interfaceName, availableServiceInstances);
-
 
     // maybe partial list but it contains everything we know for now
     return availableServiceInstances;
 }
 
+//std::vector<std::string> DBusServiceRegistry::getManagedObjects(const std::string& connectionName, const std::string& objectpath) {
+//    if (auto iter = dbusServiceNameMap_.find(connectionName) != dbusServiceNameMap_.end()) {
+//        DBusUniqueNameRecord* rec = iter->second;
+//        if (rec->uniqueName != DBusRecordState::RESOLVED) {
+//            return std::vector<std::string>();
+//        } else {
+//            rec->dbusObjectPathsCache
+//        }
+//
+//    } else {
+//        return std::vector<std::string>();
+//    }
+//}
 
 void DBusServiceRegistry::getAvailableServiceInstancesAsync(Factory::GetAvailableServiceInstancesCallback callback,
                                                             const std::string& interfaceName,
                                                             const std::string& domainName) {
-    std::vector<std::string> availableServiceInstances;
+    //Necessary as service discovery might need some time, but the async version of "getAvailableServiceInstances"
+    //shall return without delay.
+    std::thread(
+            [this, callback, interfaceName, domainName](std::shared_ptr<DBusServiceRegistry> selfRef) {
+                auto availableServiceInstances = getAvailableServiceInstances(interfaceName, domainName);
+                callback(availableServiceInstances);
+            }, this->shared_from_this()
+    ).detach();
+}
 
-    if (!dbusDaemonProxy_->isAvailable()) {
-        callback(availableServiceInstances);
-    }
+SubscriptionStatus DBusServiceRegistry::onSignalDBusMessage(const DBusMessage& dbusMessage) {
+    const std::string& dbusServiceUniqueName = dbusMessage.getSenderName();
 
-    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    assert(dbusMessage.isSignalType());
+    assert(dbusMessage.hasInterfaceName("org.freedesktop.DBus.ObjectManager"));
+    assert(dbusMessage.hasMemberName("InterfacesAdded") || dbusMessage.hasMemberName("InterfacesRemoved"));
 
-    size_t stillResolvingCount = getResolvedServiceInstances(interfaceName, availableServiceInstances);
+    DBusInputStream dbusInputStream(dbusMessage);
+    std::string dbusObjectPath;
+    std::unordered_set<std::string> dbusInterfaceNames;
+    DBusRecordState dbusInterfaceNameState;
 
-    if (stillResolvingCount == 0 && !dbusServices_.empty()) {
-        callback(availableServiceInstances);
+    dbusInputStream >> dbusObjectPath;
+
+    bool added = false;
+
+    if (dbusMessage.hasMemberName("InterfacesAdded")) {
+        added = true;
+        dbusInterfaceNameState = DBusRecordState::AVAILABLE;
+
+        typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;
+        typedef std::unordered_map<std::string, DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
+        typedef std::unordered_map<std::string, DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
+        DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
+        dbusInputStream >> dbusObjectPathAndInterfacesDict;
+
+        for (auto& dbusInterfaceIterator : dbusObjectPathAndInterfacesDict) {
+            const auto& dbusInterfaceName = dbusInterfaceIterator.first;
+            dbusInterfaceNames.insert(dbusInterfaceName);
+        }
     } else {
-        //Necessary as service discovery might need some time, but the async version of "getAvailableServiceInstances"
-        //shall return without delay.
-        std::thread(
-                [this, callback, interfaceName, domainName](std::shared_ptr<DBusServiceRegistry> selfRef) {
-                    auto availableServiceInstances = getAvailableServiceInstances(interfaceName, domainName);
-                    callback(availableServiceInstances);
-                }, this->shared_from_this()
-        ).detach();
-    }
-}
+        std::vector<std::string> removedDBusInterfaceNames;
 
-
-size_t DBusServiceRegistry::getNumResolvingServiceInstances() {
-    size_t dbusServicesResolvingCount = 0;
-
-    // caller must hold lock
-    auto dbusServiceIterator = dbusServices_.begin();
-    while (dbusServiceIterator != dbusServices_.end()) {
-        DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-
-        switch (dbusServiceState) {
-            case DBusServiceState::AVAILABLE:
-                dbusServicesResolvingCount++;
-                break;
-
-            case DBusServiceState::RESOLVING:
-                dbusServicesResolvingCount++;
-                break;
-
-            default:
-                break;
-        }
-
-        dbusServiceIterator++;
+        dbusInterfaceNameState = DBusRecordState::NOT_AVAILABLE;
+        dbusInputStream >> removedDBusInterfaceNames;
+        std::move(
+            removedDBusInterfaceNames.begin(),
+            removedDBusInterfaceNames.end(),
+            std::inserter(dbusInterfaceNames, dbusInterfaceNames.begin()));
     }
 
-    return dbusServicesResolvingCount;
-}
-
-
-size_t DBusServiceRegistry::getResolvedServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances) {
-    size_t dbusServicesResolvingCount = 0;
-
-    availableServiceInstances.clear();
-
-    // caller must hold lock
-    auto dbusServiceIterator = dbusServices_.begin();
-    while (dbusServiceIterator != dbusServices_.end()) {
-        const std::string& dbusServiceName = dbusServiceIterator->first;
-        DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-        const DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-
-        // count the resolving services and start acquiring the objects for unknown ones
-        switch (dbusServiceState) {
-            case DBusServiceState::AVAILABLE:
-                resolveDBusServiceInstances(dbusServiceIterator);
-                dbusServicesResolvingCount++;
-                break;
-
-            case DBusServiceState::RESOLVING:
-            case DBusServiceState::RESOLVED:
-                if (dbusServiceState == DBusServiceState::RESOLVING) {
-                    dbusServicesResolvingCount++;
-                }
-
-                for (auto& dbusInstanceIterator : dbusInstanceList) {
-                    const AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator.second.first;
-                    const std::string& dbusInstanceObjectPath = dbusInstanceIterator.first.first;
-                    const std::string& dbusInstanceInterfaceName = dbusInstanceIterator.first.second;
-
-                    if (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE
-                                    && dbusInstanceInterfaceName == dbusInterfaceName) {
-                        std::string commonApiAddress;
-
-                        DBusAddressTranslator::getInstance().searchForCommonAddress(
-                                        dbusInterfaceName,
-                                        dbusServiceName,
-                                        dbusInstanceObjectPath,
-                                        commonApiAddress);
-
-                        availableServiceInstances.emplace_back(std::move(commonApiAddress));
-                    }
-                }
-                break;
-        }
-
-        dbusServiceIterator++;
+    if (dbusInputStream.hasError()) {
+        return SubscriptionStatus::RETAIN;
     }
 
-    return dbusServicesResolvingCount;
-}
-
-
-DBusServiceRegistry::Subscription DBusServiceRegistry::subscribeAvailabilityListener(const std::string& commonApiAddress,
-                                                                                     DBusServiceListener serviceListener) {
-    std::string dbusInterfaceName;
-    std::string dbusServiceName;
-    std::string dbusObjectPath;
-
-    DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, dbusInterfaceName, dbusServiceName, dbusObjectPath);
-
-    if (notificationThread_ == std::this_thread::get_id()) {
-        printf("You must not build proxies in callbacks of ProxyStatusEvent.\n"
-                        "Refer to the documentation for suggestions how to avoid this.\n");
-        assert(false);
+    if (dbusInterfaceNames.empty()) {
+        return SubscriptionStatus::RETAIN;
     }
-    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-    notificationThread_ = std::this_thread::get_id();
-    DBusServiceList::iterator dbusServiceIterator = dbusServices_.find(dbusServiceName);
-
-    // Service not known, so just add it to the list of unkown or definitely not available services
-    if (dbusServiceIterator == dbusServices_.end()) {
-        DBusServiceState dbusConnectionNameState = DBusServiceState::UNKNOWN;
-
-        // Service is definitely not available if the complete list of available services is known and it is not in there
-        if (dbusNameListStatus_ == AvailabilityStatus::AVAILABLE) {
-            dbusConnectionNameState = DBusServiceState::RESOLVED;
-        }
-
-        std::pair<DBusServiceList::iterator, bool> insertResult = dbusServices_.insert({ dbusServiceName, { dbusConnectionNameState, DBusInstanceList() } });
-        assert(insertResult.second);
-        dbusServiceIterator = insertResult.first;
-    }
-
-    DBusServiceState& dbusConnectionNameState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-
-    auto dbusInstanceIterator = addDBusServiceInstance(
-                    dbusInstanceList,
-                    dbusObjectPath,
-                    dbusInterfaceName);
-    AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
-    DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
-
-    if (dbusConnectionNameState == DBusServiceState::RESOLVED
-                    && dbusInstanceAvailabilityStatus == AvailabilityStatus::UNKNOWN) {
-        dbusInstanceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
-    }
-
-    Subscription listenerSubscription = dbusServiceListenerList.insert(
-                    dbusServiceListenerList.end(), serviceListener);
-
-    switch (dbusConnectionNameState) {
-        case DBusServiceState::AVAILABLE:
-            resolveDBusServiceInstances(dbusServiceIterator);
-            break;
-
-        case DBusServiceState::RESOLVING:
-            if (dbusInstanceAvailabilityStatus == AvailabilityStatus::AVAILABLE) {
-                const SubscriptionStatus status = serviceListener(dbusInstanceAvailabilityStatus);
-                if (status == SubscriptionStatus::CANCEL) {
-                    dbusServiceListenerList.erase(listenerSubscription);
-                    return dbusServiceListenerList.end();
-                }
-            }
-            break;
-
-        case DBusServiceState::RESOLVED:
-        case DBusServiceState::NOT_AVAILABLE:
-            const SubscriptionStatus status = serviceListener(dbusInstanceAvailabilityStatus);
-            if (status == SubscriptionStatus::CANCEL) {
-                dbusServiceListenerList.erase(listenerSubscription);
-                return dbusServiceListenerList.end();
-            }
-            break;
-    }
-    notificationThread_ = std::thread::id();
-    return listenerSubscription;
-}
-
-void DBusServiceRegistry::unsubscribeAvailabilityListener(const std::string& commonApiAddress,
-                                                          Subscription& listenerSubscription) {
-    std::string dbusInterfaceName;
-    std::string dbusServiceName;
-    std::string dbusObjectPath;
 
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-    DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, dbusInterfaceName, dbusServiceName, dbusObjectPath);
 
-    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
+    auto dbusServiceUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
+    const bool isDBusServiceUniqueNameFound = (dbusServiceUniqueNameIterator != dbusUniqueNamesMap_.end());
 
-    if (dbusServiceIterator == dbusServices_.end()) {
+    if (!isDBusServiceUniqueNameFound) {
+        return SubscriptionStatus::CANCEL;
+    }
+
+    auto& dbusUniqueNameRecord = dbusServiceUniqueNameIterator->second;
+
+    //auto dbusObjectPathIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+    //const bool isDBusObjectPathFound = (dbusObjectPathIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end());
+
+    /*
+    if (!isDBusObjectPathFound) {
+        return SubscriptionStatus::RETAIN;
+    }
+    */
+
+    DBusObjectPathCache& dbusObjectPathRecord = dbusUniqueNameRecord.dbusObjectPathsCache[dbusObjectPath];
+/*
+    if (isDBusObjectPathFound) {
+        dbusObjectPathRecord = &dbusObjectPathIterator->second;
+    }
+    else
+    {
+        DBusObjectPathCache dbusObjectPathRecord;
+        auto insertionResult = dbusUniqueNameRecord.dbusObjectPathsCache.insert(std::make_pair(dbusObjectPath, std::move(dbusObjectPath)));
+        auto objectPathCacheIterator = insertionResult.first;
+        dbusObjectPathRecord = &(objectPathCacheIterator->second);
+    }
+*/
+
+    if (dbusObjectPathRecord.state != DBusRecordState::RESOLVED) {
+        return SubscriptionStatus::RETAIN;
+    }
+
+    for (const auto& dbusInterfaceName : dbusInterfaceNames) {
+        if (dbusInterfaceNameState == DBusRecordState::AVAILABLE) {
+            dbusObjectPathRecord.dbusInterfaceNamesCache.insert(dbusInterfaceName);
+        } else {
+            dbusObjectPathRecord.dbusInterfaceNamesCache.erase(dbusInterfaceName);
+        }
+    }
+
+    notifyDBusServiceListeners(dbusUniqueNameRecord, dbusObjectPath, dbusInterfaceNames, dbusInterfaceNameState);
+
+    return SubscriptionStatus::RETAIN;
+}
+
+
+void DBusServiceRegistry::resolveDBusServiceName(const std::string& dbusServiceName,
+                                                 DBusServiceListenersRecord& dbusServiceListenersRecord) {
+    assert(dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVED);
+    assert(dbusServiceListenersRecord.uniqueBusName.empty());
+
+    mutexServiceResolveCount.lock();
+    servicesToResolve++;
+    mutexServiceResolveCount.unlock();
+
+    if (dbusDaemonProxy_->isAvailable()) {
+        dbusDaemonProxy_->getNameOwnerAsync(
+            dbusServiceName,
+            std::bind(
+                &DBusServiceRegistry::onGetNameOwnerCallback,
+                this->shared_from_this(),
+                std::placeholders::_1,
+                std::placeholders::_2,
+                dbusServiceName));
+
+        dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::RESOLVING;
+    }
+}
+
+void DBusServiceRegistry::onGetNameOwnerCallback(const CallStatus& status,
+                                                 std::string dbusServiceUniqueName,
+                                                 const std::string& dbusServiceName) {
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+
+    auto dbusServiceListenerIterator = dbusServiceListenersMap.find(dbusServiceName);
+    const bool isDBusServiceListenerRecordFound = (dbusServiceListenerIterator != dbusServiceListenersMap.end());
+
+    if (!isDBusServiceListenerRecordFound) {
         return;
     }
 
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
+    DBusServiceListenersRecord& dbusServiceListenersRecord = dbusServiceListenerIterator->second;
 
-    auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
-    if (dbusInstanceIterator == dbusInstanceList.end()) {
+    if (status == CallStatus::SUCCESS) {
+        onDBusServiceAvailable(dbusServiceName, dbusServiceUniqueName);
+        if(dbusServiceListenersRecord.futureOnResolve.valid()) {
+            dbusServiceListenersRecord.promiseOnResolve.set_value(DBusRecordState(dbusServiceListenersRecord.uniqueBusNameState));
+        }
+    } else {
+        // try to fulfill open promises
+        if(dbusServiceListenersRecord.futureOnResolve.valid()) {
+            dbusServiceListenersRecord.promiseOnResolve.set_value(DBusRecordState::NOT_AVAILABLE);
+        }
+
+        onDBusServiceNotAvailable(dbusServiceListenersRecord);
+    }
+
+    mutexServiceResolveCount.lock();
+    servicesToResolve--;
+    mutexServiceResolveCount.unlock();
+    monitorResolveAllServices_.notify_all();
+}
+
+DBusServiceRegistry::DBusRecordState DBusServiceRegistry::resolveDBusInterfaceNameState(const std::string& dbusInterfaceName,
+                                                                                        const std::string& dbusObjectPath,
+                                                                                        const std::string& dbusServiceName,
+                                                                                        DBusServiceListenersRecord& dbusServiceListenersRecord) {
+    assert(dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED);
+    assert(!dbusServiceListenersRecord.uniqueBusName.empty());
+
+    auto& dbusServiceUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceListenersRecord.uniqueBusName];
+    assert(!dbusServiceUniqueNameRecord.ownedBusNames.empty());
+
+    auto& dbusObjectPathRecord = getDBusObjectPathCacheReference(
+        dbusObjectPath,
+        dbusServiceListenersRecord.uniqueBusName,
+        dbusServiceUniqueNameRecord);
+
+    if (dbusObjectPathRecord.state != DBusRecordState::RESOLVED) {
+        return dbusObjectPathRecord.state;
+    }
+
+    auto dbusInterfaceNameIterator = dbusObjectPathRecord.dbusInterfaceNamesCache.find(dbusInterfaceName);
+    const bool isDBusInterfaceNameFound =
+                    (dbusInterfaceNameIterator != dbusObjectPathRecord.dbusInterfaceNamesCache.end());
+
+    return isDBusInterfaceNameFound ? DBusRecordState::AVAILABLE : DBusRecordState::NOT_AVAILABLE;
+}
+
+
+DBusServiceRegistry::DBusObjectPathCache& DBusServiceRegistry::getDBusObjectPathCacheReference(const std::string& dbusObjectPath,
+                                                                                               const std::string& dbusServiceUniqueName,
+                                                                                               DBusUniqueNameRecord& dbusUniqueNameRecord) {
+    const bool isFirstDBusObjectPathCache = dbusUniqueNameRecord.dbusObjectPathsCache.empty();
+
+    auto dbusObjectPathCacheIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+    if(dbusObjectPathCacheIterator == dbusUniqueNameRecord.dbusObjectPathsCache.end()) {
+        std::unordered_map<std::string, DBusObjectPathCache>::value_type value (dbusObjectPath, DBusObjectPathCache());
+        dbusUniqueNameRecord.dbusObjectPathsCache.insert(std::move(value));
+        dbusObjectPathCacheIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+    }
+
+    if (isFirstDBusObjectPathCache) {
+        auto dbusProxyConnection = dbusDaemonProxy_->getDBusConnection();
+        const bool isSubscriptionSuccessful = dbusProxyConnection->addObjectManagerSignalMemberHandler(
+            dbusServiceUniqueName,
+            this);
+        assert(isSubscriptionSuccessful);
+    }
+
+    if (dbusObjectPathCacheIterator->second.state == DBusRecordState::UNKNOWN
+                    && introspectDBusObjectPath(dbusServiceUniqueName, dbusObjectPath)) {
+        dbusObjectPathCacheIterator->second.state = DBusRecordState::RESOLVING;
+    }
+
+    return dbusObjectPathCacheIterator->second;
+}
+
+void DBusServiceRegistry::releaseDBusObjectPathCacheReference(const std::string& dbusObjectPath,
+                                                              const DBusServiceListenersRecord& dbusServiceListenersRecord) {
+    if (!dbusDaemonProxy_->isAvailable()) {
         return;
     }
 
-    const AvailabilityStatus& dbusServiceAvailabilityStatus = dbusInstanceIterator->second.first;
-    DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
+    if (dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVED) {
+        return;
+    }
 
-    dbusServiceListenerList.erase(listenerSubscription);
+    assert(!dbusServiceListenersRecord.uniqueBusName.empty());
 
-    if (dbusServiceListenerList.empty() && dbusServiceAvailabilityStatus != AvailabilityStatus::AVAILABLE) {
-        dbusInstanceList.erase(dbusInstanceIterator);
+    auto& dbusUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceListenersRecord.uniqueBusName];
+    assert(!dbusUniqueNameRecord.ownedBusNames.empty());
+    assert(!dbusUniqueNameRecord.dbusObjectPathsCache.empty());
 
-        if (dbusInstanceList.empty() && dbusServiceState == DBusServiceState::UNKNOWN) {
-            dbusServices_.erase(dbusServiceIterator);
+    auto dbusObjectPathCacheIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+    const bool isDBusObjectPathCacheFound = (dbusObjectPathCacheIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end());
+    assert(isDBusObjectPathCacheFound);
+
+    auto& dbusObjectPathCache = dbusObjectPathCacheIterator->second;
+    assert(dbusObjectPathCache.referenceCount > 0);
+
+    dbusObjectPathCache.referenceCount--;
+
+    if (dbusObjectPathCache.referenceCount == 0) {
+        dbusUniqueNameRecord.dbusObjectPathsCache.erase(dbusObjectPathCacheIterator);
+
+        const bool isLastDBusObjectPathCache = dbusUniqueNameRecord.dbusObjectPathsCache.empty();
+        if (isLastDBusObjectPathCache) {
+            auto dbusProxyConnection = dbusDaemonProxy_->getDBusConnection();
+            const bool isSubscriptionCancelled = dbusProxyConnection->removeObjectManagerSignalMemberHandler(
+                dbusServiceListenersRecord.uniqueBusName,
+                this);
+            assert(isSubscriptionCancelled);
         }
     }
 }
+
+
+bool DBusServiceRegistry::introspectDBusObjectPath(const std::string& dbusServiceUniqueName,
+                                                   const std::string& dbusObjectPath) {
+    bool isResolvingInProgress = false;
+    auto dbusConnection = dbusDaemonProxy_->getDBusConnection();
+
+    assert(!dbusServiceUniqueName.empty());
+
+    if (dbusConnection->isConnected()) {
+        mutexObjectPathsResolveCount.lock();
+        objectPathsToResolve++;
+        mutexObjectPathsResolveCount.unlock();
+
+        DBusMessage dbusMessageCall = DBusMessage::createMethodCall(
+            dbusServiceUniqueName,
+            dbusObjectPath,
+            "org.freedesktop.DBus.Introspectable",
+            "Introspect");
+        auto instrospectAsyncCallback = std::bind(
+            &DBusServiceRegistry::onIntrospectCallback,
+            this->shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2,
+            dbusServiceUniqueName,
+            dbusObjectPath);
+
+        dbusConnection->sendDBusMessageWithReplyAsync(
+            dbusMessageCall,
+            DBusProxyAsyncCallbackHandler<std::string>::create(instrospectAsyncCallback),
+            2000);
+
+        isResolvingInProgress = true;
+    }
+
+    return isResolvingInProgress;
+}
+
+/**
+ * Callback for org.freedesktop.DBus.Introspectable.Introspect
+ *
+ * This is the other end of checking if a dbus object path is available.
+ * On success it'll extract all interface names from the xml data response.
+ * Special interfaces that start with org.freedesktop will be ignored.
+ *
+ * @param status
+ * @param xmlData
+ * @param dbusServiceUniqueName
+ * @param dbusObjectPath
+ */
+void DBusServiceRegistry::onIntrospectCallback(const CallStatus& callStatus,
+                                               std::string xmlData,
+                                               const std::string& dbusServiceUniqueName,
+                                               const std::string& dbusObjectPath) {
+    if (callStatus == CallStatus::SUCCESS) {
+        parseIntrospectionData(xmlData, dbusObjectPath, dbusServiceUniqueName);
+    }
+
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+
+    // Error CallStatus will result in empty parsedDBusInterfaceNameSet (and not available notification)
+
+    auto dbusServiceUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
+    const bool isDBusServiceUniqueNameFound = (dbusServiceUniqueNameIterator != dbusUniqueNamesMap_.end());
+
+    if (!isDBusServiceUniqueNameFound) {
+        return;
+    }
+
+    auto& dbusUniqueNameRecord = dbusServiceUniqueNameIterator->second;
+    auto dbusObjectPathIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+    const bool isDBusObjectPathFound = (dbusObjectPathIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end());
+
+    if (!isDBusObjectPathFound) {
+        return;
+    }
+
+    auto& dbusObjectPathRecord = dbusObjectPathIterator->second;
+
+    dbusObjectPathRecord.state = DBusRecordState::RESOLVED;
+    dbusObjectPathRecord.promiseOnResolve.set_value(dbusObjectPathRecord.state);
+    mutexObjectPathsResolveCount.lock();
+    objectPathsToResolve++;
+    mutexObjectPathsResolveCount.unlock();
+    monitorResolveAllObjectPaths_.notify_all();
+
+    dbusUniqueNameRecord.objectPathsState = DBusRecordState::RESOLVED;
+
+    notifyDBusServiceListeners(
+        dbusUniqueNameRecord,
+        dbusObjectPath,
+        dbusObjectPathRecord.dbusInterfaceNamesCache,
+        DBusRecordState::RESOLVED);
+}
+
+void DBusServiceRegistry::parseIntrospectionNode(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName) {
+    std::string nodeName;
+
+    for(pugi::xml_node& subNode : node.children()) {
+        nodeName = std::string(subNode.name());
+
+        if(nodeName == "node") {
+            processIntrospectionObjectPath(subNode, rootObjectPath, dbusServiceUniqueName);
+        }
+
+        if(nodeName == "interface") {
+            processIntrospectionInterface(subNode, rootObjectPath, fullObjectPath, dbusServiceUniqueName);
+        }
+    }
+}
+
+void DBusServiceRegistry::processIntrospectionObjectPath(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& dbusServiceUniqueName) {
+    std::string fullObjectPath = rootObjectPath;
+
+    if(fullObjectPath.at(fullObjectPath.length()-1) != '/') {
+        fullObjectPath += "/";
+    }
+
+    fullObjectPath += std::string(node.attribute("name").as_string());
+
+    DBusUniqueNameRecord& dbusUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceUniqueName];
+    DBusObjectPathCache& dbusObjectPathCache = dbusUniqueNameRecord.dbusObjectPathsCache[fullObjectPath];
+
+    if(dbusObjectPathCache.state == DBusRecordState::UNKNOWN) {
+        dbusObjectPathCache.state = DBusRecordState::RESOLVING;
+        introspectDBusObjectPath(dbusServiceUniqueName, fullObjectPath);
+    }
+
+    for(pugi::xml_node subNode : node.children()) {
+        parseIntrospectionNode(subNode, fullObjectPath, fullObjectPath, dbusServiceUniqueName);
+    }
+}
+
+void DBusServiceRegistry::processIntrospectionInterface(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName) {
+    std::string interfaceName = node.attribute("name").as_string();
+
+    DBusUniqueNameRecord& dbusUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceUniqueName];
+    DBusObjectPathCache& dbusObjectPathCache = dbusUniqueNameRecord.dbusObjectPathsCache[fullObjectPath];
+
+    if(!isOrgFreedesktopDBusInterface(interfaceName)) {
+        dbusObjectPathCache.dbusInterfaceNamesCache.insert(interfaceName);
+    }
+
+    for(pugi::xml_node subNode : node.children()) {
+        parseIntrospectionNode(subNode, rootObjectPath, fullObjectPath, dbusServiceUniqueName);
+    }
+}
+
+void DBusServiceRegistry::parseIntrospectionData(const std::string& xmlData,
+                                                 const std::string& rootObjectPath,
+                                                 const std::string& dbusServiceUniqueName) {
+    pugi::xml_document xmlDocument;
+    pugi::xml_parse_result parsedResult = xmlDocument.load_buffer(xmlData.c_str(), xmlData.length(), pugi::parse_minimal, pugi::encoding_utf8);
+
+    if(parsedResult.status != pugi::xml_parse_status::status_ok) {
+        return;
+    }
+
+    const pugi::xml_node rootNode = xmlDocument.child("node");
+
+    dbusServicesMutex_.lock();
+
+    parseIntrospectionNode(rootNode, rootObjectPath, rootObjectPath, dbusServiceUniqueName);
+
+    DBusUniqueNameRecord& dbusUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceUniqueName];
+    dbusServicesMutex_.unlock();
+}
+
 
 SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const AvailabilityStatus& availabilityStatus) {
+    assert(availabilityStatus != AvailabilityStatus::UNKNOWN);
+
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
-    switch (availabilityStatus) {
-        case AvailabilityStatus::AVAILABLE:
-            dbusNameListStatus_ = AvailabilityStatus::UNKNOWN;
-            dbusDaemonProxy_->listNamesAsync(std::bind(
-                            &DBusServiceRegistry::onListNamesCallback,
-                            this->shared_from_this(),
-                            std::placeholders::_1,
-                            std::placeholders::_2));
-            break;
+    for (auto& dbusServiceListenersIterator : dbusServiceListenersMap) {
+        const auto& dbusServiceName = dbusServiceListenersIterator.first;
+        auto& dbusServiceListenersRecord = dbusServiceListenersIterator.second;
 
-        case AvailabilityStatus::NOT_AVAILABLE:
-            auto dbusServiceIterator = dbusServices_.begin();
-
-            while (dbusServiceIterator != dbusServices_.end()) {
-                dbusServiceIterator = onDBusServiceOffline(dbusServiceIterator, DBusServiceState::NOT_AVAILABLE);
-            }
-
-            dbusNameListStatus_ = AvailabilityStatus::NOT_AVAILABLE;
-            break;
+        if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
+            resolveDBusServiceName(dbusServiceName, dbusServiceListenersRecord);
+        } else {
+            onDBusServiceNotAvailable(dbusServiceListenersRecord);
+        }
     }
 
     return SubscriptionStatus::RETAIN;
@@ -407,240 +900,294 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const Avail
 SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(const std::string& affectedName,
                                                                                const std::string& oldOwner,
                                                                                const std::string& newOwner) {
-    if (isDBusServiceName(affectedName)) {
-        AvailabilityStatus dbusServiceAvailabilityStatus = AvailabilityStatus::AVAILABLE;
+    if (!isDBusServiceName(affectedName)) {
+        return SubscriptionStatus::RETAIN;
+    }
 
-        if (newOwner.empty()) {
-            dbusServiceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
+    const bool isDBusServiceNameLost = newOwner.empty();
+    const std::string& dbusServiceUniqueName = (isDBusServiceNameLost ? oldOwner : newOwner);
+
+    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+
+    if (isDBusServiceNameLost) {
+        auto dbusUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
+        const bool isDBusUniqueNameFound = (dbusUniqueNameIterator != dbusUniqueNamesMap_.end());
+
+        if (isDBusUniqueNameFound) {
+            auto& dbusServiceListenersRecord = dbusServiceListenersMap[affectedName];
+            //assert(dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED);
+            //assert(!dbusServiceListenersRecord.uniqueBusName.empty());
+            onDBusServiceNotAvailable(dbusServiceListenersRecord);
         }
-
-        std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-        notificationThread_ = std::this_thread::get_id();
-        onDBusServiceAvailabilityStatus(affectedName, dbusServiceAvailabilityStatus);
-        notificationThread_ = std::thread::id();
+    } else {
+        onDBusServiceAvailable(affectedName, dbusServiceUniqueName);
     }
 
     return SubscriptionStatus::RETAIN;
 }
 
-void DBusServiceRegistry::onListNamesCallback(const CommonAPI::CallStatus& callStatus, std::vector<std::string> dbusNames) {
-    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
-    notificationThread_ = std::this_thread::get_id();
-    if (callStatus == CallStatus::SUCCESS) {
-        for (const std::string& dbusName : dbusNames) {
-            if (isDBusServiceName(dbusName)) {
-                onDBusServiceAvailabilityStatus(dbusName, AvailabilityStatus::AVAILABLE);
-            }
-        }
+
+void DBusServiceRegistry::onDBusServiceAvailable(const std::string& dbusServiceName,
+                                                 const std::string& dbusServiceUniqueName) {
+    DBusUniqueNameRecord* dbusUniqueNameRecord = insertServiceNameMapping(dbusServiceUniqueName, dbusServiceName);
+
+    auto& dbusServiceListenersRecord = dbusServiceListenersMap[dbusServiceName];
+    const bool isDBusServiceNameObserved = !dbusServiceListenersRecord.dbusObjectPathListenersMap.empty();
+
+    if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED) {
+        assert(dbusServiceListenersRecord.uniqueBusName == dbusServiceUniqueName);
+        return;
     }
 
-    dbusNameListStatus_ = AvailabilityStatus::AVAILABLE;
+    dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::RESOLVED;
+    dbusServiceListenersRecord.uniqueBusName = dbusServiceUniqueName;
 
-    auto dbusServiceIterator = dbusServices_.begin();
-    while (dbusServiceIterator != dbusServices_.end()) {
-        const DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
+    if (!isDBusServiceNameObserved) {
+        return;
+    }
 
-        if (dbusServiceState == DBusServiceState::UNKNOWN) {
-            dbusServiceIterator = onDBusServiceOffline(dbusServiceIterator, DBusServiceState::NOT_AVAILABLE);
+    // resolve object path and notify service listners
+    for (auto dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.begin();
+                    dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end();) {
+        const std::string& listenersDBusObjectPath = dbusObjectPathListenersIterator->first;
+        auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
+        auto& dbusObjectPathRecord = getDBusObjectPathCacheReference(
+            listenersDBusObjectPath,
+            dbusServiceUniqueName,
+            *dbusUniqueNameRecord);
+
+        if (dbusObjectPathRecord.state == DBusRecordState::RESOLVED) {
+            notifyDBusObjectPathResolved(dbusInterfaceNameListenersMap, dbusObjectPathRecord.dbusInterfaceNamesCache);
+        }
+
+        if (dbusInterfaceNameListenersMap.empty()) {
+            dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(
+                dbusObjectPathListenersIterator);
         } else {
-            dbusServiceIterator++;
+            dbusObjectPathListenersIterator++;
         }
     }
+}
+
+void DBusServiceRegistry::onDBusServiceNotAvailable(DBusServiceListenersRecord& dbusServiceListenersRecord) {
+    const std::unordered_set<std::string> dbusInterfaceNamesCache;
+
+    auto dbusUniqueNameRecordIterator = dbusUniqueNamesMap_.find(dbusServiceListenersRecord.uniqueBusName);
+
+    // fulfill all open promises on object path resolution
+    if(dbusUniqueNameRecordIterator != dbusUniqueNamesMap_.end()) {
+        DBusUniqueNameRecord& dbusUniqueNameRecord = dbusUniqueNameRecordIterator->second;
+        for (auto dbusObjectPathsCacheIterator = dbusUniqueNameRecord.dbusObjectPathsCache.begin();
+                        dbusObjectPathsCacheIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end();
+                        dbusObjectPathsCacheIterator++) {
+
+            auto& dbusObjectPathsCache = dbusObjectPathsCacheIterator->second;
+
+            std::promise<DBusRecordState> promiseOnResolve = std::move(dbusObjectPathsCache.promiseOnResolve);
+
+            try {
+                std::future<DBusRecordState> futureOnResolve = promiseOnResolve.get_future();
+                if(!futureOnResolve.valid()) {
+                    promiseOnResolve.set_value(DBusRecordState::NOT_AVAILABLE);
+                }
+            } catch (std::future_error& e) { }
+
+        }
+    }
+
+    removeUniqueName(dbusServiceListenersRecord.uniqueBusName);
+
+    dbusServiceListenersRecord.uniqueBusName.clear();
+    dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::NOT_AVAILABLE;
+
+
+    for (auto dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.begin();
+                    dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end(); ) {
+        auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
+
+        notifyDBusObjectPathResolved(dbusInterfaceNameListenersMap, dbusInterfaceNamesCache);
+
+        if (dbusInterfaceNameListenersMap.empty()) {
+            dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(
+                dbusObjectPathListenersIterator);
+        } else {
+            dbusObjectPathListenersIterator++;
+        }
+    }
+}
+
+void DBusServiceRegistry::notifyDBusServiceListeners(const DBusUniqueNameRecord& dbusUniqueNameRecord,
+                                                     const std::string& dbusObjectPath,
+                                                     const std::unordered_set<std::string>& dbusInterfaceNames,
+                                                     const DBusRecordState& dbusInterfaceNamesState) {
+    notificationThread_ = std::this_thread::get_id();
+
+    for (auto& dbusServiceName : dbusUniqueNameRecord.ownedBusNames) {
+        auto dbusServiceListenersIterator = dbusServiceListenersMap.find(dbusServiceName);
+
+        if(dbusServiceListenersIterator == dbusServiceListenersMap.end()) {
+            continue;
+        }
+
+        auto& dbusServiceListenersRecord = dbusServiceListenersIterator->second;
+        if(dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVED) {
+            continue;
+        }
+
+        auto dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.find(dbusObjectPath);
+        const bool isDBusObjectPathListenersRecordFound =
+                        (dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end());
+
+        if (!isDBusObjectPathListenersRecordFound) {
+            continue; // skip
+        }
+
+        auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
+
+        if (dbusInterfaceNamesState == DBusRecordState::RESOLVED) {
+            notifyDBusObjectPathResolved(dbusInterfaceNameListenersMap, dbusInterfaceNames);
+        } else {
+            notifyDBusObjectPathChanged(dbusInterfaceNameListenersMap, dbusInterfaceNames, dbusInterfaceNamesState);
+        }
+
+        if (dbusInterfaceNameListenersMap.empty()) {
+            dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(dbusObjectPathListenersIterator);
+        }
+    }
+
     notificationThread_ = std::thread::id();
 }
 
+void DBusServiceRegistry::notifyDBusObjectPathResolved(DBusInterfaceNameListenersMap& dbusInterfaceNameListenersMap,
+                                                       const std::unordered_set<std::string>& dbusInterfaceNames) {
+    for (auto dbusObjectPathListenersIterator = dbusInterfaceNameListenersMap.begin();
+                    dbusObjectPathListenersIterator != dbusInterfaceNameListenersMap.end();) {
+        const auto& listenersDBusInterfaceName = dbusObjectPathListenersIterator->first;
+        auto& dbusInterfaceNameListenersRecord = dbusObjectPathListenersIterator->second;
 
-void DBusServiceRegistry::onDBusServiceAvailabilityStatus(const std::string& dbusServiceName, const AvailabilityStatus& availabilityStatus) {
-    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
+        const auto& dbusInterfaceNameIterator = dbusInterfaceNames.find(listenersDBusInterfaceName);
+        const bool isDBusInterfaceNameAvailable = (dbusInterfaceNameIterator != dbusInterfaceNames.end());
 
-    if (dbusServiceIterator != dbusServices_.end()) {
-        onDBusServiceAvailabilityStatus(dbusServiceIterator, availabilityStatus);
-    } else if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
-        dbusServices_.insert({ dbusServiceName, { DBusServiceState::AVAILABLE, DBusInstanceList() } });
-        dbusServiceChanged_.notify_all();
-    }
-}
+        notifyDBusInterfaceNameListeners(dbusInterfaceNameListenersRecord, isDBusInterfaceNameAvailable);
 
-
-DBusServiceRegistry::DBusServiceList::iterator DBusServiceRegistry::onDBusServiceAvailabilityStatus(DBusServiceList::iterator& dbusServiceIterator,
-                                                                                                    const AvailabilityStatus& availabilityStatus) {
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-
-    if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
-        const std::string& dbusServiceName = dbusServiceIterator->first;
-
-        if (dbusServiceState != DBusServiceState::RESOLVING) {
-            resolveDBusServiceInstances(dbusServiceIterator);
-        }
-
-        return dbusServiceIterator;
-    }
-
-    dbusServiceState = (availabilityStatus == AvailabilityStatus::UNKNOWN) ?
-                    DBusServiceState::UNKNOWN :
-                    DBusServiceState::NOT_AVAILABLE;
-
-    return onDBusServiceOffline(dbusServiceIterator, dbusServiceState);
-}
-
-DBusServiceRegistry::DBusServiceList::iterator DBusServiceRegistry::onDBusServiceOffline(DBusServiceList::iterator& dbusServiceIterator,
-                                                                                         const DBusServiceState& newDBusServiceState) {
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-    auto dbusInstanceIterator = dbusInstanceList.begin();
-
-    assert(newDBusServiceState == DBusServiceState::UNKNOWN || newDBusServiceState == DBusServiceState::NOT_AVAILABLE);
-
-    dbusServiceState = newDBusServiceState;
-
-    while (dbusInstanceIterator != dbusInstanceList.end()) {
-        AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
-        DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
-
-        // notify listeners
-        if (!dbusServiceListenerList.empty()) {
-            // the internal state is unknown until the next time we ask the object manager
-            notifyDBusServiceListeners(dbusServiceListenerList, AvailabilityStatus::NOT_AVAILABLE);
-            dbusInstanceAvailabilityStatus = AvailabilityStatus::UNKNOWN;
-            dbusInstanceIterator++;
+        if (dbusInterfaceNameListenersRecord.listenerList.empty()) {
+            dbusObjectPathListenersIterator = dbusInterfaceNameListenersMap.erase(dbusObjectPathListenersIterator);
         } else {
-            dbusInstanceIterator = dbusInstanceList.erase(dbusInstanceIterator);
+            dbusObjectPathListenersIterator++;
         }
     }
-
-    dbusServiceChanged_.notify_all();
-
-    if (dbusInstanceList.empty()) {
-        return dbusServices_.erase(dbusServiceIterator);
-    }
-
-    dbusServiceIterator++;
-
-    return dbusServiceIterator;
 }
 
-void DBusServiceRegistry::resolveDBusServiceInstances(DBusServiceList::iterator& dbusServiceIterator) {
-    const std::string& dbusServiceName = dbusServiceIterator->first;
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-    std::vector<DBusServiceAddress> predefinedDBusServiceInstances;
+void DBusServiceRegistry::notifyDBusObjectPathChanged(DBusInterfaceNameListenersMap& dbusInterfaceNameListenersMap,
+                                                      const std::unordered_set<std::string>& dbusInterfaceNames,
+                                                      const DBusRecordState& dbusInterfaceNamesState) {
+    const bool isDBusInterfaceNameAvailable = (dbusInterfaceNamesState == DBusRecordState::AVAILABLE);
 
-    dbusServiceState = DBusServiceState::RESOLVING;
+    assert(
+        dbusInterfaceNamesState == DBusRecordState::AVAILABLE
+                        || dbusInterfaceNamesState == DBusRecordState::NOT_AVAILABLE);
 
-    // add predefined instances
-    DBusAddressTranslator::getInstance().getPredefinedInstances(dbusServiceName, predefinedDBusServiceInstances);
+    for (const auto& dbusInterfaceName : dbusInterfaceNames) {
+        auto dbusInterfaceNameListenersIterator = dbusInterfaceNameListenersMap.find(dbusInterfaceName);
+        const bool isDBusInterfaceNameObserved = (dbusInterfaceNameListenersIterator
+                        != dbusInterfaceNameListenersMap.end());
 
-    for (auto& dbusServiceAddress : predefinedDBusServiceInstances) {
-        const std::string& dbusObjectPath = std::get<1>(dbusServiceAddress);
-        const std::string& dbusInterfaceName = std::get<2>(dbusServiceAddress);
+        if (isDBusInterfaceNameObserved) {
+            auto& dbusInterfaceNameListenersRecord = dbusInterfaceNameListenersIterator->second;
 
-        onDBusServiceInstanceAvailable(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
+            notifyDBusInterfaceNameListeners(dbusInterfaceNameListenersRecord, isDBusInterfaceNameAvailable);
+        }
     }
-
-    dbusServiceChanged_.notify_all();
-
-    // search for remote instances
-    DBusDaemonProxy::GetManagedObjectsAsyncCallback callback = std::bind(&DBusServiceRegistry::onGetManagedObjectsCallback,
-    																     this->shared_from_this(),
-                                                                         std::placeholders::_1,
-                                                                         std::placeholders::_2,
-                                                                         dbusServiceName);
-    dbusDaemonProxy_->getManagedObjectsAsync(dbusServiceName, callback);
 }
 
+void DBusServiceRegistry::notifyDBusInterfaceNameListeners(DBusInterfaceNameListenersRecord& dbusInterfaceNameListenersRecord,
+                                                           const bool& isDBusInterfaceNameAvailable) {
+    // FIXME maybe store simple boolean into the DBusInterfaceNameListenersRecord (only 2 states are allowed)
+    const AvailabilityStatus availabilityStatus = (isDBusInterfaceNameAvailable ?
+                    AvailabilityStatus::AVAILABLE : AvailabilityStatus::NOT_AVAILABLE);
+    const DBusRecordState notifyState = (isDBusInterfaceNameAvailable ?
+                    DBusRecordState::AVAILABLE : DBusRecordState::NOT_AVAILABLE);
 
-void DBusServiceRegistry::onGetManagedObjectsCallback(const CallStatus& callStatus,
-                                                      DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects,
-                                                      const std::string& dbusServiceName) {
-    std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
+    if (notifyState == dbusInterfaceNameListenersRecord.state) {
+        return;
+    }
+    dbusInterfaceNameListenersRecord.state = notifyState;
 
-    // already offline
-    if (dbusNameListStatus_ == AvailabilityStatus::NOT_AVAILABLE) {
+    for (auto dbusServiceListenerIterator = dbusInterfaceNameListenersRecord.listenerList.begin();
+                    dbusServiceListenerIterator != dbusInterfaceNameListenersRecord.listenerList.end();) {
+        const auto& dbusServiceListener = *dbusServiceListenerIterator;
+
+        if (dbusServiceListener(availabilityStatus) != SubscriptionStatus::RETAIN) {
+            dbusServiceListenerIterator = dbusInterfaceNameListenersRecord.listenerList.erase(
+                dbusServiceListenerIterator);
+        } else {
+            dbusServiceListenerIterator++;
+        }
+    }
+}
+
+void DBusServiceRegistry::removeUniqueName(std::string& dbusUniqueName) {
+    if(dbusUniqueName.empty()) {
         return;
     }
 
-    auto dbusServiceIterator = dbusServices_.find(dbusServiceName);
-    if (dbusServiceIterator == dbusServices_.end()) {
-        return;
-    }
+    auto dbusUniqueNamesIterator = dbusUniqueNamesMap_.find(dbusUniqueName);
 
-    DBusServiceState& dbusServiceState = dbusServiceIterator->second.first;
-    DBusInstanceList& dbusInstanceList = dbusServiceIterator->second.second;
-
-    dbusServiceState = DBusServiceState::RESOLVED;
-
-    if (callStatus == CallStatus::SUCCESS) {
-        for (auto& dbusObjectPathIterator : managedObjects) {
-            const std::string& dbusObjectPath = dbusObjectPathIterator.first;
-
-            for (auto& dbusInterfaceNameIterator : dbusObjectPathIterator.second) {
-                const std::string& dbusInterfaceName = dbusInterfaceNameIterator.first;
-
-                onDBusServiceInstanceAvailable(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
-            }
+    if(dbusUniqueNamesIterator != dbusUniqueNamesMap_.end()) {
+        for (auto dbusServiceNamesIterator = dbusUniqueNamesIterator->second.ownedBusNames.begin();
+                        dbusServiceNamesIterator != dbusUniqueNamesIterator->second.ownedBusNames.end();
+                        dbusServiceNamesIterator++) {
+            dbusServiceNameMap_.erase(*dbusServiceNamesIterator);
         }
-    }
 
-    dbusServiceChanged_.notify_all();
-
-    // notify only UNKNOWN. The predefined and resolved have already been handled
-    for (auto& dbusInstanceIterator : dbusInstanceList) {
-        AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator.second.first;
-        DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator.second.second;
-
-        if (dbusInstanceAvailabilityStatus == AvailabilityStatus::UNKNOWN) {
-            dbusInstanceAvailabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
-            notifyDBusServiceListeners(dbusServiceListenerList, dbusInstanceAvailabilityStatus);
-        }
+        dbusUniqueNamesMap_.erase(dbusUniqueNamesIterator);
     }
 }
 
+DBusServiceRegistry::DBusUniqueNameRecord* DBusServiceRegistry::insertServiceNameMapping(const std::string& dbusUniqueName,
+                                                                                         const std::string& dbusServiceName) {
+    auto* dbusUniqueNameRecord = &(dbusUniqueNamesMap_[dbusUniqueName]);
+    dbusUniqueNameRecord->uniqueName = dbusUniqueName;
+    dbusUniqueNameRecord->ownedBusNames.insert(dbusServiceName);
 
-void DBusServiceRegistry::onDBusServiceInstanceAvailable(DBusInstanceList& dbusInstanceList,
-                                                         const std::string& dbusObjectPath,
-                                                         const std::string& dbusInterfaceName) {
-    auto dbusInstanceIterator = addDBusServiceInstance(dbusInstanceList, dbusObjectPath, dbusInterfaceName);
-    AvailabilityStatus& dbusInstanceAvailabilityStatus = dbusInstanceIterator->second.first;
-    DBusServiceListenerList& dbusServiceListenerList = dbusInstanceIterator->second.second;
+    auto dbusServiceNameMapIterator = dbusServiceNameMap_.find(dbusServiceName);
 
-    dbusInstanceAvailabilityStatus = AvailabilityStatus::AVAILABLE;
-
-    notifyDBusServiceListeners(dbusServiceListenerList, dbusInstanceAvailabilityStatus);
-}
-
-
-DBusServiceRegistry::DBusInstanceList::iterator DBusServiceRegistry::addDBusServiceInstance(DBusInstanceList& dbusInstanceList,
-                                                                                            const std::string& dbusObjectPath,
-                                                                                            const std::string& dbusInterfaceName) {
-    auto dbusInstanceIterator = dbusInstanceList.find({ dbusObjectPath, dbusInterfaceName });
-
-    // add instance for the first time
-    if (dbusInstanceIterator == dbusInstanceList.end()) {
-       auto insertIterator = dbusInstanceList.insert(
-                        { { dbusObjectPath, dbusInterfaceName }, { AvailabilityStatus::UNKNOWN, DBusServiceListenerList() } });
-       const bool& insertSuccessfull = insertIterator.second;
-
-       assert(insertSuccessfull);
-       dbusInstanceIterator = insertIterator.first;
+    if(dbusServiceNameMapIterator == dbusServiceNameMap_.end()) {
+        dbusServiceNameMap_.insert({ dbusServiceName, dbusUniqueNameRecord });
+    }
+    else {
+        dbusServiceNameMapIterator->second = dbusUniqueNameRecord;
     }
 
-    return dbusInstanceIterator;
-}
+    DBusServiceListenersRecord& dbusServiceListenersRecord = dbusServiceListenersMap[dbusServiceName];
 
-void DBusServiceRegistry::notifyDBusServiceListeners(DBusServiceListenerList& dbusServiceListenerList,
-                                                     const AvailabilityStatus& availabilityStatus) {
-    for (auto dbusServiceListenerIterator = dbusServiceListenerList.begin(); dbusServiceListenerIterator != dbusServiceListenerList.end(); ++dbusServiceListenerIterator) {
-        const SubscriptionStatus status = (*dbusServiceListenerIterator)(availabilityStatus);
-        if (status == SubscriptionStatus::CANCEL) {
-            dbusServiceListenerIterator = dbusServiceListenerList.erase(dbusServiceListenerIterator);
-        }
+    if(dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVED) {
+        dbusServiceListenersRecord.uniqueBusName = dbusUniqueName;
+        dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::UNKNOWN;
     }
+
+    return dbusUniqueNameRecord;
 }
 
-bool DBusServiceRegistry::isDBusServiceName(const std::string& name) {
-    return name[0] != ':';
+/**
+ * finds a DBusUniquNameRecord associated with a given well-known name.
+ * The returned DBusUniquNameRecord* may be a NULL pointer, if the well-known
+ * name is known, but not associated with a unique name yet.
+ *
+ * @return true, if the given well-known name is found
+ */
+bool DBusServiceRegistry::findCachedDbusService(
+                const std::string& dbusServiceName,
+                DBusUniqueNameRecord** uniqueNameRecord) {
+    auto dbusUniqueNameRecordIterator = dbusServiceNameMap_.find(dbusServiceName);
+
+    if(dbusUniqueNameRecordIterator != dbusServiceNameMap_.end()) {
+        *uniqueNameRecord = dbusUniqueNameRecordIterator->second;
+        return true;
+    }
+
+    return false;
 }
 
-}// namespace DBus
-}// namespace CommonAPI
+} // namespace DBus
+} // namespace CommonAPI

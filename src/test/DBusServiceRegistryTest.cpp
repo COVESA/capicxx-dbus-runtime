@@ -17,8 +17,10 @@
 #endif
 
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
+#include <CommonAPI/DBus/DBusServicePublisher.h>
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusUtils.h>
+#include <CommonAPI/DBus/DBusRuntime.h>
 
 #include <commonapi/tests/TestInterfaceStub.h>
 #include <commonapi/tests/TestInterfaceStubDefault.h>
@@ -27,6 +29,9 @@
 #include <gtest/gtest.h>
 
 #include "DemoMainLoop.h"
+
+#include <fstream>
+#include <chrono>
 
 
 // all predefinedInstances will be added for this service
@@ -76,29 +81,244 @@ public:
 };
 
 
-class DBusServiceRegistryTest: public ::testing::Test {
- protected:
-    virtual void SetUp() {
+struct TestDBusServiceListener {
+    CommonAPI::AvailabilityStatus lastAvailabilityStatus;
+    size_t availabilityStatusCount;
+
+    std::condition_variable statusChanged;
+    std::mutex lock;
+
+    TestDBusServiceListener(const std::string& commonApiAddress,
+                            const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection):
+                                commonApiAddress_(commonApiAddress),
+                                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()),
+                                isSubscribed(false),
+                                availabilityStatusCount(0) {
     }
 
-	virtual void TearDown() {
-	}
+    ~TestDBusServiceListener() {
+        if (isSubscribed) {
+            unsubscribe();
+        }
+    }
+
+    void subscribe() {
+        ASSERT_TRUE(!isSubscribed);
+
+        dbusServiceSubscription_= dbusServiceRegistry_->subscribeAvailabilityListener(
+                        commonApiAddress_,
+                        [&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
+
+            std::lock_guard<std::mutex> lockGuard(lock);
+
+            lastAvailabilityStatus = availabilityStatus;
+            availabilityStatusCount++;
+
+            statusChanged.notify_all();
+
+            return CommonAPI::SubscriptionStatus::RETAIN;
+        });
+
+        isSubscribed = true;
+    }
+
+    void unsubscribe() {
+        ASSERT_TRUE(isSubscribed);
+
+        dbusServiceRegistry_->unsubscribeAvailabilityListener(
+            commonApiAddress_,
+            dbusServiceSubscription_);
+    }
+
+ private:
+    bool isSubscribed;
+    std::string commonApiAddress_;
+    std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> dbusServiceRegistry_;
+    CommonAPI::DBus::DBusServiceRegistry::DBusServiceSubscription dbusServiceSubscription_;
 };
 
 
-TEST_F(DBusServiceRegistryTest, CanBeConstructed) {
-	std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    CommonAPI::DBus::DBusServiceRegistry* registry = new CommonAPI::DBus::DBusServiceRegistry(dbusConnection);
-    ASSERT_TRUE(registry != NULL);
-    delete registry;
-}
+class TestDBusStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
+ public:
+    TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
+                        const std::string& commonApiAddress,
+                        const std::string& dbusInterfaceName,
+                        const std::string& dbusBusName,
+                        const std::string& dbusObjectPath,
+                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection):
+                        DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection),
+                        introspectionCount(0) {
+    }
+
+    void deactivateManagedInstances() {
+
+    }
+
+    virtual const char* getMethodsDBusIntrospectionXmlData() const {
+        introspectionCount++;
+        return "";
+    }
+
+    virtual bool onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
+        return false;
+    }
+
+    mutable size_t introspectionCount;
+};
+
+class DBusServiceRegistryTest: public ::testing::Test {
+ protected:
+    virtual void SetUp() {
+
+        auto runtime = std::dynamic_pointer_cast<CommonAPI::DBus::DBusRuntime>(CommonAPI::Runtime::load());
+
+        clientFactory = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime->createFactory());
+        serviceFactory = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime->createFactory());
+
+        clientDBusConnection = clientFactory->getDbusConnection();
+        clientConnectionRegistry = clientDBusConnection->getDBusServiceRegistry();
+        serviceDBusConnection = serviceFactory->getDbusConnection();
+    }
+
+    virtual void TearDown() {
+        if (clientDBusConnection && clientDBusConnection->isConnected()) {
+            clientDBusConnection->disconnect();
+        }
+
+        if (serviceDBusConnection && serviceDBusConnection->isConnected()) {
+            serviceDBusConnection->disconnect();
+        }
+    }
+
+    bool waitForAvailabilityStatusChanged(TestDBusServiceListener& testDBusServiceListener,
+                                          const CommonAPI::AvailabilityStatus& availabilityStatus) {
+        std::unique_lock<std::mutex> lock(testDBusServiceListener.lock);
+        auto waitResult =
+                        testDBusServiceListener.statusChanged.wait_for(
+                                        lock,
+                                        std::chrono::milliseconds(4000),
+                                        [&]() {return testDBusServiceListener.lastAvailabilityStatus == availabilityStatus;});
+        return waitResult;
+    }
+
+    std::shared_ptr<CommonAPI::DBus::DBusFactory> clientFactory;
+    std::shared_ptr<CommonAPI::DBus::DBusFactory> serviceFactory;
+
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> clientDBusConnection;
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> serviceDBusConnection;
+
+    std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> clientConnectionRegistry;
+    //std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> serviceConnectionRegistry;
+};
 
 
 TEST_F(DBusServiceRegistryTest, DBusConnectionHasRegistry) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    dbusConnection->connect();
-    auto serviceRegistry = dbusConnection->getDBusServiceRegistry();
-    ASSERT_FALSE(!serviceRegistry);
+    clientDBusConnection->connect();
+
+    auto dbusServiceRegistry = clientDBusConnection->getDBusServiceRegistry();
+    EXPECT_FALSE(!dbusServiceRegistry);
+}
+
+TEST_F(DBusServiceRegistryTest, SubscribeBeforeConnectWorks) {
+    TestDBusServiceListener testDBusServiceListener("local:Interface1:predefined.Instance1", clientDBusConnection);
+    testDBusServiceListener.subscribe();
+
+    ASSERT_TRUE(clientDBusConnection->connect());
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    usleep(300 * 1000);
+    EXPECT_EQ(testDBusServiceListener.availabilityStatusCount, 1);
+
+    ASSERT_TRUE(serviceDBusConnection->connect());
+    ASSERT_TRUE(serviceDBusConnection->requestServiceNameAndBlock(dbusServiceName));
+    auto testDBusStubAdapter = std::make_shared<TestDBusStubAdapter>(
+        serviceFactory,
+        "local:Interface1:predefined.Instance1",
+        "tests.Interface1",
+        dbusServiceName,
+        "/tests/predefined/Object1",
+        serviceDBusConnection);
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(testDBusStubAdapter);
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::AVAILABLE));
+    sleep(2);
+    EXPECT_LE(testDBusServiceListener.availabilityStatusCount, 3);
+    EXPECT_EQ(testDBusStubAdapter->introspectionCount, 1);
+
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(testDBusStubAdapter->getAddress());
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    EXPECT_LE(testDBusServiceListener.availabilityStatusCount, 4);
+}
+
+TEST_F(DBusServiceRegistryTest, SubscribeBeforeConnectWithServiceWorks) {
+    ASSERT_TRUE(serviceDBusConnection->connect());
+    auto testDBusStubAdapter = std::make_shared<TestDBusStubAdapter>(
+                    serviceFactory,
+        "local:Interface1:predefined.Instance1",
+        "tests.Interface1",
+        dbusServiceName,
+        "/tests/predefined/Object1",
+        serviceDBusConnection);
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(testDBusStubAdapter);
+
+    TestDBusServiceListener testDBusServiceListener("local:Interface1:predefined.Instance1", clientDBusConnection);
+    testDBusServiceListener.subscribe();
+    ASSERT_TRUE(clientDBusConnection->connect());
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::AVAILABLE));
+    usleep(300 * 1000);
+    EXPECT_EQ(testDBusServiceListener.availabilityStatusCount, 1);
+    EXPECT_EQ(testDBusStubAdapter->introspectionCount, 1);
+
+    serviceDBusConnection->disconnect();
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    usleep(300 * 1000);
+    EXPECT_EQ(testDBusServiceListener.availabilityStatusCount, 2);
+
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(testDBusStubAdapter->getAddress());
+}
+
+TEST_F(DBusServiceRegistryTest, SubscribeAfterConnectWithServiceWorks) {
+    ASSERT_TRUE(serviceDBusConnection->connect());
+    auto testDBusStubAdapter = std::make_shared<TestDBusStubAdapter>(
+                    serviceFactory,
+        "local:Interface1:predefined.Instance1",
+        "tests.Interface1",
+        dbusServiceName,
+        "/tests/predefined/Object1",
+        serviceDBusConnection);
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(testDBusStubAdapter);
+
+    ASSERT_TRUE(clientDBusConnection->connect());
+    TestDBusServiceListener testDBusServiceListener("local:Interface1:predefined.Instance1", clientDBusConnection);
+    EXPECT_EQ(testDBusStubAdapter->introspectionCount, 0);
+
+    testDBusServiceListener.subscribe();
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::AVAILABLE));
+    EXPECT_EQ(testDBusServiceListener.availabilityStatusCount, 1);
+    EXPECT_EQ(testDBusStubAdapter->introspectionCount, 1);
+
+    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(testDBusStubAdapter->getAddress());
+
+    EXPECT_TRUE(waitForAvailabilityStatusChanged(
+        testDBusServiceListener,
+        CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+    EXPECT_EQ(testDBusServiceListener.availabilityStatusCount, 2);
+    EXPECT_EQ(testDBusStubAdapter->introspectionCount, 1);
 }
 
 TEST_F(DBusServiceRegistryTest, DBusAddressTranslatorPredefinedWorks) {
@@ -106,26 +326,26 @@ TEST_F(DBusServiceRegistryTest, DBusAddressTranslatorPredefinedWorks) {
 
     CommonAPI::DBus::DBusAddressTranslator::getInstance().getPredefinedInstances(dbusServiceName, loadedPredefinedInstances);
 
-    ASSERT_EQ(loadedPredefinedInstances.size(), predefinedInstancesMap.size());
+    EXPECT_EQ(loadedPredefinedInstances.size(), predefinedInstancesMap.size());
 
     for (auto& dbusServiceAddress : loadedPredefinedInstances) {
         const std::string& loadedDBusServiceName = std::get<0>(dbusServiceAddress);
         const std::string& loadedDBusObjectPath = std::get<1>(dbusServiceAddress);
         const std::string& loadedDBusInterfaceName = std::get<2>(dbusServiceAddress);
 
-        ASSERT_EQ(loadedDBusServiceName, dbusServiceName);
+        EXPECT_EQ(loadedDBusServiceName, dbusServiceName);
 
         auto predefinedInstanceIterator = predefinedInstancesMap.find({ loadedDBusInterfaceName, loadedDBusObjectPath });
         const bool predefinedInstanceFound = (predefinedInstanceIterator != predefinedInstancesMap.end());
 
-        ASSERT_TRUE(predefinedInstanceFound);
+        EXPECT_TRUE(predefinedInstanceFound);
 
         const std::string& commonApiAddress = predefinedInstanceIterator->second;
         const std::string& predefinedDBusInterfaceName = predefinedInstanceIterator->first.first;
         const std::string& predefinedDBusObjectPath = predefinedInstanceIterator->first.second;
 
-        ASSERT_EQ(loadedDBusInterfaceName, predefinedDBusInterfaceName);
-        ASSERT_EQ(loadedDBusObjectPath, predefinedDBusObjectPath);
+        EXPECT_EQ(loadedDBusInterfaceName, predefinedDBusInterfaceName);
+        EXPECT_EQ(loadedDBusObjectPath, predefinedDBusObjectPath);
 
         std::string foundDBusInterfaceName;
         std::string foundDBusServiceName;
@@ -137,86 +357,86 @@ TEST_F(DBusServiceRegistryTest, DBusAddressTranslatorPredefinedWorks) {
                         foundDBusServiceName,
                         foundDBusObjectPath);
 
-        ASSERT_EQ(foundDBusInterfaceName, predefinedDBusInterfaceName);
-        ASSERT_EQ(foundDBusServiceName, dbusServiceName);
-        ASSERT_EQ(foundDBusObjectPath, predefinedDBusObjectPath);
+        EXPECT_EQ(foundDBusInterfaceName, predefinedDBusInterfaceName);
+        EXPECT_EQ(foundDBusServiceName, dbusServiceName);
+        EXPECT_EQ(foundDBusObjectPath, predefinedDBusObjectPath);
     }
 }
 
 TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
-    auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-
-    ASSERT_TRUE(stubDBusConnection->connect());
-	ASSERT_TRUE(stubDBusConnection->requestServiceNameAndBlock(dbusServiceName));
-
-    auto proxyDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
-    auto dbusServiceRegistry = proxyDBusConnection->getDBusServiceRegistry();
-    std::unordered_map<std::string, std::promise<CommonAPI::AvailabilityStatus> > instanceStatusPromises;
-    std::unordered_map<std::string, CommonAPI::DBus::DBusServiceRegistry::Subscription> instanceSubscriptions;
-
-    for (auto& predefinedInstance : predefinedInstancesMap) {
-        const std::string& commonApiAddress = predefinedInstance.second;
-
-        instanceSubscriptions[commonApiAddress] = dbusServiceRegistry->subscribeAvailabilityListener(
-                        commonApiAddress,
-                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
-            instanceStatusPromises[commonApiAddress].set_value(availabilityStatus);
-            return CommonAPI::SubscriptionStatus::RETAIN;
-        });
-    }
-
-    ASSERT_TRUE(proxyDBusConnection->connect());
-
-    for (auto& predefinedInstance : predefinedInstancesMap) {
-        const std::string& dbusInterfaceName = predefinedInstance.first.first;
-        const std::string& dbusObjectPath = predefinedInstance.first.second;
-        const std::string& commonApiAddress = predefinedInstance.second;
-
-        auto instanceStatusFuture = instanceStatusPromises[commonApiAddress].get_future();
-        auto instanceStatusFutureStatus = instanceStatusFuture.wait_for(std::chrono::milliseconds(2000));
-        const bool instanceReady = CommonAPI::DBus::checkReady(instanceStatusFutureStatus);
-
-        ASSERT_TRUE(instanceReady);
-
-        std::promise<CommonAPI::AvailabilityStatus> postInstanceStatusPromise;
-        auto postInstanceSubscription = dbusServiceRegistry->subscribeAvailabilityListener(
-                        commonApiAddress,
-                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
-            postInstanceStatusPromise.set_value(availabilityStatus);
-            return CommonAPI::SubscriptionStatus::RETAIN;
-        });
-
-        auto postInstanceStatusFuture = postInstanceStatusPromise.get_future();
-        auto postInstanceStatusFutureStatus = postInstanceStatusFuture.wait_for(std::chrono::milliseconds(2000));
-        const bool postInstanceReady = CommonAPI::DBus::checkReady(postInstanceStatusFutureStatus);
-
-        ASSERT_TRUE(postInstanceReady);
-
-        dbusServiceRegistry->unsubscribeAvailabilityListener(commonApiAddress, postInstanceSubscription);
-        dbusServiceRegistry->unsubscribeAvailabilityListener(commonApiAddress, instanceSubscriptions[commonApiAddress]);
-
-
-        bool isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
-        for (int i = 0; !isInstanceAlive && i < 100; i++) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
-        }
-
-        ASSERT_TRUE(isInstanceAlive);
-
-
-        std::vector<std::string> availableDBusServiceInstances = dbusServiceRegistry->getAvailableServiceInstances(dbusInterfaceName);
-        bool availableInstanceFound = false;
-
-        for (auto& availableInstance : availableDBusServiceInstances) {
-            if (availableInstance == commonApiAddress) {
-                availableInstanceFound = true;
-                break;
-            }
-        }
-
-        ASSERT_TRUE(availableInstanceFound);
-    }
+//    auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+//
+//    ASSERT_TRUE(stubDBusConnection->connect());
+//	ASSERT_TRUE(stubDBusConnection->requestServiceNameAndBlock(dbusServiceName));
+//
+//    auto proxyDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+//    auto dbusServiceRegistry = proxyDBusConnection->getDBusServiceRegistry();
+//    std::unordered_map<std::string, std::promise<CommonAPI::AvailabilityStatus> > instanceStatusPromises;
+//    std::unordered_map<std::string, CommonAPI::DBus::DBusServiceRegistry::Subscription> instanceSubscriptions;
+//
+//    for (auto& predefinedInstance : predefinedInstancesMap) {
+//        const std::string& commonApiAddress = predefinedInstance.second;
+//
+//        instanceSubscriptions[commonApiAddress] = dbusServiceRegistry->subscribeAvailabilityListener(
+//                        commonApiAddress,
+//                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
+//            instanceStatusPromises[commonApiAddress].set_value(availabilityStatus);
+//            return CommonAPI::SubscriptionStatus::RETAIN;
+//        });
+//    }
+//
+//    ASSERT_TRUE(proxyDBusConnection->connect());
+//
+//    for (auto& predefinedInstance : predefinedInstancesMap) {
+//        const std::string& dbusInterfaceName = predefinedInstance.first.first;
+//        const std::string& dbusObjectPath = predefinedInstance.first.second;
+//        const std::string& commonApiAddress = predefinedInstance.second;
+//
+//        auto instanceStatusFuture = instanceStatusPromises[commonApiAddress].get_future();
+//        auto instanceStatusFutureStatus = instanceStatusFuture.wait_for(std::chrono::milliseconds(2000));
+//        const bool instanceReady = CommonAPI::DBus::checkReady(instanceStatusFutureStatus);
+//
+//        ASSERT_TRUE(instanceReady);
+//
+//        std::promise<CommonAPI::AvailabilityStatus> postInstanceStatusPromise;
+//        auto postInstanceSubscription = dbusServiceRegistry->subscribeAvailabilityListener(
+//                        commonApiAddress,
+//                        [&] (const CommonAPI::AvailabilityStatus& availabilityStatus) -> CommonAPI::SubscriptionStatus {
+//            postInstanceStatusPromise.set_value(availabilityStatus);
+//            return CommonAPI::SubscriptionStatus::RETAIN;
+//        });
+//
+//        auto postInstanceStatusFuture = postInstanceStatusPromise.get_future();
+//        auto postInstanceStatusFutureStatus = postInstanceStatusFuture.wait_for(std::chrono::milliseconds(2000));
+//        const bool postInstanceReady = CommonAPI::DBus::checkReady(postInstanceStatusFutureStatus);
+//
+//        ASSERT_TRUE(postInstanceReady);
+//
+//        dbusServiceRegistry->unsubscribeAvailabilityListener(commonApiAddress, postInstanceSubscription);
+//        dbusServiceRegistry->unsubscribeAvailabilityListener(commonApiAddress, instanceSubscriptions[commonApiAddress]);
+//
+//
+//        bool isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
+//        for (int i = 0; !isInstanceAlive && i < 100; i++) {
+//            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//            isInstanceAlive = dbusServiceRegistry->isServiceInstanceAlive(dbusInterfaceName, dbusServiceName, dbusObjectPath);
+//        }
+//
+//        ASSERT_TRUE(isInstanceAlive);
+//
+//
+//        std::vector<std::string> availableDBusServiceInstances = dbusServiceRegistry->getAvailableServiceInstances(dbusInterfaceName);
+//        bool availableInstanceFound = false;
+//
+//        for (auto& availableInstance : availableDBusServiceInstances) {
+//            if (availableInstance == commonApiAddress) {
+//                availableInstanceFound = true;
+//                break;
+//            }
+//        }
+//
+//        ASSERT_TRUE(availableInstanceFound);
+//    }
 }
 
 
@@ -224,6 +444,9 @@ const char serviceAddress_[] = "local:test.service.name:test.instance.name";
 const char serviceName_[] = "test.service.name";
 const char nonexistingServiceAddress_[] = "local:nonexisting.service.name:nonexisting.instance.name";
 const char nonexistingServiceName_[] = "nonexisting.service.name";
+
+
+
 
 class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
  protected:
@@ -249,15 +472,14 @@ class DBusServiceDiscoveryTestWithPredefinedRemote: public ::testing::Test {
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
 };
 
-
 TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfExistingServiceAsAlive) {
     bool result = clientFactory_->isServiceInstanceAlive(serviceAddress_);
-    ASSERT_TRUE(result);
+    EXPECT_TRUE(result);
 }
 
 TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfNonexistingServiceAsDead) {
     bool result = clientFactory_->isServiceInstanceAlive(nonexistingServiceAddress_);
-    ASSERT_FALSE(result);
+    EXPECT_FALSE(result);
 }
 
 
@@ -274,7 +496,7 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfExistin
                     },
                     serviceAddress_);
 
-    ASSERT_TRUE(futureResult.get());
+    EXPECT_TRUE(futureResult.get());
 }
 
 
@@ -291,12 +513,12 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, RecognizesInstanceOfNonexis
                     },
                     nonexistingServiceAddress_);
 
-    ASSERT_FALSE(futureResult.get());
+    EXPECT_FALSE(futureResult.get());
 }
 
 
 TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsInstancesOfExistingTestService) {
-    ASSERT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
+    EXPECT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
 }
 
 
@@ -316,13 +538,13 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsInstancesOfExistingTes
 
     std::vector<std::string> result = futureResult.get();
 
-    ASSERT_EQ(1, result.size());
+    EXPECT_EQ(1, result.size());
 }
 
 
 TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsNoInstancesOfNonexistingTestService) {
     std::vector<std::string> result = clientFactory_->getAvailableServiceInstances(nonexistingServiceName_);
-    ASSERT_EQ(0, result.size());
+    EXPECT_EQ(0, result.size());
 }
 
 
@@ -339,8 +561,49 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, FindsNoInstancesOfNonexisti
                     },
                     nonexistingServiceName_);
 
-    ASSERT_EQ(0, futureResult.get().size());
+    EXPECT_EQ(0, futureResult.get().size());
 }
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, ServiceRegistryUsesCacheForResolvingOneService) {
+    std::chrono::system_clock::time_point startTimeWithColdCache = std::chrono::system_clock::now();
+    ASSERT_TRUE(clientFactory_->isServiceInstanceAlive(serviceAddress_));
+    std::chrono::system_clock::time_point endTimeWithColdCache = std::chrono::system_clock::now();
+
+    long durationWithColdCache = std::chrono::duration_cast<std::chrono::microseconds>(endTimeWithColdCache - startTimeWithColdCache).count();
+
+    std::chrono::system_clock::time_point startTimeWithHotCache = std::chrono::system_clock::now();
+    ASSERT_TRUE(clientFactory_->isServiceInstanceAlive(serviceAddress_));
+    std::chrono::system_clock::time_point endTimeWithHotCache = std::chrono::system_clock::now();
+
+    long durationWithHotCache = std::chrono::duration_cast<std::chrono::microseconds>(endTimeWithHotCache - startTimeWithHotCache).count();
+
+    double speedRatio = durationWithColdCache / durationWithHotCache;
+
+    EXPECT_GE(speedRatio, 100);
+}
+
+
+TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, DISABLED_ServiceRegistryUsesCacheForResolvingWholeBus) {
+    std::chrono::system_clock::time_point startTimeWithColdCache = std::chrono::system_clock::now();
+    ASSERT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
+    std::chrono::system_clock::time_point endTimeWithColdCache = std::chrono::system_clock::now();
+
+    long durationWithColdCache = std::chrono::duration_cast<std::chrono::microseconds>(endTimeWithColdCache - startTimeWithColdCache).count();
+
+    std::chrono::system_clock::time_point startTimeWithHotCache = std::chrono::system_clock::now();
+    ASSERT_EQ(1, clientFactory_->getAvailableServiceInstances(serviceName_).size());
+    std::chrono::system_clock::time_point endTimeWithHotCache = std::chrono::system_clock::now();
+
+    long durationWithHotCache = std::chrono::duration_cast<std::chrono::microseconds>(endTimeWithHotCache - startTimeWithHotCache).count();
+
+    double speedRatio = durationWithColdCache / durationWithHotCache;
+
+    std::cout << "cold " << durationWithColdCache << "\n";
+    std::cout << "hot " << durationWithHotCache << "\n";
+
+    EXPECT_GE(speedRatio, 100);
+}
+
 
 
 int main(int argc, char** argv) {

@@ -13,7 +13,7 @@
 #define COMMONAPI_DBUS_DBUS_STUB_ADAPTER_H_
 
 #include "DBusProxyConnection.h"
-#include "DBusObjectManager.h"
+#include "DBusInterfaceHandler.h"
 #include "DBusMessage.h"
 
 #include <CommonAPI/Stub.h>
@@ -24,13 +24,18 @@
 namespace CommonAPI {
 namespace DBus {
 
-class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
+class DBusObjectManagerStub;
+class DBusFactory;
+
+class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfaceHandler {
  public:
-    DBusStubAdapter(const std::string& commonApiAddress,
+    DBusStubAdapter(const std::shared_ptr<DBusFactory>& factory,
+                    const std::string& commonApiAddress,
                     const std::string& dbusInterfaceName,
                     const std::string& dbusBusName,
                     const std::string& dbusObjectPath,
-                    const std::shared_ptr<DBusProxyConnection>& dbusConnection);
+                    const std::shared_ptr<DBusProxyConnection>& dbusConnection,
+                    DBusObjectManagerStub* managerStub = NULL);
 
     virtual ~DBusStubAdapter();
 
@@ -42,14 +47,22 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter {
     virtual const std::string& getServiceId() const;
     virtual const std::string& getInstanceId() const;
 
+    inline const std::string& getDBusName() const;
     inline const std::string& getObjectPath() const;
     inline const std::string& getInterfaceName() const;
 
     inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
 
+    inline virtual DBusObjectManagerStub* getDBusObjectManagerStub();
+    inline const bool hasDBusObjectManagerStub();
+
     virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
-private:
+
+    virtual void deactivateManagedInstances() = 0;
+
+ protected:
+
     const std::string commonApiDomain_;
     const std::string commonApiServiceId_;
     const std::string commonApiParticipantId_;
@@ -59,12 +72,25 @@ private:
     const std::string dbusInterfaceName_;
     const std::shared_ptr<DBusProxyConnection> dbusConnection_;
 
-    bool isInitialized_;
-
-    DBusInterfaceHandlerToken dbusInterfaceHandlerToken_;
+    DBusObjectManagerStub* managerStub;
 
     static const std::string domain_;
+
+    const std::shared_ptr<DBusFactory> factory_;
 };
+
+
+DBusObjectManagerStub* DBusStubAdapter::getDBusObjectManagerStub() {
+    return managerStub;
+}
+
+const bool DBusStubAdapter::hasDBusObjectManagerStub() {
+    return (getDBusObjectManagerStub() != NULL);
+}
+
+const std::string& DBusStubAdapter::getDBusName() const {
+    return dbusBusName_;
+}
 
 const std::string& DBusStubAdapter::getObjectPath() const {
     return dbusObjectPath_;

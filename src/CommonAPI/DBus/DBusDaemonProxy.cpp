@@ -42,6 +42,10 @@ DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbu
                 nameOwnerChangedEvent_(*this, "NameOwnerChanged", "sss") {
 }
 
+void DBusDaemonProxy::init() {
+
+}
+
 std::string DBusDaemonProxy::getAddress() const {
     return getDomain() + ":" + getServiceId() + ":" + getInstanceId();
 }
@@ -67,6 +71,10 @@ const std::string& DBusDaemonProxy::getInterfaceName() const {
 
 bool DBusDaemonProxy::isAvailable() const {
     return getDBusConnection()->isConnected();
+}
+
+bool DBusDaemonProxy::isAvailableBlocking() const {
+    return isAvailable();
 }
 
 ProxyStatusEvent& DBusDaemonProxy::getProxyStatusEvent() {
@@ -170,6 +178,24 @@ std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::strin
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMethodCallMessage,
                     DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(callback),
+                    2000);
+}
+
+std::future<CallStatus> DBusDaemonProxy::getNameOwnerAsync(const std::string& busName, GetNameOwnerAsyncCallback getNameOwnerAsyncCallback) const {
+    DBusMessage dbusMessage = createMethodCall("GetNameOwner", "s");
+
+    DBusOutputStream outputStream(dbusMessage);
+    const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
+    if (!success) {
+        std::promise<CallStatus> promise;
+        promise.set_value(CallStatus::OUT_OF_MEMORY);
+        return promise.get_future();
+    }
+    outputStream.flush();
+
+    return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                    dbusMessage,
+                    DBusProxyAsyncCallbackHandler<std::string>::create(getNameOwnerAsyncCallback),
                     2000);
 }
 

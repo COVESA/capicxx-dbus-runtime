@@ -267,7 +267,7 @@ void notifyThunk(DBusPendingCall*, void* data) {
     promise.set_value(true);
 }
 
-TEST_F(DBusConnectionTest, DISABLED_LibdbusConnectionsMayCommitSuicide) {
+TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
     const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
     ::DBusError libdbusError;
     dbus_error_init(&libdbusError);
@@ -322,6 +322,7 @@ void noPartnerCleanup(void* data) {
     promise3.set_value(true);
 }
 
+// libdbus bug
 TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
     const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
     ::DBusError libdbusError;
@@ -360,32 +361,6 @@ TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
 
     ASSERT_EQ(true, future2.get());
     dispatchThread.join();
-}
-
-TEST_F(DBusConnectionTest, DISABLED_ConnectionsMayCommitAsynchronousSuicide) {
-    CommonAPI::DBus::DBusConnection* dbusConnection_ = new CommonAPI::DBus::DBusConnection(
-                    CommonAPI::DBus::BusType::SESSION);
-    dbusConnection_->connect();
-
-    auto dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
-                    "org.freedesktop.DBus",
-                    "/org/freedesktop/DBus",
-                    "org.freedesktop.DBus",
-                    "ListNames",
-                    "");
-
-    bool hasHappened = false;
-
-    auto future = dbusConnection_->sendDBusMessageWithReplyAsync(
-                    dbusMessageCall,
-                    CommonAPI::DBus::DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(
-                                    [&] (const CommonAPI::CallStatus&, std::vector<std::string>) {
-                                        hasHappened = true;
-                                        delete dbusConnection_;
-                                    }
-                                    ));
-
-    ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, future.get());
 }
 
 int main(int argc, char** argv) {

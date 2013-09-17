@@ -20,6 +20,8 @@
 namespace CommonAPI {
 namespace DBus {
 
+class DBusFactory;
+class DBusObjectManagerStub;
 
 class DBusServicePublisher: public ServicePublisher {
  public:
@@ -27,12 +29,28 @@ class DBusServicePublisher: public ServicePublisher {
 
     static std::shared_ptr<DBusServicePublisher> getInstance();
 
-    bool registerService(const std::string& serviceAddress, std::shared_ptr<DBusStubAdapter> adapter);
+    bool registerService(const std::shared_ptr<DBusStubAdapter>& dbusStubAdapter);
+    virtual bool unregisterService(const std::string& serviceAddress);
 
-    bool unregisterService(const std::string& serviceAddress);
+    bool registerManagedService(const std::shared_ptr<DBusStubAdapter>& managedDBusStubAdapter);
+    bool unregisterManagedService(const std::string& serviceAddress);
+
+    std::shared_ptr<DBusStubAdapter> getRegisteredService(const std::string&);
+
+ protected:
+    virtual bool registerService(const std::shared_ptr<StubBase>& stubBase,
+                                 const char* interfaceId,
+                                 const std::string& participantId,
+                                 const std::string& serviceName,
+                                 const std::string& domain,
+                                 const std::shared_ptr<Factory>& factory);
 
  private:
-    std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> registeredServices_;
+    typedef std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> DBusServicesMap;
+
+    void unregisterManagedService(DBusServicesMap::iterator& managedServiceIterator);
+
+    DBusServicesMap registeredServices_;
 };
 
 } // namespace DBus

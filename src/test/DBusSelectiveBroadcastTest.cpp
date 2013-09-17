@@ -70,9 +70,10 @@ public:
     void sendToLastSubscribedClient()
     {
         sentBroadcasts++;
-        CommonAPI::ClientIdList receivers = { lastSubscribedClient };
+        std::shared_ptr<CommonAPI::ClientIdList> receivers = std::make_shared<CommonAPI::ClientIdList>();
+        receivers->insert(lastSubscribedClient);
 
-        fireTestSelectiveBroadcastSelective(&receivers);
+        fireTestSelectiveBroadcastSelective(receivers);
     }
 
 

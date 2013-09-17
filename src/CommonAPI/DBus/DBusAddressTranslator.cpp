@@ -21,6 +21,7 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <sstream>
 
 
 namespace CommonAPI {
@@ -47,6 +48,17 @@ DBusAddressTranslator& DBusAddressTranslator::getInstance() {
     return *dbusAddressTranslator;
 }
 
+
+void DBusAddressTranslator::searchForDBusAddress(const std::string& domain,
+                              const std::string& interface,
+                              const std::string& instance,
+                              std::string& interfaceName,
+                              std::string& connectionName,
+                              std::string& objectPath) {
+    std::stringstream ss;
+    ss << domain << ":" << interface << ":" << instance;
+    searchForDBusAddress(ss.str(), interfaceName, connectionName, objectPath);
+}
 
 void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAddress,
                                                  std::string& interfaceName,
@@ -124,7 +136,13 @@ void DBusAddressTranslator::findFallbackCommonAddress(std::string& commonApiAddr
                                                       const std::string& interfaceName,
                                                       const std::string& connectionName,
                                                       const std::string& objectPath) const {
-    commonApiAddress = "local:" + interfaceName + ":" + connectionName;
+    commonApiAddress = "local:" + interfaceName + ":" + transfromObjectPathToInstance(objectPath);
+}
+
+std::string DBusAddressTranslator::transfromObjectPathToInstance(const std::string& path) const {
+    std::string out = path.substr(1, std::string::npos);
+    std::replace(out.begin(), out.end(), '/', '.');
+    return out;
 }
 
 }// namespace DBus

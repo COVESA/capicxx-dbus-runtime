@@ -35,17 +35,17 @@ inline void printLibdbusMessage(DBusMessage* libdbusMessage) {
     printLibdbusMessage(libdbusMessage, 0, dbus_message_get_body_length(libdbusMessage));
 }
 
-inline std::string toString(CommonAPI::DBus::DBusServiceRegistry::DBusServiceState state) {
-    switch(state) {
-        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::AVAILABLE:
+inline std::string toString(CommonAPI::DBus::DBusServiceRegistry::DBusRecordState dbusRecordState) {
+    switch(dbusRecordState) {
+        case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::AVAILABLE:
             return "AVAILABLE";
-        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::NOT_AVAILABLE:
+        case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::NOT_AVAILABLE:
             return "NOT_AVAILABLE";
-        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::RESOLVED:
+        case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::RESOLVED:
             return "RESOLVED";
-        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::RESOLVING:
+        case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::RESOLVING:
             return "RESOLVING";
-        case CommonAPI::DBus::DBusServiceRegistry::DBusServiceState::UNKNOWN:
+        case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::UNKNOWN:
             return "UNKNOWN";
     }
 }

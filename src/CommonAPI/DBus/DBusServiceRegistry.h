@@ -21,7 +21,10 @@
 #include "DBusAddressTranslator.h"
 #include "DBusDaemonProxy.h"
 
+#include "pugixml/pugixml.hpp"
+
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <map>
 #include <unordered_set>
@@ -34,6 +37,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <future>
 
 namespace CommonAPI {
 namespace DBus {
@@ -47,10 +51,10 @@ typedef std::pair<std::string, std::string> DBusInstanceId;
 class DBusProxyConnection;
 class DBusDaemonProxy;
 
-
-class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegistry> {
+class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegistry>,
+                           public DBusProxyConnection::DBusSignalHandler {
  public:
-    enum class DBusServiceState {
+    enum class DBusRecordState {
         UNKNOWN,
         AVAILABLE,
         RESOLVING,
@@ -58,27 +62,37 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         NOT_AVAILABLE
     };
 
+    // template class DBusServiceListener<> { typedef functor; typedef list; typedef subscription }
     typedef std::function<SubscriptionStatus(const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
     typedef std::list<DBusServiceListener> DBusServiceListenerList;
-    typedef DBusServiceListenerList::iterator Subscription;
+    typedef DBusServiceListenerList::iterator DBusServiceSubscription;
 
-    typedef std::pair<std::string, std::string> DBusObjectInterfacePair;
-    typedef std::unordered_map<DBusObjectInterfacePair, std::pair<AvailabilityStatus, DBusServiceListenerList> > DBusInstanceList;
-    typedef std::unordered_map<std::string, std::pair<DBusServiceState, DBusInstanceList> > DBusServiceList;
+
+    typedef std::function<SubscriptionStatus(const std::vector<std::string>& interfaces,
+                                             const AvailabilityStatus& availabilityStatus)> DBusManagedInterfaceListener;
+    typedef std::list<DBusManagedInterfaceListener> DBusManagedInterfaceListenerList;
+    typedef DBusManagedInterfaceListenerList::iterator DBusManagedInterfaceSubscription;
 
 
     DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
+
+    DBusServiceRegistry(const DBusServiceRegistry&) = delete;
+    DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
 
     virtual ~DBusServiceRegistry();
 
     void init();
 
+
+    DBusServiceSubscription subscribeAvailabilityListener(const std::string& commonApiAddress,
+                                                          DBusServiceListener serviceListener);
+
+    void unsubscribeAvailabilityListener(const std::string& commonApiAddress,
+                                         DBusServiceSubscription& listenerSubscription);
+
+
     bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
 
-    Subscription subscribeAvailabilityListener(const std::string& commonApiAddress,
-                                               DBusServiceListener serviceListener);
-    void unsubscribeAvailabilityListener(const std::string& commonApiAddress,
-                                         Subscription& listenerSubscription);
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
                                                                   const std::string& domainName = "local");
@@ -87,56 +101,222 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
                                                    const std::string& interfaceName,
                                                    const std::string& domainName = "local");
 
+
+    virtual SubscriptionStatus onSignalDBusMessage(const DBusMessage&);
+
+//    std::vector<std::string> getManagedObjects(const std::string& connectionName, const std::string& objectpath);
+
  private:
-    DBusServiceRegistry(const DBusServiceRegistry&) = delete;
-    DBusServiceRegistry& operator=(const DBusServiceRegistry&) = delete;
+    struct DBusInterfaceNameListenersRecord {
+        DBusInterfaceNameListenersRecord(): state(DBusRecordState::UNKNOWN) {
+        }
+
+        DBusInterfaceNameListenersRecord(DBusInterfaceNameListenersRecord&& other):
+            state(other.state),
+            listenerList(std::move(other.listenerList))
+        {
+        }
+
+        DBusRecordState state;
+        DBusServiceListenerList listenerList;
+    };
+
+    typedef std::unordered_map<std::string, DBusInterfaceNameListenersRecord> DBusInterfaceNameListenersMap;
+
+    struct DBusServiceListenersRecord {
+        DBusServiceListenersRecord(): uniqueBusNameState(DBusRecordState::UNKNOWN),
+                        //futureOnResolve(),
+                        mutexOnResolve() {
+        }
+
+        DBusServiceListenersRecord(DBusServiceListenersRecord&& other):
+            uniqueBusName(std::move(other.uniqueBusName)),
+            uniqueBusNameState(other.uniqueBusNameState),
+            promiseOnResolve(std::move(other.promiseOnResolve)),
+            futureOnResolve(std::move(other.futureOnResolve)),
+            mutexOnResolve(std::move(other.mutexOnResolve)),
+            dbusObjectPathListenersMap(std::move(other.dbusObjectPathListenersMap))
+        {
+            /*other.uniqueBusName = NULL;
+            other.promiseOnResolve = NULL;
+            other.futureOnResolve = NULL;
+            other.mutexOnResolve = NULL;
+            other.dbusObjectPathListenersMap = NULL;
+            other.dbusServiceListenersMap = NULL;*/
+        }
+
+        ~DBusServiceListenersRecord() {};
+
+        DBusRecordState uniqueBusNameState;
+        std::string uniqueBusName;
+
+        std::promise<DBusRecordState> promiseOnResolve;
+        std::shared_future<DBusRecordState> futureOnResolve;
+        std::unique_lock<std::mutex>* mutexOnResolve;
+
+        std::unordered_map<std::string, DBusInterfaceNameListenersMap> dbusObjectPathListenersMap;
+
+        /* per manager records: anser commonapi queries and update after dbus GetManagedObjects */
+//        typedef std::unordered_set<std::string> DBusObjectPathsSet;
+//        typedef std::pair<DBusObjectPathsSet, DBusManagedInterfaceListenerList> DBusManagedInterfaceRecord;
+//        typedef std::unordered_map<std::string, DBusManagedInterfaceRecord> DBusManagedInterfacesMap;
+//        typedef std::pair<DBusRecordState, DBusManagedInterfacesMap> DBusObjectManagerRecord;
+//        std::unordered_map<std::string, DBusObjectManagerRecord> dbusObjectManagersMap;
+    };
+
+    std::unordered_map<std::string, DBusServiceListenersRecord> dbusServiceListenersMap;
+
+
+    struct DBusObjectPathCache {
+        DBusObjectPathCache(): referenceCount(0), state(DBusRecordState::UNKNOWN) {
+        }
+
+        DBusObjectPathCache(DBusObjectPathCache&& other):
+            referenceCount(other.referenceCount),
+            state(other.state),
+            promiseOnResolve(std::move(other.promiseOnResolve)),
+            dbusInterfaceNamesCache(std::move(other.dbusInterfaceNamesCache))
+        {
+            /*other.promiseOnResolve = NULL;
+            other.dbusInterfaceNamesCache = NULL;*/
+        }
+
+        ~DBusObjectPathCache() {}
+
+        size_t referenceCount;
+        DBusRecordState state;
+        std::promise<DBusRecordState> promiseOnResolve;
+
+        std::unordered_set<std::string> dbusInterfaceNamesCache;
+    };
+
+    struct DBusUniqueNameRecord {
+        DBusUniqueNameRecord(): objectPathsState(DBusRecordState::UNKNOWN) {
+        }
+
+        DBusUniqueNameRecord(DBusUniqueNameRecord&& other) :
+            uniqueName(std::move(other.uniqueName)),
+            objectPathsState(other.objectPathsState),
+            ownedBusNames(std::move(other.ownedBusNames)),
+            dbusObjectPathsCache(std::move(other.dbusObjectPathsCache))
+        {
+            /*other.uniqueName = NULL;
+            other.ownedBusNames = NULL;
+            other.dbusObjectPathsCache = NULL;*/
+        }
+        std::string uniqueName;
+        DBusRecordState objectPathsState;
+        std::unordered_set<std::string> ownedBusNames;
+        std::unordered_map<std::string, DBusObjectPathCache> dbusObjectPathsCache;
+
+        // TODO managed objects
+    };
+
+    std::unordered_map<std::string, DBusUniqueNameRecord> dbusUniqueNamesMap_;
+    // mapping service names (well-known names) to service instances
+    std::unordered_map<std::string, DBusUniqueNameRecord*> dbusServiceNameMap_;
+
+
+    // protects the dbus service maps
+    std::mutex dbusServicesMutex_;
+
+
+    void resolveDBusServiceName(const std::string& dbusServiceName,
+                                DBusServiceListenersRecord& dbusServiceListenersRecord);
+
+    void onGetNameOwnerCallback(const CallStatus& status, std::string dbusServiceUniqueName, const std::string& dbusServiceName);
+
+
+    DBusRecordState resolveDBusInterfaceNameState(const std::string& dbusInterfaceName,
+                                                  const std::string& dbusObjectPath,
+                                                  const std::string& dbusServiceName,
+                                                  DBusServiceListenersRecord& dbusServiceListenersRecord);
+
+
+    DBusObjectPathCache& getDBusObjectPathCacheReference(const std::string& dbusObjectPath,
+                                                         const std::string& dbusServiceUniqueName,
+                                                         DBusUniqueNameRecord& dbusUniqueNameRecord);
+
+    void releaseDBusObjectPathCacheReference(const std::string& dbusObjectPath,
+                                             const DBusServiceListenersRecord& dbusServiceListenersRecord);
+
+
+    bool introspectDBusObjectPath(const std::string& dbusServiceUniqueName, const std::string& dbusObjectPath);
+
+    void onIntrospectCallback(const CallStatus& status,
+                              std::string xmlData,
+                              const std::string& dbusServiceName,
+                              const std::string& dbusObjectPath);
+
+    void parseIntrospectionData(const std::string& xmlData, const std::string& rootObjectPath, const std::string& dbusServiceUniqueName);
+    void parseIntrospectionNode(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName);
+    void processIntrospectionObjectPath(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& dbusServiceUniqueName);
+    void processIntrospectionInterface(const pugi::xml_node& interface,  const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName);
+
+
 
     SubscriptionStatus onDBusDaemonProxyStatusEvent(const AvailabilityStatus& availabilityStatus);
-    SubscriptionStatus onDBusDaemonProxyNameOwnerChangedEvent(const std::string& name, const std::string& oldOwner, const std::string& newOwner);
 
-    void onListNamesCallback(const CommonAPI::CallStatus& callStatus, std::vector<std::string> dbusNames);
-
-    void resolveDBusServiceInstances(DBusServiceList::iterator& dbusServiceIterator);
-    void onGetManagedObjectsCallback(const CallStatus& status, DBusDaemonProxy::DBusObjectToInterfaceDict managedObjects, const std::string& dbusServiceName);
-
-    size_t getResolvedServiceInstances(const std::string& dbusInterfaceName, std::vector<std::string>& availableServiceInstances);
-    size_t getNumResolvingServiceInstances();
-
-    bool waitDBusServicesAvailable(std::unique_lock<std::mutex>& lock, std::chrono::milliseconds& timeout);
-
-    void onDBusServiceAvailabilityStatus(const std::string& dbusServiceName, const AvailabilityStatus& availabilityStatus);
-    DBusServiceList::iterator onDBusServiceAvailabilityStatus(DBusServiceList::iterator& dbusServiceIterator, const AvailabilityStatus& availabilityStatus);
-    DBusServiceList::iterator onDBusServiceOffline(DBusServiceList::iterator& dbusServiceIterator, const DBusServiceState& dbusServiceState);
-
-    static void onDBusServiceInstanceAvailable(
-                    DBusInstanceList& dbusInstanceList,
-                    const std::string& dbusObjectPath,
-                    const std::string& dbusInterfaceName);
-
-    static DBusInstanceList::iterator addDBusServiceInstance(
-                    DBusInstanceList& dbusInstanceList,
-                    const std::string& dbusObjectPath,
-                    const std::string& dbusInterfaceName);
-
-    static void notifyDBusServiceListeners(DBusServiceListenerList& dbusServiceListenerList, const AvailabilityStatus& availabilityStatus);
-
-    static bool isDBusServiceName(const std::string& name);
-
+    SubscriptionStatus onDBusDaemonProxyNameOwnerChangedEvent(const std::string& name,
+                                                              const std::string& oldOwner,
+                                                              const std::string& newOwner);
 
     std::shared_ptr<DBusDaemonProxy> dbusDaemonProxy_;
-
-    DBusServiceList dbusServices_;
-    AvailabilityStatus dbusNameListStatus_;
-    std::condition_variable dbusServiceChanged_;
-
-    std::mutex dbusServicesMutex_;
-    std::thread::id notificationThread_;
-
     bool initialized_;
 
     ProxyStatusEvent::Subscription dbusDaemonProxyStatusEventSubscription_;
     NameOwnerChangedEvent::Subscription dbusDaemonProxyNameOwnerChangedEventSubscription_;
+
+
+    void onDBusServiceAvailable(const std::string& dbusServiceName, const std::string& dbusServiceUniqueName);
+
+    void onDBusServiceNotAvailable(DBusServiceListenersRecord& dbusServiceListenersRecord);
+
+
+    void notifyDBusServiceListeners(const DBusUniqueNameRecord& dbusUniqueNameRecord,
+                                    const std::string& dbusObjectPath,
+                                    const std::unordered_set<std::string>& dbusInterfaceNames,
+                                    const DBusRecordState& dbusInterfaceNamesState);
+
+    void notifyDBusObjectPathResolved(DBusInterfaceNameListenersMap& dbusInterfaceNameListenersMap,
+                                      const std::unordered_set<std::string>& dbusInterfaceNames);
+
+    void notifyDBusObjectPathChanged(DBusInterfaceNameListenersMap& dbusInterfaceNameListenersMap,
+                                     const std::unordered_set<std::string>& dbusInterfaceNames,
+                                     const DBusRecordState& dbusInterfaceNamesState);
+
+    void notifyDBusInterfaceNameListeners(DBusInterfaceNameListenersRecord& dbusInterfaceNameListenersRecord,
+                                          const bool& isDBusInterfaceNameAvailable);
+
+
+    void removeUniqueName(std::string& dbusUniqueName);
+    DBusUniqueNameRecord* insertServiceNameMapping(const std::string& dbusUniqueName, const std::string& dbusServiceName);
+    bool findCachedDbusService(const std::string& dbusServiceName, DBusUniqueNameRecord** uniqueNameRecord);
+    bool findCachedObjectPath(const std::string& dbusObjectPathName, const DBusUniqueNameRecord* uniqueNameRecord, DBusObjectPathCache* objectPathCache);
+
+    std::condition_variable monitorResolveAllServices_;
+    std::mutex mutexServiceResolveCount;
+    int servicesToResolve;
+
+    std::condition_variable monitorResolveAllObjectPaths_;
+    std::mutex mutexObjectPathsResolveCount;
+    int objectPathsToResolve;
+
+
+    void fetchAllServiceNames();
+
+    inline const bool isDBusServiceName(const std::string& serviceName) {
+        return (serviceName.length() > 0 && serviceName[0] != ':');
+    };
+
+
+    inline const bool isOrgFreedesktopDBusInterface(const std::string& dbusInterfaceName) {
+        return dbusInterfaceName.find("org.freedesktop.") == 0;
+    }
+
+    std::thread::id notificationThread_;
 };
+
 
 } // namespace DBus
 } // namespace CommonAPI

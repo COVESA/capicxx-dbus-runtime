@@ -144,6 +144,8 @@ per binary or globally for all binaries. If more than one config file is defined
 across several config files, the locally defined values override the global ones. If a CommonAPI address is defined more than once
 within a single file, the first definition found will be the only definition used.
 
+Note: Only one managing interface can be defined per D-Bus object path!
+
 CommonAPI D-Bus Config files have to be named this way:
 ----
 # Binary local: "<FqnOfBinary>_dbus.conf", e.g. "/usr/bin/myBinary_dbus.conf" if the binary is "/usr/bin/myBinary"

@@ -1,10 +1,12 @@
 .deps
 .dirstamp
 .libs
+*.gz
 *.la
 *.lo
+*.log
 *.o
-*.gz
+*.trs
 /.autotools
 /.cproject
 /.project
@@ -38,6 +40,7 @@
 /DBusAddressTranslatorTest
 /.pydevproject
 /DBusServiceRegistryTest
+/DBusClientIdTest
 /DBusConnectionTest
 /DBusMainLoopIntegrationTest
 /DBusServicePublisherTest
@@ -47,5 +50,7 @@
 /DBusDynamicLoadingBasicTest
 /DBusDynamicLoadingMultipleBindingsTest
 /DBusDynamicLoadingNoValidityTest
+/DBusObjectManagerStubTest
 /DBusClientIdTest
 /DBusSelectiveBroadcastTest
+/DBusManagedTest

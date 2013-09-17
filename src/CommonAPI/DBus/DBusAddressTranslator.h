@@ -32,6 +32,13 @@ public:
 
     static DBusAddressTranslator& getInstance();
 
+    void searchForDBusAddress(const std::string& domain,
+                              const std::string& interface,
+                              const std::string& instance,
+                              std::string& interfaceName,
+                              std::string& connectionName,
+                              std::string& objectPath);
+
     void searchForDBusAddress(const std::string& commonApiAddress,
                               std::string& interfaceName,
                               std::string& connectionName,
@@ -63,6 +70,8 @@ private:
                     const std::string& objectPath) const;
 
     void fillUndefinedValues(CommonApiServiceDetails& serviceDetails, const std::string& commonApiAddress) const;
+
+    std::string transfromObjectPathToInstance(const std::string& path) const;
 
     std::unordered_map<std::string, CommonApiServiceDetails> commonApiAddressDetails_;
     std::unordered_map<DBusServiceAddress, std::string> dbusToCommonApiAddress_;

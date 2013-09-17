@@ -24,21 +24,24 @@ namespace CommonAPI {
 namespace DBus {
 
 class DBusMainLoopContext;
+class DBusFactory;
 
-typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction) (const std::string& commonApiAddress,
-                                                                const std::string& interfaceName,
-                                                                const std::string& busName,
-                                                                const std::string& objectPath,
-                                                                const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
+typedef std::shared_ptr<DBusProxy> (*DBusProxyFactoryFunction)(const std::shared_ptr<DBusFactory>& factory,
+                                                               const std::string& commonApiAddress,
+                                                               const std::string& interfaceName,
+                                                               const std::string& busName,
+                                                               const std::string& objectPath,
+                                                               const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection);
 
-typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const std::string& commonApiAddress,
+typedef std::shared_ptr<DBusStubAdapter> (*DBusAdapterFactoryFunction) (const std::shared_ptr<DBusFactory>& factory,
+                                                                        const std::string& commonApiAddress,
                                                                         const std::string& interfaceName,
                                                                         const std::string& busName,
                                                                         const std::string& objectPath,
                                                                         const std::shared_ptr<DBusProxyConnection>& dbusProxyConnection,
                                                                         const std::shared_ptr<StubBase>& stubBase);
 
-class DBusFactory: public Factory {
+class DBusFactory: public Factory, public std::enable_shared_from_this<DBusFactory> {
  public:
     DBusFactory(std::shared_ptr<Runtime> runtime, const MiddlewareInfo* middlewareInfo, std::shared_ptr<MainLoopContext> mainLoopContext, const DBusFactoryConfig& dbusFactoryConfig = DBusFactoryConfig());
 
@@ -58,12 +61,18 @@ class DBusFactory: public Factory {
 
     virtual bool unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain = "local");
 
- protected:
+    std::shared_ptr<DBusStubAdapter> createDBusStubAdapter(const std::shared_ptr<StubBase>& stubBase,
+                                                           const char* interfaceId,
+                                                           const std::string& participantId,
+                                                           const std::string& serviceName,
+                                                           const std::string& domain);
+
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> getDbusConnection();
+
     virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
-    virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase, const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
  private:
-    SubscriptionStatus isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status);
+    SubscriptionStatus isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status, std::shared_ptr<DBusServiceRegistry> serviceRegistry);
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection_;
     std::shared_ptr<MainLoopContext> mainLoopContext_;

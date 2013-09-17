@@ -34,6 +34,13 @@ libmurmurhash_internal_la_SOURCES = \
         src/murmurhash/MurmurHash3.cpp
 
 # ------------------------------------------------------------------------------
+noinst_LTLIBRARIES += libpugixml-internal.la
+
+libpugixml_internal_la_SOURCES = \
+        src/pugixml/pugiconfig.hpp \
+        src/pugixml/pugixml.cpp \
+        src/pugixml/pugixml.hpp
+# ------------------------------------------------------------------------------
 lib_LTLIBRARIES += libCommonAPI-DBus.la
 
 libCommonAPI_DBus_la_SOURCES = \
@@ -48,22 +55,29 @@ libCommonAPI_DBus_la_SOURCES = \
         src/CommonAPI/DBus/DBusMainLoopContext.cpp \
         src/CommonAPI/DBus/DBusMessage.cpp \
         src/CommonAPI/DBus/DBusObjectManager.cpp \
+        src/CommonAPI/DBus/DBusObjectManagerStub.cpp \
         src/CommonAPI/DBus/DBusOutputStream.cpp \
         src/CommonAPI/DBus/DBusProxyBase.cpp \
         src/CommonAPI/DBus/DBusProxy.cpp \
+        src/CommonAPI/DBus/DBusProxyManager.cpp \
         src/CommonAPI/DBus/DBusFactory.cpp \
         src/CommonAPI/DBus/DBusRuntime.cpp \
         src/CommonAPI/DBus/DBusServicePublisher.cpp \
         src/CommonAPI/DBus/DBusServiceRegistry.cpp \
-        src/CommonAPI/DBus/DBusServiceStatusEvent.cpp \
         src/CommonAPI/DBus/DBusStubAdapter.cpp
 
 libCommonAPI_DBus_la_LIBADD = \
         libmurmurhash-internal.la \
+        libpugixml-internal.la \
         ${COMMONAPI_LIBS}
 libCommonAPI_DBus_la_LDFLAGS = \
         ${AM_LDFLAGS} \
         -version-info ${LIBCOMMONAPI_DBUS_CURRENT}:${LIBCOMMONAPI_DBUS_REVISION}:${LIBCOMMONAPI_DBUS_AGE}
+
+CommonAPI_DBus_pugi_includedir=$(includedir)/CommonAPI-${VERSION}/pugixml
+CommonAPI_DBus_pugi_include_HEADERS = \
+        src/pugixml/pugixml.hpp \
+        src/pugixml/pugiconfig.hpp
 
 CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
@@ -79,15 +93,19 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusFunctionalHash.h \
         src/CommonAPI/DBus/DBusHelper.h \
         src/CommonAPI/DBus/DBusInputStream.h \
+        src/CommonAPI/DBus/DBusInstanceAvailabilityStatusChangedEvent.h \
+        src/CommonAPI/DBus/DBusInterfaceHandler.h \
         src/CommonAPI/DBus/DBusMainLoopContext.h \
         src/CommonAPI/DBus/DBusMessage.h \
         src/CommonAPI/DBus/DBusMultiEvent.h \
         src/CommonAPI/DBus/DBusObjectManager.h \
+        src/CommonAPI/DBus/DBusObjectManagerStub.h \
         src/CommonAPI/DBus/DBusOutputStream.h \
         src/CommonAPI/DBus/DBusProxyBase.h \
         src/CommonAPI/DBus/DBusProxy.h \
         src/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.h \
         src/CommonAPI/DBus/DBusProxyConnection.h \
+        src/CommonAPI/DBus/DBusProxyManager.h \
         src/CommonAPI/DBus/DBusFactory.h \
         src/CommonAPI/DBus/DBusProxyHelper.h \
         src/CommonAPI/DBus/DBusRuntime.h \
@@ -95,7 +113,6 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusSerializableArguments.h \
         src/CommonAPI/DBus/DBusServicePublisher.h \
         src/CommonAPI/DBus/DBusServiceRegistry.h \
-        src/CommonAPI/DBus/DBusServiceStatusEvent.h \
         src/CommonAPI/DBus/DBusStubAdapter.h \
         src/CommonAPI/DBus/DBusStubAdapterHelper.h \
         src/CommonAPI/DBus/DBusUtils.h \
@@ -132,6 +149,18 @@ TestInterfaceDBusSources = \
         src/test/commonapi/tests/TestInterfaceDBusStubAdapter.cpp \
         src/test/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
 
+ManagedSources = \
+        src/test/commonapi/tests/managed/LeafInterfaceStubDefault.cpp \
+        src/test/commonapi/tests/managed/RootInterfaceStubDefault.cpp
+
+ManagedDBusSources = \
+        ${ManagedSources} \
+        src/test/commonapi/tests/managed/RootInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp
+
+
 lib_LTLIBRARIES += libDBusGen-TestInterface.la
 libDBusGen_TestInterface_la_SOURCES = \
         ${TestInterfaceDBusSources}
@@ -157,6 +186,7 @@ DYNAMIC_LOADING_TEST_SET = \
         DBusDynamicLoadingMultipleBindingsTest
 
 check_PROGRAMS = \
+        DBusManagedTest \
         DBusRuntimeTest \
         ${DYNAMIC_LOADING_TEST_SET} \
         DBusMainLoopIntegrationTest \
@@ -175,13 +205,21 @@ check_PROGRAMS = \
         DBusMultipleConnectionTest \
         DBusServicePublisherTest \
         DBusClientIdTest \
+        DBusObjectManagerStubTest \
         DBusSelectiveBroadcastTest
 
-
+noinst_PROGRAMS = ${check_PROGRAMS}
 TESTS = ${check_PROGRAMS}
+
 LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS = ${GTEST_LIBS} ${LDADD}
 LDADD_FOR_GTEST = libCommonAPI-DBus.la ${LDADD_FOR_GTEST_WITHOUT_LIBCOMMON_API_DBUS}
 
+DBusManagedTest_SOURCES = \
+        src/test/DBusManagedTest.cpp \
+        ${ManagedDBusSources}
+DBusManagedTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS} ${GLIB_CFLAGS}
+DBusManagedTest_CXXFLAGS = ${GTEST_CXXFLAGS} ${GLIB_CFLAGS}
+DBusManagedTest_LDADD = ${LDADD_FOR_GTEST} ${GLIB_LIBS}
 
 DBusMainLoopIntegrationTest_SOURCES = \
         src/test/DBusMainLoopIntegrationTest.cpp \
@@ -324,6 +362,10 @@ DBusClientIdTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusClientIdTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusClientIdTest_LDADD = ${LDADD_FOR_GTEST}
 
+DBusObjectManagerStubTest_SOURCES = src/test/DBusObjectManagerStubTest.cpp
+DBusObjectManagerStubTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusObjectManagerStubTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusObjectManagerStubTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusSelectiveBroadcastTest_SOURCES =  \
         ${TestInterfaceDBusSources} \

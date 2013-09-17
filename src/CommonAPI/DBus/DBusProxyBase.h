@@ -56,6 +56,9 @@ class DBusProxyBase: public virtual CommonAPI::Proxy {
                 const bool justAddFilter = false);
 
     inline bool removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
+
+    virtual void init() = 0;
+
  protected:
     const std::string commonApiDomain_;
 

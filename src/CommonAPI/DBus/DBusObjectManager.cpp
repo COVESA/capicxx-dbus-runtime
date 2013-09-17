@@ -23,13 +23,18 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
-        dbusConnection_(dbusConnection) {
+        dbusConnection_(dbusConnection),
+        rootDBusObjectManagerStub_("/", dbusConnection) {
 
     if (!dbusConnection->isObjectPathMessageHandlerSet()) {
         dbusConnection->setObjectPathMessageHandler(
                         std::bind(&DBusObjectManager::handleMessage, this, std::placeholders::_1));
     }
     dbusConnection->registerObjectPath("/");
+
+    dbusRegisteredObjectsTable_.insert({
+                    DBusInterfaceHandlerPath("/", DBusObjectManagerStub::getInterfaceName()),
+                    &rootDBusObjectManagerStub_ });
 }
 
 DBusObjectManager::~DBusObjectManager() {
@@ -40,38 +45,71 @@ DBusObjectManager::~DBusObjectManager() {
     }
 }
 
-DBusInterfaceHandlerToken DBusObjectManager::registerDBusStubAdapter(const std::string& objectPath,
-                                                                     const std::string& interfaceName,
-                                                                     DBusStubAdapter* dbusStubAdapter) {
-    DBusInterfaceHandlerPath handlerPath(objectPath, interfaceName);
+bool DBusObjectManager::registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter) {
+    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
+    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
+    DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
+    bool isRegistrationSuccessful = false;
 
     objectPathLock_.lock();
-    bool noSuchHandlerRegistered = dbusRegisteredObjectsTable_.find(handlerPath) == dbusRegisteredObjectsTable_.end();
+    isRegistrationSuccessful = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
-    assert(noSuchHandlerRegistered);
+    if (isRegistrationSuccessful && dbusStubAdapter->hasDBusObjectManagerStub()) {
+        auto dbusObjectManagerStub = dbusStubAdapter->getDBusObjectManagerStub();
+        assert(dbusObjectManagerStub);
 
-    dbusRegisteredObjectsTable_.insert({handlerPath, dbusStubAdapter});
-    objectPathLock_.unlock();
+        isRegistrationSuccessful = addDBusInterfaceHandler(
+                        { dbusStubAdapterObjectPath, dbusObjectManagerStub->getInterfaceName() }, dbusObjectManagerStub);
 
-    std::shared_ptr<DBusProxyConnection> dbusConnection = dbusConnection_.lock();
-    if (dbusConnection) {
-        dbusConnection->registerObjectPath(objectPath);
+        if (!isRegistrationSuccessful) {
+            const bool isDBusStubAdapterRemoved = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
+            assert(isDBusStubAdapterRemoved);
+        }
     }
 
-    return handlerPath;
+    if (isRegistrationSuccessful) {
+        std::shared_ptr<DBusProxyConnection> dbusConnection = dbusConnection_.lock();
+        if (dbusConnection) {
+            dbusConnection->registerObjectPath(dbusStubAdapterObjectPath);
+        }
+    }
+    objectPathLock_.unlock();
+
+    return isRegistrationSuccessful;
 }
 
-void DBusObjectManager::unregisterDBusStubAdapter(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken) {
-    objectPathLock_.lock();
-    const std::string& objectPath = dbusInterfaceHandlerToken.first;
+bool DBusObjectManager::unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapter) {
+    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
+    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
+    DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
+    bool isDeregistrationSuccessful = false;
 
-    std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
-    if (lockedConnection) {
-        lockedConnection->unregisterObjectPath(objectPath);
+    objectPathLock_.lock();
+    isDeregistrationSuccessful = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
+
+    if (isDeregistrationSuccessful && dbusStubAdapter->hasDBusObjectManagerStub()) {
+        auto dbusObjectManagerStub = dbusStubAdapter->getDBusObjectManagerStub();
+        assert(dbusObjectManagerStub);
+
+        isDeregistrationSuccessful = removeDBusInterfaceHandler(
+                        { dbusStubAdapterObjectPath, dbusObjectManagerStub->getInterfaceName() }, dbusObjectManagerStub);
+
+        if (!isDeregistrationSuccessful) {
+            const bool isDBusStubAdapterAdded = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
+            assert(isDBusStubAdapterAdded);
+        }
     }
 
-    dbusRegisteredObjectsTable_.erase(dbusInterfaceHandlerToken);
+    if (isDeregistrationSuccessful) {
+        std::shared_ptr<DBusProxyConnection> lockedConnection = dbusConnection_.lock();
+        if (lockedConnection) {
+            lockedConnection->unregisterObjectPath(dbusStubAdapterObjectPath);
+        }
+    }
+
     objectPathLock_.unlock();
+
+    return isDeregistrationSuccessful;
 }
 
 bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
@@ -89,53 +127,44 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
     bool dbusMessageHandled = false;
 
     if (foundDBusInterfaceHandler) {
-        DBusStubAdapter* dbusStubAdapter = handlerIterator->second;
-        dbusMessageHandled = dbusStubAdapter->onInterfaceDBusMessage(dbusMessage);
+        DBusInterfaceHandler* dbusStubAdapterBase = handlerIterator->second;
+        dbusMessageHandled = dbusStubAdapterBase->onInterfaceDBusMessage(dbusMessage);
     } else if (dbusMessage.hasInterfaceName("org.freedesktop.DBus.Introspectable")) {
         dbusMessageHandled = onIntrospectableInterfaceDBusMessage(dbusMessage);
-    } else if (dbusMessage.hasInterfaceName("org.freedesktop.DBus.ObjectManager")) {
-        dbusMessageHandled = onObjectManagerInterfaceDBusMessage(dbusMessage);
     }
     objectPathLock_.unlock();
 
     return dbusMessageHandled;
 }
 
-bool DBusObjectManager::onObjectManagerInterfaceDBusMessage(const DBusMessage& dbusMessage) {
-    std::shared_ptr<DBusProxyConnection> dbusConnection = dbusConnection_.lock();
+bool DBusObjectManager::addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+                                                DBusInterfaceHandler* dbusInterfaceHandler) {
+    const auto& dbusRegisteredObjectsTableIter = dbusRegisteredObjectsTable_.find(dbusInterfaceHandlerPath);
+    const bool isDBusInterfaceHandlerAlreadyAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
 
-    if (!dbusConnection || !dbusMessage.isMethodCallType() || !dbusMessage.hasMemberName("GetManagedObjects")) {
+    if (isDBusInterfaceHandlerAlreadyAdded) {
         return false;
     }
 
-    DBusDaemonProxy::DBusObjectToInterfaceDict resultObjectPathsInterfacesAndPropertiesDict;
+    auto insertResult = dbusRegisteredObjectsTable_.insert({ dbusInterfaceHandlerPath, dbusInterfaceHandler });
+    const bool insertSuccess = insertResult.second;
 
-    objectPathLock_.lock();
-    auto registeredObjectsIterator = dbusRegisteredObjectsTable_.begin();
+    return insertSuccess;
+}
 
-    while(registeredObjectsIterator != dbusRegisteredObjectsTable_.end()) {
-        DBusInterfaceHandlerPath handlerPath = registeredObjectsIterator->first;
-        auto foundDictEntry = resultObjectPathsInterfacesAndPropertiesDict.find(handlerPath.first);
+bool DBusObjectManager::removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+                                                   DBusInterfaceHandler* dbusInterfaceHandler) {
+    const auto& dbusRegisteredObjectsTableIter = dbusRegisteredObjectsTable_.find(dbusInterfaceHandlerPath);
+    const bool isDBusInterfaceHandlerAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
 
-        if (foundDictEntry == resultObjectPathsInterfacesAndPropertiesDict.end()) {
-            resultObjectPathsInterfacesAndPropertiesDict.insert(
-            		{ handlerPath.first, { { handlerPath.second, DBusDaemonProxy::PropertyDictStub() } } } );
-        } else {
-            foundDictEntry->second.insert( {handlerPath.second, DBusDaemonProxy::PropertyDictStub() } );
-        }
+    if (isDBusInterfaceHandlerAdded) {
+        auto registeredDBusStubAdapter = dbusRegisteredObjectsTableIter->second;
+        assert(registeredDBusStubAdapter == dbusInterfaceHandler);
 
-        ++registeredObjectsIterator;
+        dbusRegisteredObjectsTable_.erase(dbusRegisteredObjectsTableIter);
     }
-    objectPathLock_.unlock();
 
-    const char getManagedObjectsDBusSignature[] = "a{oa{sa{sv}}}";
-    DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(getManagedObjectsDBusSignature);
-    DBusOutputStream outStream(dbusMessageReply);
-
-    outStream << resultObjectPathsInterfacesAndPropertiesDict;
-    outStream.flush();
-
-    return dbusConnection->sendDBusMessage(dbusMessageReply);
+    return isDBusInterfaceHandlerAdded;
 }
 
 bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& dbusMessage) {
@@ -162,14 +191,14 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
         const DBusInterfaceHandlerPath& handlerPath = registeredObjectsIterator.first;
         const std::string& dbusObjectPath = handlerPath.first;
         const std::string& dbusInterfaceName = handlerPath.second;
-        DBusStubAdapter* dbusStubAdapter = registeredObjectsIterator.second;
+        DBusInterfaceHandler* dbusStubAdapterBase = registeredObjectsIterator.second;
         std::vector<std::string> elems = CommonAPI::split(dbusObjectPath, '/');
 
         if (dbusMessage.hasObjectPath(dbusObjectPath)) {
             foundRegisteredObjects = true;
 
             xmlData << "<interface name=\"" << dbusInterfaceName << "\">\n"
-                            << dbusStubAdapter->getMethodsDBusIntrospectionXmlData() << "\n"
+                            << dbusStubAdapterBase->getMethodsDBusIntrospectionXmlData() << "\n"
                             "</interface>\n";
             nodeSet.insert(elems.back());
             //break;

@@ -14,45 +14,52 @@
 
 #include "DBusProxyConnection.h"
 #include "DBusMessage.h"
+#include "DBusObjectManagerStub.h"
+
 
 namespace CommonAPI {
 namespace DBus {
 
-// objectPath, interfaceName
-typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
-typedef DBusInterfaceHandlerPath DBusInterfaceHandlerToken;
-
 class DBusStubAdapter;
+class DBusInterfaceHandler;
 
 class DBusObjectManager {
  public:
     DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
     ~DBusObjectManager();
 
-    void init();
-
-    DBusInterfaceHandlerToken registerDBusStubAdapter(const std::string& objectPath,
-                                                      const std::string& interfaceName,
-                                                      DBusStubAdapter* dbusStubAdapter);
-
-    void unregisterDBusStubAdapter(const DBusInterfaceHandlerToken& dbusInterfaceHandlerToken);
+    bool registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
+    bool unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
 
     bool handleMessage(const DBusMessage&);
 
+    inline DBusObjectManagerStub& getRootDBusObjectManagerStub();
 
  private:
-    void addLibdbusObjectPathHandler(const std::string& objectPath);
-    void removeLibdbusObjectPathHandler(const std::string& objectPath);
+    // objectPath, interfaceName
+    typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
 
-    bool onObjectManagerInterfaceDBusMessage(const DBusMessage& callMessage);
+    bool addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+                                 DBusInterfaceHandler* dbusInterfaceHandler);
+
+    bool removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+                                    DBusInterfaceHandler* dbusInterfaceHandler);
+
     bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
 
-    typedef std::unordered_map<DBusInterfaceHandlerPath, DBusStubAdapter*> DBusRegisteredObjectsTable;
+    typedef std::unordered_map<DBusInterfaceHandlerPath, DBusInterfaceHandler*> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
+
+    DBusObjectManagerStub rootDBusObjectManagerStub_;
 
     std::weak_ptr<DBusProxyConnection> dbusConnection_;
     std::recursive_mutex objectPathLock_;
 };
+
+
+DBusObjectManagerStub& DBusObjectManager::getRootDBusObjectManagerStub() {
+    return rootDBusObjectManagerStub_;
+}
 
 } // namespace DBus
 } // namespace CommonAPI

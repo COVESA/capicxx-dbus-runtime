@@ -15,6 +15,7 @@
 #include "DBusProxyBase.h"
 #include "DBusAttribute.h"
 #include "DBusServiceRegistry.h"
+#include "DBusFactory.h"
 
 #include <functional>
 #include <memory>
@@ -39,7 +40,8 @@ class DBusProxyStatusEvent: public ProxyStatusEvent {
 
 class DBusProxy: public DBusProxyBase {
  public:
-    DBusProxy(const std::string& commonApiAddress,
+    DBusProxy(const std::shared_ptr<DBusFactory>& factory,
+              const std::string& commonApiAddress,
               const std::string& dbusInterfaceName,
               const std::string& dbusBusName,
               const std::string& dbusObjectPath,
@@ -70,14 +72,15 @@ class DBusProxy: public DBusProxyBase {
               DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
     void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
                                           DBusProxyConnection::DBusSignalHandlerToken subscription);
+
+    void init();
  private:
     DBusProxy(const DBusProxy&) = delete;
 
     SubscriptionStatus onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
-    DBusServiceRegistry::Subscription dbusServiceRegistrySubscription_;
-    DBusServiceStatusEvent::Subscription dbusServiceStatusEventSubscription_;
+    DBusServiceRegistry::DBusServiceSubscription dbusServiceRegistrySubscription_;
     AvailabilityStatus availabilityStatus_;
 
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
@@ -90,6 +93,8 @@ class DBusProxy: public DBusProxyBase {
     const std::string dbusBusName_;
     const std::string dbusObjectPath_;
     const std::string dbusInterfaceName_;
+
+    const std::shared_ptr<DBusFactory>& factory_;
 };
 
 

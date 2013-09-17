@@ -21,6 +21,9 @@
 
 #include <dbus/dbus.h>
 
+#include <atomic>
+
+
 namespace CommonAPI {
 namespace DBus {
 
@@ -88,6 +91,11 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     DBusMessage sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
             DBusError& dbusError,
             int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
+
+    virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
+                                                     DBusSignalHandler* dbusSignalHandler);
+    virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
+                                                        DBusSignalHandler* dbusSignalHandler);
 
     DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
                                                   const std::string& interfaceName,
@@ -199,6 +207,18 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
     DBusSignalHandlerTable dbusSignalHandlerTable_;
+
+    std::unordered_map<std::string, size_t> dbusObjectManagerSignalMatchRulesMap_;
+    std::unordered_multimap<std::string, DBusSignalHandler*> dbusObjectManagerSignalHandlerTable_;
+    std::mutex dbusObjectManagerSignalGuard_;
+
+    bool addObjectManagerSignalMatchRule(const std::string& dbusBusName);
+    bool removeObjectManagerSignalMatchRule(const std::string& dbusBusName);
+
+    bool addLibdbusSignalMatchRule(const std::string& dbusMatchRule);
+    bool removeLibdbusSignalMatchRule(const std::string& dbusMatchRule);
+
+    std::atomic_size_t libdbusSignalMatchRulesCount_;
 
     // objectPath, referenceCount
     typedef std::unordered_map<std::string, uint32_t> LibdbusRegisteredObjectPathHandlersTable;

@@ -16,7 +16,6 @@
 #include "DBusMessage.h"
 
 #include "DBusFunctionalHash.h"
-#include "DBusServiceStatusEvent.h"
 
 #include <CommonAPI/types.h>
 #include <CommonAPI/Attribute.h>
@@ -106,6 +105,11 @@ class DBusProxyConnection {
                                                   DBusProxyConnection::DBusSignalHandlerToken subscription,
                                                   DBusProxy* callingProxy) = 0;
     virtual bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
+
+    virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
+                                                     DBusSignalHandler* dbusSignalHandler) = 0;
+    virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
+                                                        DBusSignalHandler* dbusSignalHandler) = 0;
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry() = 0;
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
