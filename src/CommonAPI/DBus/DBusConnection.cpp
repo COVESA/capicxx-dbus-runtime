@@ -1184,4 +1184,3 @@ void notifyDBusSignalHandlers(DBusSignalHandlersTable& dbusSignalHandlerstable,
 
 } // namespace DBus
 } // namespace CommonAPI
-

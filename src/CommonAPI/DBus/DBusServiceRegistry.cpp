@@ -897,6 +897,18 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyStatusEvent(const Avail
     return SubscriptionStatus::RETAIN;
 }
 
+void DBusServiceRegistry::checkDBusServiceWasAvailable(const std::string& dbusServiceName,
+                                                       const std::string& dbusServiceUniqueName) {
+
+    auto dbusUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
+    const bool isDBusUniqueNameFound = (dbusUniqueNameIterator != dbusUniqueNamesMap_.end());
+
+    if (isDBusUniqueNameFound) {
+        auto& dbusServiceListenersRecord = dbusServiceListenersMap[dbusServiceName];
+        onDBusServiceNotAvailable(dbusServiceListenersRecord);
+    }
+}
+
 SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(const std::string& affectedName,
                                                                                const std::string& oldOwner,
                                                                                const std::string& newOwner) {
@@ -910,15 +922,7 @@ SubscriptionStatus DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent(c
     std::lock_guard<std::mutex> dbusServicesLock(dbusServicesMutex_);
 
     if (isDBusServiceNameLost) {
-        auto dbusUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
-        const bool isDBusUniqueNameFound = (dbusUniqueNameIterator != dbusUniqueNamesMap_.end());
-
-        if (isDBusUniqueNameFound) {
-            auto& dbusServiceListenersRecord = dbusServiceListenersMap[affectedName];
-            //assert(dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED);
-            //assert(!dbusServiceListenersRecord.uniqueBusName.empty());
-            onDBusServiceNotAvailable(dbusServiceListenersRecord);
-        }
+        checkDBusServiceWasAvailable(affectedName, dbusServiceUniqueName);
     } else {
         onDBusServiceAvailable(affectedName, dbusServiceUniqueName);
     }
@@ -934,9 +938,12 @@ void DBusServiceRegistry::onDBusServiceAvailable(const std::string& dbusServiceN
     auto& dbusServiceListenersRecord = dbusServiceListenersMap[dbusServiceName];
     const bool isDBusServiceNameObserved = !dbusServiceListenersRecord.dbusObjectPathListenersMap.empty();
 
-    if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED) {
-        assert(dbusServiceListenersRecord.uniqueBusName == dbusServiceUniqueName);
-        return;
+    if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED
+                    && dbusServiceListenersRecord.uniqueBusName != dbusServiceUniqueName) {
+        //A new unique connection name claims an already claimed name
+        //-> release of old name and claim of new name arrive in reverted order.
+        //Therefore: Release of old and proceed with claiming of new owner.
+        checkDBusServiceWasAvailable(dbusServiceName, dbusServiceListenersRecord.uniqueBusName);
     }
 
     dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::RESOLVED;
@@ -972,7 +979,7 @@ void DBusServiceRegistry::onDBusServiceAvailable(const std::string& dbusServiceN
 void DBusServiceRegistry::onDBusServiceNotAvailable(DBusServiceListenersRecord& dbusServiceListenersRecord) {
     const std::unordered_set<std::string> dbusInterfaceNamesCache;
 
-    auto dbusUniqueNameRecordIterator = dbusUniqueNamesMap_.find(dbusServiceListenersRecord.uniqueBusName);
+    const DBusUniqueNamesMapIterator dbusUniqueNameRecordIterator = dbusUniqueNamesMap_.find(dbusServiceListenersRecord.uniqueBusName);
 
     // fulfill all open promises on object path resolution
     if(dbusUniqueNameRecordIterator != dbusUniqueNamesMap_.end()) {
@@ -993,9 +1000,9 @@ void DBusServiceRegistry::onDBusServiceNotAvailable(DBusServiceListenersRecord& 
             } catch (std::future_error& e) { }
 
         }
-    }
 
-    removeUniqueName(dbusServiceListenersRecord.uniqueBusName);
+        removeUniqueName(dbusUniqueNameRecordIterator);
+    }
 
     dbusServiceListenersRecord.uniqueBusName.clear();
     dbusServiceListenersRecord.uniqueBusNameState = DBusRecordState::NOT_AVAILABLE;
@@ -1102,7 +1109,7 @@ void DBusServiceRegistry::notifyDBusObjectPathChanged(DBusInterfaceNameListeners
 
 void DBusServiceRegistry::notifyDBusInterfaceNameListeners(DBusInterfaceNameListenersRecord& dbusInterfaceNameListenersRecord,
                                                            const bool& isDBusInterfaceNameAvailable) {
-    // FIXME maybe store simple boolean into the DBusInterfaceNameListenersRecord (only 2 states are allowed)
+
     const AvailabilityStatus availabilityStatus = (isDBusInterfaceNameAvailable ?
                     AvailabilityStatus::AVAILABLE : AvailabilityStatus::NOT_AVAILABLE);
     const DBusRecordState notifyState = (isDBusInterfaceNameAvailable ?
@@ -1126,22 +1133,14 @@ void DBusServiceRegistry::notifyDBusInterfaceNameListeners(DBusInterfaceNameList
     }
 }
 
-void DBusServiceRegistry::removeUniqueName(std::string& dbusUniqueName) {
-    if(dbusUniqueName.empty()) {
-        return;
+void DBusServiceRegistry::removeUniqueName(const DBusUniqueNamesMapIterator& dbusUniqueNamesIterator) {
+    for (auto dbusServiceNamesIterator = dbusUniqueNamesIterator->second.ownedBusNames.begin();
+                    dbusServiceNamesIterator != dbusUniqueNamesIterator->second.ownedBusNames.end();
+                    dbusServiceNamesIterator++) {
+        dbusServiceNameMap_.erase(*dbusServiceNamesIterator);
     }
 
-    auto dbusUniqueNamesIterator = dbusUniqueNamesMap_.find(dbusUniqueName);
-
-    if(dbusUniqueNamesIterator != dbusUniqueNamesMap_.end()) {
-        for (auto dbusServiceNamesIterator = dbusUniqueNamesIterator->second.ownedBusNames.begin();
-                        dbusServiceNamesIterator != dbusUniqueNamesIterator->second.ownedBusNames.end();
-                        dbusServiceNamesIterator++) {
-            dbusServiceNameMap_.erase(*dbusServiceNamesIterator);
-        }
-
-        dbusUniqueNamesMap_.erase(dbusUniqueNamesIterator);
-    }
+    dbusUniqueNamesMap_.erase(dbusUniqueNamesIterator);
 }
 
 DBusServiceRegistry::DBusUniqueNameRecord* DBusServiceRegistry::insertServiceNameMapping(const std::string& dbusUniqueName,

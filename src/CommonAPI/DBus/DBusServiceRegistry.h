@@ -91,7 +91,9 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
                                          DBusServiceSubscription& listenerSubscription);
 
 
-    bool isServiceInstanceAlive(const std::string& dbusInterfaceName, const std::string& dbusConnectionName, const std::string& dbusObjectPath);
+    bool isServiceInstanceAlive(const std::string& dbusInterfaceName,
+                                const std::string& dbusConnectionName,
+                                const std::string& dbusObjectPath);
 
 
     virtual std::vector<std::string> getAvailableServiceInstances(const std::string& interfaceName,
@@ -213,6 +215,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     };
 
     std::unordered_map<std::string, DBusUniqueNameRecord> dbusUniqueNamesMap_;
+    typedef std::unordered_map<std::string, DBusUniqueNameRecord>::iterator DBusUniqueNamesMapIterator;
+
     // mapping service names (well-known names) to service instances
     std::unordered_map<std::string, DBusUniqueNameRecord*> dbusServiceNameMap_;
 
@@ -248,12 +252,23 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
                               const std::string& dbusServiceName,
                               const std::string& dbusObjectPath);
 
-    void parseIntrospectionData(const std::string& xmlData, const std::string& rootObjectPath, const std::string& dbusServiceUniqueName);
-    void parseIntrospectionNode(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName);
-    void processIntrospectionObjectPath(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& dbusServiceUniqueName);
-    void processIntrospectionInterface(const pugi::xml_node& interface,  const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName);
+    void parseIntrospectionData(const std::string& xmlData,
+                                const std::string& rootObjectPath,
+                                const std::string& dbusServiceUniqueName);
 
+    void parseIntrospectionNode(const pugi::xml_node& node,
+                                const std::string& rootObjectPath,
+                                const std::string& fullObjectPath,
+                                const std::string& dbusServiceUniqueName);
 
+    void processIntrospectionObjectPath(const pugi::xml_node& node,
+                                        const std::string& rootObjectPath,
+                                        const std::string& dbusServiceUniqueName);
+
+    void processIntrospectionInterface(const pugi::xml_node& interface,
+                                       const std::string& rootObjectPath,
+                                       const std::string& fullObjectPath,
+                                       const std::string& dbusServiceUniqueName);
 
     SubscriptionStatus onDBusDaemonProxyStatusEvent(const AvailabilityStatus& availabilityStatus);
 
@@ -267,6 +282,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     ProxyStatusEvent::Subscription dbusDaemonProxyStatusEventSubscription_;
     NameOwnerChangedEvent::Subscription dbusDaemonProxyNameOwnerChangedEventSubscription_;
 
+
+    void checkDBusServiceWasAvailable(const std::string& dbusServiceName, const std::string& dbusServiceUniqueName);
 
     void onDBusServiceAvailable(const std::string& dbusServiceName, const std::string& dbusServiceUniqueName);
 
@@ -289,7 +306,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
                                           const bool& isDBusInterfaceNameAvailable);
 
 
-    void removeUniqueName(std::string& dbusUniqueName);
+    void removeUniqueName(const DBusUniqueNamesMapIterator& dbusUniqueName);
     DBusUniqueNameRecord* insertServiceNameMapping(const std::string& dbusUniqueName, const std::string& dbusServiceName);
     bool findCachedDbusService(const std::string& dbusServiceName, DBusUniqueNameRecord** uniqueNameRecord);
     bool findCachedObjectPath(const std::string& dbusObjectPathName, const DBusUniqueNameRecord* uniqueNameRecord, DBusObjectPathCache* objectPathCache);

@@ -363,6 +363,49 @@ TEST_F(DBusServiceRegistryTest, DBusAddressTranslatorPredefinedWorks) {
     }
 }
 
+
+CommonAPI::DBus::DBusMessage getNewFakeNameOwnerChangedMessage() {
+    static const char* objectPath = "/";
+    static const char* interfaceName = "org.freedesktop.DBus";
+    static const char* signalName = "NameOwnerChanged";
+    return CommonAPI::DBus::DBusMessage::createSignal(objectPath, interfaceName, signalName, "sss");
+}
+
+
+//XXX This test requires CommonAPI::DBus::DBusServiceRegistry::onDBusDaemonProxyNameOwnerChangedEvent to be public!
+
+//TEST_F(DBusServiceRegistryTest, RevertedNameOwnerChangedEventsWork) {
+//    std::shared_ptr<CommonAPI::DBus::DBusConnection> registryConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+//    std::shared_ptr<CommonAPI::DBus::DBusServiceRegistry> registry = std::make_shared<CommonAPI::DBus::DBusServiceRegistry>(registryConnection);
+//
+//    registry->init();
+//
+//    CommonAPI::DBus::DBusMessage fakeNameOwnerChangedSignal1 = getNewFakeNameOwnerChangedMessage();
+//    CommonAPI::DBus::DBusMessage fakeNameOwnerChangedSignal2 = getNewFakeNameOwnerChangedMessage();
+//    CommonAPI::DBus::DBusMessage fakeNameOwnerChangedSignal3 = getNewFakeNameOwnerChangedMessage();
+//
+//    CommonAPI::DBus::DBusOutputStream outStream1(fakeNameOwnerChangedSignal1);
+//    CommonAPI::DBus::DBusOutputStream outStream2(fakeNameOwnerChangedSignal2);
+//    CommonAPI::DBus::DBusOutputStream outStream3(fakeNameOwnerChangedSignal3);
+//
+//    std::string serviceName = "my.fake.service";
+//    std::string emptyOwner = "";
+//    std::string newOwner1 = ":1:505";
+//    std::string newOwner2 = ":1:506";
+//
+//    outStream1 << serviceName << emptyOwner << newOwner1;
+//    outStream1.flush();
+//    outStream2 << serviceName << emptyOwner << newOwner2;
+//    outStream2.flush();
+//    outStream3 << serviceName << newOwner1 << emptyOwner;
+//    outStream3.flush();
+//
+//    registry->onDBusDaemonProxyNameOwnerChangedEvent(serviceName, emptyOwner, newOwner1);
+//    registry->onDBusDaemonProxyNameOwnerChangedEvent(serviceName, emptyOwner, newOwner2);
+//    registry->onDBusDaemonProxyNameOwnerChangedEvent(serviceName, newOwner1, emptyOwner);
+//}
+
+
 TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
 //    auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
 //

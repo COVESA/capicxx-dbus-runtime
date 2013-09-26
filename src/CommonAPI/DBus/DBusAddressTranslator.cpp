@@ -67,7 +67,7 @@ void DBusAddressTranslator::searchForDBusAddress(const std::string& commonApiAdd
 
     const auto& foundAddressMapping = commonApiAddressDetails_.find(commonApiAddress);
 
-    if(foundAddressMapping != commonApiAddressDetails_.end()) {
+    if (foundAddressMapping != commonApiAddressDetails_.end()) {
         connectionName = std::get<0>(std::get<0>(foundAddressMapping->second));
         objectPath = std::get<1>(std::get<0>(foundAddressMapping->second));
         interfaceName = std::get<2>(std::get<0>(foundAddressMapping->second));

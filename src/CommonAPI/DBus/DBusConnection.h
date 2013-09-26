@@ -89,8 +89,8 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
             int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
 
     DBusMessage sendDBusMessageWithReplyAndBlock(const DBusMessage& dbusMessage,
-            DBusError& dbusError,
-            int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
+                                                 DBusError& dbusError,
+                                                 int timeoutMilliseconds = kDefaultSendTimeoutMs) const;
 
     virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
                                                      DBusSignalHandler* dbusSignalHandler);
@@ -202,7 +202,6 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     std::shared_ptr<DBusObjectManager> dbusObjectManager_;
 
     DBusConnectionStatusEvent dbusConnectionStatusEvent_;
-
 
     DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
