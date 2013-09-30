@@ -406,7 +406,7 @@ CommonAPI::DBus::DBusMessage getNewFakeNameOwnerChangedMessage() {
 //}
 
 
-TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
+TEST_F(DBusServiceRegistryTest, DISABLED_PredefinedInstances) {
 //    auto stubDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
 //
 //    ASSERT_TRUE(stubDBusConnection->connect());
