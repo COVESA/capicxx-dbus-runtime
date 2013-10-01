@@ -380,7 +380,7 @@ endif
 # ------------------------------------------------------------------------------
 # Doxygen
 include $(top_srcdir)/aminclude.am 
-EXTRA_DIST += doxygen.cfg
+EXTRA_DIST += doxygen.cfg dbus-DBusMessage-add-support-for-custom-marshaling.patch
 MOSTLYCLEANFILES += ${DX_CLEANFILES}
 
 # ------------------------------------------------------------------------------
