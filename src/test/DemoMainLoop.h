@@ -37,7 +37,7 @@ class MainLoop {
     explicit MainLoop(std::shared_ptr<MainLoopContext> context) :
             context_(context), currentMinimalTimeoutInterval_(TIMEOUT_INFINITE), running_(false), breakLoop_(false) {
         wakeFd_.fd = eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
-        wakeFd_.events = POLLIN | POLLOUT;
+        wakeFd_.events = POLLIN;
 
         assert(wakeFd_.fd != -1);
         registerFileDescriptor(wakeFd_);
@@ -227,8 +227,8 @@ class MainLoop {
     }
 
     void wakeup() {
-        uint32_t wake = 1;
-        ::write(wakeFd_.fd, &wake, sizeof(uint32_t));
+        int64_t wake = 1;
+        ::write(wakeFd_.fd, &wake, sizeof(int64_t));
     }
 
  private:
@@ -298,8 +298,8 @@ class MainLoop {
     }
 
     void acknowledgeWakeup() {
-        uint32_t buffer;
-        while (::read(wakeFd_.fd, &buffer, sizeof(uint32_t)) == sizeof(buffer));
+        int64_t buffer;
+        while (::read(wakeFd_.fd, &buffer, sizeof(int64_t)) == sizeof(buffer));
     }
 
     std::shared_ptr<MainLoopContext> context_;

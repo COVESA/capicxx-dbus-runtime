@@ -138,6 +138,7 @@ TEST_F(DBusBasicMainLoopTest, PrioritiesAreHandledCorrectlyInDemoMainloop) {
     context->registerDispatchSource(testSource1Low, CommonAPI::DispatchPriority::LOW);
     context->registerDispatchSource(testSource1VeryHigh, CommonAPI::DispatchPriority::VERY_HIGH);
 
+    mainLoop->wakeup();
     mainLoop->doSingleIteration(CommonAPI::TIMEOUT_INFINITE);
 
     std::string reference1("ECABD");
