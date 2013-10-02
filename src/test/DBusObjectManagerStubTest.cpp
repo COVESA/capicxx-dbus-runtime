@@ -24,22 +24,24 @@
 #include <array>
 #include <memory>
 
-
 static const std::string dbusServiceName = "CommonAPI.DBus.DBusObjectManagerStubTest";
 static const std::string& dbusObjectManagerStubPath = "/commonapi/dbus/test/DBusObjectManagerStub";
 static const std::string& managedDBusObjectPathPrefix = "/commonapi/dbus/test/DBusObjectManagerStub/ManagedObject";
 
-
 class TestDBusStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
- public:
+public:
     TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
                         const std::string& dbusObjectPath,
-                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
-                    DBusStubAdapter(factory, "local:" + dbusServiceName + ":commonapi.dbus.tests.TestDBusStubAdapter-" + dbusObjectPath,
+                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
+                        const bool isManagingInterface) :
+                    DBusStubAdapter(
+                                    factory,
+                                    "local:" + dbusServiceName + ":commonapi.dbus.tests.TestDBusStubAdapter-" + dbusObjectPath,
                                     "commonapi.dbus.tests.TestDBusStubAdapter",
                                     dbusServiceName,
                                     dbusObjectPath,
-                                    dbusConnection) {
+                                    dbusConnection,
+                                    isManagingInterface) {
     }
 
     void deactivateManagedInstances() {
@@ -54,40 +56,37 @@ class TestDBusStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
         return false;
     }
 
-
-
- protected:
+protected:
     TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
-                    const std::string& dbusObjectPath,
+                        const std::string& dbusObjectPath,
                         const std::string& dbusInterfaceName,
-                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
-                    DBusStubAdapter(factory, "local:" + dbusServiceName + ":" + dbusInterfaceName + "-" + dbusObjectPath,
+                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
+                        const bool isManagingInterface) :
+                    DBusStubAdapter(
+                                    factory,
+                                    "local:" + dbusServiceName + ":" + dbusInterfaceName + "-" + dbusObjectPath,
                                     dbusInterfaceName,
                                     dbusServiceName,
                                     dbusObjectPath,
-                                    dbusConnection) {
+                                    dbusConnection,
+                                    isManagingInterface) {
     }
 
-
 };
-
 
 class ManagerTestDBusStubAdapter: public TestDBusStubAdapter {
- public:
-    ManagerTestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory, const std::string& dbusObjectPath,
+public:
+    ManagerTestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
+                               const std::string& dbusObjectPath,
                                const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
-                    TestDBusStubAdapter(factory, dbusObjectPath, "commonapi.dbus.tests.ManagerTestDBusStubAdapter", dbusConnection),
-                    dbusObjectManagerStub_(dbusObjectPath, dbusConnection) {
+                    TestDBusStubAdapter(
+                                    factory,
+                                    dbusObjectPath,
+                                    "commonapi.dbus.tests.ManagerTestDBusStubAdapter",
+                                    dbusConnection,
+                                    true) {
     }
-
-    virtual CommonAPI::DBus::DBusObjectManagerStub* getDBusObjectManagerStub() {
-        return &dbusObjectManagerStub_;
-    }
-
- private:
-    CommonAPI::DBus::DBusObjectManagerStub dbusObjectManagerStub_;
 };
-
 
 struct TestDBusObjectManagerSignalHandler: public CommonAPI::DBus::DBusConnection::DBusSignalHandler {
     size_t totalAddedCount;
@@ -98,7 +97,6 @@ struct TestDBusObjectManagerSignalHandler: public CommonAPI::DBus::DBusConnectio
 
     std::condition_variable signalReceived;
     std::mutex lock;
-
 
     ~TestDBusObjectManagerSignalHandler() {
         dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerAddedToken_);
@@ -131,14 +129,15 @@ struct TestDBusObjectManagerSignalHandler: public CommonAPI::DBus::DBusConnectio
     }
 
     static inline std::shared_ptr<TestDBusObjectManagerSignalHandler> create(
-                    const std::string& dbusObjectPath,
-                    const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) {
+                                                                             const std::string& dbusObjectPath,
+                                                                             const std::shared_ptr<
+                                                                                             CommonAPI::DBus::DBusProxyConnection>& dbusConnection) {
         auto dbusSignalHandler = new TestDBusObjectManagerSignalHandler(dbusObjectPath, dbusConnection);
         dbusSignalHandler->init();
         return std::shared_ptr<TestDBusObjectManagerSignalHandler>(dbusSignalHandler);
     }
 
- private:
+private:
     TestDBusObjectManagerSignalHandler(const std::string& dbusObjectPath,
                                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
                     dbusObjectPath_(dbusObjectPath),
@@ -169,9 +168,8 @@ struct TestDBusObjectManagerSignalHandler: public CommonAPI::DBus::DBusConnectio
     CommonAPI::DBus::DBusProxyConnection::DBusSignalHandlerToken dbusSignalHandlerRemovedToken_;
 };
 
-
 class DBusObjectManagerStubTest: public ::testing::Test {
- protected:
+protected:
     virtual void SetUp() {
         auto runtime = std::dynamic_pointer_cast<CommonAPI::DBus::DBusRuntime>(CommonAPI::Runtime::load());
         serviceFactory = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime->createFactory());
@@ -185,15 +183,15 @@ class DBusObjectManagerStubTest: public ::testing::Test {
         ASSERT_TRUE(stubDBusConnection_->requestServiceNameAndBlock(dbusServiceName));
     }
 
-	virtual void TearDown() {
-	    stubDBusConnection_->disconnect();
-	    stubDBusConnection_.reset();
+    virtual void TearDown() {
+        stubDBusConnection_->disconnect();
+        stubDBusConnection_.reset();
 
-	    proxyDBusConnection_->disconnect();
-	    proxyDBusConnection_.reset();
-	}
+        proxyDBusConnection_->disconnect();
+        proxyDBusConnection_.reset();
+    }
 
-	std::shared_ptr<CommonAPI::DBus::DBusFactory> serviceFactory;
+    std::shared_ptr<CommonAPI::DBus::DBusFactory> serviceFactory;
 
     void getManagedObjects(const std::string& dbusObjectPath,
                            CommonAPI::DBus::DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dbusObjectPathAndInterfacesDict) {
@@ -206,7 +204,7 @@ class DBusObjectManagerStubTest: public ::testing::Test {
         CommonAPI::DBus::DBusError dbusError;
         auto dbusMessageReply = proxyDBusConnection_->sendDBusMessageWithReplyAndBlock(dbusMessageCall, dbusError);
 
-        ASSERT_FALSE(dbusError) << dbusError.getMessage();
+        ASSERT_FALSE(dbusError)<< dbusError.getMessage();
         ASSERT_TRUE(dbusMessageReply.isMethodReturnType());
         ASSERT_TRUE(dbusMessageReply.hasSignature("a{oa{sa{sv}}}"));
 
@@ -225,7 +223,7 @@ class DBusObjectManagerStubTest: public ::testing::Test {
         CommonAPI::DBus::DBusError dbusError;
         auto dbusMessageReply = proxyDBusConnection_->sendDBusMessageWithReplyAndBlock(dbusMessageCall, dbusError);
 
-        ASSERT_FALSE(dbusError) << dbusError.getMessage();
+        ASSERT_FALSE(dbusError)<< dbusError.getMessage();
         ASSERT_TRUE(dbusMessageReply.isMethodReturnType());
         ASSERT_TRUE(dbusMessageReply.hasSignature("s"));
 
@@ -244,11 +242,12 @@ class DBusObjectManagerStubTest: public ::testing::Test {
         auto waitResult = dbusSignalHandler->signalReceived.wait_for(
                         lock,
                         std::chrono::milliseconds(interfacesAddedCount * waitMillisecondsPerInterface),
-                        [&]() { return dbusSignalHandler->totalAddedCount == interfacesAddedCount; });
+                        [&]() {return dbusSignalHandler->totalAddedCount == interfacesAddedCount;});
         ASSERT_TRUE(waitResult);
         ASSERT_EQ(dbusSignalHandler->totalRemovedCount, interfacesRemovedExpectedCount);
 
-        const std::string lastAddedDBusObjectPath = managedDBusObjectPathPrefix + std::to_string(interfacesAddedCount - 1);
+        const std::string lastAddedDBusObjectPath = managedDBusObjectPathPrefix
+                        + std::to_string(interfacesAddedCount - 1);
         ASSERT_TRUE(dbusSignalHandler->lastAddedDBusObjectPath == lastAddedDBusObjectPath);
     }
 
@@ -261,20 +260,22 @@ class DBusObjectManagerStubTest: public ::testing::Test {
         auto waitResult = dbusSignalHandler->signalReceived.wait_for(
                         lock,
                         std::chrono::milliseconds(interfacesRemovedCount * waitMillisecondsPerInterface),
-                        [&]() { return dbusSignalHandler->totalRemovedCount == interfacesRemovedCount; });
+                        [&]() {return dbusSignalHandler->totalRemovedCount == interfacesRemovedCount;});
         ASSERT_TRUE(waitResult);
         ASSERT_EQ(dbusSignalHandler->totalAddedCount, interfacesAddedExpectedCount);
 
-        const std::string lastRemovedDBusObjectPath = managedDBusObjectPathPrefix + std::to_string(interfacesRemovedCount - 1);
+        const std::string lastRemovedDBusObjectPath = managedDBusObjectPathPrefix
+                        + std::to_string(interfacesRemovedCount - 1);
         ASSERT_TRUE(dbusSignalHandler->lastRemovedDBusObjectPath == lastRemovedDBusObjectPath);
     }
 
-    template <typename _StubType, size_t _ArraySize>
-    void createDBusStubAdapter(std::array<std::shared_ptr<_StubType>, _ArraySize>& dbusStubAdapter) {
+    template<typename _StubType, size_t _ArraySize>
+    void createDBusStubAdapterArray(std::array<std::shared_ptr<_StubType>, _ArraySize>& dbusStubAdapter) {
         for (size_t i = 0; i < _ArraySize; i++) {
             dbusStubAdapter[i] = std::make_shared<_StubType>(serviceFactory,
                             managedDBusObjectPathPrefix + std::to_string(i),
-                            stubDBusConnection_);
+                            stubDBusConnection_,
+                            false);
 
             ASSERT_TRUE(bool(dbusStubAdapter[i]));
 
@@ -310,7 +311,7 @@ TEST_F(DBusObjectManagerStubTest, RootRegisterStubAdapterWorks) {
     auto dbusSignalHandler = TestDBusObjectManagerSignalHandler::create("/", proxyDBusConnection_);
     std::array<std::shared_ptr<TestDBusStubAdapter>, 10> dbusStubAdapterArray;
 
-    createDBusStubAdapter(dbusStubAdapterArray);
+    createDBusStubAdapterArray(dbusStubAdapterArray);
 
     const bool isServiceRegistrationSuccessful = std::all_of(
                     dbusStubAdapterArray.begin(),
@@ -341,9 +342,13 @@ TEST_F(DBusObjectManagerStubTest, RootRegisterStubAdapterWorks) {
     ASSERT_TRUE(dbusObjectPathAndInterfacesDict.empty());
 }
 
+
 TEST_F(DBusObjectManagerStubTest, RegisterManagerStubAdapterWorks) {
     CommonAPI::DBus::DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
-    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(serviceFactory, dbusObjectManagerStubPath, stubDBusConnection_);
+    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(
+                    serviceFactory,
+                    dbusObjectManagerStubPath,
+                    stubDBusConnection_);
     managerDBusStubAdapter->init();
 
     ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
@@ -355,55 +360,68 @@ TEST_F(DBusObjectManagerStubTest, RegisterManagerStubAdapterWorks) {
     ASSERT_EQ(dbusObjectPathAndInterfacesDict.count(dbusObjectManagerStubPath), 1);
 
     ASSERT_EQ(dbusObjectPathAndInterfacesDict[dbusObjectManagerStubPath].size(), 2);
-    ASSERT_EQ(dbusObjectPathAndInterfacesDict[dbusObjectManagerStubPath].count(CommonAPI::DBus::DBusObjectManagerStub::getInterfaceName()), 1);
-    ASSERT_EQ(dbusObjectPathAndInterfacesDict[dbusObjectManagerStubPath].count(managerDBusStubAdapter->getInterfaceName()), 1);
+    ASSERT_EQ(dbusObjectPathAndInterfacesDict[dbusObjectManagerStubPath].count(
+                                CommonAPI::DBus::DBusObjectManagerStub::getInterfaceName()),
+              1);
+    ASSERT_EQ(dbusObjectPathAndInterfacesDict[dbusObjectManagerStubPath].count(
+                                managerDBusStubAdapter->getInterfaceName()),
+              1);
 
-    ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(managerDBusStubAdapter->getAddress()));
+    ASSERT_TRUE(
+                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(
+                                    managerDBusStubAdapter->getAddress()));
 
     dbusObjectPathAndInterfacesDict.clear();
     getManagedObjects("/", dbusObjectPathAndInterfacesDict);
     ASSERT_TRUE(dbusObjectPathAndInterfacesDict.empty());
 }
 
-
 TEST_F(DBusObjectManagerStubTest, ManagerStubAdapterExportAndUnexportWorks) {
     CommonAPI::DBus::DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
-    auto dbusSignalHandler = TestDBusObjectManagerSignalHandler::create(dbusObjectManagerStubPath, proxyDBusConnection_);
-    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(serviceFactory, dbusObjectManagerStubPath, stubDBusConnection_);
+    auto dbusSignalHandler = TestDBusObjectManagerSignalHandler::create(
+                    dbusObjectManagerStubPath,
+                    proxyDBusConnection_);
+    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(
+                    serviceFactory,
+                    dbusObjectManagerStubPath,
+                    stubDBusConnection_);
     managerDBusStubAdapter->init();
 
     ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
 
     std::array<std::shared_ptr<TestDBusStubAdapter>, 10> dbusStubAdapterArray;
-    createDBusStubAdapter(dbusStubAdapterArray);
+    createDBusStubAdapterArray(dbusStubAdapterArray);
 
-    const bool isServiceRegistrationSuccessful = std::all_of(
-                    dbusStubAdapterArray.begin(),
-                    dbusStubAdapterArray.end(),
-                    [](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
-                        return CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
-                    });
+    const bool isServiceRegistrationSuccessful =
+                    std::all_of(
+                                    dbusStubAdapterArray.begin(),
+                                    dbusStubAdapterArray.end(),
+                                    [](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
+                                        return CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
+                                    });
     ASSERT_TRUE(isServiceRegistrationSuccessful);
 
-    const bool isServiceExportSuccessful = std::all_of(
-                    dbusStubAdapterArray.begin(),
-                    dbusStubAdapterArray.end(),
-                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
-                        return managerDBusStubAdapter->getDBusObjectManagerStub()->exportDBusStubAdapter(dbusStubAdapter.get());
-                    });
+    const bool isServiceExportSuccessful =
+                    std::all_of(
+                                    dbusStubAdapterArray.begin(),
+                                    dbusStubAdapterArray.end(),
+                                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
+                                        return stubDBusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(managerDBusStubAdapter->getObjectPath(), dbusStubAdapter);
+                                    });
     ASSERT_TRUE(isServiceExportSuccessful);
 
     waitForInterfacesAdded(dbusSignalHandler, dbusStubAdapterArray.size(), 0);
 
     getManagedObjects(dbusObjectManagerStubPath, dbusObjectPathAndInterfacesDict);
-    ASSERT_EQ(dbusObjectPathAndInterfacesDict.size(), dbusStubAdapterArray.size());
+    EXPECT_EQ(dbusObjectPathAndInterfacesDict.size(), dbusStubAdapterArray.size());
 
-    const bool isServiceUnexportSuccessful = std::all_of(
-                    dbusStubAdapterArray.begin(),
-                    dbusStubAdapterArray.end(),
-                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
-                        return managerDBusStubAdapter->getDBusObjectManagerStub()->unexportDBusStubAdapter(dbusStubAdapter.get());
-                    });
+    const bool isServiceUnexportSuccessful =
+                    std::all_of(
+                                    dbusStubAdapterArray.begin(),
+                                    dbusStubAdapterArray.end(),
+                                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
+                                        return stubDBusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(managerDBusStubAdapter->getObjectPath(), dbusStubAdapter);
+                                    });
     ASSERT_TRUE(isServiceUnexportSuccessful);
 
     const bool isServiceDeregistrationSuccessful = std::all_of(
@@ -419,36 +437,44 @@ TEST_F(DBusObjectManagerStubTest, ManagerStubAdapterExportAndUnexportWorks) {
 
     dbusObjectPathAndInterfacesDict.clear();
     getManagedObjects(dbusObjectManagerStubPath, dbusObjectPathAndInterfacesDict);
-    ASSERT_TRUE(dbusObjectPathAndInterfacesDict.empty());
+    EXPECT_TRUE(dbusObjectPathAndInterfacesDict.empty());
 
     ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(managerDBusStubAdapter->getAddress()));
 }
 
+
 TEST_F(DBusObjectManagerStubTest, DestructorUnpublishingWorks) {
     CommonAPI::DBus::DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
-    auto dbusSignalHandler = TestDBusObjectManagerSignalHandler::create(dbusObjectManagerStubPath, proxyDBusConnection_);
-    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(serviceFactory, dbusObjectManagerStubPath, stubDBusConnection_);
+    auto dbusSignalHandler = TestDBusObjectManagerSignalHandler::create(
+                    dbusObjectManagerStubPath,
+                    proxyDBusConnection_);
+    auto managerDBusStubAdapter = std::make_shared<ManagerTestDBusStubAdapter>(
+                    serviceFactory,
+                    dbusObjectManagerStubPath,
+                    stubDBusConnection_);
     managerDBusStubAdapter->init();
 
-    ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
+    EXPECT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
 
     std::array<std::shared_ptr<TestDBusStubAdapter>, 10> dbusStubAdapterArray;
-    createDBusStubAdapter(dbusStubAdapterArray);
+    createDBusStubAdapterArray(dbusStubAdapterArray);
 
-    const bool isServiceRegistrationSuccessful = std::all_of(
-                    dbusStubAdapterArray.begin(),
-                    dbusStubAdapterArray.end(),
-                    [](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
-                        return CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
-                    });
+    const bool isServiceRegistrationSuccessful =
+                    std::all_of(
+                                    dbusStubAdapterArray.begin(),
+                                    dbusStubAdapterArray.end(),
+                                    [](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
+                                        return CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
+                                    });
     ASSERT_TRUE(isServiceRegistrationSuccessful);
 
-    const bool isServiceExportSuccessful = std::all_of(
-                    dbusStubAdapterArray.begin(),
-                    dbusStubAdapterArray.end(),
-                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
-                        return managerDBusStubAdapter->getDBusObjectManagerStub()->exportDBusStubAdapter(dbusStubAdapter.get());
-                    });
+    const bool isServiceExportSuccessful =
+                    std::all_of(
+                                    dbusStubAdapterArray.begin(),
+                                    dbusStubAdapterArray.end(),
+                                    [&](const std::shared_ptr<TestDBusStubAdapter>& dbusStubAdapter) {
+                                        return stubDBusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(managerDBusStubAdapter->getObjectPath(), dbusStubAdapter);
+                                    });
     ASSERT_TRUE(isServiceExportSuccessful);
 
     waitForInterfacesAdded(dbusSignalHandler, dbusStubAdapterArray.size(), 0);

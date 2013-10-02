@@ -7,20 +7,6 @@
 #ifndef COMMONAPI_DBUS_DBUS_FREEDESKTOP_OBJECT_MANAGER_STUB_H_
 #define COMMONAPI_DBUS_DBUS_FREEDESKTOP_OBJECT_MANAGER_STUB_H_
 
-// TODO rename DBusObjectManager to DBusStubManager
-
-// TODO proxy/client logic simply instantiates DBusObjectManagerProxy
-//      with the object path of the currently instantiated proxy. That
-//      way asking about available instances is a matter of calling
-//      getManagedObjects(). Maybe we'll also have to cache within the
-//      proxy like the service registry is doing.
-
-// TODO Service Discovery
-//      - first detect all objects of a service via the Introspectible interface (like d-feet does).
-//      - Introspectible is less efficient than a global ObjectManager but a global ObjectManager
-//        conflicts with local ones, so we can't intentionally have one. The tradeoff is efficiency for correctness
-//      - Register for all InterfaceAdded and InterfaceRemoved signals on the bus.
-//      - Handle double InterfaceAdded and InterfaceRemoved signals properly (ignore them!).
 
 #include "DBusInterfaceHandler.h"
 
@@ -57,7 +43,7 @@ class DBusStubAdapter;
  */
 class DBusObjectManagerStub: public DBusInterfaceHandler {
  public:
-    // XXX serialization trick: use bool instead of variant since we never serialize it
+    // serialization trick: use bool instead of variant since we never serialize it
     typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;
     typedef std::unordered_map<std::string, DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
     typedef std::unordered_map<std::string, DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
@@ -88,7 +74,7 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
      * @see CommonAPI::ServicePublisher
      * @see DBusObjectManager
      */
-    bool exportDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
+    bool exportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
     /**
      * Unexport DBusStubAdapter instance from this DBusObjectManagerStub instance.
@@ -104,9 +90,9 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
      *
      * @see exportDBusStubAdapter()
      */
-    bool unexportDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
+    bool unexportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-    bool isDBusStubAdapterExported(DBusStubAdapter* dbusStubAdapter);
+    bool isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
     inline const std::string& getDBusObjectPath() const;
     inline static const char* getInterfaceName();
@@ -115,19 +101,19 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage);
 
  private:
-    bool registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
-    bool unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
+    bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-    bool emitInterfacesAddedSignal(DBusStubAdapter* dbusStubAdapter,
+    bool emitInterfacesAddedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                    const std::shared_ptr<DBusProxyConnection>& dbusConnection) const;
 
-    bool emitInterfacesRemovedSignal(DBusStubAdapter* dbusStubAdapter,
+    bool emitInterfacesRemovedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                      const std::shared_ptr<DBusProxyConnection>& dbusConnection) const;
 
     std::string dbusObjectPath_;
-    std::weak_ptr<DBusProxyConnection> dbusConnectionWeakPtr_;
+    std::weak_ptr<DBusProxyConnection> dbusConnection_;
 
-    typedef std::unordered_map<std::string, DBusStubAdapter*> DBusInterfacesMap;
+    typedef std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> DBusInterfacesMap;
     typedef std::unordered_map<std::string, DBusInterfacesMap> DBusObjectPathsMap;
     DBusObjectPathsMap registeredDBusObjectPathsMap_;
 

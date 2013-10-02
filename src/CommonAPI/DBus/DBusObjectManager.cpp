@@ -24,7 +24,7 @@ namespace DBus {
 
 DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
         dbusConnection_(dbusConnection),
-        rootDBusObjectManagerStub_("/", dbusConnection) {
+        rootDBusObjectManagerStub_(new DBusObjectManagerStub("/", dbusConnection)) {
 
     if (!dbusConnection->isObjectPathMessageHandlerSet()) {
         dbusConnection->setObjectPathMessageHandler(
@@ -34,7 +34,7 @@ DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&
 
     dbusRegisteredObjectsTable_.insert({
                     DBusInterfaceHandlerPath("/", DBusObjectManagerStub::getInterfaceName()),
-                    &rootDBusObjectManagerStub_ });
+                    rootDBusObjectManagerStub_ });
 }
 
 DBusObjectManager::~DBusObjectManager() {
@@ -45,7 +45,7 @@ DBusObjectManager::~DBusObjectManager() {
     }
 }
 
-bool DBusObjectManager::registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter) {
+bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
     const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
     const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
@@ -54,8 +54,21 @@ bool DBusObjectManager::registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter
     objectPathLock_.lock();
     isRegistrationSuccessful = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
-    if (isRegistrationSuccessful && dbusStubAdapter->hasDBusObjectManagerStub()) {
-        auto dbusObjectManagerStub = dbusStubAdapter->getDBusObjectManagerStub();
+    if (isRegistrationSuccessful && dbusStubAdapter->isManagingInterface()) {
+        auto managerStubIterator = managerStubs_.find(dbusStubAdapterObjectPath);
+        const bool managerStubExists = managerStubIterator != managerStubs_.end();
+
+        if (!managerStubExists) {
+            const std::shared_ptr<DBusObjectManagerStub> newManagerStub = std::make_shared<DBusObjectManagerStub>(dbusStubAdapterObjectPath, dbusStubAdapter->getDBusConnection());
+            auto insertResult = managerStubs_.insert( {dbusStubAdapterObjectPath, {newManagerStub, 1} });
+            assert(insertResult.second);
+            managerStubIterator = insertResult.first;
+        } else {
+            uint32_t& countReferencesToManagerStub = std::get<1>(managerStubIterator->second);
+            ++countReferencesToManagerStub;
+        }
+
+        std::shared_ptr<DBusObjectManagerStub> dbusObjectManagerStub = std::get<0>(managerStubIterator->second);
         assert(dbusObjectManagerStub);
 
         isRegistrationSuccessful = addDBusInterfaceHandler(
@@ -78,7 +91,8 @@ bool DBusObjectManager::registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter
     return isRegistrationSuccessful;
 }
 
-bool DBusObjectManager::unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapter) {
+
+bool DBusObjectManager::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
     const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
     const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
@@ -87,16 +101,22 @@ bool DBusObjectManager::unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapt
     objectPathLock_.lock();
     isDeregistrationSuccessful = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
-    if (isDeregistrationSuccessful && dbusStubAdapter->hasDBusObjectManagerStub()) {
-        auto dbusObjectManagerStub = dbusStubAdapter->getDBusObjectManagerStub();
+    if (isDeregistrationSuccessful && dbusStubAdapter->isManagingInterface()) {
+        auto managerStubIterator = managerStubs_.find(dbusStubAdapterObjectPath);
+        assert(managerStubIterator != managerStubs_.end());
+
+        std::shared_ptr<DBusObjectManagerStub> dbusObjectManagerStub = std::get<0>(managerStubIterator->second);
         assert(dbusObjectManagerStub);
 
-        isDeregistrationSuccessful = removeDBusInterfaceHandler(
-                        { dbusStubAdapterObjectPath, dbusObjectManagerStub->getInterfaceName() }, dbusObjectManagerStub);
+        uint32_t& countReferencesToManagerStub = std::get<1>(managerStubIterator->second);
+        assert(countReferencesToManagerStub > 0);
+        --countReferencesToManagerStub;
 
-        if (!isDeregistrationSuccessful) {
-            const bool isDBusStubAdapterAdded = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
-            assert(isDBusStubAdapterAdded);
+        if (countReferencesToManagerStub == 0) {
+            isDeregistrationSuccessful = removeDBusInterfaceHandler(
+                            { dbusStubAdapterObjectPath, dbusObjectManagerStub->getInterfaceName() }, dbusObjectManagerStub);
+            managerStubs_.erase(managerStubIterator);
+            assert(isDeregistrationSuccessful);
         }
     }
 
@@ -111,6 +131,33 @@ bool DBusObjectManager::unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapt
 
     return isDeregistrationSuccessful;
 }
+
+
+bool DBusObjectManager::exportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
+    auto foundManagerStubIterator = managerStubs_.find(parentObjectPath);
+
+    assert(foundManagerStubIterator != managerStubs_.end());
+
+    if (std::get<0>(foundManagerStubIterator->second)->exportManagedDBusStubAdapter(dbusStubAdapter)) {
+        //XXX Other handling necessary?
+        return true;
+    }
+    return false;
+}
+
+
+bool DBusObjectManager::unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
+    auto foundManagerStubIterator = managerStubs_.find(parentObjectPath);
+
+    assert(foundManagerStubIterator != managerStubs_.end());
+
+    if (std::get<0>(foundManagerStubIterator->second)->unexportManagedDBusStubAdapter(dbusStubAdapter)) {
+        //XXX Other handling necessary?
+        return true;
+    }
+    return false;
+}
+
 
 bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
     const char* objectPath = dbusMessage.getObjectPath();
@@ -127,7 +174,7 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
     bool dbusMessageHandled = false;
 
     if (foundDBusInterfaceHandler) {
-        DBusInterfaceHandler* dbusStubAdapterBase = handlerIterator->second;
+        std::shared_ptr<DBusInterfaceHandler> dbusStubAdapterBase = handlerIterator->second;
         dbusMessageHandled = dbusStubAdapterBase->onInterfaceDBusMessage(dbusMessage);
     } else if (dbusMessage.hasInterfaceName("org.freedesktop.DBus.Introspectable")) {
         dbusMessageHandled = onIntrospectableInterfaceDBusMessage(dbusMessage);
@@ -138,11 +185,15 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
 }
 
 bool DBusObjectManager::addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
-                                                DBusInterfaceHandler* dbusInterfaceHandler) {
+                                                std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler) {
     const auto& dbusRegisteredObjectsTableIter = dbusRegisteredObjectsTable_.find(dbusInterfaceHandlerPath);
     const bool isDBusInterfaceHandlerAlreadyAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
 
     if (isDBusInterfaceHandlerAlreadyAdded) {
+        //If another ObjectManager is to be registered, you can go on and just use the first one.
+        if (dbusInterfaceHandlerPath.second == "org.freedesktop.DBus.ObjectManager") {
+            return true;
+        }
         return false;
     }
 
@@ -153,7 +204,7 @@ bool DBusObjectManager::addDBusInterfaceHandler(const DBusInterfaceHandlerPath& 
 }
 
 bool DBusObjectManager::removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
-                                                   DBusInterfaceHandler* dbusInterfaceHandler) {
+                                                   std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler) {
     const auto& dbusRegisteredObjectsTableIter = dbusRegisteredObjectsTable_.find(dbusInterfaceHandlerPath);
     const bool isDBusInterfaceHandlerAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
 
@@ -191,7 +242,7 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
         const DBusInterfaceHandlerPath& handlerPath = registeredObjectsIterator.first;
         const std::string& dbusObjectPath = handlerPath.first;
         const std::string& dbusInterfaceName = handlerPath.second;
-        DBusInterfaceHandler* dbusStubAdapterBase = registeredObjectsIterator.second;
+        std::shared_ptr<DBusInterfaceHandler> dbusStubAdapterBase = registeredObjectsIterator.second;
         std::vector<std::string> elems = CommonAPI::split(dbusObjectPath, '/');
 
         if (dbusMessage.hasObjectPath(dbusObjectPath)) {

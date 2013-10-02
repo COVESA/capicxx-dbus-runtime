@@ -336,12 +336,12 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
         dbusStubAdapter = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(dummy, commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection, stub);
         dbusStubAdapter->init();
 
-        CommonAPI::DBus::DBusObjectManagerStub& rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
+        std::shared_ptr<CommonAPI::DBus::DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
 
         const auto dbusObjectManager = dbusConnection->getDBusObjectManager();
-        const bool isDBusObjectRegistrationSuccessful = dbusObjectManager->registerDBusStubAdapter(dbusStubAdapter.get());
+        const bool isDBusObjectRegistrationSuccessful = dbusObjectManager->registerDBusStubAdapter(dbusStubAdapter);
 
-        const bool isServiceExportSuccessful = rootDBusObjectManagerStub.exportDBusStubAdapter(dbusStubAdapter.get());
+        const bool isServiceExportSuccessful = rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
 
         return dbusStubAdapter;
     }

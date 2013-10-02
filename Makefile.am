@@ -187,6 +187,7 @@ DYNAMIC_LOADING_TEST_SET = \
 
 check_PROGRAMS = \
         DBusManagedTest \
+        DBusObjectManagerStubTest \
         DBusRuntimeTest \
         ${DYNAMIC_LOADING_TEST_SET} \
         DBusMainLoopIntegrationTest \
@@ -205,7 +206,6 @@ check_PROGRAMS = \
         DBusMultipleConnectionTest \
         DBusServicePublisherTest \
         DBusClientIdTest \
-        DBusObjectManagerStubTest \
         DBusSelectiveBroadcastTest
 
 noinst_PROGRAMS = ${check_PROGRAMS}
@@ -220,6 +220,11 @@ DBusManagedTest_SOURCES = \
 DBusManagedTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS} ${GLIB_CFLAGS}
 DBusManagedTest_CXXFLAGS = ${GTEST_CXXFLAGS} ${GLIB_CFLAGS}
 DBusManagedTest_LDADD = ${LDADD_FOR_GTEST} ${GLIB_LIBS}
+
+DBusObjectManagerStubTest_SOURCES = src/test/DBusObjectManagerStubTest.cpp
+DBusObjectManagerStubTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusObjectManagerStubTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusObjectManagerStubTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusMainLoopIntegrationTest_SOURCES = \
         src/test/DBusMainLoopIntegrationTest.cpp \
@@ -361,11 +366,6 @@ DBusClientIdTest_SOURCES =  \
 DBusClientIdTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusClientIdTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusClientIdTest_LDADD = ${LDADD_FOR_GTEST}
-
-DBusObjectManagerStubTest_SOURCES = src/test/DBusObjectManagerStubTest.cpp
-DBusObjectManagerStubTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusObjectManagerStubTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusObjectManagerStubTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusSelectiveBroadcastTest_SOURCES =  \
         ${TestInterfaceDBusSources} \

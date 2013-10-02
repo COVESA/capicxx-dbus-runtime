@@ -28,36 +28,44 @@ class DBusObjectManager {
     DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
     ~DBusObjectManager();
 
-    bool registerDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
-    bool unregisterDBusStubAdapter(DBusStubAdapter* dbusStubAdapter);
+    bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+
+    //Zusammenfassbar mit "registerDBusStubAdapter"?
+    bool exportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    bool unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
     bool handleMessage(const DBusMessage&);
 
-    inline DBusObjectManagerStub& getRootDBusObjectManagerStub();
+    inline std::shared_ptr<DBusObjectManagerStub> getRootDBusObjectManagerStub();
 
  private:
     // objectPath, interfaceName
     typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
 
     bool addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
-                                 DBusInterfaceHandler* dbusInterfaceHandler);
+                                 std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler);
 
     bool removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
-                                    DBusInterfaceHandler* dbusInterfaceHandler);
+                                    std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler);
 
     bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
 
-    typedef std::unordered_map<DBusInterfaceHandlerPath, DBusInterfaceHandler*> DBusRegisteredObjectsTable;
+    typedef std::unordered_map<DBusInterfaceHandlerPath, std::shared_ptr<DBusInterfaceHandler>> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
 
-    DBusObjectManagerStub rootDBusObjectManagerStub_;
+    std::shared_ptr<DBusObjectManagerStub> rootDBusObjectManagerStub_;
+
+    typedef std::pair<std::shared_ptr<DBusObjectManagerStub>, uint32_t> ReferenceCountedDBusObjectManagerStub;
+    typedef std::unordered_map<std::string, ReferenceCountedDBusObjectManagerStub> RegisteredObjectManagersTable;
+    RegisteredObjectManagersTable managerStubs_;
 
     std::weak_ptr<DBusProxyConnection> dbusConnection_;
     std::recursive_mutex objectPathLock_;
 };
 
 
-DBusObjectManagerStub& DBusObjectManager::getRootDBusObjectManagerStub() {
+std::shared_ptr<DBusObjectManagerStub> DBusObjectManager::getRootDBusObjectManagerStub() {
     return rootDBusObjectManagerStub_;
 }
 

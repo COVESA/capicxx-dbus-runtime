@@ -13,12 +13,12 @@ namespace DBus {
 
 
 DBusProxyManager::DBusProxyManager(DBusProxy& dbusProxy,
-                                   const char* interfaceName,
-                                   const std::shared_ptr<DBusFactory>& factory) :
+                                   const std::string& interfaceId,
+                                   const std::shared_ptr<DBusFactory> factory) :
                 dbusProxy_(dbusProxy),
-                dbusInstanceAvailabilityStatusEvent_(dbusProxy, interfaceName),
+                dbusInstanceAvailabilityStatusEvent_(dbusProxy, interfaceId),
                 factory_(factory),
-                interfaceName_(interfaceName) ,
+                interfaceId_(interfaceId),
                 registry_(dbusProxy.getDBusConnection()->getDBusServiceRegistry())
 
 { }
@@ -41,11 +41,9 @@ void DBusProxyManager::getAvailableInstances(CommonAPI::CallStatus& callStatus, 
                                     dbusProxy_,
                                     DBusObjectManagerStub::getInterfaceName(),
                                     "GetManagedObjects",
-                                    "a{oa{sa{sv}}}",
+                                    "",
                                     callStatus,
                                     dbusObjectPathAndInterfacesDict);
-
-
 
     if (callStatus == CallStatus::SUCCESS) {
         translateCommonApiAddresses(dbusObjectPathAndInterfacesDict, availableInstances);
@@ -75,7 +73,7 @@ void DBusProxyManager::getInstanceAvailabilityStatus(const std::string& instance
                                                      AvailabilityStatus& availabilityStatus) {
 
     std::stringstream ss;
-    ss << "local:" << interfaceName_ << ":" << instanceAddress;
+    ss << "local:" << interfaceId_ << ":" << instanceAddress;
 
     std::string interfaceName;
     std::string connectionName;
@@ -101,7 +99,7 @@ SubscriptionStatus DBusProxyManager::instanceAliveAsyncCallback(const Availabili
 std::future<CallStatus> DBusProxyManager::getInstanceAvailabilityStatusAsync(const std::string& instanceAddress,
                                                                              GetInstanceAvailabilityStatusCallback callback) {
     std::stringstream ss;
-    ss << "local:" << interfaceName_ << ":" << instanceAddress;
+    ss << "local:" << interfaceId_ << ":" << instanceAddress;
 
 
     std::shared_ptr<std::promise<CallStatus> > promise = std::make_shared<std::promise<CallStatus>>();
@@ -122,28 +120,31 @@ DBusProxyManager::InstanceAvailabilityStatusChangedEvent& DBusProxyManager::getI
 }
 
 void DBusProxyManager::translateCommonApiAddresses(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dbusObjectPathAndInterfacesDict,
-                                                   std::vector<std::string>& commonApiAddresses) {
+                                                   std::vector<std::string>& instanceIds) {
     for (const auto& dbusObjectPathIter : dbusObjectPathAndInterfacesDict) {
         const std::string& dbusObjectPath = dbusObjectPathIter.first;
         const auto& dbusInterfacesDict = dbusObjectPathIter.second;
 
         for (const auto& dbusInterfaceIter : dbusInterfacesDict) {
             const std::string dbusInterfaceName = dbusInterfaceIter.first;
-            std::string commonApiAddress;
+            std::string instanceId;
 
             DBusAddressTranslator::getInstance().searchForCommonAddress(
                             dbusInterfaceName,
                             dbusProxy_.getDBusBusName(),
                             dbusObjectPath,
-                            commonApiAddress);
+                            instanceId);
 
-            commonApiAddresses.push_back(commonApiAddress);
+            auto pos = instanceId.find_last_of(':');
+            instanceId = instanceId.substr(pos + 1, instanceId.size());
+
+            instanceIds.push_back(instanceId);
         }
     }
 }
 
-std::shared_ptr<Proxy> DBusProxyManager::createProxy(const std::string& instanceName) {
-    return factory_->createProxy(interfaceName_, instanceName, interfaceName_, "local");
+std::shared_ptr<Proxy> DBusProxyManager::createProxy(const std::string& instanceId) {
+    return factory_->createProxy(interfaceId_.c_str(), instanceId, interfaceId_, "local");
 }
 
 

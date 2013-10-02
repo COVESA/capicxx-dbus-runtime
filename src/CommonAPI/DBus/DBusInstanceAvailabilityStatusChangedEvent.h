@@ -32,7 +32,7 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                 public ProxyManager::InstanceAvailabilityStatusChangedEvent,
                 public DBusProxyConnection::DBusSignalHandler {
  public:
-    DBusInstanceAvailabilityStatusChangedEvent(DBusProxy& dbusProxy, const char* interfaceName) :
+    DBusInstanceAvailabilityStatusChangedEvent(DBusProxy& dbusProxy, const std::string& interfaceName) :
                     dbusProxy_(dbusProxy),
                     observedInterfaceName_(interfaceName) {
     }

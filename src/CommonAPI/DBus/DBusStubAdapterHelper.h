@@ -47,8 +47,8 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
                           const std::string& dbusObjectPath,
                           const std::shared_ptr<DBusProxyConnection>& dbusConnection,
                           const std::shared_ptr<_StubClass>& stub,
-                          DBusObjectManagerStub* managerStub = NULL):
-                    DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection, managerStub),
+                          const bool isManagingInterface):
+                    DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection, isManagingInterface),
                     stub_(stub) {
     }
 

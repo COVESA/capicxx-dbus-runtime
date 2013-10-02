@@ -146,7 +146,7 @@ class TestDBusStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
                         const std::string& dbusBusName,
                         const std::string& dbusObjectPath,
                         const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection):
-                        DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection),
+                        DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection, false),
                         introspectionCount(0) {
     }
 

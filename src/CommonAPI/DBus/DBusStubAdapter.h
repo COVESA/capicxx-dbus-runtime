@@ -35,7 +35,7 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfa
                     const std::string& dbusBusName,
                     const std::string& dbusObjectPath,
                     const std::shared_ptr<DBusProxyConnection>& dbusConnection,
-                    DBusObjectManagerStub* managerStub = NULL);
+                    const bool isManagingInterface);
 
     virtual ~DBusStubAdapter();
 
@@ -53,8 +53,7 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfa
 
     inline const std::shared_ptr<DBusProxyConnection>& getDBusConnection() const;
 
-    inline virtual DBusObjectManagerStub* getDBusObjectManagerStub();
-    inline const bool hasDBusObjectManagerStub();
+    inline const bool isManagingInterface();
 
     virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
@@ -72,20 +71,16 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfa
     const std::string dbusInterfaceName_;
     const std::shared_ptr<DBusProxyConnection> dbusConnection_;
 
-    DBusObjectManagerStub* managerStub;
-
     static const std::string domain_;
 
     const std::shared_ptr<DBusFactory> factory_;
+
+    const bool isManagingInterface_;
 };
 
 
-DBusObjectManagerStub* DBusStubAdapter::getDBusObjectManagerStub() {
-    return managerStub;
-}
-
-const bool DBusStubAdapter::hasDBusObjectManagerStub() {
-    return (getDBusObjectManagerStub() != NULL);
+const bool DBusStubAdapter::isManagingInterface() {
+    return isManagingInterface_;
 }
 
 const std::string& DBusStubAdapter::getDBusName() const {

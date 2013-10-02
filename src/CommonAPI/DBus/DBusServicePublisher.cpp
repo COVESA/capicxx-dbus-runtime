@@ -26,14 +26,14 @@ std::shared_ptr<DBusServicePublisher> DBusServicePublisher::getInstance() {
 bool DBusServicePublisher::registerService(const std::shared_ptr<DBusStubAdapter>& dbusStubAdapter) {
     auto serviceAddress = dbusStubAdapter->getAddress();
     const auto& dbusConnection = dbusStubAdapter->getDBusConnection();
-    DBusObjectManagerStub& rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
-    const bool isManagedRegistrationSuccessfull = registerManagedService(dbusStubAdapter);
+    std::shared_ptr<DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
+    const bool isRegistrationAtManagerSuccessfull = registerManagedService(dbusStubAdapter);
 
-    if (!isManagedRegistrationSuccessfull) {
+    if (!isRegistrationAtManagerSuccessfull) {
         return false;
     }
 
-    const bool isServiceExportSuccessful = rootDBusObjectManagerStub.exportDBusStubAdapter(dbusStubAdapter.get());
+    const bool isServiceExportSuccessful = rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
     if (!isServiceExportSuccessful) {
         const bool isManagedDeregistrationSuccessfull = unregisterManagedService(serviceAddress);
         assert(isManagedDeregistrationSuccessfull);
@@ -70,6 +70,7 @@ bool DBusServicePublisher::registerService(const std::shared_ptr<StubBase>& stub
     return isRegistrationSuccessful;
 }
 
+
 bool DBusServicePublisher::unregisterService(const std::string& serviceAddress) {
     auto registeredServiceIterator = registeredServices_.find(serviceAddress);
     const bool isServiceAddressRegistered = (registeredServiceIterator != registeredServices_.end());
@@ -80,11 +81,11 @@ bool DBusServicePublisher::unregisterService(const std::string& serviceAddress) 
 
     const auto& registeredDBusStubAdapter = registeredServiceIterator->second;
     const auto& dbusConnection = registeredDBusStubAdapter->getDBusConnection();
-    auto& rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
-    const bool isRootService = rootDBusObjectManagerStub.isDBusStubAdapterExported(registeredDBusStubAdapter.get());
+    std::shared_ptr<DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
+    const bool isRootService = rootDBusObjectManagerStub->isDBusStubAdapterExported(registeredDBusStubAdapter);
     registeredDBusStubAdapter->deactivateManagedInstances();
     if (isRootService) {
-        const bool isUnexportSuccessfull = rootDBusObjectManagerStub.unexportDBusStubAdapter(registeredDBusStubAdapter.get());
+        const bool isUnexportSuccessfull = rootDBusObjectManagerStub->unexportManagedDBusStubAdapter(registeredDBusStubAdapter);
         assert(isUnexportSuccessfull);
 
         unregisterManagedService(registeredServiceIterator);
@@ -92,6 +93,7 @@ bool DBusServicePublisher::unregisterService(const std::string& serviceAddress) 
 
     return isRootService;
 }
+
 
 bool DBusServicePublisher::registerManagedService(const std::shared_ptr<DBusStubAdapter>& managedDBusStubAdapter) {
     auto serviceAddress = managedDBusStubAdapter->getAddress();
@@ -105,7 +107,7 @@ bool DBusServicePublisher::registerManagedService(const std::shared_ptr<DBusStub
 
     const auto& dbusConnection = managedDBusStubAdapter->getDBusConnection();
     const auto dbusObjectManager = dbusConnection->getDBusObjectManager();
-    const bool isDBusObjectRegistrationSuccessful = dbusObjectManager->registerDBusStubAdapter(managedDBusStubAdapter.get());
+    const bool isDBusObjectRegistrationSuccessful = dbusObjectManager->registerDBusStubAdapter(managedDBusStubAdapter);
     if (!isDBusObjectRegistrationSuccessful) {
         registeredServices_.erase(insertIter);
         return false;
@@ -114,7 +116,7 @@ bool DBusServicePublisher::registerManagedService(const std::shared_ptr<DBusStub
     const auto& dbusServiceName = managedDBusStubAdapter->getDBusName();
     const bool isServiceNameAcquired = dbusConnection->requestServiceNameAndBlock(dbusServiceName);
     if (!isServiceNameAcquired) {
-        const bool isDBusObjectDeregistrationSuccessful = dbusObjectManager->unregisterDBusStubAdapter(managedDBusStubAdapter.get());
+        const bool isDBusObjectDeregistrationSuccessful = dbusObjectManager->unregisterDBusStubAdapter(managedDBusStubAdapter);
         assert(isDBusObjectDeregistrationSuccessful);
 
         registeredServices_.erase(insertIter);
@@ -122,6 +124,7 @@ bool DBusServicePublisher::registerManagedService(const std::shared_ptr<DBusStub
 
     return isServiceNameAcquired;
 }
+
 
 bool DBusServicePublisher::unregisterManagedService(const std::string& serviceAddress) {
     auto registeredServiceIterator = registeredServices_.find(serviceAddress);
@@ -140,7 +143,7 @@ void DBusServicePublisher::unregisterManagedService(DBusServicesMap::iterator& m
     const auto dbusObjectManager = dbusConnection->getDBusObjectManager();
     const auto& dbusServiceName = registeredDbusStubAdapter->getDBusName();
 
-    const bool isDBusStubAdapterUnregistered = dbusObjectManager->unregisterDBusStubAdapter(registeredDbusStubAdapter.get());
+    const bool isDBusStubAdapterUnregistered = dbusObjectManager->unregisterDBusStubAdapter(registeredDbusStubAdapter);
     assert(isDBusStubAdapterUnregistered);
 
     dbusConnection->releaseServiceName(dbusServiceName);
