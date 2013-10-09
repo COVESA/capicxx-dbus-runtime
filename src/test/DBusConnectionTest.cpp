@@ -152,6 +152,7 @@ void notifyThunk(DBusPendingCall*, void* data) {
 }
 
 TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
+    dbus_threads_init_default();
 	const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
 	::DBusError libdbusError;
 	dbus_error_init(&libdbusError);

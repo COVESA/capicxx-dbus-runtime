@@ -67,10 +67,10 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         return remoteEventHandler_;
     }
 
+	// interfaceMemberName, interfaceMemberSignature
+	typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
+	typedef std::unordered_map<DBusInterfaceMemberPath, StubDispatcher*> StubDispatcherTable;
  protected:
-    // interfaceMemberName, interfaceMemberSignature
-    typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
-    typedef std::unordered_map<DBusInterfaceMemberPath, StubDispatcher*> StubDispatcherTable;
 
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) {
         const char* interfaceMemberName = dbusMessage.getMemberName();
@@ -151,7 +151,7 @@ class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAda
     }
 
  private:
-    template <int... _InArgIndices, int... _OutArgIndices>
+    template <int... _InArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
     							  const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,

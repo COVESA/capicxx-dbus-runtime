@@ -28,5 +28,12 @@ std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopCont
     return factory;
 }
 
+
+extern "C" {
+
+CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
+
+}
+
 } // namespace DBus
 } // namespace CommonAPI

@@ -26,11 +26,4 @@ class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRunti
 } // namespace DBus
 } // namespace CommonAPI
 
-
-extern "C" {
-
-CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
-
-}
-
 #endif // COMMONAPI_DBUS_DBUS_RUNTIME_H_

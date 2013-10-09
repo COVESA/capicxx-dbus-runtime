@@ -125,15 +125,8 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
 
     DBusAddressTranslator::getInstance().searchForDBusAddress(commonApiAddress, interfaceName, connectionName, objectPath);
 
-    if(acquiredConnectionName_ == "") {
-        bool isServiceNameAcquired = dbusConnection_->requestServiceNameAndBlock(connectionName);
-        if(!isServiceNameAcquired) {
-            return false;
-        }
-        acquiredConnectionName_ = connectionName;
-    } else if (acquiredConnectionName_ != connectionName) {
-        return false;
-    }
+    bool status = false;
+
 
     if(!registeredAdapterFactoryFunctions_) {
         registeredAdapterFactoryFunctions_ = new std::unordered_map<std::string, DBusAdapterFactoryFunction> {};
@@ -145,13 +138,27 @@ bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
         if(!dbusStubAdapter) {
             return false;
         }
-        if(registeredServices_.insert( {std::move(commonApiAddress), dbusStubAdapter} ).second) {
+        if(registeredServices_.insert( {commonApiAddress, dbusStubAdapter} ).second) {
             dbusStubAdapter->init();
-            return true;
+            status = true;
         }
     }
 
-	return false;
+    if (acquiredConnectionName_ == "") {
+        bool isServiceNameAcquired = dbusConnection_->requestServiceNameAndBlock(connectionName);
+        if (!isServiceNameAcquired) {
+            registeredServices_.find(commonApiAddress)->second->deinit();
+            registeredServices_.erase(commonApiAddress);
+            return false;
+        }
+        acquiredConnectionName_ = connectionName;
+    } else if (acquiredConnectionName_ != connectionName) {
+        registeredServices_.find(commonApiAddress)->second->deinit();
+        registeredServices_.erase(commonApiAddress);
+        return false;
+    }
+
+	return status;
 }
 
 bool DBusFactory::unregisterService(const std::string& participantId, const std::string& serviceName, const std::string& domain) {
