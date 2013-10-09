@@ -196,6 +196,22 @@ bool DBusFactory::unregisterService(const std::string& participantId, const std:
     return DBusServicePublisher::getInstance()->unregisterService(serviceAddress);
 }
 
+COMMONAPI_DEPRECATED bool DBusFactory::registerAdapter(std::shared_ptr<StubBase> stubBase,
+                                                       const char* interfaceId,
+                                                       const std::string& participantId,
+                                                       const std::string& serviceName,
+                                                       const std::string& domain) {
+
+    std::shared_ptr<DBusServicePublisher> pub = std::dynamic_pointer_cast<DBusServicePublisher>(runtime_->getServicePublisher());
+    return pub->registerService(
+                    stubBase,
+                    interfaceId,
+                    participantId,
+                    serviceName,
+                    domain,
+                    shared_from_this());
+}
+
 
 } // namespace DBus
 } // namespace CommonAPI

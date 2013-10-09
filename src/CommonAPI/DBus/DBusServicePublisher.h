@@ -51,6 +51,8 @@ class DBusServicePublisher: public ServicePublisher {
     void unregisterManagedService(DBusServicesMap::iterator& managedServiceIterator);
 
     DBusServicesMap registeredServices_;
+
+    friend class DBusFactory;
 };
 
 } // namespace DBus

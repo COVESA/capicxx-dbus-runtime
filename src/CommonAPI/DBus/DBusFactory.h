@@ -71,6 +71,14 @@ class DBusFactory: public Factory, public std::enable_shared_from_this<DBusFacto
 
     virtual std::shared_ptr<Proxy> createProxy(const char* interfaceId, const std::string& participantId, const std::string& serviceName, const std::string& domain);
 
+ protected:
+
+    COMMONAPI_DEPRECATED virtual bool registerAdapter(std::shared_ptr<StubBase> stubBase,
+                                                      const char* interfaceId,
+                                                      const std::string& participantId,
+                                                      const std::string& serviceName,
+                                                      const std::string& domain);
+
  private:
     SubscriptionStatus isServiceInstanceAliveCallbackThunk(Factory::IsServiceInstanceAliveCallback callback, const AvailabilityStatus& status, std::shared_ptr<DBusServiceRegistry> serviceRegistry);
 
