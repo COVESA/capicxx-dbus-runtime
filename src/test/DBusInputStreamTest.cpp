@@ -495,7 +495,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
         DBusMessageIter innerArrayIter;
         dbus_message_iter_open_container(&subSubIter, DBUS_TYPE_ARRAY, "s", &innerArrayIter);
         for (unsigned int i = 0; i < numOfElements; i++) {
-            dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testInnerVector[i]);
+            char* testPtr = strdup(testInnerVector[i].c_str());
+            dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testPtr);
         }
         dbus_message_iter_close_container(&subSubIter, &innerArrayIter);
 
