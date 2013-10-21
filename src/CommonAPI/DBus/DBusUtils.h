@@ -11,8 +11,14 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <unistd.h>
 #include <future>
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN // this prevents windows.h from including winsock.h, which causes duplicate definitions with winsock2.h
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace CommonAPI {
 namespace DBus {
@@ -33,19 +39,25 @@ inline std::vector<std::string> split(const std::string& s, char delim) {
 
 
 inline std::string getCurrentBinaryFileFQN() {
-    char fqnOfBinary[FILENAME_MAX];
-    char pathToProcessImage[FILENAME_MAX];
+#ifdef WIN32
+	TCHAR result[MAX_PATH];
+	std::basic_string<TCHAR> resultString(result, GetModuleFileName(NULL, result, MAX_PATH));
+	return std::string(resultString.begin(), resultString.end());
+#else
+	char fqnOfBinary[FILENAME_MAX];
+	char pathToProcessImage[FILENAME_MAX];
 
-    sprintf(pathToProcessImage, "/proc/%d/exe", getpid());
-    const ssize_t lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary) - 1);
+	sprintf(pathToProcessImage, "/proc/%d/exe", getpid());
+	const ssize_t lengthOfFqn = readlink(pathToProcessImage, fqnOfBinary, sizeof(fqnOfBinary)-1);
 
-    if (lengthOfFqn != -1) {
-        fqnOfBinary[lengthOfFqn] = '\0';
-        return std::string(std::move(fqnOfBinary));
-    } else {
-        //TODO fail of readlink, i.e. it returns -1, sets errno. See http://linux.die.net/man/3/readlink
-        return std::string("");
-    }
+	if (lengthOfFqn != -1) {
+		fqnOfBinary[lengthOfFqn] = '\0';
+		return std::string(std::move(fqnOfBinary));
+	}
+	else {
+		return std::string("");
+	}
+#endif
 }
 
 template<typename _FutureWaitType>

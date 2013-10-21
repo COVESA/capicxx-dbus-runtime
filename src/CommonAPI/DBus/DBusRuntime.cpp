@@ -11,8 +11,16 @@ namespace DBus {
 
 const MiddlewareInfo DBusRuntime::middlewareInfo_("DBus", &DBusRuntime::getInstance);
 
-__attribute__((constructor)) void registerDBusMiddleware(void) {
-    Runtime::registerRuntimeLoader("DBus", &DBusRuntime::getInstance);
+#ifdef WIN32
+#pragma section(".CRT$XCU",read)
+void __cdecl registerDBusMiddleware(void);
+__declspec(allocate(".CRT$XCU")) void(__cdecl*registerDBusMiddleware_)(void) = registerDBusMiddleware;
+void __cdecl
+#else
+__attribute__((constructor)) void
+#endif
+ registerDBusMiddleware(void) {
+	Runtime::registerRuntimeLoader("DBus", &DBusRuntime::getInstance);
 }
 
 std::shared_ptr<Runtime> DBusRuntime::getInstance() {
@@ -28,12 +36,11 @@ std::shared_ptr<Factory> DBusRuntime::createFactory(std::shared_ptr<MainLoopCont
     return factory;
 }
 
+} // namespace DBus
+} // namespace CommonAPI
 
 extern "C" {
 
-CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
+	CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
 
 }
-
-} // namespace DBus
-} // namespace CommonAPI

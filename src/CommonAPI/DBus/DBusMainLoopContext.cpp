@@ -9,7 +9,11 @@
 #include "DBusMainLoopContext.h"
 #include "DBusConnection.h"
 
+#ifdef WIN32
+#include <CommonAPI/pollStructures.h>
+#else
 #include <poll.h>
+#endif
 #include <chrono>
 
 
@@ -73,7 +77,7 @@ void DBusWatch::stopWatching() {
     lockedContext->deregisterWatch(this);
 }
 
-const pollfd& DBusWatch::getAssociatedFileDescriptor() {
+const COMMONAPI_POLLFD& DBusWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
 

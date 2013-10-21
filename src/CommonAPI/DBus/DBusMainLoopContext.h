@@ -10,11 +10,10 @@
 
 #include <list>
 #include <memory>
-#include <poll.h>
+#include <CommonAPI/MainLoopContext.h>
 
 #include <dbus/dbus.h>
 
-#include <CommonAPI/MainLoopContext.h>
 
 
 namespace CommonAPI {
@@ -47,7 +46,7 @@ class DBusWatch: public Watch {
 
     void dispatch(unsigned int eventFlags);
 
-    const pollfd& getAssociatedFileDescriptor();
+	const COMMONAPI_POLLFD& getAssociatedFileDescriptor();
 
     const std::vector<DispatchSource*>& getDependentDispatchSources();
     void addDependentDispatchSource(DispatchSource* dispatchSource);
@@ -56,7 +55,7 @@ class DBusWatch: public Watch {
     bool isReady();
 
     ::DBusWatch* libdbusWatch_;
-    pollfd pollFileDescriptor_;
+	COMMONAPI_POLLFD pollFileDescriptor_;
     std::vector<DispatchSource*> dependentDispatchSources_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
