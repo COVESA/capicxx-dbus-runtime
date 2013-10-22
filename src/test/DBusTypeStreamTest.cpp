@@ -325,8 +325,9 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorre
     ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

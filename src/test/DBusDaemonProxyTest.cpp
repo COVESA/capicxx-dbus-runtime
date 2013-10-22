@@ -133,7 +133,9 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
 
 } // namespace
 
+#ifndef WIN32
 int main(int argc, char** argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
+#endif

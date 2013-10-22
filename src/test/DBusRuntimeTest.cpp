@@ -41,7 +41,13 @@ TEST_F(DBusRuntimeTest, LoadsSpecifiedStaticallyLinkedDBusLibrary) {
 
 
 TEST_F(DBusRuntimeTest, LoadsDBusLibraryAsSingleton) {
-    std::shared_ptr<CommonAPI::Runtime> runtime1 = CommonAPI::Runtime::load("DBus");
+#ifdef WIN32
+	/*
+	access the middlewareInfo in order to get a call to DBusRuntime. This makes forces the windows linker not to remove DBusRuntime from resulting binary
+	*/
+	ASSERT_TRUE(CommonAPI::DBus::DBusRuntime::middlewareInfo_.middlewareId_);
+#endif
+	std::shared_ptr<CommonAPI::Runtime> runtime1 = CommonAPI::Runtime::load("DBus");
     std::shared_ptr<CommonAPI::Runtime> runtime2 = CommonAPI::Runtime::load("DBus");
     ASSERT_TRUE((bool)runtime1);
     ASSERT_TRUE((bool)runtime2);
@@ -73,8 +79,9 @@ TEST_F(DBusRuntimeTest, DBusRuntimeLoadsDBusFactory) {
     ASSERT_TRUE(dbusProxyFactory != NULL);
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

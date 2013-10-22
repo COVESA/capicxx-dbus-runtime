@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include <thread>
-#include <unistd.h>
 
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 #include <CommonAPI/DBus/DBusUtils.h>
@@ -91,7 +90,7 @@ static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
                 vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
 };
 
-
+/*
 class Environment: public ::testing::Environment {
 public:
     virtual ~Environment() {
@@ -112,16 +111,26 @@ public:
 
     std::string configFileName_;
 };
+*/
 
 
 class AddressTranslatorTest: public ::testing::Test {
 protected:
     void SetUp() {
+		configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
+		configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
+		std::ofstream configFile(configFileName_);
+		ASSERT_TRUE(configFile.is_open());
+		configFile << fileString;
+		configFile.close();
     }
 
     virtual void TearDown() {
-        usleep(30000);
-    }
+		usleep(30000);
+		std::remove(configFileName_.c_str());
+	}
+
+	std::string configFileName_;
 };
 
 
@@ -196,12 +205,13 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     stubFactory->unregisterService(commonApiAddresses[0]);
 }
 
-
+#ifndef WIN32
 const std::string addressOfFakeLegacyService = commonApiAddresses[8];
 
 const std::string domainOfFakeLegacyService = "local";
 const std::string serviceIdOfFakeLegacyService = "fake.legacy.service.LegacyInterface";
 const std::string participantIdOfFakeLegacyService = "fake.legacy.service";
+
 
 TEST_F(AddressTranslatorTest, CreatedProxyHasCorrectCommonApiAddress) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
@@ -219,7 +229,6 @@ TEST_F(AddressTranslatorTest, CreatedProxyHasCorrectCommonApiAddress) {
     ASSERT_EQ(serviceIdOfFakeLegacyService, proxyForFakeLegacyService->getServiceId());
     ASSERT_EQ(participantIdOfFakeLegacyService, proxyForFakeLegacyService->getInstanceId());
 }
-
 
 void fakeLegacyServiceThread() {
     int resultCode = system("python ./src/test/fakeLegacyService/fakeLegacyService.py");
@@ -269,9 +278,8 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
     fakeServiceThread.join();
 }
 
-
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
+#endif // !WIN32

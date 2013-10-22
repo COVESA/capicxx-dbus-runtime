@@ -18,13 +18,27 @@
 #include <vector>
 #include <set>
 #include <map>
+#ifdef WIN32
+#include <WinSock2.h>
+#include <CommonAPI/pollStructures.h>
+#include "DemoPoll.h"
+#else
 #include <poll.h>
-#include <unistd.h>
 #include <sys/eventfd.h>
+#include <unistd.h>
+#endif
+
+
 #include <cassert>
 
 
 namespace CommonAPI {
+
+#ifdef WIN32
+	typedef ::DemoPollFd DemoMainLoopPollFd;
+#else
+    typedef COMMONAPI_POLLFD DemoMainLoopPollFd;
+#endif
 
 class MainLoop {
  public:
@@ -36,8 +50,19 @@ class MainLoop {
 
     explicit MainLoop(std::shared_ptr<MainLoopContext> context) :
             context_(context), currentMinimalTimeoutInterval_(TIMEOUT_INFINITE), running_(false), breakLoop_(false) {
-        wakeFd_.fd = eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
-        wakeFd_.events = POLLIN | POLLOUT | POLLERR;
+        
+#ifdef WIN32
+		WSAEVENT wsaEvent = WSACreateEvent();
+
+		if (wsaEvent != WSA_INVALID_EVENT) {
+			wakeFd_.fd = PtrToInt(wsaEvent);
+		}
+
+		wakeFd_.isWsaEvent = true;
+#else
+		wakeFd_.fd = eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
+#endif
+        wakeFd_.events = POLLIN;
 
         assert(wakeFd_.fd != -1);
         registerFileDescriptor(wakeFd_);
@@ -63,7 +88,11 @@ class MainLoop {
         context_->unsubscribeForTimeouts(timeoutSourceListenerSubscription_);
         context_->unsubscribeForWakeupEvents(wakeupListenerSubscription_);
 
-        close(wakeFd_.fd);
+#ifdef WIN32
+		WSACloseEvent(IntToPtr(wakeFd_.fd));
+#else
+		close(wakeFd_.fd);
+#endif
     }
 
     /**
@@ -227,16 +256,21 @@ class MainLoop {
     }
 
     void wakeup() {
-        uint32_t wake = 1;
-        ::write(wakeFd_.fd, &wake, sizeof(uint32_t));
+#ifdef WIN32
+		HANDLE h = IntToPtr(wakeFd_.fd);
+		SetEvent(h);
+#else
+		int64_t wake = 1;
+		::write(wakeFd_.fd, &wake, sizeof(int64_t));
+#endif
     }
 
  private:
-    void registerFileDescriptor(const pollfd& fileDescriptor) {
+	void registerFileDescriptor(const DemoMainLoopPollFd& fileDescriptor) {
         managedFileDescriptors_.push_back(fileDescriptor);
     }
 
-    void deregisterFileDescriptor(const pollfd& fileDescriptor) {
+	void deregisterFileDescriptor(const DemoMainLoopPollFd& fileDescriptor) {
         for (auto it = managedFileDescriptors_.begin(); it != managedFileDescriptors_.end(); it++) {
             if ((*it).fd == fileDescriptor.fd) {
                 managedFileDescriptors_.erase(it);
@@ -263,7 +297,14 @@ class MainLoop {
     }
 
     void registerWatch(Watch* watch, const DispatchPriority dispatchPriority) {
-        registerFileDescriptor(watch->getAssociatedFileDescriptor());
+#ifdef WIN32
+		DemoMainLoopPollFd fdToRegister = watch->getAssociatedFileDescriptor();
+		fdToRegister.isWsaEvent = false;
+#else
+		DemoMainLoopPollFd fdToRegister = watch->getAssociatedFileDescriptor();
+#endif
+
+		registerFileDescriptor(fdToRegister);
         registeredWatches_.insert( { dispatchPriority, {watch->getAssociatedFileDescriptor().fd, watch} } );
     }
 
@@ -298,13 +339,18 @@ class MainLoop {
     }
 
     void acknowledgeWakeup() {
-        uint32_t buffer;
-        while (::read(wakeFd_.fd, &buffer, sizeof(uint32_t)) == sizeof(buffer));
+#ifdef WIN32
+		HANDLE h = IntToPtr(wakeFd_.fd);
+		ResetEvent(h);
+#else
+		int64_t buffer;
+		while (::read(wakeFd_.fd, &buffer, sizeof(int64_t)) == sizeof(buffer));
+#endif
     }
 
     std::shared_ptr<MainLoopContext> context_;
 
-    std::vector<pollfd> managedFileDescriptors_;
+	std::vector<DemoMainLoopPollFd> managedFileDescriptors_;
 
     std::multimap<DispatchPriority, DispatchSource*> registeredDispatchSources_;
     std::multimap<DispatchPriority, std::pair<int, Watch*>> registeredWatches_;
@@ -323,7 +369,7 @@ class MainLoop {
     bool breakLoop_;
     bool running_;
 
-    pollfd wakeFd_;
+	DemoMainLoopPollFd wakeFd_;
 };
 
 

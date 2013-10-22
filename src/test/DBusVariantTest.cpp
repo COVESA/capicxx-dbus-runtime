@@ -17,7 +17,7 @@ class VariantTest: public ::testing::Test {
 
     void SetUp() {
         fromInt = 5;
-        fromDouble = 12.344d;
+        fromDouble = 12.344;
         fromString = "123abcsadfaljkawlöfasklöerklöfjasklfjysklfjaskfjsklösdfdko4jdfasdjioögjopefgip3rtgjiprg!";
     }
 
@@ -166,7 +166,9 @@ TEST_F(VariantTest, VariantStringArray) {
     delete vectorVariant;
 }
 
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

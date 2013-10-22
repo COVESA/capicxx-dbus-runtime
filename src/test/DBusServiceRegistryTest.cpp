@@ -20,6 +20,9 @@
 
 #include <gtest/gtest.h>
 
+#include <thread>
+#include <chrono>
+
 
 // all predefinedInstances will be added for this service
 static const std::string dbusServiceName = "DBusServiceRegistryTest.Predefined.Service";
@@ -31,50 +34,36 @@ static const std::unordered_map<std::pair<std::string, std::string>, std::string
                 { { "tests.Interface2", "/tests/predefined/Object1" }, "local:Interface2:predefined.Instance" }
 };
 
-
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
-        configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
-
-        std::ofstream configFile(configFileName_);
-        ASSERT_TRUE(configFile.is_open());
-
-        for (auto& predefinedInstance : predefinedInstancesMap) {
-            const std::string& dbusInterfaceName = predefinedInstance.first.first;
-            const std::string& dbusObjectPath = predefinedInstance.first.second;
-            const std::string& commonApiAddress = predefinedInstance.second;
-
-            configFile << "[" << commonApiAddress << "]\n";
-            configFile << "dbus_connection=" << dbusServiceName << std::endl;
-            configFile << "dbus_object=" << dbusObjectPath << std::endl;
-            configFile << "dbus_interface=" << dbusInterfaceName << std::endl;
-            configFile << "dbus_predefined=true\n";
-            configFile << std::endl;
-        }
-
-        configFile.close();
-    }
-
-    virtual void TearDown() {
-        std::remove(configFileName_.c_str());
-    }
-
-    std::string configFileName_;
-};
-
-
 class DBusServiceRegistryTest: public ::testing::Test {
  protected:
-    virtual void SetUp() {
+    virtual void SetUp() {		
+		configFileName_ = CommonAPI::DBus::getCurrentBinaryFileFQN();
+		configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
+
+		std::ofstream configFile(configFileName_);
+		ASSERT_TRUE(configFile.is_open());
+
+		for (auto& predefinedInstance : predefinedInstancesMap) {
+			const std::string& dbusInterfaceName = predefinedInstance.first.first;
+			const std::string& dbusObjectPath = predefinedInstance.first.second;
+			const std::string& commonApiAddress = predefinedInstance.second;
+
+			configFile << "[" << commonApiAddress << "]\n";
+			configFile << "dbus_connection=" << dbusServiceName << std::endl;
+			configFile << "dbus_object=" << dbusObjectPath << std::endl;
+			configFile << "dbus_interface=" << dbusInterfaceName << std::endl;
+			configFile << "dbus_predefined=true\n";
+			configFile << std::endl;
+		}
+
+		configFile.close();
     }
 
 	virtual void TearDown() {
+		std::remove(configFileName_.c_str());
 	}
+
+	std::string configFileName_;
 };
 
 
@@ -93,6 +82,11 @@ TEST_F(DBusServiceRegistryTest, DBusConnectionHasRegistry) {
     ASSERT_FALSE(!serviceRegistry);
 }
 
+/*
+the following two testw fail in windows using gtest_main, because the DBusAddressTranslator lives as long as all tests are running
+without rereading its config file agian. Becaus of that it won't ever find the predefined instances.
+*/
+#ifndef WIN32
 TEST_F(DBusServiceRegistryTest, DBusAddressTranslatorPredefinedWorks) {
     std::vector<CommonAPI::DBus::DBusServiceAddress> loadedPredefinedInstances;
 
@@ -210,6 +204,7 @@ TEST_F(DBusServiceRegistryTest, PredefinedInstances) {
         ASSERT_TRUE(availableInstanceFound);
     }
 }
+#endif
 
 
 class DBusServiceRegistryTestWithPredefinedRemote: public ::testing::Test {
@@ -273,9 +268,9 @@ TEST_F(DBusServiceRegistryTestWithPredefinedRemote, FindsCommonAPIDBusServiceIns
 }
 
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
+#endif

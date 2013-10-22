@@ -271,9 +271,9 @@ TEST_F(DBusConnectionTest, TimeoutForNonexistingServices) {
 //	ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, future.get());
 //}
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-
+#endif

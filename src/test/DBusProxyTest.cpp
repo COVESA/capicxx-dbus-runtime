@@ -178,6 +178,12 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     proxyDeregisterForAvailabilityStatus();
 }
 
+
+/*
+    This test fails in Windows. Calling disconnect and then connect again somehow 
+    damages the connection in libdbus. In Linux this all works fine.
+*/
+#ifndef WIN32
 TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     proxyDBusConnection_->disconnect();
 
@@ -196,6 +202,7 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     deregisterTestStub();
     proxyDeregisterForAvailabilityStatus();
 }
+#endif
 
 TEST_F(ProxyTest, ServiceStatus) {
     registerTestStub();
@@ -277,7 +284,113 @@ TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
     ASSERT_TRUE(wasCalledFuture.get());
 }
 
+
+
+
+// this test does not build its proxies within SetUp
+class ProxyTest2: public ::testing::Test {
+protected:
+
+	virtual void TearDown() {
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
+	}
+
+	void registerTestStub() {
+		stubDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+		ASSERT_TRUE(stubDBusConnection_->connect());
+
+		auto stubDefault = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+		stubAdapter_ = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(
+			commonApiAddress,
+			interfaceName,
+			busName,
+			objectPath,
+			stubDBusConnection_,
+			stubDefault);
+		stubAdapter_->init();
+
+		bool serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+
+		for (unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			serviceNameAcquired = stubDBusConnection_->requestServiceNameAndBlock(busName);
+		}
+		ASSERT_TRUE(serviceNameAcquired);
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
+
+	void deregisterTestStub() {
+		stubAdapter_->deinit();
+		stubAdapter_.reset();
+
+		if (stubDBusConnection_->isConnected()) {
+			stubDBusConnection_->disconnect();
+		}
+		stubDBusConnection_.reset();
+	}
+
+	void proxyRegisterForAvailabilityStatus() {
+		proxyAvailabilityStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
+
+		proxyStatusSubscription_ = proxy_->getProxyStatusEvent().subscribe([&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
+			proxyAvailabilityStatus_ = availabilityStatus;
+		});
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	void proxyDeregisterForAvailabilityStatus() {
+		proxy_->getProxyStatusEvent().unsubscribe(proxyStatusSubscription_);
+	}
+
+	bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
+		for (int i = 0; i < 100; i++) {
+			if (proxyAvailabilityStatus_ == availabilityStatus)
+				return true;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+
+		return false;
+	}
+
+	std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
+	std::shared_ptr<commonapi::tests::TestInterfaceDBusProxy> proxy_;
+	CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
+
+	CommonAPI::ProxyStatusEvent::Subscription proxyStatusSubscription_;
+
+	std::shared_ptr<CommonAPI::DBus::DBusConnection> stubDBusConnection_;
+	std::shared_ptr<commonapi::tests::TestInterfaceDBusStubAdapter> stubAdapter_;
+};
+
+TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
+	registerTestStub();
+
+	proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+	ASSERT_TRUE(proxyDBusConnection_->connect());
+
+	proxy_ = std::make_shared<commonapi::tests::TestInterfaceDBusProxy>(
+		commonApiAddress,
+		interfaceName,
+		busName,
+		objectPath,
+		proxyDBusConnection_);
+
+	proxyRegisterForAvailabilityStatus();
+
+	EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+
+	stubDBusConnection_->disconnect();
+
+	EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+
+	deregisterTestStub();
+	proxyDeregisterForAvailabilityStatus();
+}
+
+
+#ifndef WIN32
 int main(int argc, char** argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
+#endif

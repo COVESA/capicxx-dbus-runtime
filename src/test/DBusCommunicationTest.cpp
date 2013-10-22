@@ -45,7 +45,8 @@ public:
     typedef typename _AttributeType::ValueType ValueType;
     typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
-    AttributeTestExtension(_AttributeType& baseAttribute) :
+	AttributeTestExtension() {};
+	AttributeTestExtension(_AttributeType& baseAttribute) :
                     CommonAPI::AttributeExtension<_AttributeType>(baseAttribute) {}
 
    ~AttributeTestExtension() {}
@@ -233,8 +234,9 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
 //    ASSERT_EQ(maxNumCalled, numCalled);
 //}
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif
