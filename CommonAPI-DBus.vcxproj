@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D3B0744D-2A3E-4C36-9AA0-534D6BD5A44C}</ProjectGuid>
+    <RootNamespace>CommonAPIDBus</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(ProjectDir)\src;C:\work\bmw\2.0\dbus;C:\work\bmw\vs\Common-API\src\;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\work\bmw\vs\Common-API\Debug;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Lib>
+      <AdditionalDependencies>CommonAPI.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\CommonAPI\DBus\DBusAddressTranslator.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusConnection.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusDaemonProxy.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusError.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFactory.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFunctionalHash.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusInputStream.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusMainLoopContext.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusMessage.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusObjectManager.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusOutputStream.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusProxy.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusProxyBase.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusRuntime.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusServiceRegistry.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusServiceStatusEvent.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusStubAdapter.cpp" />
+    <ClCompile Include="src\murmurhash\MurmurHash3.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\CommonAPI\DBus\DBusAddressTranslator.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusAttribute.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusConnection.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusDaemonProxy.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusError.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusEvent.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusFactory.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusFunctionalHash.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusHelper.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusInputStream.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusMainLoopContext.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusMessage.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusMultiEvent.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusObjectManager.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusOutputStream.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusProxy.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusProxyAsyncCallbackHandler.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusProxyBase.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusProxyConnection.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusProxyHelper.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusRuntime.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusSerializableArguments.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusServiceRegistry.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusServiceStatusEvent.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapter.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapterHelper.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusUtils.h" />
+    <ClInclude Include="src\murmurhash\MurmurHash3.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

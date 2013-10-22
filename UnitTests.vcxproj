@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\test\commonapi\tests\DerivedTypeCollection.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\TestInterfaceDBusProxy.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\TestInterfaceStubDefault.cpp" />
+    <ClCompile Include="src\test\DBusAddressTranslatorTest.cpp" />
+    <ClCompile Include="src\test\DBusCommunicationTest.cpp" />
+    <ClCompile Include="src\test\DBusConnectionTest.cpp" />
+    <ClCompile Include="src\test\DBusDaemonProxyTest.cpp" />
+    <ClCompile Include="src\test\DBusFactoryTest.cpp" />
+    <ClCompile Include="src\test\DBusInputStreamTest.cpp" />
+    <ClCompile Include="src\test\DBusMainLoopIntegrationTest.cpp" />
+    <ClCompile Include="src\test\DBusMultipleConnectionTest.cpp" />
+    <ClCompile Include="src\test\DBusOutputStreamTest.cpp" />
+    <ClCompile Include="src\test\DBusProxyTest.cpp" />
+    <ClCompile Include="src\test\DBusRuntimeTest.cpp" />
+    <ClCompile Include="src\test\DBusServiceRegistryTest.cpp" />
+    <ClCompile Include="src\test\DBusTypeStreamTest.cpp" />
+    <ClCompile Include="src\test\DBusVariantOutputStreamTest.cpp" />
+    <ClCompile Include="src\test\DBusVariantTest.cpp" />
+    <ClCompile Include="src\test\DemoPoll.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\test\commonapi\tests\DerivedTypeCollection.h" />
+    <ClInclude Include="src\test\commonapi\tests\PredefinedTypeCollection.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterface.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusProxy.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxy.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxyBase.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStub.h" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStubDefault.h" />
+    <ClInclude Include="src\test\DBusTestUtils.h" />
+    <ClInclude Include="src\test\DemoMainLoop.h" />
+    <ClInclude Include="src\test\DemoPoll.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A437B05C-A664-493D-B60A-822A3A7A1CED}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>UnitTests</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
+    <CLRSupport>false</CLRSupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>C:\work\bmw\2.0\dbus\cmake\bin\Debug;C:\work\bmw\2.0\gtest-1.7.0\msvc\gtest\Debug;C:\work\bmw\vs\Common-API\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>C:\work\bmw\2.0\dbus;$(ProjectDir);$(SolutionDir)\src\test;$(SolutionDir)\src;C:\work\bmw\vs\Common-API\src;C:\work\bmw\2.0\gtest-1.7.0\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <SourcePath>$(SourcePath)</SourcePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <UseFullPaths>true</UseFullPaths>
+      <ShowIncludes>true</ShowIncludes>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>CommonAPI-DBus.lib;CommonAPI.lib;gtestd.lib;gtest_maind.lib;dbus-1d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/VERBOSE /VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <UseFullPaths>true</UseFullPaths>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
