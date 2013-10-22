@@ -11,15 +11,7 @@ namespace DBus {
 
 const MiddlewareInfo DBusRuntime::middlewareInfo_("DBus", &DBusRuntime::getInstance);
 
-#ifdef WIN32
-#pragma section(".CRT$XCU",read)
-void __cdecl registerDBusMiddleware(void);
-__declspec(allocate(".CRT$XCU")) void(__cdecl*registerDBusMiddleware_)(void) = registerDBusMiddleware;
-void __cdecl
-#else
-__attribute__((constructor)) void
-#endif
- registerDBusMiddleware(void) {
+INITIALIZER(registerDBusMiddleware) {
 	Runtime::registerRuntimeLoader("DBus", &DBusRuntime::getInstance);
 }
 

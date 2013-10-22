@@ -18,15 +18,9 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createTestInterfaceDBusStubAda
     return std::make_shared<TestInterfaceDBusStubAdapter>(commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-#ifdef WIN32
 INITIALIZER(registerTestInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(TestInterface::getInterfaceId(), &createTestInterfaceDBusStubAdapter);
 }
-#else
-__attribute__((constructor)) void registerTestInterfaceDBusStubAdapter(void) {
-    CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(TestInterface::getInterfaceId(), &createTestInterfaceDBusStubAdapter);
-}
-#endif
 
 TestInterfaceDBusStubAdapter::TestInterfaceDBusStubAdapter(
         const std::string& commonApiAddress,

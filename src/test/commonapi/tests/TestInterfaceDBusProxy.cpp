@@ -16,17 +16,10 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createTestInterfaceDBusProxy(
     return std::make_shared<TestInterfaceDBusProxy>(commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-#ifdef WIN32
 INITIALIZER(registerTestInterfaceDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(TestInterface::getInterfaceId(),
        &createTestInterfaceDBusProxy);
 }
-#else
-__attribute__((constructor)) void registerTestInterfaceDBusProxy(void) {
-    CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(TestInterface::getInterfaceId(),
-       &createTestInterfaceDBusProxy);
-}
-#endif
 
 TestInterfaceDBusProxy::TestInterfaceDBusProxy(
                     const std::string& commonApiAddress,
