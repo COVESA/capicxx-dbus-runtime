@@ -10,11 +10,11 @@
 
 #include <dbus/dbus.h>
 #include <CommonAPI/DBus/DBusServiceRegistry.h>
+#include <CommonAPI/DBus/DBusMessage.h>
 
 inline char eliminateZeroes(char val) {
     return !val ? '0' : val;
 }
-
 
 inline void printLibdbusMessageBody(char* data, uint32_t fromByteIndex, uint32_t toByteIndex) {
 	for(int i = fromByteIndex; i < toByteIndex; i++) {
@@ -33,6 +33,11 @@ inline void printLibdbusMessage(DBusMessage* libdbusMessage, uint32_t fromByteIn
 
 inline void printLibdbusMessage(DBusMessage* libdbusMessage) {
     printLibdbusMessage(libdbusMessage, 0, dbus_message_get_body_length(libdbusMessage));
+}
+
+
+inline void printDBusMessage(CommonAPI::DBus::DBusMessage& dbusMessage) {
+    printLibdbusMessageBody(dbusMessage.getBodyData(), 0, dbusMessage.getBodyLength());
 }
 
 inline std::string toString(CommonAPI::DBus::DBusServiceRegistry::DBusRecordState dbusRecordState) {

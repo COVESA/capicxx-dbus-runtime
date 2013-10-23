@@ -271,7 +271,7 @@ void DBusInputStream::beginReadVectorOfVectors() {
 
 void DBusInputStream::beginReadVectorOfMaps() {
     beginReadGenericVector();
-    alignToBoundary(8);
+    alignToBoundary(4);
     savedStreamPositions_.push(currentDataPosition_);
 }
 

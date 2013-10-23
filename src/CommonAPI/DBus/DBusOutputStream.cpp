@@ -164,7 +164,7 @@ void DBusOutputStream::beginWriteVectorOfVectors(uint32_t sizeOfVector) {
 }
 void DBusOutputStream::beginWriteVectorOfMaps(uint32_t sizeOfVector) {
     beginWriteGenericVector();
-    alignToBoundary(8);
+    alignToBoundary(4);
     rememberCurrentStreamPosition();
 }
 
