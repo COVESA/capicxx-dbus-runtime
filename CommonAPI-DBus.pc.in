@@ -8,4 +8,4 @@ Description: GENIVI Common API C++ D-Bus Middleware
 Version: @PACKAGE_VERSION@
 Requires: CommonAPI dbus-1
 Libs: -L${libdir} -Wl,--no-as-needed -lCommonAPI-DBus -Wl,--as-needed 
-Cflags: -I${includedir}/CommonAPI-@PACKAGE_VERSION@
+Cflags: -I${includedir}/CommonAPI-@COMMONAPI_API_HEADER_VERSION@

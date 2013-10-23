@@ -74,12 +74,12 @@ libCommonAPI_DBus_la_LDFLAGS = \
         ${AM_LDFLAGS} \
         -version-info ${LIBCOMMONAPI_DBUS_CURRENT}:${LIBCOMMONAPI_DBUS_REVISION}:${LIBCOMMONAPI_DBUS_AGE}
 
-CommonAPI_DBus_pugi_includedir=$(includedir)/CommonAPI-${VERSION}/pugixml
+CommonAPI_DBus_pugi_includedir=$(includedir)/CommonAPI-${COMMONAPI_API_HEADER_VERSION}/pugixml
 CommonAPI_DBus_pugi_include_HEADERS = \
         src/pugixml/pugixml.hpp \
         src/pugixml/pugiconfig.hpp
 
-CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/DBus
+CommonAPI_DBus_includedir=$(includedir)/CommonAPI-${COMMONAPI_API_HEADER_VERSION}/CommonAPI/DBus
 CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusAddressTranslator.h \
         src/CommonAPI/DBus/DBusAttribute.h \
@@ -135,7 +135,7 @@ libCommonAPI_Fake_la_LDFLAGS = \
         ${AM_LDFLAGS} \
         -version-info 1:0:0
 
-CommonAPI_Fake_includedir=$(includedir)/CommonAPI-${VERSION}/CommonAPI/Fake
+CommonAPI_Fake_includedir=$(includedir)/CommonAPI-${COMMONAPI_API_HEADER_VERSION}/CommonAPI/Fake
 CommonAPI_Fake_include_HEADERS = \
         src/test/dbusDynamicLoadingTests/fakeTestBinding/FakeBinding.h
 
