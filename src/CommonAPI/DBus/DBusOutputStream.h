@@ -27,112 +27,109 @@
 namespace CommonAPI {
 namespace DBus {
 
-
 class DBusTypeOutputStream: public TypeOutputStream {
-  public:
-    DBusTypeOutputStream(): signature_("") {
+public:
+    DBusTypeOutputStream() :
+                    signature_("") {
 
     }
     virtual ~DBusTypeOutputStream() {}
-
 
     virtual void writeBoolType() {
         signature_.append("b");
     }
 
-    virtual void writeInt8Type()  {
+    virtual void writeInt8Type() {
         signature_.append("y");
     }
-    virtual void writeInt16Type()  {
+    virtual void writeInt16Type() {
         signature_.append("n");
     }
-    virtual void writeInt32Type()  {
+    virtual void writeInt32Type() {
         signature_.append("i");
     }
-    virtual void writeInt64Type()  {
+    virtual void writeInt64Type() {
         signature_.append("x");
     }
 
-    virtual void writeUInt8Type()  {
+    virtual void writeUInt8Type() {
         signature_.append("y");
     }
-    virtual void writeUInt16Type()  {
+    virtual void writeUInt16Type() {
         signature_.append("q");
     }
-    virtual void writeUInt32Type()  {
+    virtual void writeUInt32Type() {
         signature_.append("u");
     }
-    virtual void writeUInt64Type()  {
+    virtual void writeUInt64Type() {
         signature_.append("t");
     }
 
-
-    virtual void writeInt8EnumType()  {
+    virtual void writeInt8EnumType() {
         signature_.append("y");
     }
-    virtual void writeInt16EnumType()  {
+    virtual void writeInt16EnumType() {
         signature_.append("n");
     }
-    virtual void writeInt32EnumType()  {
+    virtual void writeInt32EnumType() {
         signature_.append("i");
     }
-    virtual void writeInt64EnumType()  {
+    virtual void writeInt64EnumType() {
         signature_.append("x");
     }
 
-    virtual void writeUInt8EnumType()  {
+    virtual void writeUInt8EnumType() {
         signature_.append("y");
     }
-    virtual void writeUInt16EnumType()  {
+    virtual void writeUInt16EnumType() {
         signature_.append("n");
     }
-    virtual void writeUInt32EnumType()  {
+    virtual void writeUInt32EnumType() {
         signature_.append("u");
     }
-    virtual void writeUInt64EnumType()  {
+    virtual void writeUInt64EnumType() {
         signature_.append("t");
     }
 
-
-    virtual void writeFloatType()  {
+    virtual void writeFloatType() {
         signature_.append("d");
     }
-    virtual void writeDoubleType()  {
+    virtual void writeDoubleType() {
         signature_.append("d");
     }
 
-    virtual void writeStringType()  {
+    virtual void writeStringType() {
         signature_.append("s");
     }
-    virtual void writeByteBufferType()  {
+    virtual void writeByteBufferType() {
         signature_.append("ay");
     }
-    virtual void writeVersionType()  {
+    virtual void writeVersionType() {
         signature_.append("(uu)");
     }
 
-    virtual void beginWriteStructType()  {
+    virtual void beginWriteStructType() {
         signature_.append("(");
     }
     virtual void endWriteStructType() {
         signature_.append(")");
     }
 
-    virtual void beginWriteMapType()  {
+    virtual void beginWriteMapType() {
         signature_.append("a{");
     }
     virtual void endWriteMapType() {
         signature_.append("}");
     }
 
-    virtual void beginWriteVectorType()  {
+    virtual void beginWriteVectorType() {
         signature_.append("a");
     }
 
-    virtual void endWriteVectorType()  {
+    virtual void endWriteVectorType() {
     }
 
-    virtual void writeVariantType()  {
+    virtual void writeVariantType() {
         signature_.append("(yv)");
     }
 
@@ -140,17 +137,14 @@ class DBusTypeOutputStream: public TypeOutputStream {
         return std::move(signature_);
     }
 
-
-  private:
+private:
     std::string signature_;
 };
-
 
 /**
  * Used to mark the position of a pointer within an array of bytes.
  */
 typedef uint32_t position_t;
-
 
 /**
  * @class DBusOutputMessageStream
@@ -160,7 +154,7 @@ typedef uint32_t position_t;
  * to match the actual data that is inserted via the #DBusOutputMessageStream.
  */
 class DBusOutputStream: public OutputStream {
-  public:
+public:
 
     /**
      * Creates a #DBusOutputMessageStream which can be used to serialize and write data into the given #DBusMessage. Any data written is buffered within the stream.
@@ -181,31 +175,31 @@ class DBusOutputStream: public OutputStream {
 
     virtual OutputStream& writeValue(const int8_t& int8Value);
     virtual OutputStream& writeValue(const int16_t& int16Value);
-	virtual OutputStream& writeValue(const int32_t& int32Value);
-	virtual OutputStream& writeValue(const int64_t& int64Value);
+    virtual OutputStream& writeValue(const int32_t& int32Value);
+    virtual OutputStream& writeValue(const int64_t& int64Value);
 
-	virtual OutputStream& writeValue(const uint8_t& uint8Value);
-	virtual OutputStream& writeValue(const uint16_t& uint16Value);
-	virtual OutputStream& writeValue(const uint32_t& uint32Value);
-	virtual OutputStream& writeValue(const uint64_t& uint64Value);
+    virtual OutputStream& writeValue(const uint8_t& uint8Value);
+    virtual OutputStream& writeValue(const uint16_t& uint16Value);
+    virtual OutputStream& writeValue(const uint32_t& uint32Value);
+    virtual OutputStream& writeValue(const uint64_t& uint64Value);
 
-	virtual OutputStream& writeValue(const float& floatValue);
-	virtual OutputStream& writeValue(const double& doubleValue);
+    virtual OutputStream& writeValue(const float& floatValue);
+    virtual OutputStream& writeValue(const double& doubleValue);
 
-	virtual OutputStream& writeValue(const std::string& stringValue);
+    virtual OutputStream& writeValue(const std::string& stringValue);
 
-	virtual OutputStream& writeValue(const ByteBuffer& byteBufferValue);
+    virtual OutputStream& writeValue(const ByteBuffer& byteBufferValue);
 
-	virtual OutputStream& writeEnumValue(const int8_t& int8BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const int16_t& int16BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const int32_t& int32BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const int64_t& int64BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const uint8_t& uint8BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const uint16_t& uint16BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const uint32_t& uint32BackingTypeValue);
-	virtual OutputStream& writeEnumValue(const uint64_t& uint64BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const int8_t& int8BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const int16_t& int16BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const int32_t& int32BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const int64_t& int64BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const uint8_t& uint8BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const uint16_t& uint16BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const uint32_t& uint32BackingTypeValue);
+    virtual OutputStream& writeEnumValue(const uint64_t& uint64BackingTypeValue);
 
- 	virtual void beginWriteBoolVector(uint32_t sizeOfVector);
+    virtual void beginWriteBoolVector(uint32_t sizeOfVector);
     virtual void beginWriteInt8Vector(uint32_t sizeOfVector);
     virtual void beginWriteInt16Vector(uint32_t sizeOfVector);
     virtual void beginWriteInt32Vector(uint32_t sizeOfVector);
@@ -234,6 +228,8 @@ class DBusOutputStream: public OutputStream {
     virtual void beginWriteVectorOfVectors(uint32_t sizeOfVector);
     virtual void beginWriteVectorOfMaps(uint32_t sizeOfVector);
 
+    virtual void beginWriteVectorOfSerializablePolymorphicStructs(uint32_t sizeOfVector);
+
     virtual void endWriteVector();
 
     virtual OutputStream& writeVersionValue(const Version& versionValue);
@@ -241,8 +237,8 @@ class DBusOutputStream: public OutputStream {
     virtual void beginWriteSerializableStruct(const SerializableStruct& serializableStruct);
     virtual void endWriteSerializableStruct(const SerializableStruct& serializableStruct);
 
- 	virtual void beginWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
-	virtual void endWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
+    virtual void beginWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
+    virtual void endWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct);
 
     virtual void beginWriteMap(size_t elementCount);
     virtual void endWriteMap();
@@ -325,10 +321,10 @@ class DBusOutputStream: public OutputStream {
 
     bool writeRawDataAtPosition(size_t position, const char* rawDataPtr, const size_t sizeInByte);
 
-  protected:
+protected:
     std::string payload_;
 
-  private:
+private:
     void beginWriteGenericVector();
 
     void writeSignature(const std::string& signature);
@@ -344,7 +340,6 @@ class DBusOutputStream: public OutputStream {
 
     std::stack<position_t> savedStreamPositions_;
 };
-
 
 } // namespace DBus
 } // namespace CommonAPI

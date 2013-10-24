@@ -206,6 +206,38 @@ void TestInterfaceStubDefault::testDerivedTypeMethod(DerivedTypeCollection::Test
     // No operation in default
 }
 
+void TestInterfaceStubDefault::TestArrayOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>> inArray) {
+    // Call old style methods in default 
+    TestArrayOfPolymorphicStructMethod(inArray);
+}
+void TestInterfaceStubDefault::TestArrayOfPolymorphicStructMethod(std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>> inArray) {
+    // No operation in default
+}
+
+void TestInterfaceStubDefault::TestMapOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapIntToPolymorphic inMap) {
+    // Call old style methods in default 
+    TestMapOfPolymorphicStructMethod(inMap);
+}
+void TestInterfaceStubDefault::TestMapOfPolymorphicStructMethod(DerivedTypeCollection::MapIntToPolymorphic inMap) {
+    // No operation in default
+}
+
+void TestInterfaceStubDefault::TestMapWithPolymorphicStructKeyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapPolymorphicToInt inMap) {
+    // Call old style methods in default 
+    TestMapWithPolymorphicStructKeyMethod(inMap);
+}
+void TestInterfaceStubDefault::TestMapWithPolymorphicStructKeyMethod(DerivedTypeCollection::MapPolymorphicToInt inMap) {
+    // No operation in default
+}
+
+void TestInterfaceStubDefault::TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithPolymorphicMember inStruct) {
+    // Call old style methods in default 
+    TestStructWithPolymorphicMemberMethod(inStruct);
+}
+void TestInterfaceStubDefault::TestStructWithPolymorphicMemberMethod(DerivedTypeCollection::StructWithPolymorphicMember inStruct) {
+    // No operation in default
+}
+
 
 void TestInterfaceStubDefault::fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) {
     stubAdapter_->fireTestPredefinedTypeBroadcastEvent(uint32Value, stringValue);

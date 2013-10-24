@@ -138,6 +138,7 @@ namespace DerivedTypeCollection {
     // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumMissingValueComparator;
     typedef std::vector<uint64_t> TestArrayUInt64;
+<<<<<<< Upstream, based on origin/master
     struct TestStructEnumMap: CommonAPI::SerializableStruct {
          TestEnumMap testMap;
     
@@ -153,6 +154,75 @@ namespace DerivedTypeCollection {
             typeOutputStream.writeInt32Type();
             typeOutputStream.writeStringType();
             typeOutputStream.endWriteMapType();
+=======
+    struct TestPolymorphicStruct: CommonAPI::SerializablePolymorphicStruct {
+        /**
+         * the name of the property
+         */
+         PredefinedTypeCollection::TestString testString;
+        /**
+         * the actual value
+         */
+         uint16_t uintValue;
+    
+        TestPolymorphicStruct() = default;
+        TestPolymorphicStruct(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue);
+    
+        enum: uint32_t { SERIAL_ID = 0x34650f46 };
+    
+        static TestPolymorphicStruct* createInstance(const uint32_t& serialId);
+    
+        virtual uint32_t getSerialId() const;
+        virtual void createTypeSignature(CommonAPI::TypeOutputStream& typeOutputStream) const;
+    
+        virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+    
+        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            typeOutputStream.writeStringType();
+            typeOutputStream.writeUInt16Type();
+        }
+    };
+    struct TestExtendedPolymorphicStruct: TestPolymorphicStruct {
+         uint32_t additionalValue;
+    
+        TestExtendedPolymorphicStruct() = default;
+        TestExtendedPolymorphicStruct(const PredefinedTypeCollection::TestString& testString, const uint16_t& uintValue, const uint32_t& additionalValue);
+    
+        enum: uint32_t { SERIAL_ID = 0xc967fead };
+    
+        static TestExtendedPolymorphicStruct* createInstance(const uint32_t& serialId);
+    
+        virtual uint32_t getSerialId() const;
+        virtual void createTypeSignature(CommonAPI::TypeOutputStream& typeOutputStream) const;
+    
+        virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+    
+        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            TestPolymorphicStruct::writeToTypeOutputStream(typeOutputStream);
+            typeOutputStream.writeUInt32Type();
+        }
+    };
+    typedef std::unordered_map<uint8_t, std::shared_ptr<TestPolymorphicStruct>> MapIntToPolymorphic;
+    typedef std::unordered_map<std::shared_ptr<TestPolymorphicStruct>, uint8_t> MapPolymorphicToInt;
+    struct StructWithPolymorphicMember: CommonAPI::SerializableStruct {
+         uint32_t numberValue;
+         std::shared_ptr<TestPolymorphicStruct> polymorphicMember;
+    
+        StructWithPolymorphicMember() = default;
+        StructWithPolymorphicMember(const uint32_t& numberValue, const std::shared_ptr<TestPolymorphicStruct>& polymorphicMember);
+    
+    
+        virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+    
+        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            typeOutputStream.writeUInt32Type();
+            typeOutputStream.beginWriteStructType();
+            typeOutputStream.writeStringType();typeOutputStream.writeUInt16Type();
+            typeOutputStream.endWriteStructType();
+>>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
         }
     };
 
@@ -259,8 +329,21 @@ bool operator==(const TestStruct& lhs, const TestStruct& rhs);
 inline bool operator!=(const TestStruct& lhs, const TestStruct& rhs) {
     return !(lhs == rhs);
 }
+<<<<<<< Upstream, based on origin/master
 bool operator==(const TestStructEnumMap& lhs, const TestStructEnumMap& rhs);
 inline bool operator!=(const TestStructEnumMap& lhs, const TestStructEnumMap& rhs) {
+=======
+bool operator==(const TestPolymorphicStruct& lhs, const TestPolymorphicStruct& rhs);
+inline bool operator!=(const TestPolymorphicStruct& lhs, const TestPolymorphicStruct& rhs) {
+    return !(lhs == rhs);
+}
+bool operator==(const TestExtendedPolymorphicStruct& lhs, const TestExtendedPolymorphicStruct& rhs);
+inline bool operator!=(const TestExtendedPolymorphicStruct& lhs, const TestExtendedPolymorphicStruct& rhs) {
+    return !(lhs == rhs);
+}
+bool operator==(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs);
+inline bool operator!=(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs) {
+>>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
     return !(lhs == rhs);
 }
 

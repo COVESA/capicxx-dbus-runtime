@@ -13,43 +13,80 @@ DBusOutputStream::DBusOutputStream(DBusMessage dbusMessage) :
                 dbusMessage_(dbusMessage) {
 }
 
-DBusOutputStream::~DBusOutputStream() {
-}
+DBusOutputStream::~DBusOutputStream() {}
 
 OutputStream& DBusOutputStream::writeValue(const bool& boolValue) {
-	alignToBoundary(4);
-	writeBasicTypeValue(boolValue);
-	alignToBoundary(4);
-	return *this;
+    alignToBoundary(4);
+    writeBasicTypeValue(boolValue);
+    alignToBoundary(4);
+    return *this;
 }
 
-OutputStream& DBusOutputStream::writeValue(const int8_t& int8Value) { return writeBasicTypeValue(int8Value); }
-OutputStream& DBusOutputStream::writeValue(const int16_t& int16Value) { return writeBasicTypeValue(int16Value); }
-OutputStream& DBusOutputStream::writeValue(const int32_t& int32Value) { return writeBasicTypeValue(int32Value); }
-OutputStream& DBusOutputStream::writeValue(const int64_t& int64Value) { return writeBasicTypeValue(int64Value); }
+OutputStream& DBusOutputStream::writeValue(const int8_t& int8Value) {
+    return writeBasicTypeValue(int8Value);
+}
+OutputStream& DBusOutputStream::writeValue(const int16_t& int16Value) {
+    return writeBasicTypeValue(int16Value);
+}
+OutputStream& DBusOutputStream::writeValue(const int32_t& int32Value) {
+    return writeBasicTypeValue(int32Value);
+}
+OutputStream& DBusOutputStream::writeValue(const int64_t& int64Value) {
+    return writeBasicTypeValue(int64Value);
+}
 
-OutputStream& DBusOutputStream::writeValue(const uint8_t& uint8Value) { return writeBasicTypeValue(uint8Value); }
-OutputStream& DBusOutputStream::writeValue(const uint16_t& uint16Value) { return writeBasicTypeValue(uint16Value); }
-OutputStream& DBusOutputStream::writeValue(const uint32_t& uint32Value) { return writeBasicTypeValue(uint32Value); }
-OutputStream& DBusOutputStream::writeValue(const uint64_t& uint64Value) { return writeBasicTypeValue(uint64Value); }
+OutputStream& DBusOutputStream::writeValue(const uint8_t& uint8Value) {
+    return writeBasicTypeValue(uint8Value);
+}
+OutputStream& DBusOutputStream::writeValue(const uint16_t& uint16Value) {
+    return writeBasicTypeValue(uint16Value);
+}
+OutputStream& DBusOutputStream::writeValue(const uint32_t& uint32Value) {
+    return writeBasicTypeValue(uint32Value);
+}
+OutputStream& DBusOutputStream::writeValue(const uint64_t& uint64Value) {
+    return writeBasicTypeValue(uint64Value);
+}
 
-OutputStream& DBusOutputStream::writeValue(const float& floatValue) { return writeBasicTypeValue((double) floatValue); }
-OutputStream& DBusOutputStream::writeValue(const double& doubleValue) { return writeBasicTypeValue(doubleValue); }
+OutputStream& DBusOutputStream::writeValue(const float& floatValue) {
+    return writeBasicTypeValue((double) floatValue);
+}
+OutputStream& DBusOutputStream::writeValue(const double& doubleValue) {
+    return writeBasicTypeValue(doubleValue);
+}
 
-OutputStream& DBusOutputStream::writeValue(const std::string& stringValue) { return writeString(stringValue.c_str(), stringValue.length()); }
+OutputStream& DBusOutputStream::writeValue(const std::string& stringValue) {
+    return writeString(stringValue.c_str(), stringValue.length());
+}
 
 OutputStream& DBusOutputStream::writeValue(const ByteBuffer& byteBufferValue) {
     return *this;
 }
 
-OutputStream& DBusOutputStream::writeEnumValue(const int8_t& int8BackingTypeValue) { return writeValue(int8BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const int16_t& int16BackingTypeValue) { return writeValue(int16BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const int32_t& int32BackingTypeValue) { return writeValue(int32BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const int64_t& int64BackingTypeValue) { return writeValue(int64BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const uint8_t& uint8BackingTypeValue) { return writeValue(uint8BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const uint16_t& uint16BackingTypeValue) { return writeValue(uint16BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const uint32_t& uint32BackingTypeValue) { return writeValue(uint32BackingTypeValue); }
-OutputStream& DBusOutputStream::writeEnumValue(const uint64_t& uint64BackingTypeValue) { return writeValue(uint64BackingTypeValue); }
+OutputStream& DBusOutputStream::writeEnumValue(const int8_t& int8BackingTypeValue) {
+    return writeValue(int8BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const int16_t& int16BackingTypeValue) {
+    return writeValue(int16BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const int32_t& int32BackingTypeValue) {
+    return writeValue(int32BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const int64_t& int64BackingTypeValue) {
+    return writeValue(int64BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const uint8_t& uint8BackingTypeValue) {
+    return writeValue(uint8BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const uint16_t& uint16BackingTypeValue) {
+    return writeValue(uint16BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const uint32_t& uint32BackingTypeValue) {
+    return writeValue(uint32BackingTypeValue);
+}
+OutputStream& DBusOutputStream::writeEnumValue(const uint64_t& uint64BackingTypeValue) {
+    return writeValue(uint64BackingTypeValue);
+}
 
 void DBusOutputStream::beginWriteBoolVector(uint32_t sizeOfVector) {
     beginWriteGenericVector();
@@ -168,6 +205,12 @@ void DBusOutputStream::beginWriteVectorOfMaps(uint32_t sizeOfVector) {
     rememberCurrentStreamPosition();
 }
 
+void DBusOutputStream::beginWriteVectorOfSerializablePolymorphicStructs(uint32_t sizeOfVector) {
+    beginWriteGenericVector();
+    alignToBoundary(8);
+    rememberCurrentStreamPosition();
+}
+
 void DBusOutputStream::endWriteVector() {
     uint32_t numOfWrittenBytes = getCurrentStreamPosition() - popRememberedStreamPosition();
     writeBasicTypeValueAtPosition(popRememberedStreamPosition(), numOfWrittenBytes);
@@ -180,14 +223,17 @@ OutputStream& DBusOutputStream::writeVersionValue(const Version& versionValue) {
     return *this;
 }
 
-void DBusOutputStream::beginWriteSerializableStruct(const SerializableStruct& serializableStruct) { alignToBoundary(8); }
-void DBusOutputStream::endWriteSerializableStruct(const SerializableStruct& serializableStruct) { }
+void DBusOutputStream::beginWriteSerializableStruct(const SerializableStruct& serializableStruct) {
+    alignToBoundary(8);
+}
+void DBusOutputStream::endWriteSerializableStruct(const SerializableStruct& serializableStruct) {
+}
 
 void DBusOutputStream::beginWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct) {
-	alignToBoundary(8);
-	writeValue(serializableStruct->getSerialId());
+    alignToBoundary(8);
+    writeValue(serializableStruct->getSerialId());
 
-	DBusTypeOutputStream typeOutputStream;
+    DBusTypeOutputStream typeOutputStream;
     typeOutputStream.beginWriteStructType();
     serializableStruct->createTypeSignature(typeOutputStream);
     typeOutputStream.endWriteStructType();
@@ -198,7 +244,7 @@ void DBusOutputStream::beginWriteSerializablePolymorphicStruct(const std::shared
 }
 
 void DBusOutputStream::endWriteSerializablePolymorphicStruct(const std::shared_ptr<SerializablePolymorphicStruct>& serializableStruct) {
-	endWriteSerializableStruct(*serializableStruct);
+    endWriteSerializableStruct(*serializableStruct);
 }
 
 void DBusOutputStream::beginWriteMap(size_t elementCount) {
@@ -217,7 +263,8 @@ void DBusOutputStream::endWriteMap() {
 void DBusOutputStream::beginWriteMapElement() {
     alignToBoundary(8);
 }
-void DBusOutputStream::endWriteMapElement() {}
+void DBusOutputStream::endWriteMapElement() {
+}
 
 void DBusOutputStream::beginWriteSerializableVariant(const SerializableVariant& serializableVariant) {
     alignToBoundary(8);
@@ -228,7 +275,8 @@ void DBusOutputStream::beginWriteSerializableVariant(const SerializableVariant& 
     writeSignature(std::move(typeOutputStream.retrieveSignature()));
 }
 
-void DBusOutputStream::endWriteSerializableVariant(const SerializableVariant& serializableVariant) {}
+void DBusOutputStream::endWriteSerializableVariant(const SerializableVariant& serializableVariant) {
+}
 
 bool DBusOutputStream::hasError() const {
     return dbusError_;
@@ -272,7 +320,6 @@ DBusOutputStream& DBusOutputStream::writeString(const char* cString, const uint3
     return *this;
 }
 
-
 //Additional 0-termination, so this is 8 byte of \0
 static const char eightByteZeroString[] = "\0\0\0\0\0\0\0";
 
@@ -308,10 +355,10 @@ void DBusOutputStream::beginWriteGenericVector() {
 }
 
 void DBusOutputStream::writeSignature(const std::string& signature) {
-	const auto& signatureLength = signature.length();
-	assert(signatureLength > 0 && signatureLength < 256);
+    const auto& signatureLength = signature.length();
+    assert(signatureLength > 0 && signatureLength < 256);
 
-	const uint8_t wireLength = (uint8_t) signatureLength;
+    const uint8_t wireLength = (uint8_t) signatureLength;
     *this << wireLength;
     writeRawData(signature.c_str(), wireLength + 1);
 }

@@ -77,6 +77,7 @@ void TestStruct::writeToOutputStream(CommonAPI::OutputStream& outputStream) cons
     outputStream << uintValue;
 }
 
+<<<<<<< Upstream, based on origin/master
 TestStructEnumMap::TestStructEnumMap(const TestEnumMap& testMapValue):
         testMap(testMapValue)
 {
@@ -98,6 +99,127 @@ void TestStructEnumMap::readFromInputStream(CommonAPI::InputStream& inputStream)
 
 void TestStructEnumMap::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
     outputStream << testMap;
+=======
+TestPolymorphicStruct::TestPolymorphicStruct(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue):
+        testString(testStringValue),
+        uintValue(uintValueValue)
+{
+}
+
+TestPolymorphicStruct* TestPolymorphicStruct::createInstance(const uint32_t& serialId) {
+    if (serialId == SERIAL_ID)
+        return new TestPolymorphicStruct;
+
+    const std::function<TestPolymorphicStruct*()> createDerivedInstanceFuncs[] = {
+        [&]() { return TestExtendedPolymorphicStruct::createInstance(serialId); }
+    };
+
+    for (auto& createDerivedInstanceFunc : createDerivedInstanceFuncs) {
+        TestPolymorphicStruct* derivedInstance = createDerivedInstanceFunc();
+        if (derivedInstance != NULL)
+            return derivedInstance;
+    }
+
+    return NULL;
+}
+
+uint32_t TestPolymorphicStruct::getSerialId() const {
+    return SERIAL_ID;
+}
+
+void TestPolymorphicStruct::createTypeSignature(CommonAPI::TypeOutputStream& typeOutputStream) const {
+    TestPolymorphicStruct::writeToTypeOutputStream(typeOutputStream);
+}
+
+bool operator==(const TestPolymorphicStruct& lhs, const TestPolymorphicStruct& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return
+        lhs.testString == rhs.testString &&
+        lhs.uintValue == rhs.uintValue
+    ;
+}
+
+void TestPolymorphicStruct::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    inputStream >> testString;
+    inputStream >> uintValue;
+}
+
+void TestPolymorphicStruct::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    outputStream << testString;
+    outputStream << uintValue;
+}
+
+TestExtendedPolymorphicStruct::TestExtendedPolymorphicStruct(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue, const uint32_t& additionalValueValue):
+        TestPolymorphicStruct(testStringValue, uintValueValue),
+        additionalValue(additionalValueValue)
+{
+}
+
+TestExtendedPolymorphicStruct* TestExtendedPolymorphicStruct::createInstance(const uint32_t& serialId) {
+    if (serialId == SERIAL_ID)
+        return new TestExtendedPolymorphicStruct;
+
+    return NULL;
+}
+
+uint32_t TestExtendedPolymorphicStruct::getSerialId() const {
+    return SERIAL_ID;
+}
+
+void TestExtendedPolymorphicStruct::createTypeSignature(CommonAPI::TypeOutputStream& typeOutputStream) const {
+    TestExtendedPolymorphicStruct::writeToTypeOutputStream(typeOutputStream);
+}
+
+bool operator==(const TestExtendedPolymorphicStruct& lhs, const TestExtendedPolymorphicStruct& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return
+        static_cast<TestExtendedPolymorphicStruct::TestPolymorphicStruct>(lhs) == static_cast<TestExtendedPolymorphicStruct::TestPolymorphicStruct>(rhs) &&
+        lhs.additionalValue == rhs.additionalValue
+    ;
+}
+
+void TestExtendedPolymorphicStruct::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    TestPolymorphicStruct::readFromInputStream(inputStream);
+    inputStream >> additionalValue;
+}
+
+void TestExtendedPolymorphicStruct::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    TestPolymorphicStruct::writeToOutputStream(outputStream);
+    outputStream << additionalValue;
+}
+
+
+
+StructWithPolymorphicMember::StructWithPolymorphicMember(const uint32_t& numberValueValue, const std::shared_ptr<TestPolymorphicStruct>& polymorphicMemberValue):
+        numberValue(numberValueValue),
+        polymorphicMember(polymorphicMemberValue)
+{
+}
+
+
+bool operator==(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return
+        lhs.numberValue == rhs.numberValue &&
+        lhs.polymorphicMember == rhs.polymorphicMember
+    ;
+}
+
+void StructWithPolymorphicMember::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    inputStream >> numberValue;
+    inputStream >> polymorphicMember;
+}
+
+void StructWithPolymorphicMember::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    outputStream << numberValue;
+    outputStream << polymorphicMember;
+>>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
 }
 
 } // namespace DerivedTypeCollection

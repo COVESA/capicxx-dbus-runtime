@@ -38,45 +38,47 @@ typedef uint32_t position_t;
  * (this operator is predefined for all basic data types and for vectors).
  */
 class DBusInputStream: public InputStream {
- public:
-	virtual bool hasError() const { return isErrorSet(); }
+public:
+    virtual bool hasError() const {
+        return isErrorSet();
+    }
 
     virtual InputStream& readValue(bool& boolValue);
 
- 	virtual InputStream& readValue(int8_t& int8Value);
- 	virtual InputStream& readValue(int16_t& int16Value);
- 	virtual InputStream& readValue(int32_t& int32Value);
- 	virtual InputStream& readValue(int64_t& int64Value);
+    virtual InputStream& readValue(int8_t& int8Value);
+    virtual InputStream& readValue(int16_t& int16Value);
+    virtual InputStream& readValue(int32_t& int32Value);
+    virtual InputStream& readValue(int64_t& int64Value);
 
- 	virtual InputStream& readValue(uint8_t& uint8Value);
- 	virtual InputStream& readValue(uint16_t& uint16Value);
- 	virtual InputStream& readValue(uint32_t& uint32Value);
- 	virtual InputStream& readValue(uint64_t& uint64Value);
+    virtual InputStream& readValue(uint8_t& uint8Value);
+    virtual InputStream& readValue(uint16_t& uint16Value);
+    virtual InputStream& readValue(uint32_t& uint32Value);
+    virtual InputStream& readValue(uint64_t& uint64Value);
 
- 	virtual InputStream& readValue(float& floatValue);
- 	virtual InputStream& readValue(double& doubleValue);
+    virtual InputStream& readValue(float& floatValue);
+    virtual InputStream& readValue(double& doubleValue);
 
- 	virtual InputStream& readValue(std::string& stringValue);
- 	virtual InputStream& readValue(ByteBuffer& byteBufferValue);
+    virtual InputStream& readValue(std::string& stringValue);
+    virtual InputStream& readValue(ByteBuffer& byteBufferValue);
 
- 	virtual InputStream& readEnumValue(int8_t& int8BackingTypeValue);
- 	virtual InputStream& readEnumValue(int16_t& int16BackingTypeValue);
- 	virtual InputStream& readEnumValue(int32_t& int32BackingTypeValue);
- 	virtual InputStream& readEnumValue(int64_t& int64BackingTypeValue);
- 	virtual InputStream& readEnumValue(uint8_t& uint8BackingTypeValue);
- 	virtual InputStream& readEnumValue(uint16_t& uint16BackingTypeValue);
- 	virtual InputStream& readEnumValue(uint32_t& uint32BackingTypeValue);
- 	virtual InputStream& readEnumValue(uint64_t& uint64BackingTypeValue);
+    virtual InputStream& readEnumValue(int8_t& int8BackingTypeValue);
+    virtual InputStream& readEnumValue(int16_t& int16BackingTypeValue);
+    virtual InputStream& readEnumValue(int32_t& int32BackingTypeValue);
+    virtual InputStream& readEnumValue(int64_t& int64BackingTypeValue);
+    virtual InputStream& readEnumValue(uint8_t& uint8BackingTypeValue);
+    virtual InputStream& readEnumValue(uint16_t& uint16BackingTypeValue);
+    virtual InputStream& readEnumValue(uint32_t& uint32BackingTypeValue);
+    virtual InputStream& readEnumValue(uint64_t& uint64BackingTypeValue);
 
- 	virtual InputStream& readVersionValue(Version& versionValue);
+    virtual InputStream& readVersionValue(Version& versionValue);
 
- 	virtual void beginReadSerializableStruct(const SerializableStruct& serializableStruct);
- 	virtual void endReadSerializableStruct(const SerializableStruct& serializableStruct);
+    virtual void beginReadSerializableStruct(const SerializableStruct& serializableStruct);
+    virtual void endReadSerializableStruct(const SerializableStruct& serializableStruct);
 
- 	virtual void beginReadSerializablePolymorphicStruct(uint32_t& serialId);
- 	virtual void endReadSerializablePolymorphicStruct(const uint32_t& serialId);
+    virtual void beginReadSerializablePolymorphicStruct(uint32_t& serialId);
+    virtual void endReadSerializablePolymorphicStruct(const uint32_t& serialId);
 
- 	virtual void readSerializableVariant(SerializableVariant& serializableVariant);
+    virtual void readSerializableVariant(SerializableVariant& serializableVariant);
 
     virtual void beginReadBoolVector();
     virtual void beginReadInt8Vector();
@@ -107,17 +109,18 @@ class DBusInputStream: public InputStream {
     virtual void beginReadVectorOfVectors();
     virtual void beginReadVectorOfMaps();
 
- 	virtual bool hasMoreVectorElements();
- 	virtual void endReadVector();
+    virtual void beginReadVectorOfSerializablePolymorphicStructs();
 
- 	virtual void beginReadMap();
- 	virtual bool hasMoreMapElements();
- 	virtual void endReadMap();
+    virtual bool hasMoreVectorElements();
+    virtual void endReadVector();
+
+    virtual void beginReadMap();
+    virtual bool hasMoreMapElements();
+    virtual void endReadMap();
     virtual void beginReadMapElement();
     virtual void endReadMapElement();
 
-
- 	/**
+    /**
      * Creates a #DBusInputMessageStream which can be used to deserialize and read data from the given #DBusMessage.
      * As no message-signature is checked, the user is responsible to ensure that the correct data types are read in the correct order.
      *
@@ -192,7 +195,7 @@ class DBusInputStream: public InputStream {
      * @param inputMessageStream The stream which the value is to be read from
      * @return The given inputMessageStream to allow for successive reading
      */
-    template <typename _BasicType>
+    template<typename _BasicType>
     DBusInputStream& readBasicTypeValue(_BasicType& val) {
         if (sizeof(val) > 1)
             alignToBoundary(sizeof(_BasicType));
@@ -201,7 +204,7 @@ class DBusInputStream: public InputStream {
         return *this;
     }
 
- private:
+private:
     inline void beginReadGenericVector() {
         uint32_t vectorByteSize;
         readBasicTypeValue(vectorByteSize);
@@ -224,11 +227,9 @@ class DBusInputStream: public InputStream {
     std::stack<position_t> savedStreamPositions_;
 };
 
-
 inline void DBusInputStream::setError() {
     exception_ = new CommonAPI::DBus::DBusError();
 }
-
 
 } // namespace DBus
 } // namespace CommonAPI

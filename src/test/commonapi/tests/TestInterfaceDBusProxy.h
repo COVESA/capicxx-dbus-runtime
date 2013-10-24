@@ -60,6 +60,14 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
     virtual std::future<CommonAPI::CallStatus> testVoidDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, TestVoidDerivedTypeMethodAsyncCallback callback);
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
+    virtual void TestArrayOfPolymorphicStructMethod(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestArrayOfPolymorphicStructMethodAsync(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, TestArrayOfPolymorphicStructMethodAsyncCallback callback);
+    virtual void TestMapOfPolymorphicStructMethod(const DerivedTypeCollection::MapIntToPolymorphic& inMap, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestMapOfPolymorphicStructMethodAsync(const DerivedTypeCollection::MapIntToPolymorphic& inMap, TestMapOfPolymorphicStructMethodAsyncCallback callback);
+    virtual void TestMapWithPolymorphicStructKeyMethod(const DerivedTypeCollection::MapPolymorphicToInt& inMap, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback);
+    virtual void TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback);
     
 
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;

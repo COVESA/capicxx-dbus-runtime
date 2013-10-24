@@ -117,6 +117,21 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"testEnumExtended2OutValue\" type=\"i\" direction=\"out\" />\n"
             "<arg name=\"testMapOutValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
         "</method>\n"
+<<<<<<< Upstream, based on origin/master
+=======
+        "<method name=\"TestArrayOfPolymorphicStructMethod\">\n"
+            "<arg name=\"inArray\" type=\"a(uv)\" direction=\"in\" />\n"
+        "</method>\n"
+        "<method name=\"TestMapOfPolymorphicStructMethod\">\n"
+            "<arg name=\"inMap\" type=\"a{y(uv)}\" direction=\"in\" />\n"
+        "</method>\n"
+        "<method name=\"TestMapWithPolymorphicStructKeyMethod\">\n"
+            "<arg name=\"inMap\" type=\"a{(uv)y}\" direction=\"in\" />\n"
+        "</method>\n"
+        "<method name=\"TestStructWithPolymorphicMemberMethod\">\n"
+            "<arg name=\"inStruct\" type=\"(u(uv))\" direction=\"in\" />\n"
+        "</method>\n"
+>>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
         
     ;
     return introspectionData;
@@ -191,6 +206,26 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
     > testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+    std::tuple<>
+    > testArrayOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestArrayOfPolymorphicStructMethod, "");
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::MapIntToPolymorphic>,
+    std::tuple<>
+    > testMapOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestMapOfPolymorphicStructMethod, "");
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::MapPolymorphicToInt>,
+    std::tuple<>
+    > testMapWithPolymorphicStructKeyMethodStubDispatcher(&TestInterfaceStub::TestMapWithPolymorphicStructKeyMethod, "");
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
+    std::tuple<>
+    > testStructWithPolymorphicMemberMethodStubDispatcher(&TestInterfaceStub::TestStructWithPolymorphicMemberMethod, "");
 
 void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {
     CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
@@ -378,7 +413,11 @@ const TestInterfaceDBusStubAdapter::StubDispatcherTable& TestInterfaceDBusStubAd
             { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::testVoidPredefinedTypeMethodStubDispatcher },
             { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
             { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
-            { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher }
+            { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher },
+            { { "TestArrayOfPolymorphicStructMethod", "a(uv)" }, &commonapi::tests::testArrayOfPolymorphicStructMethodStubDispatcher },
+            { { "TestMapOfPolymorphicStructMethod", "a{y(uv)}" }, &commonapi::tests::testMapOfPolymorphicStructMethodStubDispatcher },
+            { { "TestMapWithPolymorphicStructKeyMethod", "a{(uv)y}" }, &commonapi::tests::testMapWithPolymorphicStructKeyMethodStubDispatcher },
+            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::testStructWithPolymorphicMemberMethodStubDispatcher }
             ,
             { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::subscribeTestSelectiveBroadcastSelectiveStubDispatcher },
             { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },

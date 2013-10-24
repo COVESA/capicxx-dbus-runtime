@@ -60,6 +60,18 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual void testDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
     virtual void testDerivedTypeMethod(DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue);
 
+    virtual void TestArrayOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>> inArray);
+    virtual void TestArrayOfPolymorphicStructMethod(std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>> inArray);
+
+    virtual void TestMapOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapIntToPolymorphic inMap);
+    virtual void TestMapOfPolymorphicStructMethod(DerivedTypeCollection::MapIntToPolymorphic inMap);
+
+    virtual void TestMapWithPolymorphicStructKeyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapPolymorphicToInt inMap);
+    virtual void TestMapWithPolymorphicStructKeyMethod(DerivedTypeCollection::MapPolymorphicToInt inMap);
+
+    virtual void TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithPolymorphicMember inStruct);
+    virtual void TestStructWithPolymorphicMemberMethod(DerivedTypeCollection::StructWithPolymorphicMember inStruct);
+
 
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
     virtual void fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientIdList> receivers = NULL);

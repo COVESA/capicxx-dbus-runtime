@@ -169,6 +169,86 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback);
+    /**
+     * Calls TestArrayOfPolymorphicStructMethod with synchronous semantics.
+     * 
+    * All const parameters are input parameters to this method.
+     * The CallStatus will be filled when the method returns and indicate either
+     * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
+     * will be set.
+     */
+    virtual void TestArrayOfPolymorphicStructMethod(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, CommonAPI::CallStatus& callStatus);
+    /**
+     * Calls TestArrayOfPolymorphicStructMethod with asynchronous semantics.
+     * 
+     * The provided callback will be called when the reply to this call arrives or
+     * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
+     * or which type of error has occurred. In case of any error, ONLY the CallStatus
+     * will have a defined value.
+     * The std::future returned by this method will be fulfilled at arrival of the reply.
+     * It will provide the same value for CallStatus as will be handed to the callback.
+     */
+    virtual std::future<CommonAPI::CallStatus> TestArrayOfPolymorphicStructMethodAsync(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, TestArrayOfPolymorphicStructMethodAsyncCallback callback);
+    /**
+     * Calls TestMapOfPolymorphicStructMethod with synchronous semantics.
+     * 
+    * All const parameters are input parameters to this method.
+     * The CallStatus will be filled when the method returns and indicate either
+     * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
+     * will be set.
+     */
+    virtual void TestMapOfPolymorphicStructMethod(const DerivedTypeCollection::MapIntToPolymorphic& inMap, CommonAPI::CallStatus& callStatus);
+    /**
+     * Calls TestMapOfPolymorphicStructMethod with asynchronous semantics.
+     * 
+     * The provided callback will be called when the reply to this call arrives or
+     * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
+     * or which type of error has occurred. In case of any error, ONLY the CallStatus
+     * will have a defined value.
+     * The std::future returned by this method will be fulfilled at arrival of the reply.
+     * It will provide the same value for CallStatus as will be handed to the callback.
+     */
+    virtual std::future<CommonAPI::CallStatus> TestMapOfPolymorphicStructMethodAsync(const DerivedTypeCollection::MapIntToPolymorphic& inMap, TestMapOfPolymorphicStructMethodAsyncCallback callback);
+    /**
+     * Calls TestMapWithPolymorphicStructKeyMethod with synchronous semantics.
+     * 
+    * All const parameters are input parameters to this method.
+     * The CallStatus will be filled when the method returns and indicate either
+     * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
+     * will be set.
+     */
+    virtual void TestMapWithPolymorphicStructKeyMethod(const DerivedTypeCollection::MapPolymorphicToInt& inMap, CommonAPI::CallStatus& callStatus);
+    /**
+     * Calls TestMapWithPolymorphicStructKeyMethod with asynchronous semantics.
+     * 
+     * The provided callback will be called when the reply to this call arrives or
+     * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
+     * or which type of error has occurred. In case of any error, ONLY the CallStatus
+     * will have a defined value.
+     * The std::future returned by this method will be fulfilled at arrival of the reply.
+     * It will provide the same value for CallStatus as will be handed to the callback.
+     */
+    virtual std::future<CommonAPI::CallStatus> TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback);
+    /**
+     * Calls TestStructWithPolymorphicMemberMethod with synchronous semantics.
+     * 
+    * All const parameters are input parameters to this method.
+     * The CallStatus will be filled when the method returns and indicate either
+     * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
+     * will be set.
+     */
+    virtual void TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus);
+    /**
+     * Calls TestStructWithPolymorphicMemberMethod with asynchronous semantics.
+     * 
+     * The provided callback will be called when the reply to this call arrives or
+     * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
+     * or which type of error has occurred. In case of any error, ONLY the CallStatus
+     * will have a defined value.
+     * The std::future returned by this method will be fulfilled at arrival of the reply.
+     * It will provide the same value for CallStatus as will be handed to the callback.
+     */
+    virtual std::future<CommonAPI::CallStatus> TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback);
     
 
     /**
@@ -334,6 +414,42 @@ void TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethod(const De
 template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) {
     return delegate_->testDerivedTypeMethodAsync(testEnumExtended2InValue, testMapInValue, callback);
+}
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::TestArrayOfPolymorphicStructMethod(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestArrayOfPolymorphicStructMethod(inArray, callStatus);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestArrayOfPolymorphicStructMethodAsync(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, TestArrayOfPolymorphicStructMethodAsyncCallback callback) {
+    return delegate_->TestArrayOfPolymorphicStructMethodAsync(inArray, callback);
+}
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::TestMapOfPolymorphicStructMethod(const DerivedTypeCollection::MapIntToPolymorphic& inMap, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestMapOfPolymorphicStructMethod(inMap, callStatus);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestMapOfPolymorphicStructMethodAsync(const DerivedTypeCollection::MapIntToPolymorphic& inMap, TestMapOfPolymorphicStructMethodAsyncCallback callback) {
+    return delegate_->TestMapOfPolymorphicStructMethodAsync(inMap, callback);
+}
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::TestMapWithPolymorphicStructKeyMethod(const DerivedTypeCollection::MapPolymorphicToInt& inMap, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestMapWithPolymorphicStructKeyMethod(inMap, callStatus);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback) {
+    return delegate_->TestMapWithPolymorphicStructKeyMethodAsync(inMap, callback);
+}
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestStructWithPolymorphicMemberMethod(inStruct, callStatus);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback) {
+    return delegate_->TestStructWithPolymorphicMemberMethodAsync(inStruct, callback);
 }
 
 template <typename ... _AttributeExtensions>

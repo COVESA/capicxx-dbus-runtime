@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DBusInputStream.h"
 
-
 namespace CommonAPI {
 namespace DBus {
 
@@ -18,8 +17,7 @@ DBusInputStream::DBusInputStream(const CommonAPI::DBus::DBusMessage& message) :
                 exception_(nullptr) {
 }
 
-DBusInputStream::~DBusInputStream() {
-}
+DBusInputStream::~DBusInputStream() {}
 
 const CommonAPI::DBus::DBusError& DBusInputStream::getError() const {
     return *exception_;
@@ -46,12 +44,12 @@ char* DBusInputStream::readRawData(const size_t numBytesToRead) {
     return dataPtr;
 }
 
-template <>
+template<>
 DBusInputStream& DBusInputStream::readBasicTypeValue<float>(float& val) {
     if (sizeof(val) > 1)
         alignToBoundary(sizeof(double));
 
-    val = (float)(*(reinterpret_cast<double*>(readRawData(sizeof(double)))));
+    val = (float) (*(reinterpret_cast<double*>(readRawData(sizeof(double)))));
     return *this;
 }
 
@@ -62,18 +60,38 @@ InputStream& DBusInputStream::readValue(bool& boolValue) {
     return *this;
 }
 
-InputStream& DBusInputStream::readValue(int8_t& int8Value)  { return readBasicTypeValue(int8Value); }
-InputStream& DBusInputStream::readValue(int16_t& int16Value)  { return readBasicTypeValue(int16Value); }
-InputStream& DBusInputStream::readValue(int32_t& int32Value)  { return readBasicTypeValue(int32Value); }
-InputStream& DBusInputStream::readValue(int64_t& int64Value)  { return readBasicTypeValue(int64Value); }
+InputStream& DBusInputStream::readValue(int8_t& int8Value) {
+    return readBasicTypeValue(int8Value);
+}
+InputStream& DBusInputStream::readValue(int16_t& int16Value) {
+    return readBasicTypeValue(int16Value);
+}
+InputStream& DBusInputStream::readValue(int32_t& int32Value) {
+    return readBasicTypeValue(int32Value);
+}
+InputStream& DBusInputStream::readValue(int64_t& int64Value) {
+    return readBasicTypeValue(int64Value);
+}
 
-InputStream& DBusInputStream::readValue(uint8_t& uint8Value)  { return readBasicTypeValue(uint8Value); }
-InputStream& DBusInputStream::readValue(uint16_t& uint16Value) { return readBasicTypeValue(uint16Value); }
-InputStream& DBusInputStream::readValue(uint32_t& uint32Value) { return readBasicTypeValue(uint32Value); }
-InputStream& DBusInputStream::readValue(uint64_t& uint64Value) { return readBasicTypeValue(uint64Value); }
+InputStream& DBusInputStream::readValue(uint8_t& uint8Value) {
+    return readBasicTypeValue(uint8Value);
+}
+InputStream& DBusInputStream::readValue(uint16_t& uint16Value) {
+    return readBasicTypeValue(uint16Value);
+}
+InputStream& DBusInputStream::readValue(uint32_t& uint32Value) {
+    return readBasicTypeValue(uint32Value);
+}
+InputStream& DBusInputStream::readValue(uint64_t& uint64Value) {
+    return readBasicTypeValue(uint64Value);
+}
 
-InputStream& DBusInputStream::readValue(float& floatValue) { return readBasicTypeValue(floatValue); }
-InputStream& DBusInputStream::readValue(double& doubleValue) { return readBasicTypeValue(doubleValue); }
+InputStream& DBusInputStream::readValue(float& floatValue) {
+    return readBasicTypeValue(floatValue);
+}
+InputStream& DBusInputStream::readValue(double& doubleValue) {
+    return readBasicTypeValue(doubleValue);
+}
 
 InputStream& DBusInputStream::readValue(std::string& stringValue) {
     uint32_t lengthOfString;
@@ -93,14 +111,30 @@ InputStream& DBusInputStream::readValue(ByteBuffer& byteBufferValue) {
     return *this;
 }
 
-InputStream& DBusInputStream::readEnumValue(int8_t& int8BackingTypeValue) { return readValue(int8BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(int16_t& int16BackingTypeValue) { return readValue(int16BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(int32_t& int32BackingTypeValue) { return readValue(int32BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(int64_t& int64BackingTypeValue) { return readValue(int64BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(uint8_t& uint8BackingTypeValue) { return readValue(uint8BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(uint16_t& uint16BackingTypeValue) { return readValue(uint16BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(uint32_t& uint32BackingTypeValue) { return readValue(uint32BackingTypeValue); }
-InputStream& DBusInputStream::readEnumValue(uint64_t& uint64BackingTypeValue) { return readValue(uint64BackingTypeValue); }
+InputStream& DBusInputStream::readEnumValue(int8_t& int8BackingTypeValue) {
+    return readValue(int8BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(int16_t& int16BackingTypeValue) {
+    return readValue(int16BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(int32_t& int32BackingTypeValue) {
+    return readValue(int32BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(int64_t& int64BackingTypeValue) {
+    return readValue(int64BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(uint8_t& uint8BackingTypeValue) {
+    return readValue(uint8BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(uint16_t& uint16BackingTypeValue) {
+    return readValue(uint16BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(uint32_t& uint32BackingTypeValue) {
+    return readValue(uint32BackingTypeValue);
+}
+InputStream& DBusInputStream::readEnumValue(uint64_t& uint64BackingTypeValue) {
+    return readValue(uint64BackingTypeValue);
+}
 
 InputStream& DBusInputStream::readVersionValue(Version& versionValue) {
     alignToBoundary(8);
@@ -113,13 +147,14 @@ void DBusInputStream::beginReadSerializableStruct(const SerializableStruct& seri
     alignToBoundary(8);
 }
 
-void DBusInputStream::endReadSerializableStruct(const SerializableStruct& serializableStruct) { }
+void DBusInputStream::endReadSerializableStruct(const SerializableStruct& serializableStruct) {
+}
 
 void DBusInputStream::beginReadSerializablePolymorphicStruct(uint32_t& serialId) {
-	alignToBoundary(8);
-	readValue(serialId);
-	skipOverSignature();
-	alignToBoundary(8);
+    alignToBoundary(8);
+    readValue(serialId);
+    skipOverSignature();
+    alignToBoundary(8);
 }
 
 void DBusInputStream::endReadSerializablePolymorphicStruct(const uint32_t& serialId) {
@@ -133,7 +168,6 @@ void DBusInputStream::readSerializableVariant(SerializableVariant& serializableV
 
     serializableVariant.readFromInputStream(containedTypeIndex, *this);
 }
-
 
 void DBusInputStream::beginReadBoolVector() {
     beginReadGenericVector();
@@ -275,6 +309,12 @@ void DBusInputStream::beginReadVectorOfMaps() {
     savedStreamPositions_.push(currentDataPosition_);
 }
 
+void DBusInputStream::beginReadVectorOfSerializablePolymorphicStructs() {
+    beginReadGenericVector();
+    alignToBoundary(8);
+    savedStreamPositions_.push(currentDataPosition_);
+}
+
 bool DBusInputStream::hasMoreVectorElements() {
     return bytesToRead_.top() > currentDataPosition_ - savedStreamPositions_.top();
 }
@@ -304,8 +344,8 @@ void DBusInputStream::endReadMap() {
 void DBusInputStream::beginReadMapElement() {
     alignToBoundary(8);
 }
-void DBusInputStream::endReadMapElement() {}
-
+void DBusInputStream::endReadMapElement() {
+}
 
 } // namespace DBus
 } // namespace CommonAPI

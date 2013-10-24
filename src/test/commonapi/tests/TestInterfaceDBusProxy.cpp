@@ -157,6 +157,82 @@ std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::testDerivedTypeMethod
         testEnumExtended2InValue, testMapInValue, 
         std::move(callback));
 }
+void TestInterfaceDBusProxy::TestArrayOfPolymorphicStructMethod(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "TestArrayOfPolymorphicStructMethod",
+        "a(uv)",
+        inArray, 
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestArrayOfPolymorphicStructMethodAsync(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, TestArrayOfPolymorphicStructMethodAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "TestArrayOfPolymorphicStructMethod",
+        "a(uv)",
+        inArray, 
+        std::move(callback));
+}
+void TestInterfaceDBusProxy::TestMapOfPolymorphicStructMethod(const DerivedTypeCollection::MapIntToPolymorphic& inMap, CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::MapIntToPolymorphic>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "TestMapOfPolymorphicStructMethod",
+        "a{y(uv)}",
+        inMap, 
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestMapOfPolymorphicStructMethodAsync(const DerivedTypeCollection::MapIntToPolymorphic& inMap, TestMapOfPolymorphicStructMethodAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::MapIntToPolymorphic>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "TestMapOfPolymorphicStructMethod",
+        "a{y(uv)}",
+        inMap, 
+        std::move(callback));
+}
+void TestInterfaceDBusProxy::TestMapWithPolymorphicStructKeyMethod(const DerivedTypeCollection::MapPolymorphicToInt& inMap, CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::MapPolymorphicToInt>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "TestMapWithPolymorphicStructKeyMethod",
+        "a{(uv)y}",
+        inMap, 
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::MapPolymorphicToInt>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "TestMapWithPolymorphicStructKeyMethod",
+        "a{(uv)y}",
+        inMap, 
+        std::move(callback));
+}
+void TestInterfaceDBusProxy::TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::StructWithPolymorphicMember>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "TestStructWithPolymorphicMemberMethod",
+        "(u(uv))",
+        inStruct, 
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::StructWithPolymorphicMember>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "TestStructWithPolymorphicMemberMethod",
+        "(u(uv))",
+        inStruct, 
+        std::move(callback));
+}
 
 
 

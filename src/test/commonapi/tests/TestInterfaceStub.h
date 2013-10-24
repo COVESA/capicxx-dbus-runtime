@@ -13,6 +13,7 @@
 
 
 #include <commonapi/tests/DerivedTypeCollection.h>
+#include <commonapi/tests/PredefinedTypeCollection.h>
 
 #include "TestInterface.h"
 
@@ -22,6 +23,7 @@
 
 #include <CommonAPI/InputStream.h>
 #include <CommonAPI/OutputStream.h>
+#include <CommonAPI/SerializableStruct.h>
 #include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
@@ -147,6 +149,14 @@ class TestInterfaceStub : public CommonAPI::Stub<TestInterfaceStubAdapter , Test
     virtual void testVoidDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2Value, DerivedTypeCollection::TestMap testMapValue) = 0;
     /// This is the method that will be called on remote calls on the method testDerivedTypeMethod.
     virtual void testDerivedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue, DerivedTypeCollection::TestMap testMapInValue, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
+    /// This is the method that will be called on remote calls on the method TestArrayOfPolymorphicStructMethod.
+    virtual void TestArrayOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>> inArray) = 0;
+    /// This is the method that will be called on remote calls on the method TestMapOfPolymorphicStructMethod.
+    virtual void TestMapOfPolymorphicStructMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapIntToPolymorphic inMap) = 0;
+    /// This is the method that will be called on remote calls on the method TestMapWithPolymorphicStructKeyMethod.
+    virtual void TestMapWithPolymorphicStructKeyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapPolymorphicToInt inMap) = 0;
+    /// This is the method that will be called on remote calls on the method TestStructWithPolymorphicMemberMethod.
+    virtual void TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithPolymorphicMember inStruct) = 0;
     /// Sends a broadcast event for TestPredefinedTypeBroadcast.
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) = 0;
     /**

@@ -14,6 +14,7 @@
 
 
 #include <commonapi/tests/DerivedTypeCollection.h>
+#include <commonapi/tests/PredefinedTypeCollection.h>
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -21,6 +22,7 @@
 
 #include <CommonAPI/InputStream.h>
 #include <CommonAPI/OutputStream.h>
+#include <CommonAPI/SerializableStruct.h>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +53,10 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
     typedef std::function<void(const CommonAPI::CallStatus&, const uint32_t&, const std::string&)> TestPredefinedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&)> TestVoidDerivedTypeMethodAsyncCallback;
     typedef std::function<void(const CommonAPI::CallStatus&, const DerivedTypeCollection::TestEnumExtended2&, const DerivedTypeCollection::TestMap&)> TestDerivedTypeMethodAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&)> TestArrayOfPolymorphicStructMethodAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&)> TestMapOfPolymorphicStructMethodAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&)> TestMapWithPolymorphicStructKeyMethodAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&)> TestStructWithPolymorphicMemberMethodAsyncCallback;
 
     virtual TestPredefinedTypeAttributeAttribute& getTestPredefinedTypeAttributeAttribute() = 0;
     virtual TestDerivedStructAttributeAttribute& getTestDerivedStructAttributeAttribute() = 0;
@@ -70,6 +76,14 @@ class TestInterfaceProxyBase: virtual public CommonAPI::Proxy {
     virtual std::future<CommonAPI::CallStatus> testVoidDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2Value, const DerivedTypeCollection::TestMap& testMapValue, TestVoidDerivedTypeMethodAsyncCallback callback) = 0;
     virtual void testDerivedTypeMethod(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, CommonAPI::CallStatus& callStatus, DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue, DerivedTypeCollection::TestMap& testMapOutValue) = 0;
     virtual std::future<CommonAPI::CallStatus> testDerivedTypeMethodAsync(const DerivedTypeCollection::TestEnumExtended2& testEnumExtended2InValue, const DerivedTypeCollection::TestMap& testMapInValue, TestDerivedTypeMethodAsyncCallback callback) = 0;
+    virtual void TestArrayOfPolymorphicStructMethod(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, CommonAPI::CallStatus& callStatus) = 0;
+    virtual std::future<CommonAPI::CallStatus> TestArrayOfPolymorphicStructMethodAsync(const std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>& inArray, TestArrayOfPolymorphicStructMethodAsyncCallback callback) = 0;
+    virtual void TestMapOfPolymorphicStructMethod(const DerivedTypeCollection::MapIntToPolymorphic& inMap, CommonAPI::CallStatus& callStatus) = 0;
+    virtual std::future<CommonAPI::CallStatus> TestMapOfPolymorphicStructMethodAsync(const DerivedTypeCollection::MapIntToPolymorphic& inMap, TestMapOfPolymorphicStructMethodAsyncCallback callback) = 0;
+    virtual void TestMapWithPolymorphicStructKeyMethod(const DerivedTypeCollection::MapPolymorphicToInt& inMap, CommonAPI::CallStatus& callStatus) = 0;
+    virtual std::future<CommonAPI::CallStatus> TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback) = 0;
+    virtual void TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus) = 0;
+    virtual std::future<CommonAPI::CallStatus> TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback) = 0;
 };
 
 } // namespace tests

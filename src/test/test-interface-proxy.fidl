@@ -51,6 +51,31 @@ interface TestInterface {
 		}
 	}
 
+    method TestArrayOfPolymorphicStructMethod {
+        in {
+            DerivedTypeCollection.TestPolymorphicStruct [] inArray
+        }
+    }
+
+    method TestMapOfPolymorphicStructMethod {
+        in {
+            DerivedTypeCollection.MapIntToPolymorphic inMap
+        }
+    }
+
+    method TestMapWithPolymorphicStructKeyMethod {
+        in {
+            DerivedTypeCollection.MapPolymorphicToInt inMap
+        }
+    }
+    
+    method TestStructWithPolymorphicMemberMethod {
+    	in {
+    		DerivedTypeCollection.StructWithPolymorphicMember inStruct
+    	}
+    }
+
+
 	broadcast TestPredefinedTypeBroadcast {
 		out {
 			UInt32 uint32Value

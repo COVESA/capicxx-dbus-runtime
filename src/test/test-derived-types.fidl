@@ -56,8 +56,24 @@ typeCollection DerivedTypeCollection {
 		UInt16 uintValue
 	}
 	
-	struct TestStructEnumMap {
-		TestEnumMap testMap
+	struct TestPolymorphicStruct polymorphic {
+		<** @description : the name of the property **>
+		PredefinedTypeCollection.TestString testString
+
+		<** @description : the actual value **>
+		UInt16 uintValue		
+	}
+	
+	struct TestExtendedPolymorphicStruct extends TestPolymorphicStruct {
+		UInt32 additionalValue
+	}
+	
+	map MapIntToPolymorphic { UInt8 to DerivedTypeCollection.TestPolymorphicStruct }
+	map MapPolymorphicToInt { DerivedTypeCollection.TestPolymorphicStruct to UInt8 }
+	
+	struct StructWithPolymorphicMember {
+		UInt32 numberValue
+		DerivedTypeCollection.TestPolymorphicStruct polymorphicMember
 	}
 }
 
