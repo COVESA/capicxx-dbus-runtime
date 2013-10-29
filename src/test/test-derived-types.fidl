@@ -55,6 +55,10 @@ typeCollection DerivedTypeCollection {
 		<** @description : the actual value **>
 		UInt16 uintValue
 	}
+	
+	struct TestStructEnumMap {
+		TestEnumMap testMap
+	}
 }
 
 
