@@ -39,8 +39,7 @@ TestInterfaceDBusStubAdapter::TestInterfaceDBusStubAdapter(
         const std::shared_ptr<CommonAPI::StubBase>& stub):
         TestInterfaceDBusStubAdapterHelper(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, 
             dbusConnection, std::dynamic_pointer_cast<TestInterfaceStub>(stub),
-            NULL)
-            {
+            false) {
     subscribersForTestSelectiveBroadcastSelective_ = std::make_shared<CommonAPI::ClientIdList>();
     subscribersForTestBroadcastWithOutArgsSelective_ = std::make_shared<CommonAPI::ClientIdList>();
 }
