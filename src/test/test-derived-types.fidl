@@ -8,7 +8,7 @@ import commonapi.tests.* from "test-predefined-types.fidl"
 typeCollection DerivedTypeCollection {
 
 	map TestMap { UInt32 to TestArrayTestStruct }
-	
+
 	struct TestStructExtended extends TestStruct {
 		TestEnumExtended2 testEnumExtended2
 	}

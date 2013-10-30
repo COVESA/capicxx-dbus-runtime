@@ -77,29 +77,6 @@ void TestStruct::writeToOutputStream(CommonAPI::OutputStream& outputStream) cons
     outputStream << uintValue;
 }
 
-<<<<<<< Upstream, based on origin/master
-TestStructEnumMap::TestStructEnumMap(const TestEnumMap& testMapValue):
-        testMap(testMapValue)
-{
-}
-
-
-bool operator==(const TestStructEnumMap& lhs, const TestStructEnumMap& rhs) {
-    if (&lhs == &rhs)
-        return true;
-
-    return
-        lhs.testMap == rhs.testMap
-    ;
-}
-
-void TestStructEnumMap::readFromInputStream(CommonAPI::InputStream& inputStream) {
-    inputStream >> testMap;
-}
-
-void TestStructEnumMap::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
-    outputStream << testMap;
-=======
 TestPolymorphicStruct::TestPolymorphicStruct(const PredefinedTypeCollection::TestString& testStringValue, const uint16_t& uintValueValue):
         testString(testStringValue),
         uintValue(uintValueValue)
@@ -219,7 +196,6 @@ void StructWithPolymorphicMember::readFromInputStream(CommonAPI::InputStream& in
 void StructWithPolymorphicMember::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
     outputStream << numberValue;
     outputStream << polymorphicMember;
->>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
 }
 
 } // namespace DerivedTypeCollection

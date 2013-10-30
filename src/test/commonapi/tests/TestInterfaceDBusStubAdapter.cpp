@@ -117,8 +117,6 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
             "<arg name=\"testEnumExtended2OutValue\" type=\"i\" direction=\"out\" />\n"
             "<arg name=\"testMapOutValue\" type=\"a{ua(sq)}\" direction=\"out\" />\n"
         "</method>\n"
-<<<<<<< Upstream, based on origin/master
-=======
         "<method name=\"TestArrayOfPolymorphicStructMethod\">\n"
             "<arg name=\"inArray\" type=\"a(uv)\" direction=\"in\" />\n"
         "</method>\n"
@@ -131,7 +129,6 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
         "<method name=\"TestStructWithPolymorphicMemberMethod\">\n"
             "<arg name=\"inStruct\" type=\"(u(uv))\" direction=\"in\" />\n"
         "</method>\n"
->>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
         
     ;
     return introspectionData;

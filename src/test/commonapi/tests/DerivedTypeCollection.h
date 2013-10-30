@@ -138,23 +138,6 @@ namespace DerivedTypeCollection {
     // Definition of a comparator still is necessary for GCC 4.4.1, topic is fixed since 4.5.1
     struct TestEnumMissingValueComparator;
     typedef std::vector<uint64_t> TestArrayUInt64;
-<<<<<<< Upstream, based on origin/master
-    struct TestStructEnumMap: CommonAPI::SerializableStruct {
-         TestEnumMap testMap;
-    
-        TestStructEnumMap() = default;
-        TestStructEnumMap(const TestEnumMap& testMap);
-    
-    
-        virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
-        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
-    
-        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
-            typeOutputStream.beginWriteMapType();
-            typeOutputStream.writeInt32Type();
-            typeOutputStream.writeStringType();
-            typeOutputStream.endWriteMapType();
-=======
     struct TestPolymorphicStruct: CommonAPI::SerializablePolymorphicStruct {
         /**
          * the name of the property
@@ -222,7 +205,6 @@ namespace DerivedTypeCollection {
             typeOutputStream.beginWriteStructType();
             typeOutputStream.writeStringType();typeOutputStream.writeUInt16Type();
             typeOutputStream.endWriteStructType();
->>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
         }
     };
 
@@ -329,10 +311,6 @@ bool operator==(const TestStruct& lhs, const TestStruct& rhs);
 inline bool operator!=(const TestStruct& lhs, const TestStruct& rhs) {
     return !(lhs == rhs);
 }
-<<<<<<< Upstream, based on origin/master
-bool operator==(const TestStructEnumMap& lhs, const TestStructEnumMap& rhs);
-inline bool operator!=(const TestStructEnumMap& lhs, const TestStructEnumMap& rhs) {
-=======
 bool operator==(const TestPolymorphicStruct& lhs, const TestPolymorphicStruct& rhs);
 inline bool operator!=(const TestPolymorphicStruct& lhs, const TestPolymorphicStruct& rhs) {
     return !(lhs == rhs);
@@ -343,7 +321,6 @@ inline bool operator!=(const TestExtendedPolymorphicStruct& lhs, const TestExten
 }
 bool operator==(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs);
 inline bool operator!=(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs) {
->>>>>>> 3439751 Fixed (de-)serialization of polymorphic structs. Added unit test for polymorphic structs.
     return !(lhs == rhs);
 }
 
