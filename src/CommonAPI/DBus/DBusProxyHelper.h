@@ -200,7 +200,7 @@ template<
                 const _InArgs&... inArgs,
                 _AsyncCallback asyncCallback) {
 
-        callMethodAsync(
+        return callMethodAsync(
                                 dbusProxy,
                                 dbusProxy.getDBusBusName().c_str(),
                                 dbusProxy.getDBusObjectPath().c_str(),
