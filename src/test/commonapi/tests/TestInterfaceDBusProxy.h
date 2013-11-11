@@ -68,6 +68,8 @@ class TestInterfaceDBusProxy: virtual public TestInterfaceProxyBase, virtual pub
     virtual std::future<CommonAPI::CallStatus> TestMapWithPolymorphicStructKeyMethodAsync(const DerivedTypeCollection::MapPolymorphicToInt& inMap, TestMapWithPolymorphicStructKeyMethodAsyncCallback callback);
     virtual void TestStructWithPolymorphicMemberMethod(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, CommonAPI::CallStatus& callStatus);
     virtual std::future<CommonAPI::CallStatus> TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback);
+    virtual void TestStructWithEnumKeyMapMember(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestStructWithEnumKeyMapMemberAsync(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, TestStructWithEnumKeyMapMemberAsyncCallback callback);
     
 
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;

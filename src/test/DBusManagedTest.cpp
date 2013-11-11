@@ -27,6 +27,7 @@
 #include "commonapi/tests/managed/RootInterfaceProxy.h"
 #include "commonapi/tests/managed/RootInterfaceDBusProxy.h"
 #include "commonapi/tests/managed/LeafInterfaceProxy.h"
+#include "commonapi/tests/managed/SecondRootStubDefault.h"
 
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -36,6 +37,7 @@
 static const std::string rootAddress =
                 "local:commonapi.tests.managed.RootInterface:commonapi.tests.managed.RootInterface";
 static const std::string leafInstance = "commonapi.tests.managed.RootInterface.LeafInterface";
+static const std::string secondLeafInstance = "commonapi.tests.managed.RootInterface.LeafInterface2";
 static const std::string leafAddress = "local:commonapi.tests.managed.LeafInterface:" + leafInstance;
 
 static const std::string dbusServiceName = "CommonAPI.DBus.DBusObjectManagerStubTest";
@@ -350,6 +352,10 @@ protected:
         return "local:commonapi.tests.managed.RootInterface" + suffix + ":commonapi.tests.managed.RootInterface";
     }
 
+    inline const std::string getSuffixedSecondRootAddress(const std::string& suffix) {
+        return "local:commonapi.tests.managed.SecondRoot" + suffix + ":commonapi.tests.managed.SecondRoot";
+    }
+
     inline const bool registerRootStubForSuffix(const std::string& suffix) {
         std::shared_ptr<commonapi::tests::managed::RootInterfaceStubDefault> rootStub = std::make_shared<
                         commonapi::tests::managed::RootInterfaceStubDefault>();
@@ -365,7 +371,7 @@ protected:
     template<typename _ProxyType>
     bool waitForAllProxiesToBeAvailable(const std::vector<_ProxyType>& dbusProxies) {
         bool allAreAvailable = false;
-        for (size_t i = 0; i < 200 && !allAreAvailable; i++) {
+        for (size_t i = 0; i < 500 && !allAreAvailable; i++) {
             allAreAvailable = std::all_of(
                     dbusProxies.begin(),
                     dbusProxies.end(),
@@ -560,6 +566,25 @@ TEST_F(DBusManagedTestExtended, RegisterSeveralRootsAndSeveralLeafsForEachOnSame
     //    dbusObjectPathAndInterfacesDict.clear();
     //    getManagedObjects("/", dbusObjectPathAndInterfacesDict);
     //    EXPECT_TRUE(dbusObjectPathAndInterfacesDict.empty());
+}
+
+TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
+    ASSERT_TRUE(registerRootStubForSuffix("One"));
+
+    std::shared_ptr<commonapi::tests::managed::SecondRootStubDefault> secondRootStub = std::make_shared<
+                    commonapi::tests::managed::SecondRootStubDefault>();
+    const std::string rootAddress = getSuffixedRootAddress("Two");
+    runtime_->getServicePublisher()->registerService(secondRootStub, rootAddress, serviceFactory_);
+
+
+    auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
+    auto leafStub2 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
+
+    bool leafStub1Registered = rootStubs_.begin()->second->registerManagedStubLeafInterface(leafStub1, leafInstance);
+    ASSERT_TRUE(leafStub1Registered);
+
+    bool leafStub2Registered = secondRootStub->registerManagedStubLeafInterface(leafStub2, secondLeafInstance);
+    ASSERT_TRUE(leafStub2Registered);
 }
 
 //XXX: Needs tests for invalid instances for the children.

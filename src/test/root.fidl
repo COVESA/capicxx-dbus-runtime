@@ -49,3 +49,6 @@ interface RootInterface manages LeafInterface, BranchInterface {
 
 }
 
+interface SecondRoot manages LeafInterface {
+	version { major 1 minor 0 }
+}

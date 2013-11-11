@@ -207,6 +207,23 @@ namespace DerivedTypeCollection {
             typeOutputStream.endWriteStructType();
         }
     };
+    struct StructWithEnumKeyMap: CommonAPI::SerializableStruct {
+         TestEnumMap testMap;
+    
+        StructWithEnumKeyMap() = default;
+        StructWithEnumKeyMap(const TestEnumMap& testMap);
+    
+    
+        virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
+        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
+    
+        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            typeOutputStream.beginWriteMapType();
+            typeOutputStream.writeInt32Type();
+            typeOutputStream.writeStringType();
+            typeOutputStream.endWriteMapType();
+        }
+    };
 
 bool operator==(const TestStructExtended& lhs, const TestStructExtended& rhs);
 inline bool operator!=(const TestStructExtended& lhs, const TestStructExtended& rhs) {
@@ -321,6 +338,10 @@ inline bool operator!=(const TestExtendedPolymorphicStruct& lhs, const TestExten
 }
 bool operator==(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs);
 inline bool operator!=(const StructWithPolymorphicMember& lhs, const StructWithPolymorphicMember& rhs) {
+    return !(lhs == rhs);
+}
+bool operator==(const StructWithEnumKeyMap& lhs, const StructWithEnumKeyMap& rhs);
+inline bool operator!=(const StructWithEnumKeyMap& lhs, const StructWithEnumKeyMap& rhs) {
     return !(lhs == rhs);
 }
 

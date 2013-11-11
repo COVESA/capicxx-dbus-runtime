@@ -157,6 +157,8 @@ class TestInterfaceStub : public CommonAPI::Stub<TestInterfaceStubAdapter , Test
     virtual void TestMapWithPolymorphicStructKeyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::MapPolymorphicToInt inMap) = 0;
     /// This is the method that will be called on remote calls on the method TestStructWithPolymorphicMemberMethod.
     virtual void TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithPolymorphicMember inStruct) = 0;
+    /// This is the method that will be called on remote calls on the method TestStructWithEnumKeyMapMember.
+    virtual void TestStructWithEnumKeyMapMember(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithEnumKeyMap inStruct) = 0;
     /// Sends a broadcast event for TestPredefinedTypeBroadcast.
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) = 0;
     /**

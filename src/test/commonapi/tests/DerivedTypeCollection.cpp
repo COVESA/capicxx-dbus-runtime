@@ -198,6 +198,29 @@ void StructWithPolymorphicMember::writeToOutputStream(CommonAPI::OutputStream& o
     outputStream << polymorphicMember;
 }
 
+StructWithEnumKeyMap::StructWithEnumKeyMap(const TestEnumMap& testMapValue):
+        testMap(testMapValue)
+{
+}
+
+
+bool operator==(const StructWithEnumKeyMap& lhs, const StructWithEnumKeyMap& rhs) {
+    if (&lhs == &rhs)
+        return true;
+
+    return
+        lhs.testMap == rhs.testMap
+    ;
+}
+
+void StructWithEnumKeyMap::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    inputStream >> testMap;
+}
+
+void StructWithEnumKeyMap::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    outputStream << testMap;
+}
+
 } // namespace DerivedTypeCollection
 } // namespace tests
 } // namespace commonapi

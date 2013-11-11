@@ -238,6 +238,14 @@ void TestInterfaceStubDefault::TestStructWithPolymorphicMemberMethod(DerivedType
     // No operation in default
 }
 
+void TestInterfaceStubDefault::TestStructWithEnumKeyMapMember(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithEnumKeyMap inStruct) {
+    // Call old style methods in default 
+    TestStructWithEnumKeyMapMember(inStruct);
+}
+void TestInterfaceStubDefault::TestStructWithEnumKeyMapMember(DerivedTypeCollection::StructWithEnumKeyMap inStruct) {
+    // No operation in default
+}
+
 
 void TestInterfaceStubDefault::fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue) {
     stubAdapter_->fireTestPredefinedTypeBroadcastEvent(uint32Value, stringValue);

@@ -72,6 +72,9 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual void TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithPolymorphicMember inStruct);
     virtual void TestStructWithPolymorphicMemberMethod(DerivedTypeCollection::StructWithPolymorphicMember inStruct);
 
+    virtual void TestStructWithEnumKeyMapMember(const std::shared_ptr<CommonAPI::ClientId> clientId, DerivedTypeCollection::StructWithEnumKeyMap inStruct);
+    virtual void TestStructWithEnumKeyMapMember(DerivedTypeCollection::StructWithEnumKeyMap inStruct);
+
 
     virtual void fireTestPredefinedTypeBroadcastEvent(const uint32_t& uint32Value, const std::string& stringValue);
     virtual void fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientIdList> receivers = NULL);

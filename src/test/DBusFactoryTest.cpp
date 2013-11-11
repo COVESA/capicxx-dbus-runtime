@@ -117,6 +117,9 @@ TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
                     commonapi::tests::TestInterfaceProxy,
                     myExtensions::AttributeTestExtension>("local:commonapi.tests.TestInterface:commonapi.tests.TestInterface");
     ASSERT_TRUE((bool)defaultTestProxy);
+
+    auto attributeExtension = defaultTestProxy->getTestDerivedArrayAttributeAttributeExtension();
+    ASSERT_TRUE(attributeExtension.testExtensionMethod());
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {

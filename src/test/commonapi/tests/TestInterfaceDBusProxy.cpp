@@ -233,6 +233,25 @@ std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestStructWithPolymor
         inStruct, 
         std::move(callback));
 }
+void TestInterfaceDBusProxy::TestStructWithEnumKeyMapMember(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, CommonAPI::CallStatus& callStatus) {
+    CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::StructWithEnumKeyMap>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
+        *this,
+        "TestStructWithEnumKeyMapMember",
+        "(a{is})",
+        inStruct, 
+        callStatus
+        );
+}
+std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestStructWithEnumKeyMapMemberAsync(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, TestStructWithEnumKeyMapMemberAsyncCallback callback) {
+    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<DerivedTypeCollection::StructWithEnumKeyMap>,
+                                     CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
+        *this,
+        "TestStructWithEnumKeyMapMember",
+        "(a{is})",
+        inStruct, 
+        std::move(callback));
+}
 
 
 

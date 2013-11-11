@@ -280,6 +280,16 @@ TEST_F(PolymorphicTest, SendStructWithPolymorphicMember) {
     ASSERT_TRUE(testStub->firstElementIsExtended_);
 }
 
+TEST_F(PolymorphicTest, SendStructWithMapWithEnumKeyMember) {
+    CommonAPI::CallStatus stat;
+    commonapi::tests::DerivedTypeCollection::StructWithEnumKeyMap inputStruct;
+    inputStruct.testMap.insert( { commonapi::tests::DerivedTypeCollection::TestEnum::E_OK, "test" } );
+
+    proxy_->TestStructWithEnumKeyMapMember(inputStruct, stat);
+
+    ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

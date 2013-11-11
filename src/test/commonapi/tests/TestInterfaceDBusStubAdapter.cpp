@@ -129,6 +129,9 @@ const char* TestInterfaceDBusStubAdapter::getMethodsDBusIntrospectionXmlData() c
         "<method name=\"TestStructWithPolymorphicMemberMethod\">\n"
             "<arg name=\"inStruct\" type=\"(u(uv))\" direction=\"in\" />\n"
         "</method>\n"
+        "<method name=\"TestStructWithEnumKeyMapMember\">\n"
+            "<arg name=\"inStruct\" type=\"(a{is})\" direction=\"in\" />\n"
+        "</method>\n"
         
     ;
     return introspectionData;
@@ -223,6 +226,11 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
     std::tuple<>
     > testStructWithPolymorphicMemberMethodStubDispatcher(&TestInterfaceStub::TestStructWithPolymorphicMemberMethod, "");
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithEnumKeyMap>,
+    std::tuple<>
+    > testStructWithEnumKeyMapMemberStubDispatcher(&TestInterfaceStub::TestStructWithEnumKeyMapMember, "");
 
 void TestInterfaceDBusStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {
     CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
@@ -414,7 +422,8 @@ const TestInterfaceDBusStubAdapter::StubDispatcherTable& TestInterfaceDBusStubAd
             { { "TestArrayOfPolymorphicStructMethod", "a(uv)" }, &commonapi::tests::testArrayOfPolymorphicStructMethodStubDispatcher },
             { { "TestMapOfPolymorphicStructMethod", "a{y(uv)}" }, &commonapi::tests::testMapOfPolymorphicStructMethodStubDispatcher },
             { { "TestMapWithPolymorphicStructKeyMethod", "a{(uv)y}" }, &commonapi::tests::testMapWithPolymorphicStructKeyMethodStubDispatcher },
-            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::testStructWithPolymorphicMemberMethodStubDispatcher }
+            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::testStructWithPolymorphicMemberMethodStubDispatcher },
+            { { "TestStructWithEnumKeyMapMember", "(a{is})" }, &commonapi::tests::testStructWithEnumKeyMapMemberStubDispatcher }
             ,
             { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::subscribeTestSelectiveBroadcastSelectiveStubDispatcher },
             { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },

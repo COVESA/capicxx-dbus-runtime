@@ -7,13 +7,14 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Leaf_Interface_STUB_H_
-#define COMMONAPI_TESTS_MANAGED_Leaf_Interface_STUB_H_
+#ifndef COMMONAPI_TESTS_MANAGED_Second_Root_STUB_H_
+#define COMMONAPI_TESTS_MANAGED_Second_Root_STUB_H_
 
 
 
+#include <commonapi/tests/managed/LeafInterfaceStub.h>
 
-#include "LeafInterface.h"
+#include "SecondRoot.h"
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -30,14 +31,17 @@ namespace managed {
 
 /**
  * Receives messages from remote and handles all dispatching of deserialized calls
- * to a stub for the service LeafInterface. Also provides means to send broadcasts
+ * to a stub for the service SecondRoot. Also provides means to send broadcasts
  * and attribute-changed-notifications of observable attributes as defined by this service.
  * An application developer should not need to bother with this class.
  */
-class LeafInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public LeafInterface {
+class SecondRootStubAdapter: virtual public CommonAPI::StubAdapter, public SecondRoot {
  public:
 
     
+    virtual bool registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub>, const std::string&) = 0;
+    virtual bool deregisterManagedStubLeafInterface(const std::string&) = 0;
+    virtual std::set<std::string>& getLeafInterfaceInstances() = 0;
     
     virtual void deactivateManagedInstances() = 0;
     
@@ -51,7 +55,7 @@ protected:
 
 /**
  * Defines the necessary callbacks to handle remote set events related to the attributes
- * defined in the IDL description for LeafInterface.
+ * defined in the IDL description for SecondRoot.
  * For each attribute two callbacks are defined:
  * - a verification callback that allows to verify the requested value and to prevent setting
  *   e.g. an invalid value ("onRemoteSet<AttributeName>").
@@ -61,31 +65,32 @@ protected:
  * This class and the one below are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class LeafInterfaceStubRemoteEvent {
+class SecondRootStubRemoteEvent {
  public:
-    virtual ~LeafInterfaceStubRemoteEvent() { }
+    virtual ~SecondRootStubRemoteEvent() { }
 
 };
 
 
 /**
  * Defines the interface that must be implemented by any class that should provide
- * the service LeafInterface to remote clients.
+ * the service SecondRoot to remote clients.
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class LeafInterfaceStub : public CommonAPI::Stub<LeafInterfaceStubAdapter , LeafInterfaceStubRemoteEvent> {
+class SecondRootStub : public CommonAPI::Stub<SecondRootStubAdapter , SecondRootStubRemoteEvent> {
  public:
-    virtual ~LeafInterfaceStub() { }
+    virtual ~SecondRootStub() { }
 
 
-    /// This is the method that will be called on remote calls on the method testLeafMethod.
-    virtual void testLeafMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, int32_t inInt, std::string inString, LeafInterface::testLeafMethodError& methodError, int32_t& outInt, std::string& outString) = 0;
     
+    virtual bool registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub>, const std::string&) = 0;
+    virtual bool deregisterManagedStubLeafInterface(const std::string&) = 0;
+    virtual std::set<std::string>& getLeafInterfaceInstances() = 0;
 };
 
 } // namespace managed
 } // namespace tests
 } // namespace commonapi
 
-#endif // COMMONAPI_TESTS_MANAGED_Leaf_Interface_STUB_H_
+#endif // COMMONAPI_TESTS_MANAGED_Second_Root_STUB_H_

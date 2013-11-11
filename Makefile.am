@@ -151,14 +151,17 @@ TestInterfaceDBusSources = \
 
 ManagedSources = \
         src/test/commonapi/tests/managed/LeafInterfaceStubDefault.cpp \
-        src/test/commonapi/tests/managed/RootInterfaceStubDefault.cpp
+        src/test/commonapi/tests/managed/RootInterfaceStubDefault.cpp \
+        src/test/commonapi/tests/managed/SecondRootStubDefault.cpp
 
 ManagedDBusSources = \
         ${ManagedSources} \
         src/test/commonapi/tests/managed/RootInterfaceDBusProxy.cpp \
         src/test/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp \
         src/test/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp \
-        src/test/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp
+        src/test/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/managed/SecondRootDBusProxy.cpp \
+        src/test/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp
 
 
 lib_LTLIBRARIES += libDBusGen-TestInterface.la

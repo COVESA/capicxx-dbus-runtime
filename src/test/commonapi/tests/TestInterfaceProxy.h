@@ -249,6 +249,26 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
     virtual std::future<CommonAPI::CallStatus> TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback);
+    /**
+     * Calls TestStructWithEnumKeyMapMember with synchronous semantics.
+     * 
+    * All const parameters are input parameters to this method.
+     * The CallStatus will be filled when the method returns and indicate either
+     * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
+     * will be set.
+     */
+    virtual void TestStructWithEnumKeyMapMember(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, CommonAPI::CallStatus& callStatus);
+    /**
+     * Calls TestStructWithEnumKeyMapMember with asynchronous semantics.
+     * 
+     * The provided callback will be called when the reply to this call arrives or
+     * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
+     * or which type of error has occurred. In case of any error, ONLY the CallStatus
+     * will have a defined value.
+     * The std::future returned by this method will be fulfilled at arrival of the reply.
+     * It will provide the same value for CallStatus as will be handed to the callback.
+     */
+    virtual std::future<CommonAPI::CallStatus> TestStructWithEnumKeyMapMemberAsync(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, TestStructWithEnumKeyMapMemberAsyncCallback callback);
     
 
     /**
@@ -450,6 +470,15 @@ void TestInterfaceProxy<_AttributeExtensions...>::TestStructWithPolymorphicMembe
 template <typename ... _AttributeExtensions>
 std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestStructWithPolymorphicMemberMethodAsync(const DerivedTypeCollection::StructWithPolymorphicMember& inStruct, TestStructWithPolymorphicMemberMethodAsyncCallback callback) {
     return delegate_->TestStructWithPolymorphicMemberMethodAsync(inStruct, callback);
+}
+template <typename ... _AttributeExtensions>
+void TestInterfaceProxy<_AttributeExtensions...>::TestStructWithEnumKeyMapMember(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestStructWithEnumKeyMapMember(inStruct, callStatus);
+}
+
+template <typename ... _AttributeExtensions>
+std::future<CommonAPI::CallStatus> TestInterfaceProxy<_AttributeExtensions...>::TestStructWithEnumKeyMapMemberAsync(const DerivedTypeCollection::StructWithEnumKeyMap& inStruct, TestStructWithEnumKeyMapMemberAsyncCallback callback) {
+    return delegate_->TestStructWithEnumKeyMapMemberAsync(inStruct, callback);
 }
 
 template <typename ... _AttributeExtensions>
