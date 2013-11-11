@@ -217,7 +217,8 @@ check_PROGRAMS = \
         DBusServicePublisherTest \
         DBusClientIdTest \
         DBusSelectiveBroadcastTest \
-        DBusPolymorphicTest
+        DBusPolymorphicTest \
+        DBusLoadTest
 
 noinst_PROGRAMS = ${check_PROGRAMS}
 TESTS = ${check_PROGRAMS}
@@ -392,6 +393,13 @@ DBusPolymorphicTest_SOURCES =  \
 DBusPolymorphicTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusPolymorphicTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusPolymorphicTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusLoadTest_SOURCES = \
+        src/test/DBusLoadTest.cpp \
+        ${TestInterfaceDBusSources}
+DBusLoadTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusLoadTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusLoadTest_LDADD = ${LDADD_FOR_GTEST}
 
 endif
 
