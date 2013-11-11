@@ -75,10 +75,6 @@ typeCollection DerivedTypeCollection {
 		UInt32 numberValue
 		DerivedTypeCollection.TestPolymorphicStruct polymorphicMember
 	}
-	
-	struct StructWithEnumKeyMap {
-		TestEnumMap testMap
-	}
 }
 
 
