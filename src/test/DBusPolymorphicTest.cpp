@@ -253,21 +253,6 @@ TEST_F(PolymorphicTest, SendMapOfBaseAndExtendedType) {
     ASSERT_TRUE(testStub->secondElementIsExtended_);
 }
 
-// disabled as it leads to a crash in libdbus which does not allow container types as map keys in its signature validation
-TEST_F(PolymorphicTest, DISABLED_SendMapOfBaseAndExtendedTypeAsKey) {
-    CommonAPI::CallStatus stat;
-    std::unordered_map<std::shared_ptr<commonapi::tests::DerivedTypeCollection::TestPolymorphicStruct>, uint8_t> inputMap;
-    inputMap.insert( {baseInstance1_, 5});
-    inputMap.insert( {extendedInstance1_, 10});
-
-    proxy_->TestMapWithPolymorphicStructKeyMethod(inputMap, stat);
-
-    ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
-    ASSERT_EQ(testStub->numberOfContainedElements_, 2);
-    ASSERT_FALSE(testStub->firstElementIsExtended_);
-    ASSERT_TRUE(testStub->secondElementIsExtended_);
-}
-
 TEST_F(PolymorphicTest, SendStructWithPolymorphicMember) {
     CommonAPI::CallStatus stat;
     commonapi::tests::DerivedTypeCollection::StructWithPolymorphicMember inputStruct;
