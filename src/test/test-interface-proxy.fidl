@@ -74,6 +74,12 @@ interface TestInterface {
     		DerivedTypeCollection.StructWithPolymorphicMember inStruct
     	}
     }
+    
+    method TestStructWithEnumKeyMapMember {
+    	in {
+    		DerivedTypeCollection.StructWithEnumKeyMap inStruct
+    	}
+    }
 
 
 	broadcast TestPredefinedTypeBroadcast {
