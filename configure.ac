@@ -1,6 +1,6 @@
 AC_PREREQ([2.61])
 AC_INIT([GENIVI Common API DBus C++ Library],
-        [2.1.3],
+        [2.1.4],
         [],
         [CommonAPI-DBus])
 
@@ -34,7 +34,7 @@ LT_PREREQ(2.2)
 LT_INIT
 
 PKG_PROG_PKG_CONFIG
-PKG_CHECK_MODULES(COMMONAPI, [CommonAPI = 2.1.3])
+PKG_CHECK_MODULES(COMMONAPI, [CommonAPI = 2.1.4])
 PKG_CHECK_MODULES(DBUS, [dbus-1 >= 1.4.6])
 PKG_CHECK_MODULES(GLIB, [glib-2.0],
         [],
