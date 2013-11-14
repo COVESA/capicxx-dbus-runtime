@@ -62,16 +62,16 @@ interface TestInterface {
             DerivedTypeCollection.MapIntToPolymorphic inMap
         }
     }
-
-    method TestMapWithPolymorphicStructKeyMethod {
-        in {
-            DerivedTypeCollection.MapPolymorphicToInt inMap
-        }
-    }
     
     method TestStructWithPolymorphicMemberMethod {
     	in {
     		DerivedTypeCollection.StructWithPolymorphicMember inStruct
+    	}
+    }
+    
+    method TestStructWithEnumKeyMapMember {
+    	in {
+    		DerivedTypeCollection.StructWithEnumKeyMap inStruct
     	}
     }
 

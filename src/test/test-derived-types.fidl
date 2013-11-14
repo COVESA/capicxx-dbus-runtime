@@ -69,12 +69,16 @@ typeCollection DerivedTypeCollection {
 	}
 	
 	map MapIntToPolymorphic { UInt8 to DerivedTypeCollection.TestPolymorphicStruct }
-	map MapPolymorphicToInt { DerivedTypeCollection.TestPolymorphicStruct to UInt8 }
 	
 	struct StructWithPolymorphicMember {
 		UInt32 numberValue
 		DerivedTypeCollection.TestPolymorphicStruct polymorphicMember
 	}
+	   
+    struct StructWithEnumKeyMap {
+        TestEnumMap testMap
+    }
+	
 }
 
 

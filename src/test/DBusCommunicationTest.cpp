@@ -215,6 +215,30 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallHeavyLoad) {
     servicePublisher_->unregisterService(serviceAddress4_);
 }
 
+TEST_F(DBusCommunicationTest, ProxyCanFetchVersionAttributeFromStub) {
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress4_);
+    ASSERT_TRUE((bool)defaultTestProxy);
+
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress4_, stubFactory_);
+
+    ASSERT_TRUE(serviceRegistered);
+
+    for (unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
+
+    CommonAPI::InterfaceVersionAttribute& versionAttribute = defaultTestProxy->getInterfaceVersionAttribute();
+
+    CommonAPI::Version version;
+    CommonAPI::CallStatus status;
+    versionAttribute.getValue(status, version);
+    ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+    ASSERT_TRUE(version.Major > 0 || version.Minor > 0);
+}
+
 
 //XXX This test case requires CommonAPI::DBus::DBusConnection::suspendDispatching and ...::resumeDispatching to be public!
 

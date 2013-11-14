@@ -74,31 +74,6 @@ public:
         }
     }
 
-    void TestMapWithPolymorphicStructKeyMethod(const std::shared_ptr<CommonAPI::ClientId> clientId,
-                                               commonapi::tests::DerivedTypeCollection::MapPolymorphicToInt inMap) {
-        numberOfContainedElements_ = inMap.size();
-
-        auto mapIterator = inMap.begin();
-
-        if (mapIterator != inMap.end()) {
-            std::shared_ptr<commonapi::tests::DerivedTypeCollection::TestExtendedPolymorphicStruct> extended =
-                            std::dynamic_pointer_cast<
-                                            commonapi::tests::DerivedTypeCollection::TestExtendedPolymorphicStruct>(
-                                            mapIterator->first);
-            firstElementIsExtended_ = (extended != NULL);
-            mapIterator++;
-        }
-
-        if (mapIterator != inMap.end()) {
-            std::shared_ptr<commonapi::tests::DerivedTypeCollection::TestExtendedPolymorphicStruct> extended =
-                            std::dynamic_pointer_cast<
-                                            commonapi::tests::DerivedTypeCollection::TestExtendedPolymorphicStruct>(
-                                            mapIterator->first);
-            firstElementIsExtended_ = (extended != NULL);
-        }
-
-    }
-
     void TestStructWithPolymorphicMemberMethod(const std::shared_ptr<CommonAPI::ClientId> clientId,
                                                commonapi::tests::DerivedTypeCollection::StructWithPolymorphicMember inStruct) {
         if (inStruct.polymorphicMember != NULL) {

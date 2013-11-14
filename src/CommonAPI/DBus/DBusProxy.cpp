@@ -44,7 +44,7 @@ DBusProxy::DBusProxy(const std::shared_ptr<DBusFactory>& factory,
                 dbusInterfaceName_(dbusInterfaceName),
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
-                interfaceVersionAttribute_(*this, "getInterfaceVersion", "uu"),
+                interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
                 dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()) {
 }
 
