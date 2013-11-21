@@ -68,6 +68,7 @@ class DBusCommunicationTest: public ::testing::Test {
     static const std::string serviceAddress3_;
     static const std::string serviceAddress4_;
     static const std::string nonstandardAddress_;
+    static const std::string serviceAddress5_;
 };
 
 const std::string DBusCommunicationTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
@@ -75,6 +76,7 @@ const std::string DBusCommunicationTest::serviceAddress2_ = "local:CommonAPI.DBu
 const std::string DBusCommunicationTest::serviceAddress3_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService3";
 const std::string DBusCommunicationTest::serviceAddress4_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService4";
 const std::string DBusCommunicationTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
+const std::string DBusCommunicationTest::serviceAddress5_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService5";
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
@@ -182,6 +184,49 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
 
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
     servicePublisher_->unregisterService(nonstandardAddress_);
+}
+
+
+TEST_F(DBusCommunicationTest, MixedSyncAndAsyncCallsSucceed) {
+    auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress5_);
+    ASSERT_TRUE((bool)defaultTestProxy);
+
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress5_, stubFactory_);
+    for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress5_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+    for (unsigned int i = 0; !defaultTestProxy->isAvailable() && i < 100; ++i) {
+        usleep(10000);
+    }
+    ASSERT_TRUE(defaultTestProxy->isAvailable());
+
+    uint32_t v1 = 5;
+    std::string v2 = "Hai :)";
+    CommonAPI::CallStatus stat;
+    unsigned int responseCounter = 0;
+    for (unsigned int i = 0; i < 10; i++) {
+        defaultTestProxy->testVoidPredefinedTypeMethodAsync(v1, v2, [&responseCounter](const CommonAPI::CallStatus& status) {
+                if(status == CommonAPI::CallStatus::SUCCESS) {
+                    responseCounter++;
+                }
+            }
+        );
+
+        defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
+        EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    }
+
+    for (unsigned int i = 0; i < 500 && responseCounter < 10; i++) {
+        usleep(1000);
+    }
+    EXPECT_EQ(10, responseCounter);
+
+    servicePublisher_->unregisterService(serviceAddress5_);
 }
 
 

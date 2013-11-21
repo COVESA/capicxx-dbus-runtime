@@ -553,6 +553,7 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
     DBusPendingCall* libdbusPendingCall;
     dbus_bool_t libdbusSuccess;
 
+    suspendDispatching();
     libdbusSuccess = dbus_connection_send_with_reply(libdbusConnection_,
                                                      dbusMessage.libdbusMessage_,
                                                      &libdbusPendingCall,
@@ -560,6 +561,7 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
 
     if (!libdbusSuccess || !libdbusPendingCall) {
         dbusMessageReplyAsyncHandler->onDBusMessageReply(CallStatus::CONNECTION_FAILED, dbusMessage.createMethodError(DBUS_ERROR_DISCONNECTED));
+        resumeDispatching();
         return dbusMessageReplyAsyncHandler->getFuture();
     }
 
@@ -572,6 +574,7 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
     if (!libdbusSuccess) {
         dbusMessageReplyAsyncHandler->onDBusMessageReply(CallStatus::OUT_OF_MEMORY, dbusMessage);
         dbus_pending_call_unref(libdbusPendingCall);
+        resumeDispatching();
         return dbusMessageReplyAsyncHandler->getFuture();
     }
 
@@ -590,7 +593,11 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
         enforceTimeoutMutex_.unlock();
     }
 
-    return replyAsyncHandler->getFuture();
+    std::future<CallStatus> result = replyAsyncHandler->getFuture();
+
+    resumeDispatching();
+
+    return result;
 }
 
 
