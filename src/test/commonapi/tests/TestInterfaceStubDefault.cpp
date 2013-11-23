@@ -17,7 +17,7 @@ TestInterfaceStubDefault::TestInterfaceStubDefault():
 }
 
 TestInterfaceStubRemoteEvent* TestInterfaceStubDefault::initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter) {
-    stubAdapter_ = stubAdapter;
+    CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent>::stubAdapter_ = stubAdapter;
     return &remoteEventHandler_;
 }
 

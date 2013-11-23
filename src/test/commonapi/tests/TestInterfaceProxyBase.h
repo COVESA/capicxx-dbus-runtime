@@ -13,6 +13,7 @@
 #include "TestInterface.h"
 
 
+
 #include <commonapi/tests/DerivedTypeCollection.h>
 #include <commonapi/tests/PredefinedTypeCollection.h>
 

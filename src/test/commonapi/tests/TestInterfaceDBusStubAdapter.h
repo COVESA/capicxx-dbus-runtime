@@ -12,6 +12,7 @@
 
 #include <commonapi/tests/TestInterfaceStub.h>
 
+
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
 #endif
@@ -28,9 +29,9 @@ namespace tests {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<TestInterfaceStub> TestInterfaceDBusStubAdapterHelper;
 
-class TestInterfaceDBusStubAdapter: public TestInterfaceStubAdapter, public TestInterfaceDBusStubAdapterHelper {
+class TestInterfaceDBusStubAdapterInternal: public TestInterfaceStubAdapter, public TestInterfaceDBusStubAdapterHelper {
  public:
-    TestInterfaceDBusStubAdapter(
+    TestInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
             const std::string& commonApiAddress,
             const std::string& dbusInterfaceName,
@@ -39,7 +40,7 @@ class TestInterfaceDBusStubAdapter: public TestInterfaceStubAdapter, public Test
             const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
             const std::shared_ptr<CommonAPI::StubBase>& stub);
 
-    ~TestInterfaceDBusStubAdapter();
+    ~TestInterfaceDBusStubAdapterInternal();
 
     void fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value);
     void fireTestDerivedStructAttributeAttributeChanged(const DerivedTypeCollection::TestStructExtended& value);
@@ -58,14 +59,44 @@ class TestInterfaceDBusStubAdapter: public TestInterfaceStubAdapter, public Test
     std::shared_ptr<CommonAPI::ClientIdList> const getSubscribersForTestBroadcastWithOutArgsSelective();
     
 
-    const StubDispatcherTable& getStubDispatcherTable();
+    const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
     
     void deactivateManagedInstances();
+    
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
     
   private:
+    TestInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+};
+
+class TestInterfaceDBusStubAdapter: public TestInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<TestInterfaceDBusStubAdapter> {
+public:
+    TestInterfaceDBusStubAdapter(
+                         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
+                         const std::string& commonApiAddress,
+                         const std::string& dbusInterfaceName,
+                         const std::string& dbusBusName,
+                         const std::string& dbusObjectPath,
+                         const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
+                         const std::shared_ptr<CommonAPI::StubBase>& stub) :
+            CommonAPI::DBus::DBusStubAdapter(
+                            factory,
+                            commonApiAddress,
+                            dbusInterfaceName,
+                            dbusBusName,
+                            dbusObjectPath,
+                            dbusConnection,
+                            false),
+            TestInterfaceDBusStubAdapterInternal(
+                            factory,
+                            commonApiAddress,
+                            dbusInterfaceName,
+                            dbusBusName,
+                            dbusObjectPath,
+                            dbusConnection,
+                            stub) { }
 };
 
 } // namespace tests

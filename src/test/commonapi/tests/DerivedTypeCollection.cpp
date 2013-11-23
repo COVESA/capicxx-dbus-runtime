@@ -169,7 +169,6 @@ void TestExtendedPolymorphicStruct::writeToOutputStream(CommonAPI::OutputStream&
     outputStream << additionalValue;
 }
 
-
 StructWithPolymorphicMember::StructWithPolymorphicMember(const uint32_t& numberValueValue, const std::shared_ptr<TestPolymorphicStruct>& polymorphicMemberValue):
         numberValue(numberValueValue),
         polymorphicMember(polymorphicMemberValue)
@@ -197,7 +196,8 @@ void StructWithPolymorphicMember::writeToOutputStream(CommonAPI::OutputStream& o
     outputStream << polymorphicMember;
 }
 
-StructWithEnumKeyMap::StructWithEnumKeyMap(const TestEnumMap& testMapValue):
+StructWithEnumKeyMap::StructWithEnumKeyMap(const uint32_t& numberValueValue, const TestEnumMap& testMapValue):
+        numberValue(numberValueValue),
         testMap(testMapValue)
 {
 }
@@ -208,15 +208,18 @@ bool operator==(const StructWithEnumKeyMap& lhs, const StructWithEnumKeyMap& rhs
         return true;
 
     return
+        lhs.numberValue == rhs.numberValue &&
         lhs.testMap == rhs.testMap
     ;
 }
 
 void StructWithEnumKeyMap::readFromInputStream(CommonAPI::InputStream& inputStream) {
+    inputStream >> numberValue;
     inputStream >> testMap;
 }
 
 void StructWithEnumKeyMap::writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+    outputStream << numberValue;
     outputStream << testMap;
 }
 

@@ -279,7 +279,7 @@ protected:
 
             ASSERT_TRUE(bool(dbusStubAdapter[i]));
 
-            dbusStubAdapter[i]->init();
+            dbusStubAdapter[i]->init(dbusStubAdapter[i]);
         }
     }
 
@@ -349,7 +349,7 @@ TEST_F(DBusObjectManagerStubTest, RegisterManagerStubAdapterWorks) {
                     serviceFactory,
                     dbusObjectManagerStubPath,
                     stubDBusConnection_);
-    managerDBusStubAdapter->init();
+    managerDBusStubAdapter->init(managerDBusStubAdapter);
 
     ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
 
@@ -385,7 +385,7 @@ TEST_F(DBusObjectManagerStubTest, ManagerStubAdapterExportAndUnexportWorks) {
                     serviceFactory,
                     dbusObjectManagerStubPath,
                     stubDBusConnection_);
-    managerDBusStubAdapter->init();
+    managerDBusStubAdapter->init(managerDBusStubAdapter);
 
     ASSERT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
 
@@ -452,7 +452,7 @@ TEST_F(DBusObjectManagerStubTest, DestructorUnpublishingWorks) {
                     serviceFactory,
                     dbusObjectManagerStubPath,
                     stubDBusConnection_);
-    managerDBusStubAdapter->init();
+    managerDBusStubAdapter->init(managerDBusStubAdapter);
 
     EXPECT_TRUE(CommonAPI::DBus::DBusServicePublisher::getInstance()->registerService(managerDBusStubAdapter));
 

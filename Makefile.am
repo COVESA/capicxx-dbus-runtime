@@ -163,6 +163,10 @@ ManagedDBusSources = \
         src/test/commonapi/tests/managed/SecondRootDBusProxy.cpp \
         src/test/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp
 
+ExtendedInterfaceSources = \
+        src/test/commonapi/tests/ExtendedInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/ExtendedInterfaceStubDefault.cpp
 
 lib_LTLIBRARIES += libDBusGen-TestInterface.la
 libDBusGen_TestInterface_la_SOURCES = \
@@ -308,7 +312,8 @@ DBusMultipleConnectionTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusProxyTest_SOURCES = \
         src/test/DBusProxyTest.cpp \
-        ${TestInterfaceDBusSources}
+        ${TestInterfaceDBusSources} \
+        ${ExtendedInterfaceSources}
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}

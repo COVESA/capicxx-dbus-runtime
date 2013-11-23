@@ -7,11 +7,12 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_STUB_ADAPTER_H_
-#define COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_STUB_ADAPTER_H_
+#ifndef COMMONAPI_TESTS_Extended_Interface_DBUS_STUB_ADAPTER_H_
+#define COMMONAPI_TESTS_Extended_Interface_DBUS_STUB_ADAPTER_H_
 
-#include <commonapi/tests/managed/RootInterfaceStub.h>
+#include <commonapi/tests/ExtendedInterfaceStub.h>
 
+#include <commonapi/tests/TestInterfaceDBusStubAdapter.h>
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -26,13 +27,12 @@
 
 namespace commonapi {
 namespace tests {
-namespace managed {
 
-typedef CommonAPI::DBus::DBusStubAdapterHelper<RootInterfaceStub> RootInterfaceDBusStubAdapterHelper;
+typedef CommonAPI::DBus::DBusStubAdapterHelper<ExtendedInterfaceStub> ExtendedInterfaceDBusStubAdapterHelper;
 
-class RootInterfaceDBusStubAdapterInternal: public RootInterfaceStubAdapter, public RootInterfaceDBusStubAdapterHelper {
+class ExtendedInterfaceDBusStubAdapterInternal: public ExtendedInterfaceStubAdapter, public ExtendedInterfaceDBusStubAdapterHelper, public TestInterfaceDBusStubAdapterInternal {
  public:
-    RootInterfaceDBusStubAdapterInternal(
+    ExtendedInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
             const std::string& commonApiAddress,
             const std::string& dbusInterfaceName,
@@ -41,34 +41,54 @@ class RootInterfaceDBusStubAdapterInternal: public RootInterfaceStubAdapter, pub
             const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
             const std::shared_ptr<CommonAPI::StubBase>& stub);
 
-    ~RootInterfaceDBusStubAdapterInternal();
+    ~ExtendedInterfaceDBusStubAdapterInternal();
 
 
     
-    bool registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub>, const std::string&);
-    bool deregisterManagedStubLeafInterface(const std::string&);
-    std::set<std::string>& getLeafInterfaceInstances();
-    bool registerManagedStubBranchInterface(std::shared_ptr<BranchInterfaceStub>, const std::string&);
-    bool deregisterManagedStubBranchInterface(const std::string&);
-    std::set<std::string>& getBranchInterfaceInstances();
 
-    const RootInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
     
     void deactivateManagedInstances();
     
+    virtual const std::string getAddress() const {
+        return DBusStubAdapter::getAddress();
+    }
+
+    virtual const std::string& getDomain() const {
+        return DBusStubAdapter::getDomain();
+    }
+
+    virtual const std::string& getServiceId() const {
+        return DBusStubAdapter::getServiceId();
+    }
+
+    virtual const std::string& getInstanceId() const {
+        return DBusStubAdapter::getInstanceId();
+    }
+
+    virtual void init(std::shared_ptr<DBusStubAdapter> instance) {
+        return DBusStubAdapter::init(instance);
+    }
+
+
+    virtual void deinit() {
+        return DBusStubAdapter::deinit();
+    }
+
+    virtual bool onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
+        return ExtendedInterfaceDBusStubAdapterHelper::onInterfaceDBusMessage(dbusMessage);
+    }
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
     
   private:
-    std::set<std::string> registeredLeafInterfaceInstances;
-    std::set<std::string> registeredBranchInterfaceInstances;
-    RootInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
 };
 
-class RootInterfaceDBusStubAdapter: public RootInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<RootInterfaceDBusStubAdapter> {
+class ExtendedInterfaceDBusStubAdapter: public ExtendedInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<ExtendedInterfaceDBusStubAdapter> {
 public:
-    RootInterfaceDBusStubAdapter(
+    ExtendedInterfaceDBusStubAdapter(
                          const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
                          const std::string& commonApiAddress,
                          const std::string& dbusInterfaceName,
@@ -83,8 +103,8 @@ public:
                             dbusBusName,
                             dbusObjectPath,
                             dbusConnection,
-                            true),
-            RootInterfaceDBusStubAdapterInternal(
+                            false),
+            ExtendedInterfaceDBusStubAdapterInternal(
                             factory,
                             commonApiAddress,
                             dbusInterfaceName,
@@ -94,8 +114,7 @@ public:
                             stub) { }
 };
 
-} // namespace managed
 } // namespace tests
 } // namespace commonapi
 
-#endif // COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_STUB_ADAPTER_H_
+#endif // COMMONAPI_TESTS_Extended_Interface_DBUS_STUB_ADAPTER_H_

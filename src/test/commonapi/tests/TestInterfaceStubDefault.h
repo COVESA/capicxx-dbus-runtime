@@ -10,6 +10,7 @@
 #ifndef COMMONAPI_TESTS_Test_Interface_STUB_DEFAULT_H_
 #define COMMONAPI_TESTS_Test_Interface_STUB_DEFAULT_H_
 
+
 #include <commonapi/tests/TestInterfaceStub.h>
 #include <sstream>
 
@@ -26,8 +27,8 @@ namespace tests {
  * that would be defined for this service, and/or if you do not need any non-default
  * behaviour.
  */
-class TestInterfaceStubDefault : public TestInterfaceStub {
- public:
+class TestInterfaceStubDefault : public virtual TestInterfaceStub {
+public:
     TestInterfaceStubDefault();
 
     TestInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<TestInterfaceStubAdapter>& stubAdapter);
@@ -88,7 +89,7 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual bool onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(const std::shared_ptr<CommonAPI::ClientId> clientId);
     
 
- protected:
+protected:
     virtual bool trySetTestPredefinedTypeAttributeAttribute(uint32_t value);
     virtual bool validateTestPredefinedTypeAttributeAttributeRequestedValue(const uint32_t& value);
     virtual void onRemoteTestPredefinedTypeAttributeAttributeChanged();
@@ -98,8 +99,7 @@ class TestInterfaceStubDefault : public TestInterfaceStub {
     virtual bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
     virtual bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
     virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
-    std::shared_ptr<TestInterfaceStubAdapter> stubAdapter_;
- private:
+private:
     class RemoteEventHandler: public TestInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(TestInterfaceStubDefault* defaultStub);

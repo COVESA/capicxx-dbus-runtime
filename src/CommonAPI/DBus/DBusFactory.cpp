@@ -185,7 +185,7 @@ std::shared_ptr<DBusStubAdapter> DBusFactory::createDBusStubAdapter(const std::s
         const auto& dbusAdapterFactoryFunction = registeredAdapterFactoryFunctionsIter->second;
 
         dbusStubAdapter = dbusAdapterFactoryFunction(shared_from_this(), commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection_, stubBase);
-        dbusStubAdapter->init();
+        dbusStubAdapter->init(dbusStubAdapter);
     }
 
     return dbusStubAdapter;

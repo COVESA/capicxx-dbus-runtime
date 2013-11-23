@@ -7,13 +7,14 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Branch_Interface_STUB_H_
-#define COMMONAPI_TESTS_MANAGED_Branch_Interface_STUB_H_
+#ifndef COMMONAPI_TESTS_Extended_Interface_STUB_H_
+#define COMMONAPI_TESTS_Extended_Interface_STUB_H_
 
 
 
+#include <commonapi/tests/TestInterfaceStub.h>
 
-#include "BranchInterface.h"
+#include "ExtendedInterface.h"
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -27,15 +28,14 @@
 
 namespace commonapi {
 namespace tests {
-namespace managed {
 
 /**
  * Receives messages from remote and handles all dispatching of deserialized calls
- * to a stub for the service BranchInterface. Also provides means to send broadcasts
+ * to a stub for the service ExtendedInterface. Also provides means to send broadcasts
  * and attribute-changed-notifications of observable attributes as defined by this service.
  * An application developer should not need to bother with this class.
  */
-class BranchInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public BranchInterface {
+class ExtendedInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public ExtendedInterface {
  public:
 
     
@@ -52,7 +52,7 @@ protected:
 
 /**
  * Defines the necessary callbacks to handle remote set events related to the attributes
- * defined in the IDL description for BranchInterface.
+ * defined in the IDL description for ExtendedInterface.
  * For each attribute two callbacks are defined:
  * - a verification callback that allows to verify the requested value and to prevent setting
  *   e.g. an invalid value ("onRemoteSet<AttributeName>").
@@ -62,36 +62,35 @@ protected:
  * This class and the one below are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class BranchInterfaceStubRemoteEvent {
+class ExtendedInterfaceStubRemoteEvent {
  public:
-    virtual ~BranchInterfaceStubRemoteEvent() { }
+    virtual ~ExtendedInterfaceStubRemoteEvent() { }
 
 };
 
 
 /**
  * Defines the interface that must be implemented by any class that should provide
- * the service BranchInterface to remote clients.
+ * the service ExtendedInterface to remote clients.
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class BranchInterfaceStub : public virtual CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent> {
+class ExtendedInterfaceStub : public virtual CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>, public virtual TestInterfaceStub {
 public:
-    virtual ~BranchInterfaceStub() { }
+    virtual ~ExtendedInterfaceStub() { }
 
 
-    /// This is the method that will be called on remote calls on the method testBranchMethod.
-    virtual void testBranchMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, int32_t inInt, std::string inString, BranchInterface::testBranchMethodError& methodError, int32_t& outInt, std::string& outString) = 0;
+    /// This is the method that will be called on remote calls on the method TestIntMethodExtended.
+    virtual void TestIntMethodExtended(const std::shared_ptr<CommonAPI::ClientId> clientId, uint32_t inInt) = 0;
     
     
-    using CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::initStubAdapter;
-    typedef CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
-    typedef CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    using CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::initStubAdapter;
+    typedef CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
+    typedef CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
     
 };
 
-} // namespace managed
 } // namespace tests
 } // namespace commonapi
 
-#endif // COMMONAPI_TESTS_MANAGED_Branch_Interface_STUB_H_
+#endif // COMMONAPI_TESTS_Extended_Interface_STUB_H_

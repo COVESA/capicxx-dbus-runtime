@@ -7,11 +7,12 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Branch_Interface_PROXY_H_
-#define COMMONAPI_TESTS_MANAGED_Branch_Interface_PROXY_H_
+#ifndef COMMONAPI_TESTS_Extended_Interface_PROXY_H_
+#define COMMONAPI_TESTS_Extended_Interface_PROXY_H_
 
-#include "BranchInterfaceProxyBase.h"
+#include "ExtendedInterfaceProxyBase.h"
 
+#include "TestInterfaceProxy.h"
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -22,32 +23,34 @@
 
 namespace commonapi {
 namespace tests {
-namespace managed {
 
 template <typename ... _AttributeExtensions>
-class BranchInterfaceProxy: virtual public BranchInterface, virtual public BranchInterfaceProxyBase
+class ExtendedInterfaceProxy: virtual public ExtendedInterface, virtual public ExtendedInterfaceProxyBase
+, virtual public TestInterfaceProxy<_AttributeExtensions...>
 , public _AttributeExtensions... {
 public:
-    BranchInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate);
-    ~BranchInterfaceProxy();
+    ExtendedInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate);
+    ~ExtendedInterfaceProxy();
     
-    typedef BranchInterface InterfaceType;
+    typedef ExtendedInterface InterfaceType;
     
+    inline static const char* getInterfaceId() {
+        return(ExtendedInterface::getInterfaceId());
+    }
 
 
 
     /**
-     * Calls testBranchMethod with synchronous semantics.
+     * Calls TestIntMethodExtended with synchronous semantics.
      * 
     * All const parameters are input parameters to this method.
-    * All non-const parameters will be filled with the returned values.
      * The CallStatus will be filled when the method returns and indicate either
      * "SUCCESS" or which type of error has occurred. In case of an error, ONLY the CallStatus
      * will be set.
      */
-    virtual void testBranchMethod(const int32_t& inInt, const std::string& inString, CommonAPI::CallStatus& callStatus, BranchInterface::testBranchMethodError& methodError, int32_t& outInt, std::string& outString);
+    virtual void TestIntMethodExtended(const uint32_t& inInt, CommonAPI::CallStatus& callStatus);
     /**
-     * Calls testBranchMethod with asynchronous semantics.
+     * Calls TestIntMethodExtended with asynchronous semantics.
      * 
      * The provided callback will be called when the reply to this call arrives or
      * an error occurs during the call. The CallStatus will indicate either "SUCCESS"
@@ -56,7 +59,7 @@ public:
      * The std::future returned by this method will be fulfilled at arrival of the reply.
      * It will provide the same value for CallStatus as will be handed to the callback.
      */
-    virtual std::future<CommonAPI::CallStatus> testBranchMethodAsync(const int32_t& inInt, const std::string& inString, TestBranchMethodAsyncCallback callback);
+    virtual std::future<CommonAPI::CallStatus> TestIntMethodExtendedAsync(const uint32_t& inInt, TestIntMethodExtendedAsyncCallback callback);
     
 
     /**
@@ -102,78 +105,78 @@ public:
     virtual CommonAPI::InterfaceVersionAttribute& getInterfaceVersionAttribute();
 
  private:
-    std::shared_ptr<BranchInterfaceProxyBase> delegate_;
+    std::shared_ptr<ExtendedInterfaceProxyBase> delegate_;
 };
 
 
 //
-// BranchInterfaceProxy Implementation
+// ExtendedInterfaceProxy Implementation
 //
 template <typename ... _AttributeExtensions>
-BranchInterfaceProxy<_AttributeExtensions...>::BranchInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)))... {
+ExtendedInterfaceProxy<_AttributeExtensions...>::ExtendedInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
+        TestInterfaceProxy<_AttributeExtensions...>(delegate),
+        delegate_(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)),
+        _AttributeExtensions(*(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)))... {
 }
 
 template <typename ... _AttributeExtensions>
-BranchInterfaceProxy<_AttributeExtensions...>::~BranchInterfaceProxy() {
+ExtendedInterfaceProxy<_AttributeExtensions...>::~ExtendedInterfaceProxy() {
 }
 
 template <typename ... _AttributeExtensions>
-void BranchInterfaceProxy<_AttributeExtensions...>::testBranchMethod(const int32_t& inInt, const std::string& inString, CommonAPI::CallStatus& callStatus, BranchInterface::testBranchMethodError& methodError, int32_t& outInt, std::string& outString) {
-    delegate_->testBranchMethod(inInt, inString, callStatus, methodError, outInt, outString);
+void ExtendedInterfaceProxy<_AttributeExtensions...>::TestIntMethodExtended(const uint32_t& inInt, CommonAPI::CallStatus& callStatus) {
+    delegate_->TestIntMethodExtended(inInt, callStatus);
 }
 
 template <typename ... _AttributeExtensions>
-std::future<CommonAPI::CallStatus> BranchInterfaceProxy<_AttributeExtensions...>::testBranchMethodAsync(const int32_t& inInt, const std::string& inString, TestBranchMethodAsyncCallback callback) {
-    return delegate_->testBranchMethodAsync(inInt, inString, callback);
+std::future<CommonAPI::CallStatus> ExtendedInterfaceProxy<_AttributeExtensions...>::TestIntMethodExtendedAsync(const uint32_t& inInt, TestIntMethodExtendedAsyncCallback callback) {
+    return delegate_->TestIntMethodExtendedAsync(inInt, callback);
 }
 
 template <typename ... _AttributeExtensions>
-std::string BranchInterfaceProxy<_AttributeExtensions...>::getAddress() const {
+std::string ExtendedInterfaceProxy<_AttributeExtensions...>::getAddress() const {
     return delegate_->getAddress();
 }
 
 template <typename ... _AttributeExtensions>
-const std::string& BranchInterfaceProxy<_AttributeExtensions...>::getDomain() const {
+const std::string& ExtendedInterfaceProxy<_AttributeExtensions...>::getDomain() const {
     return delegate_->getDomain();
 }
 
 template <typename ... _AttributeExtensions>
-const std::string& BranchInterfaceProxy<_AttributeExtensions...>::getServiceId() const {
+const std::string& ExtendedInterfaceProxy<_AttributeExtensions...>::getServiceId() const {
     return delegate_->getServiceId();
 }
 
 template <typename ... _AttributeExtensions>
-const std::string& BranchInterfaceProxy<_AttributeExtensions...>::getInstanceId() const {
+const std::string& ExtendedInterfaceProxy<_AttributeExtensions...>::getInstanceId() const {
     return delegate_->getInstanceId();
 }
 
 template <typename ... _AttributeExtensions>
-bool BranchInterfaceProxy<_AttributeExtensions...>::isAvailable() const {
+bool ExtendedInterfaceProxy<_AttributeExtensions...>::isAvailable() const {
     return delegate_->isAvailable();
 }
 
 template <typename ... _AttributeExtensions>
-bool BranchInterfaceProxy<_AttributeExtensions...>::isAvailableBlocking() const {
+bool ExtendedInterfaceProxy<_AttributeExtensions...>::isAvailableBlocking() const {
     return delegate_->isAvailableBlocking();
 }
 
 template <typename ... _AttributeExtensions>
-CommonAPI::ProxyStatusEvent& BranchInterfaceProxy<_AttributeExtensions...>::getProxyStatusEvent() {
+CommonAPI::ProxyStatusEvent& ExtendedInterfaceProxy<_AttributeExtensions...>::getProxyStatusEvent() {
     return delegate_->getProxyStatusEvent();
 }
 
 template <typename ... _AttributeExtensions>
-CommonAPI::InterfaceVersionAttribute& BranchInterfaceProxy<_AttributeExtensions...>::getInterfaceVersionAttribute() {
+CommonAPI::InterfaceVersionAttribute& ExtendedInterfaceProxy<_AttributeExtensions...>::getInterfaceVersionAttribute() {
     return delegate_->getInterfaceVersionAttribute();
 }
 
         
 
-} // namespace managed
 } // namespace tests
 } // namespace commonapi
 
 
-#endif // COMMONAPI_TESTS_MANAGED_Branch_Interface_PROXY_H_
+#endif // COMMONAPI_TESTS_Extended_Interface_PROXY_H_

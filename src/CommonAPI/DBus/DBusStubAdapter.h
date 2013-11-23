@@ -39,7 +39,7 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfa
 
     virtual ~DBusStubAdapter();
 
-    virtual void init();
+    virtual void init(std::shared_ptr<DBusStubAdapter> instance);
     virtual void deinit();
 
     virtual const std::string getAddress() const;

@@ -7,12 +7,12 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Second_Root_H_
-#define COMMONAPI_TESTS_MANAGED_Second_Root_H_
+#ifndef COMMONAPI_TESTS_Extended_Interface_H_
+#define COMMONAPI_TESTS_Extended_Interface_H_
 
 
-#include <set>
 
+#include <commonapi/tests/TestInterface.h>
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -24,27 +24,25 @@
 
 namespace commonapi {
 namespace tests {
-namespace managed {
 
-class SecondRoot {
+class ExtendedInterface: public TestInterface {
  public:
-    virtual ~SecondRoot() { }
+    virtual ~ExtendedInterface() { }
 
     static inline const char* getInterfaceId();
     static inline CommonAPI::Version getInterfaceVersion();
 };
 
-const char* SecondRoot::getInterfaceId() {
-    static const char* interfaceId = "commonapi.tests.managed.SecondRoot";
+const char* ExtendedInterface::getInterfaceId() {
+    static const char* interfaceId = "commonapi.tests.ExtendedInterface";
     return interfaceId;
 }
 
-CommonAPI::Version SecondRoot::getInterfaceVersion() {
+CommonAPI::Version ExtendedInterface::getInterfaceVersion() {
     return CommonAPI::Version(1, 0);
 }
 
 
-} // namespace managed
 } // namespace tests
 } // namespace commonapi
 
@@ -59,4 +57,4 @@ namespace std {
     //hashes for error types
 }
 
-#endif // COMMONAPI_TESTS_MANAGED_Second_Root_H_
+#endif // COMMONAPI_TESTS_Extended_Interface_H_

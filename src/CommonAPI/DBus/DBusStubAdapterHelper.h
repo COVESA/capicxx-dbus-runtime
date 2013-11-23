@@ -27,17 +27,24 @@
 namespace CommonAPI {
 namespace DBus {
 
+class StubDispatcherBase {
+public:
+   virtual ~StubDispatcherBase() { }
+};
+
 template <typename _StubClass>
-class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_from_this<typename _StubClass::StubAdapterType> {
+class DBusStubAdapterHelper: public virtual DBusStubAdapter {
  public:
     typedef typename _StubClass::StubAdapterType StubAdapterType;
     typedef typename _StubClass::RemoteEventHandlerType RemoteEventHandlerType;
 
-    class StubDispatcher {
+    class StubDispatcher: public StubDispatcherBase {
      public:
-        virtual ~StubDispatcher() { }
         virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
     };
+    // interfaceMemberName, interfaceMemberSignature
+    typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
+    typedef std::unordered_map<DBusInterfaceMemberPath, StubDispatcherBase*> StubDispatcherTable;
 
  public:
     DBusStubAdapterHelper(const std::shared_ptr<DBusFactory>& factory,
@@ -57,9 +64,10 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         stub_.reset();
     }
 
-    virtual void init() {
-        DBusStubAdapter::init();
-        remoteEventHandler_ = stub_->initStubAdapter(getStubAdapter());
+    virtual void init(std::shared_ptr<DBusStubAdapter> instance) {
+        DBusStubAdapter::init(instance);
+        std::shared_ptr<StubAdapterType> stubAdapter = std::dynamic_pointer_cast<StubAdapterType>(instance);
+        remoteEventHandler_ = stub_->initStubAdapter(stubAdapter);
     }
 
     virtual void deinit() {
@@ -67,8 +75,8 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         stub_.reset();
     }
 
-    inline std::shared_ptr<StubAdapterType> getStubAdapter() {
-        return this->shared_from_this();
+    inline void setRemoteEventHandler(RemoteEventHandlerType* remoteEventHandler) {
+        remoteEventHandler_ = remoteEventHandler;
     }
 
     inline RemoteEventHandlerType* getRemoteEventHandler() {
@@ -76,9 +84,6 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
     }
 
  protected:
-    // interfaceMemberName, interfaceMemberSignature
-    typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
-    typedef std::unordered_map<DBusInterfaceMemberPath, StubDispatcher*> StubDispatcherTable;
 
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) {
         const char* interfaceMemberName = dbusMessage.getMemberName();
@@ -95,7 +100,7 @@ class DBusStubAdapterHelper: public DBusStubAdapter, public std::enable_shared_f
         //To prevent the destruction of the stub whilst still handling a message
         auto stubSafety = stub_;
         if (stubSafety && foundInterfaceMemberHandler) {
-            StubDispatcher* stubDispatcher = findIterator->second;
+            StubDispatcher* stubDispatcher = static_cast<StubDispatcher*>(findIterator->second);
             dbusMessageHandled = stubDispatcher->dispatchDBusMessage(dbusMessage, stubSafety, *this);
         }
 
@@ -323,7 +328,7 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
 
-        (dbusStubAdapterHelper.getStubAdapter().get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
+        (stub->getStubAdapter().get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusReplySignature_);
 
         if (sizeof...(_OutArgs) > 0) {
@@ -476,7 +481,7 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
 
  private:
     inline void fireAttributeValueChanged(std::shared_ptr<CommonAPI::ClientId> clientId, DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
-        (dbusStubAdapterHelper.getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
+        (stub->getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
     }
 
     const FireChangedFunctor fireChangedFunctor_;

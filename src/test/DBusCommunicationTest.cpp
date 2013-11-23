@@ -403,7 +403,7 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
         std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
 
         dbusStubAdapter = std::make_shared<commonapi::tests::TestInterfaceDBusStubAdapter>(dummy, commonApiAddress, interfaceName, connectionName, objectPath, dbusConnection, stub);
-        dbusStubAdapter->init();
+        dbusStubAdapter->init(dbusStubAdapter);
 
         std::shared_ptr<CommonAPI::DBus::DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
 

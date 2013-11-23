@@ -207,16 +207,18 @@ namespace DerivedTypeCollection {
         }
     };
     struct StructWithEnumKeyMap: CommonAPI::SerializableStruct {
+         uint32_t numberValue;
          TestEnumMap testMap;
     
         StructWithEnumKeyMap() = default;
-        StructWithEnumKeyMap(const TestEnumMap& testMap);
+        StructWithEnumKeyMap(const uint32_t& numberValue, const TestEnumMap& testMap);
     
     
         virtual void readFromInputStream(CommonAPI::InputStream& inputStream);
         virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const;
     
         static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            typeOutputStream.writeUInt32Type();
             typeOutputStream.beginWriteMapType();
             typeOutputStream.writeInt32Type();
             typeOutputStream.writeStringType();

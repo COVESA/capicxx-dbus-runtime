@@ -12,6 +12,7 @@
 
 #include "TestInterfaceProxyBase.h"
 
+
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
 #define COMMONAPI_INTERNAL_COMPILATION
 #endif
@@ -25,10 +26,14 @@ namespace commonapi {
 namespace tests {
 
 template <typename ... _AttributeExtensions>
-class TestInterfaceProxy: virtual public TestInterface, virtual public TestInterfaceProxyBase, public _AttributeExtensions... {
- public:
+class TestInterfaceProxy: virtual public TestInterface, virtual public TestInterfaceProxyBase
+, public _AttributeExtensions... {
+public:
     TestInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate);
     ~TestInterfaceProxy();
+    
+    typedef TestInterface InterfaceType;
+    
 
     /**
      * Returns the wrapper class that provides access to the attribute TestPredefinedTypeAttribute.

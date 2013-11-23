@@ -47,7 +47,7 @@ DBusStubAdapter::~DBusStubAdapter() {
     deinit();
 }
 
-void DBusStubAdapter::init() {
+void DBusStubAdapter::init(std::shared_ptr<DBusStubAdapter> instance) {
 }
 
 void DBusStubAdapter::deinit() {

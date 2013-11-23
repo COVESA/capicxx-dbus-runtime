@@ -7,11 +7,12 @@
 * If a copy of the MPL was not distributed with this file, You can obtain one at
 * http://mozilla.org/MPL/2.0/.
 */
-#ifndef COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_PROXY_H_
-#define COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_PROXY_H_
+#ifndef COMMONAPI_TESTS_Extended_Interface_DBUS_PROXY_H_
+#define COMMONAPI_TESTS_Extended_Interface_DBUS_PROXY_H_
 
-#include <commonapi/tests/managed/RootInterfaceProxyBase.h>
+#include <commonapi/tests/ExtendedInterfaceProxyBase.h>
 
+#include <commonapi/tests/TestInterfaceDBusProxy.h>
 
 
 #if !defined (COMMONAPI_INTERNAL_COMPILATION)
@@ -20,7 +21,6 @@
 
 #include <CommonAPI/DBus/DBusFactory.h>
 #include <CommonAPI/DBus/DBusProxy.h>
-#include <CommonAPI/DBus/DBusProxyManager.h>
 
 #undef COMMONAPI_INTERNAL_COMPILATION
 
@@ -28,11 +28,10 @@
 
 namespace commonapi {
 namespace tests {
-namespace managed {
 
-class RootInterfaceDBusProxy: virtual public RootInterfaceProxyBase, virtual public CommonAPI::DBus::DBusProxy {
+class ExtendedInterfaceDBusProxy: virtual public ExtendedInterfaceProxyBase, virtual public TestInterfaceDBusProxy {
  public:
-    RootInterfaceDBusProxy(
+    ExtendedInterfaceDBusProxy(
                     const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
                     const std::string& commonApiAddress,
                     const std::string& interfaceName,
@@ -40,29 +39,24 @@ class RootInterfaceDBusProxy: virtual public RootInterfaceProxyBase, virtual pub
                     const std::string& objectPath,
                     const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection);
 
-    virtual ~RootInterfaceDBusProxy() { }
+    virtual ~ExtendedInterfaceDBusProxy() { }
 
 
 
-    virtual void testRootMethod(const int32_t& inInt, const std::string& inString, CommonAPI::CallStatus& callStatus, RootInterface::testRootMethodError& methodError, int32_t& outInt, std::string& outString);
-    virtual std::future<CommonAPI::CallStatus> testRootMethodAsync(const int32_t& inInt, const std::string& inString, TestRootMethodAsyncCallback callback);
+    virtual void TestIntMethodExtended(const uint32_t& inInt, CommonAPI::CallStatus& callStatus);
+    virtual std::future<CommonAPI::CallStatus> TestIntMethodExtendedAsync(const uint32_t& inInt, TestIntMethodExtendedAsyncCallback callback);
     
-    virtual CommonAPI::ProxyManager& getProxyManagerLeafInterface();
-    virtual CommonAPI::ProxyManager& getProxyManagerBranchInterface();
 
     virtual void getOwnVersion(uint16_t& ownVersionMajor, uint16_t& ownVersionMinor) const;
 
  private:
 
     
-    CommonAPI::DBus::DBusProxyManager proxyManagerLeafInterface_;
-    CommonAPI::DBus::DBusProxyManager proxyManagerBranchInterface_;
 };
 
 
 
-} // namespace managed
 } // namespace tests
 } // namespace commonapi
 
-#endif // COMMONAPI_TESTS_MANAGED_Root_Interface_DBUS_PROXY_H_
+#endif // COMMONAPI_TESTS_Extended_Interface_DBUS_PROXY_H_

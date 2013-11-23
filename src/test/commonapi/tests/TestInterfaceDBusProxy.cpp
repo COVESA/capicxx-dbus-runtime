@@ -219,7 +219,7 @@ void TestInterfaceDBusProxy::TestStructWithEnumKeyMapMember(const DerivedTypeCol
                                      CommonAPI::DBus::DBusSerializableArguments<> >::callMethodWithReply(
         *this,
         "TestStructWithEnumKeyMapMember",
-        "(a{is})",
+        "(ua{is})",
         inStruct, 
         callStatus
         );
@@ -229,7 +229,7 @@ std::future<CommonAPI::CallStatus> TestInterfaceDBusProxy::TestStructWithEnumKey
                                      CommonAPI::DBus::DBusSerializableArguments<> >::callMethodAsync(
         *this,
         "TestStructWithEnumKeyMapMember",
-        "(a{is})",
+        "(ua{is})",
         inStruct, 
         std::move(callback));
 }

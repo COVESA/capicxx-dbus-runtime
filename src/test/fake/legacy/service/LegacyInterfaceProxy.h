@@ -29,6 +29,8 @@ class LegacyInterfaceProxy: virtual public LegacyInterface, virtual public Legac
     LegacyInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate);
     ~LegacyInterfaceProxy();
 
+    typedef typename fake::legacy::service::LegacyInterface InterfaceType;
+
 
 
     /**
