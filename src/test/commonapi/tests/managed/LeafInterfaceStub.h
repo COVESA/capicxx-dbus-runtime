@@ -78,16 +78,15 @@ class LeafInterfaceStubRemoteEvent {
 class LeafInterfaceStub : public virtual CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent> {
 public:
     virtual ~LeafInterfaceStub() { }
+    virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
 
 
     /// This is the method that will be called on remote calls on the method testLeafMethod.
     virtual void testLeafMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, int32_t inInt, std::string inString, LeafInterface::testLeafMethodError& methodError, int32_t& outInt, std::string& outString) = 0;
     
-    
     using CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
-    
 };
 
 } // namespace managed

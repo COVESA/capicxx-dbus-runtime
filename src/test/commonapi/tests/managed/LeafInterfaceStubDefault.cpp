@@ -14,7 +14,12 @@ namespace tests {
 namespace managed {
 
 LeafInterfaceStubDefault::LeafInterfaceStubDefault():
-        remoteEventHandler_(this) {
+        remoteEventHandler_(this),
+        interfaceVersion_(LeafInterface::getInterfaceVersion()) {
+}
+
+const CommonAPI::Version& LeafInterfaceStubDefault::getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) {
+    return interfaceVersion_;
 }
 
 LeafInterfaceStubRemoteEvent* LeafInterfaceStubDefault::initStubAdapter(const std::shared_ptr<LeafInterfaceStubAdapter>& stubAdapter) {

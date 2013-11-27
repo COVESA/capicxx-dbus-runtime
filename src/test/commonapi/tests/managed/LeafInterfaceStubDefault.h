@@ -33,6 +33,8 @@ public:
     LeafInterfaceStubDefault();
 
     LeafInterfaceStubRemoteEvent* initStubAdapter(const std::shared_ptr<LeafInterfaceStubAdapter>& stubAdapter);
+    
+    const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId);
 
 
     virtual void testLeafMethod(const std::shared_ptr<CommonAPI::ClientId> clientId, int32_t inInt, std::string inString, LeafInterface::testLeafMethodError& methodError, int32_t& outInt, std::string& outString);
@@ -54,6 +56,8 @@ private:
 
     RemoteEventHandler remoteEventHandler_;
 
+
+    CommonAPI::Version interfaceVersion_;
 };
 
 } // namespace managed

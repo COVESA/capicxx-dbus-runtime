@@ -54,3 +54,4 @@
 /DBusClientIdTest
 /DBusSelectiveBroadcastTest
 /DBusManagedTest
+/DBusPolymorphicTest

@@ -94,3 +94,12 @@ interface TestInterface {
 	}
 }
 
+interface ExtendedInterface extends TestInterface {
+    version { major 1 minor 0 }
+
+    method TestIntMethodExtended {
+        in {
+            UInt32 inInt
+        }
+    } 
+}

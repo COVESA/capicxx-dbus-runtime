@@ -75,10 +75,6 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         stub_.reset();
     }
 
-    inline void setRemoteEventHandler(RemoteEventHandlerType* remoteEventHandler) {
-        remoteEventHandler_ = remoteEventHandler;
-    }
-
     inline RemoteEventHandlerType* getRemoteEventHandler() {
         return remoteEventHandler_;
     }
