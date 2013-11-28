@@ -64,8 +64,7 @@ class DBusProxyConnection {
 
     typedef Event<AvailabilityStatus> ConnectionStatusEvent;
 
-    virtual ~DBusProxyConnection() {
-    }
+    virtual ~DBusProxyConnection() { }
 
     virtual bool isConnected() const = 0;
 
@@ -101,10 +100,13 @@ class DBusProxyConnection {
                                                                   DBusSignalHandler* dbusSignalHandler,
                                                                   DBusProxy* callingProxy) = 0;
 
-    virtual void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+    virtual void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                                   DBusProxyConnection::DBusSignalHandlerToken subscription,
-                                                  DBusProxy* callingProxy) = 0;
-    virtual bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) = 0;
+                                                  DBusProxy* callingProxy,
+                                                  const DBusSignalHandler* dbusSignalHandler) = 0;
+
+    virtual bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken,
+                                           const DBusSignalHandler* dbusSignalHandler = NULL) = 0;
 
     virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
                                                      DBusSignalHandler* dbusSignalHandler) = 0;

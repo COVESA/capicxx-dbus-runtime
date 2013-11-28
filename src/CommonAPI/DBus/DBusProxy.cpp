@@ -139,9 +139,10 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroa
                     this);
 }
 
-void DBusProxy::unsubsribeFromSelectiveBroadcast(const std::string& eventName,
-                                                 DBusProxyConnection::DBusSignalHandlerToken subscription) {
-    getDBusConnection()->unsubsribeFromSelectiveBroadcast(eventName, subscription, this);
+void DBusProxy::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
+                                                 DBusProxyConnection::DBusSignalHandlerToken subscription,
+                                                 const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+    getDBusConnection()->unsubscribeFromSelectiveBroadcast(eventName, subscription, this, dbusSignalHandler);
 }
 
 } // namespace DBus

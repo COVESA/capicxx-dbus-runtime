@@ -85,7 +85,10 @@ public:
 
 protected:
     virtual void onLastListenerRemoved(const CancellableListener&) {
-        associatedDbusProxy_.unsubsribeFromSelectiveBroadcast(DBusEventBase::eventName_, DBusEventBase::subscription_);
+        associatedDbusProxy_.unsubscribeFromSelectiveBroadcast(
+                        DBusEventBase::eventName_,
+                        DBusEventBase::subscription_,
+                        this);
     }
 
 private:

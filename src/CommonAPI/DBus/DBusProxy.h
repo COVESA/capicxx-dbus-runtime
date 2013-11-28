@@ -70,8 +70,9 @@ class DBusProxy: public DBusProxyBase {
               const std::string& interfaceMemberName,
               const std::string& interfaceMemberSignature,
               DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
-    void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
-                                          DBusProxyConnection::DBusSignalHandlerToken subscription);
+    void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
+                                           DBusProxyConnection::DBusSignalHandlerToken subscription,
+                                           const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
 
     void init();
  private:

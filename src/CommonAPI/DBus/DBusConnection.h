@@ -112,14 +112,16 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
                                                                                DBusSignalHandler* dbusSignalHandler,
                                                                                DBusProxy* callingProxy);
 
-    void unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+    void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                           DBusProxyConnection::DBusSignalHandlerToken subscription,
-                                          DBusProxy* callingProxy);
+                                          DBusProxy* callingProxy,
+                                          const DBusSignalHandler* dbusSignalHandler);
 
     void registerObjectPath(const std::string& objectPath);
     void unregisterObjectPath(const std::string& objectPath);
 
-    bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken);
+    bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken,
+                                   const DBusSignalHandler* dbusSignalHandler = NULL);
     bool readWriteDispatch(int timeoutMilliseconds = -1);
 
     virtual const std::shared_ptr<DBusServiceRegistry> getDBusServiceRegistry();

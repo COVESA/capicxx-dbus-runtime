@@ -668,10 +668,11 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::subscribeForSelectiv
     return (subscriptionToken);
 }
 
-void DBusConnection::unsubsribeFromSelectiveBroadcast(const std::string& eventName,
+void DBusConnection::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                                       DBusProxyConnection::DBusSignalHandlerToken subscription,
-                                                      DBusProxy* callingProxy) {
-    bool lastListenerOnConnectionRemoved = removeSignalMemberHandler(subscription);
+                                                      DBusProxy* callingProxy,
+                                                      const DBusSignalHandler* dbusSignalHandler) {
+    bool lastListenerOnConnectionRemoved = removeSignalMemberHandler(subscription, dbusSignalHandler);
 
     if (lastListenerOnConnectionRemoved) {
         // send unsubscribe message to stub
@@ -706,17 +707,19 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
     return dbusSignalHandlerPath;
 }
 
-bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken) {
+bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken,
+                                               const DBusSignalHandler* dbusSignalHandler) {
     bool lastHandlerRemoved = false;
 
     std::lock_guard<std::mutex> dbusSignalLock(signalGuard_);
     auto equalRangeIteratorPair = dbusSignalHandlerTable_.equal_range(dbusSignalHandlerToken);
     if (equalRangeIteratorPair.first != equalRangeIteratorPair.second) {
         // advance to the next element
-        equalRangeIteratorPair.first++;
+        auto iteratorToNextElement = equalRangeIteratorPair.first;
+        iteratorToNextElement++;
 
         // check if the first element was the only element
-        const bool isLastSignalMemberHandler = equalRangeIteratorPair.first == equalRangeIteratorPair.second;
+        const bool isLastSignalMemberHandler = iteratorToNextElement == equalRangeIteratorPair.second;
 
         if (isLastSignalMemberHandler) {
             const std::string& objectPath = std::get<0>(dbusSignalHandlerToken);
@@ -727,7 +730,20 @@ bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken& dbu
             lastHandlerRemoved = true;
         }
 
-        dbusSignalHandlerTable_.erase(equalRangeIteratorPair.first, equalRangeIteratorPair.first);
+        if(dbusSignalHandler == NULL) {
+            // remove all handlers
+            dbusSignalHandlerTable_.erase(dbusSignalHandlerToken);
+        } else {
+            // just remove specific handler
+            while(equalRangeIteratorPair.first != equalRangeIteratorPair.second) {
+                if(equalRangeIteratorPair.first->second == dbusSignalHandler) {
+                    equalRangeIteratorPair.first = dbusSignalHandlerTable_.erase(equalRangeIteratorPair.first);
+                }
+                else {
+                    equalRangeIteratorPair.first++;
+                }
+            }
+        }
     }
 
     return lastHandlerRemoved;
