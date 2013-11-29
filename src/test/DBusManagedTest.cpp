@@ -679,10 +679,6 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
     runtime_->getServicePublisher()->unregisterService(branchAddress);
 }
 
-//XXX: Needs tests for invalid instances for the children.
-//XXX: Also later on need auto generated instance ID test and
-//XXX: If stub cannot manage, ensure the objectManager interface does not appear on dbus
-//XXX: Tests if configuration file is present
 #ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

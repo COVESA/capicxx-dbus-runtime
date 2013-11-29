@@ -106,8 +106,6 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
     virtual SubscriptionStatus onSignalDBusMessage(const DBusMessage&);
 
-//    std::vector<std::string> getManagedObjects(const std::string& connectionName, const std::string& objectpath);
-
  private:
     struct DBusInterfaceNameListenersRecord {
         DBusInterfaceNameListenersRecord(): state(DBusRecordState::UNKNOWN) {
@@ -127,7 +125,6 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
     struct DBusServiceListenersRecord {
         DBusServiceListenersRecord(): uniqueBusNameState(DBusRecordState::UNKNOWN),
-                        //futureOnResolve(),
                         mutexOnResolve() {
         }
 
@@ -138,14 +135,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
             futureOnResolve(std::move(other.futureOnResolve)),
             mutexOnResolve(std::move(other.mutexOnResolve)),
             dbusObjectPathListenersMap(std::move(other.dbusObjectPathListenersMap))
-        {
-            /*other.uniqueBusName = NULL;
-            other.promiseOnResolve = NULL;
-            other.futureOnResolve = NULL;
-            other.mutexOnResolve = NULL;
-            other.dbusObjectPathListenersMap = NULL;
-            other.dbusServiceListenersMap = NULL;*/
-        }
+        {}
 
         ~DBusServiceListenersRecord() {};
 
@@ -157,13 +147,6 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         std::unique_lock<std::mutex>* mutexOnResolve;
 
         std::unordered_map<std::string, DBusInterfaceNameListenersMap> dbusObjectPathListenersMap;
-
-        /* per manager records: anser commonapi queries and update after dbus GetManagedObjects */
-//        typedef std::unordered_set<std::string> DBusObjectPathsSet;
-//        typedef std::pair<DBusObjectPathsSet, DBusManagedInterfaceListenerList> DBusManagedInterfaceRecord;
-//        typedef std::unordered_map<std::string, DBusManagedInterfaceRecord> DBusManagedInterfacesMap;
-//        typedef std::pair<DBusRecordState, DBusManagedInterfacesMap> DBusObjectManagerRecord;
-//        std::unordered_map<std::string, DBusObjectManagerRecord> dbusObjectManagersMap;
     };
 
     std::unordered_map<std::string, DBusServiceListenersRecord> dbusServiceListenersMap;
@@ -201,17 +184,12 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
             objectPathsState(other.objectPathsState),
             ownedBusNames(std::move(other.ownedBusNames)),
             dbusObjectPathsCache(std::move(other.dbusObjectPathsCache))
-        {
-            /*other.uniqueName = NULL;
-            other.ownedBusNames = NULL;
-            other.dbusObjectPathsCache = NULL;*/
-        }
+        {}
+
         std::string uniqueName;
         DBusRecordState objectPathsState;
         std::unordered_set<std::string> ownedBusNames;
         std::unordered_map<std::string, DBusObjectPathCache> dbusObjectPathsCache;
-
-        // TODO managed objects
     };
 
     std::unordered_map<std::string, DBusUniqueNameRecord> dbusUniqueNamesMap_;
