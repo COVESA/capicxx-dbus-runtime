@@ -67,7 +67,7 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
     virtual void init(std::shared_ptr<DBusStubAdapter> instance) {
         DBusStubAdapter::init(instance);
         std::shared_ptr<StubAdapterType> stubAdapter = std::dynamic_pointer_cast<StubAdapterType>(instance);
-        remoteEventHandler_ = stub_->initStubAdapter(stubAdapter);
+        remoteEventHandler_ = stub_.lock()->initStubAdapter(stubAdapter);
     }
 
     virtual void deinit() {
@@ -94,7 +94,7 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         bool dbusMessageHandled = false;
 
         //To prevent the destruction of the stub whilst still handling a message
-        auto stubSafety = stub_;
+        auto stubSafety = stub_.lock();
         if (stubSafety && foundInterfaceMemberHandler) {
             StubDispatcher* stubDispatcher = static_cast<StubDispatcher*>(findIterator->second);
             dbusMessageHandled = stubDispatcher->dispatchDBusMessage(dbusMessage, stubSafety, *this);
@@ -105,7 +105,7 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
 
     virtual const StubDispatcherTable& getStubDispatcherTable() = 0;
 
-    std::shared_ptr<_StubClass> stub_;
+    std::weak_ptr<_StubClass> stub_;
     RemoteEventHandlerType* remoteEventHandler_;
 };
 

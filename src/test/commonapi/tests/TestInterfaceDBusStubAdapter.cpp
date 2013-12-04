@@ -34,7 +34,6 @@ __attribute__((constructor)) void registerTestInterfaceDBusStubAdapter(void) {
 TestInterfaceDBusStubAdapterInternal::~TestInterfaceDBusStubAdapterInternal() {
     deactivateManagedInstances();
     TestInterfaceDBusStubAdapterHelper::deinit();
-    TestInterfaceDBusStubAdapterHelper::stub_.reset();
 }
 
 void TestInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
@@ -302,10 +301,11 @@ void TestInterfaceDBusStubAdapterInternal::sendTestSelectiveBroadcastSelective(c
 }
 
 void TestInterfaceDBusStubAdapterInternal::subscribeForTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) {
-    bool ok = stub_->onTestSelectiveBroadcastSelectiveSubscriptionRequested(clientId);
+    auto stub = stub_.lock();
+    bool ok = stub->onTestSelectiveBroadcastSelectiveSubscriptionRequested(clientId);
     if (ok) {
         subscribersForTestSelectiveBroadcastSelective_->insert(clientId);
-        stub_->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
+        stub->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
         success = true;
     } else {
         success = false;
@@ -315,7 +315,8 @@ void TestInterfaceDBusStubAdapterInternal::subscribeForTestSelectiveBroadcastSel
 
 void TestInterfaceDBusStubAdapterInternal::unsubscribeFromTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
     subscribersForTestSelectiveBroadcastSelective_->erase(clientId);
-    stub_->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
+    auto stub = stub_.lock();
+    stub->onTestSelectiveBroadcastSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
 }
 
 std::shared_ptr<CommonAPI::ClientIdList> const TestInterfaceDBusStubAdapterInternal::getSubscribersForTestSelectiveBroadcastSelective() {
@@ -370,10 +371,11 @@ void TestInterfaceDBusStubAdapterInternal::sendTestBroadcastWithOutArgsSelective
 }
 
 void TestInterfaceDBusStubAdapterInternal::subscribeForTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, bool& success) {
-    bool ok = stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(clientId);
+    auto stub = stub_.lock();
+    bool ok = stub->onTestBroadcastWithOutArgsSelectiveSubscriptionRequested(clientId);
     if (ok) {
         subscribersForTestBroadcastWithOutArgsSelective_->insert(clientId);
-        stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
+        stub->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::SUBSCRIBED);
         success = true;
     } else {
         success = false;
@@ -383,7 +385,8 @@ void TestInterfaceDBusStubAdapterInternal::subscribeForTestBroadcastWithOutArgsS
 
 void TestInterfaceDBusStubAdapterInternal::unsubscribeFromTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
     subscribersForTestBroadcastWithOutArgsSelective_->erase(clientId);
-    stub_->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
+    auto stub = stub_.lock();
+    stub->onTestBroadcastWithOutArgsSelectiveSubscriptionChanged(clientId, CommonAPI::SelectiveBroadcastSubscriptionEvent::UNSUBSCRIBED);
 }
 
 std::shared_ptr<CommonAPI::ClientIdList> const TestInterfaceDBusStubAdapterInternal::getSubscribersForTestBroadcastWithOutArgsSelective() {

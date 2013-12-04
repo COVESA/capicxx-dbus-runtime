@@ -87,7 +87,7 @@ protected:
         bool isTestStubAdapterRegistered_ = runtime_->getServicePublisher()->registerService<commonapi::tests::TestInterfaceStub>(stubDefault_, commonApiAddress, serviceFactory_);
         ASSERT_TRUE(isTestStubAdapterRegistered_);
 
-        usleep(500000);
+        usleep(100000);
     }
 
     void registerExtendedStub() {
@@ -96,7 +96,7 @@ protected:
         bool isExtendedStubAdapterRegistered_ = runtime_->getServicePublisher()->registerService<commonapi::tests::ExtendedInterfaceStub>(stubExtended_, commonApiAddressExtended, serviceFactory_);
         ASSERT_TRUE(isExtendedStubAdapterRegistered_);
 
-        usleep(500000);
+        usleep(100000);
     }
 
     void deregisterTestStub() {
@@ -306,7 +306,7 @@ TEST_F(ProxyTest, CallMethodFromExtendedInterface) {
     auto extendedProxy = serviceFactory_->buildProxy<commonapi::tests::ExtendedInterfaceProxy>(commonApiAddressExtended);
 
     // give the proxy time to become available
-    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 500; ++i) {
+    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
         usleep(20 * 1000);
     }
 
@@ -320,7 +320,7 @@ TEST_F(ProxyTest, CallMethodFromExtendedInterface) {
                         ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
                         wasCalled = true;
                     });
-    usleep(500000);
+    usleep(100000);
 
     EXPECT_TRUE(wasCalled);
     deregisterExtendedStub();
@@ -331,7 +331,7 @@ TEST_F(ProxyTest, CallMethodFromParentInterface) {
 
     auto extendedProxy = serviceFactory_->buildProxy<commonapi::tests::ExtendedInterfaceProxy>(commonApiAddressExtended);
 
-    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 500; ++i) {
+    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
         usleep(20 * 1000);
     }
     EXPECT_TRUE(extendedProxy->isAvailable());
@@ -342,7 +342,7 @@ TEST_F(ProxyTest, CallMethodFromParentInterface) {
                         ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
                         wasCalled = true;
                     });
-    usleep(500000);
+    usleep(100000);
     EXPECT_TRUE(wasCalled);
 
     deregisterExtendedStub();
@@ -353,7 +353,7 @@ TEST_F(ProxyTest, ProxyCanFetchVersionAttributeFromInheritedInterfaceStub) {
 
     auto extendedProxy = serviceFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(commonApiAddressExtended);
 
-    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 800; ++i) {
+    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
         usleep(20 * 1000);
     }
     EXPECT_TRUE(extendedProxy->isAvailable());

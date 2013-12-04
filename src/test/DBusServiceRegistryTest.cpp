@@ -641,9 +641,6 @@ TEST_F(DBusServiceDiscoveryTestWithPredefinedRemote, DISABLED_ServiceRegistryUse
 
     double speedRatio = durationWithColdCache / durationWithHotCache;
 
-    std::cout << "cold " << durationWithColdCache << "\n";
-    std::cout << "hot " << durationWithHotCache << "\n";
-
     EXPECT_GE(speedRatio, 100);
 }
 

@@ -35,7 +35,6 @@ __attribute__((constructor)) void registerRootInterfaceDBusStubAdapter(void) {
 RootInterfaceDBusStubAdapterInternal::~RootInterfaceDBusStubAdapterInternal() {
     deactivateManagedInstances();
     RootInterfaceDBusStubAdapterHelper::deinit();
-    RootInterfaceDBusStubAdapterHelper::stub_.reset();
 }
 
 void RootInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {

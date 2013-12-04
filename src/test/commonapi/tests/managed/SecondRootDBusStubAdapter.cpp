@@ -35,7 +35,6 @@ __attribute__((constructor)) void registerSecondRootDBusStubAdapter(void) {
 SecondRootDBusStubAdapterInternal::~SecondRootDBusStubAdapterInternal() {
     deactivateManagedInstances();
     SecondRootDBusStubAdapterHelper::deinit();
-    SecondRootDBusStubAdapterHelper::stub_.reset();
 }
 
 void SecondRootDBusStubAdapterInternal::deactivateManagedInstances() {

@@ -318,7 +318,6 @@ void noPartnerCallback(DBusPendingCall*, void* data) {
 }
 
 void noPartnerCleanup(void* data) {
-    std::cout << "Cleanup" << std::endl;
     promise3.set_value(true);
 }
 

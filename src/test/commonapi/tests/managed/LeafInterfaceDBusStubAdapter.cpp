@@ -35,7 +35,6 @@ __attribute__((constructor)) void registerLeafInterfaceDBusStubAdapter(void) {
 LeafInterfaceDBusStubAdapterInternal::~LeafInterfaceDBusStubAdapterInternal() {
     deactivateManagedInstances();
     LeafInterfaceDBusStubAdapterHelper::deinit();
-    LeafInterfaceDBusStubAdapterHelper::stub_.reset();
 }
 
 void LeafInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {

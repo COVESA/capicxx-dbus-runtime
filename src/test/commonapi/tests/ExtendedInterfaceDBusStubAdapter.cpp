@@ -34,7 +34,6 @@ __attribute__((constructor)) void registerExtendedInterfaceDBusStubAdapter(void)
 ExtendedInterfaceDBusStubAdapterInternal::~ExtendedInterfaceDBusStubAdapterInternal() {
     deactivateManagedInstances();
     ExtendedInterfaceDBusStubAdapterHelper::deinit();
-    ExtendedInterfaceDBusStubAdapterHelper::stub_.reset();
 }
 
 void ExtendedInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {

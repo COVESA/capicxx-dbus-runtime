@@ -35,7 +35,6 @@ __attribute__((constructor)) void registerBranchInterfaceDBusStubAdapter(void) {
 BranchInterfaceDBusStubAdapterInternal::~BranchInterfaceDBusStubAdapterInternal() {
     deactivateManagedInstances();
     BranchInterfaceDBusStubAdapterHelper::deinit();
-    BranchInterfaceDBusStubAdapterHelper::stub_.reset();
 }
 
 void BranchInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
