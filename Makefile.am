@@ -151,6 +151,7 @@ TestInterfaceDBusSources = \
 
 ManagedSources = \
         src/test/commonapi/tests/managed/LeafInterfaceStubDefault.cpp \
+        src/test/commonapi/tests/managed/BranchInterfaceStubDefault.cpp \
         src/test/commonapi/tests/managed/RootInterfaceStubDefault.cpp \
         src/test/commonapi/tests/managed/SecondRootStubDefault.cpp
 
@@ -160,6 +161,8 @@ ManagedDBusSources = \
         src/test/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp \
         src/test/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp \
         src/test/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/managed/BranchInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/managed/BranchInterfaceDBusStubAdapter.cpp \
         src/test/commonapi/tests/managed/SecondRootDBusProxy.cpp \
         src/test/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp
 

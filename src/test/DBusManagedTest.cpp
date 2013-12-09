@@ -23,6 +23,7 @@
 
 #include "commonapi/tests/managed/RootInterfaceStubDefault.h"
 #include "commonapi/tests/managed/LeafInterfaceStubDefault.h"
+#include "commonapi/tests/managed/BranchInterfaceStubDefault.h"
 
 #include "commonapi/tests/managed/RootInterfaceProxy.h"
 #include "commonapi/tests/managed/RootInterfaceDBusProxy.h"
@@ -37,8 +38,10 @@
 static const std::string rootAddress =
                 "local:commonapi.tests.managed.RootInterface:commonapi.tests.managed.RootInterface";
 static const std::string leafInstance = "commonapi.tests.managed.RootInterface.LeafInterface";
+static const std::string branchInstance = "commonapi.tests.managed.RootInterface.BranchInterface";
 static const std::string secondLeafInstance = "commonapi.tests.managed.RootInterface.LeafInterface2";
 static const std::string leafAddress = "local:commonapi.tests.managed.LeafInterface:" + leafInstance;
+static const std::string branchAddress = "local:commonapi.tests.managed.BranchInterface:" + branchInstance;
 
 static const std::string dbusServiceName = "CommonAPI.DBus.DBusObjectManagerStubTest";
 
@@ -323,6 +326,8 @@ protected:
         runtime_ = std::dynamic_pointer_cast<CommonAPI::DBus::DBusRuntime>(CommonAPI::Runtime::load());
         serviceFactory_ = runtime_->createFactory();
         clientFactory_ = runtime_->createFactory();
+        leafInstanceAvailability = CommonAPI::AvailabilityStatus::UNKNOWN;
+        branchInstanceAvailability = CommonAPI::AvailabilityStatus::UNKNOWN;
 
         manualTestDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
         ASSERT_TRUE(manualTestDBusConnection_->connect());
@@ -424,6 +429,7 @@ protected:
         }
     }
 
+
     std::shared_ptr<CommonAPI::DBus::DBusRuntime> runtime_;
     std::shared_ptr<CommonAPI::Factory> serviceFactory_;
     std::shared_ptr<CommonAPI::Factory> clientFactory_;
@@ -433,6 +439,19 @@ protected:
     std::unordered_map<std::string, std::shared_ptr<commonapi::tests::managed::RootInterfaceStubDefault>> rootStubs_;
     std::vector<std::shared_ptr<commonapi::tests::managed::RootInterfaceProxy<>>> rootProxies_;
     std::vector<std::vector<std::shared_ptr<commonapi::tests::managed::LeafInterfaceProxy<>>>> leafProxies_;
+
+    CommonAPI::AvailabilityStatus leafInstanceAvailability;
+    CommonAPI::AvailabilityStatus branchInstanceAvailability;
+
+public:
+    void onLeafInstanceAvailabilityStatusChanged(const std::string instanceName, CommonAPI::AvailabilityStatus availabilityStatus) {
+        leafInstanceAvailability = availabilityStatus;
+    }
+
+    void onBranchInstanceAvailabilityStatusChanged(const std::string instanceName, CommonAPI::AvailabilityStatus availabilityStatus) {
+        branchInstanceAvailability = availabilityStatus;
+    }
+
 };
 
 
@@ -444,7 +463,6 @@ TEST_F(DBusManagedTestExtended, RegisterSeveralRootsOnSameObjectPath) {
     auto dbusObjectPathAndInterfacesDict = getManagedObjects("/", manualTestDBusConnection_);
     EXPECT_FALSE(dbusObjectPathAndInterfacesDict.empty());
 }
-
 
 TEST_F(DBusManagedTestExtended, RegisterSeveralRootsOnSameObjectPathAndCommunicate) {
     ASSERT_TRUE(registerRootStubForSuffix("One"));
@@ -585,6 +603,63 @@ TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
 
     bool leafStub2Registered = secondRootStub->registerManagedStubLeafInterface(leafStub2, secondLeafInstance);
     ASSERT_TRUE(leafStub2Registered);
+
+    runtime_->getServicePublisher()->unregisterService(rootAddress);
+}
+
+TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootManaged) {
+    ASSERT_TRUE(registerRootStubForSuffix("One"));
+
+    createRootProxyForSuffix("One");
+    auto rootProxy = *(rootProxies_.begin());
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
+
+    leafInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+    branchInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+
+    auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
+    auto leafStub2 = std::make_shared<commonapi::tests::managed::BranchInterfaceStubDefault>();
+
+    bool leafStub1Registered = rootStubs_.begin()->second->registerManagedStubLeafInterface(leafStub1, leafInstance);
+    ASSERT_TRUE(leafStub1Registered);
+    usleep(50000);
+
+    ASSERT_EQ(CommonAPI::AvailabilityStatus::AVAILABLE, leafInstanceAvailability);
+
+    // check that event for branch instances is not triggered by leaf instances
+    ASSERT_NE(CommonAPI::AvailabilityStatus::AVAILABLE, branchInstanceAvailability);
+
+
+    bool leafStub2Registered = rootStubs_.begin()->second->registerManagedStubBranchInterface(leafStub2, branchInstance);
+    ASSERT_TRUE(leafStub2Registered);
+    usleep(50000);
+
+    ASSERT_EQ(CommonAPI::AvailabilityStatus::AVAILABLE, branchInstanceAvailability);
+}
+
+TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnmanaged) {
+    ASSERT_TRUE(registerRootStubForSuffix("One"));
+
+    createRootProxyForSuffix("One");
+    auto rootProxy = *(rootProxies_.begin());
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
+
+    leafInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+    branchInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+
+    auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
+    runtime_->getServicePublisher()->registerService(leafStub1, leafAddress, serviceFactory_);
+
+    auto leafStub2 = std::make_shared<commonapi::tests::managed::BranchInterfaceStubDefault>();
+    runtime_->getServicePublisher()->registerService(leafStub2, branchAddress, serviceFactory_);
+
+    usleep(50000);
+
+    // check, that events do not get triggered by unmanaged registration
+    ASSERT_EQ(CommonAPI::AvailabilityStatus::UNKNOWN, leafInstanceAvailability);
+    ASSERT_EQ(CommonAPI::AvailabilityStatus::UNKNOWN, branchInstanceAvailability);
 }
 
 //XXX: Needs tests for invalid instances for the children.
