@@ -93,7 +93,8 @@ TEST_F(DBusProxyFactoryTest, CreatesDefaultTestProxy) {
     auto defaultTestProxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>("local:commonapi.tests.TestInterface:commonapi.tests.TestInterface");
     ASSERT_TRUE((bool)defaultTestProxy);
 }
-#ifndef WIN32
+
+
 TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();
     ASSERT_TRUE((bool)proxyFactory);
@@ -116,7 +117,6 @@ TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
     auto attributeExtension = specificAttributeExtendedTestProxy->getTestDerivedArrayAttributeAttributeExtension();
     ASSERT_TRUE(attributeExtension.testExtensionMethod());
 }
-#endif // !WIN32
 
 TEST_F(DBusProxyFactoryTest, HandlesRegistrationOfStubAdapters) {
     std::shared_ptr<CommonAPI::Factory> proxyFactory = runtime_->createFactory();

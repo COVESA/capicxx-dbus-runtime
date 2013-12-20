@@ -181,6 +181,12 @@ class TestInterfaceProxy: virtual public TestInterface, virtual public TestInter
     std::shared_ptr<TestInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef TestInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> TestInterfaceProxyDefault;
+#else
+    typedef TestInterfaceProxy<> TestInterfaceProxyDefault;
+#endif
+
 namespace TestInterfaceExtensions {
     template <template <typename > class _ExtensionType>
     class TestPredefinedTypeAttributeAttributeExtension {
@@ -253,9 +259,7 @@ namespace TestInterfaceExtensions {
 template <typename ... _AttributeExtensions>
 TestInterfaceProxy<_AttributeExtensions...>::TestInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
         delegate_(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate))
-#ifndef WIN32
         , _AttributeExtensions(*(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate)))...
-#endif
 { }
 
 template <typename ... _AttributeExtensions>

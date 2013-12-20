@@ -27,7 +27,7 @@
 const std::string serviceAddress = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
 
 class DBusMultipleConnectionTest: public ::testing::Test {
- protected:
+protected:
     virtual void SetUp() {
         proxyFactory = CommonAPI::Runtime::load()->createFactory();
         stubFactory = CommonAPI::Runtime::load()->createFactory();
@@ -37,7 +37,7 @@ class DBusMultipleConnectionTest: public ::testing::Test {
         stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
         bool serviceNameAcquired = stubFactory->registerService(stub, serviceAddress);
 
-        for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
+        for (unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
             usleep(10000);
             serviceNameAcquired = stubFactory->registerService(stub, serviceAddress);
         }
@@ -46,23 +46,21 @@ class DBusMultipleConnectionTest: public ::testing::Test {
         proxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress);
         ASSERT_TRUE((bool)proxy);
 
-        for(unsigned int i = 0; !proxy->isAvailable() && i < 100; ++i) {
+        for (unsigned int i = 0; !proxy->isAvailable() && i < 100; ++i) {
             usleep(10000);
         }
     }
 
     virtual void TearDown() {
-    	stubFactory->unregisterService(serviceAddress);
-    	usleep(30000);
+        stubFactory->unregisterService(serviceAddress);
+        usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory;
     std::shared_ptr<CommonAPI::Factory> stubFactory;
     std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub;
-    std::shared_ptr<commonapi::tests::TestInterfaceProxy<> > proxy;
-
+    std::shared_ptr<commonapi::tests::TestInterfaceProxyDefault> proxy;
 };
-
 
 TEST_F(DBusMultipleConnectionTest, RemoteMethodCall) {
     uint32_t v1 = 5;
