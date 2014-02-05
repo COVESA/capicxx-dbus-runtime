@@ -20,7 +20,6 @@
 #include <map>
 #ifdef WIN32
 #include <WinSock2.h>
-#include <CommonAPI/pollStructures.h>
 #include "DemoPoll.h"
 #else
 #include <poll.h>
@@ -37,7 +36,7 @@ namespace CommonAPI {
 #ifdef WIN32
 	typedef ::DemoPollFd DemoMainLoopPollFd;
 #else
-    typedef COMMONAPI_POLLFD DemoMainLoopPollFd;
+    typedef pollfd DemoMainLoopPollFd;
 #endif
 
 class MainLoop {

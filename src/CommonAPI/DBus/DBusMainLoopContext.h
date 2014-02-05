@@ -46,7 +46,7 @@ class DBusWatch: public Watch {
 
     void dispatch(unsigned int eventFlags);
 
-	const COMMONAPI_POLLFD& getAssociatedFileDescriptor();
+	const pollfd& getAssociatedFileDescriptor();
 
     const std::vector<DispatchSource*>& getDependentDispatchSources();
     void addDependentDispatchSource(DispatchSource* dispatchSource);
@@ -55,7 +55,7 @@ class DBusWatch: public Watch {
     bool isReady();
 
     ::DBusWatch* libdbusWatch_;
-	COMMONAPI_POLLFD pollFileDescriptor_;
+	pollfd pollFileDescriptor_;
     std::vector<DispatchSource*> dependentDispatchSources_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;

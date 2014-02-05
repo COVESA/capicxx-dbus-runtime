@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef WIN32 && ENABLE_DEMO_MAINLOOP
 #include <gtest/gtest.h>
 
 #include <cassert>
@@ -615,4 +616,6 @@ int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif
+
 #endif
