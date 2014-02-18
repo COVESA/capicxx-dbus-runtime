@@ -140,10 +140,10 @@ struct TestDBusObjectManagerSignalHandler: public CommonAPI::DBus::DBusConnectio
 private:
     TestDBusObjectManagerSignalHandler(const std::string& dbusObjectPath,
                                        const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
-                    dbusObjectPath_(dbusObjectPath),
-                    dbusConnection_(dbusConnection),
                     totalAddedCount(0),
-                    totalRemovedCount(0) {
+                    totalRemovedCount(0),
+                    dbusObjectPath_(dbusObjectPath),
+                    dbusConnection_(dbusConnection) {
     }
 
     void init() {

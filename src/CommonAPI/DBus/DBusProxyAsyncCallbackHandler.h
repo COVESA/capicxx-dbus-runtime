@@ -28,31 +28,31 @@ namespace DBus {
 template <typename ... _ArgTypes>
 class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
-	typedef std::function<void(CallStatus, _ArgTypes...)> FunctionType;
+    typedef std::function<void(CallStatus, _ArgTypes...)> FunctionType;
 
-	static inline std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(FunctionType&& callback) {
-		return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
-				new DBusProxyAsyncCallbackHandler(std::move(callback)));
-	}
+    static inline std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(FunctionType&& callback) {
+        return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
+                new DBusProxyAsyncCallbackHandler(std::move(callback)));
+    }
 
-	DBusProxyAsyncCallbackHandler() = delete;
-	DBusProxyAsyncCallbackHandler(FunctionType&& callback):
-		callback_(std::move(callback)) {
-	}
+    DBusProxyAsyncCallbackHandler() = delete;
+    DBusProxyAsyncCallbackHandler(FunctionType&& callback):
+        callback_(std::move(callback)) {
+    }
 
-	virtual std::future<CallStatus> getFuture() {
-		return promise_.get_future();
-	}
+    virtual std::future<CallStatus> getFuture() {
+        return promise_.get_future();
+    }
 
-	virtual void onDBusMessageReply(const CallStatus& dbusMessageCallStatus, const DBusMessage& dbusMessage) {
-		promise_.set_value(handleDBusMessageReply(dbusMessageCallStatus, dbusMessage, typename make_sequence<sizeof...(_ArgTypes)>::type()));
-	}
+    virtual void onDBusMessageReply(const CallStatus& dbusMessageCallStatus, const DBusMessage& dbusMessage) {
+        std::tuple<_ArgTypes...> argTuple;
+        promise_.set_value(handleDBusMessageReply(dbusMessageCallStatus, dbusMessage, typename make_sequence<sizeof...(_ArgTypes)>::type(), argTuple));
+    }
 
  private:
-	template <int... _ArgIndices>
-	inline CallStatus handleDBusMessageReply(const CallStatus dbusMessageCallStatus, const DBusMessage& dbusMessage, index_sequence<_ArgIndices...>) const {
-		CallStatus callStatus = dbusMessageCallStatus;
-		std::tuple<_ArgTypes...> argTuple;
+    template <int... _ArgIndices>
+    inline CallStatus handleDBusMessageReply(const CallStatus dbusMessageCallStatus, const DBusMessage& dbusMessage, index_sequence<_ArgIndices...>, std::tuple<_ArgTypes...> argTuple) const {
+        CallStatus callStatus = dbusMessageCallStatus;
 
         if (dbusMessageCallStatus == CallStatus::SUCCESS) {
             if (!dbusMessage.isErrorType()) {
@@ -65,12 +65,12 @@ class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageRepl
             }
         }
 
-		callback_(callStatus, std::move(std::get<_ArgIndices>(argTuple))...);
-		return callStatus;
-	}
+        callback_(callStatus, std::move(std::get<_ArgIndices>(argTuple))...);
+        return callStatus;
+    }
 
-	std::promise<CallStatus> promise_;
-	const FunctionType callback_;
+    std::promise<CallStatus> promise_;
+    const FunctionType callback_;
 };
 
 } // namespace DBus

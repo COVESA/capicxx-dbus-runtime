@@ -144,7 +144,7 @@ protected:
 };
 
 TEST_F(AddressTranslatorTest, InstanceCanBeRetrieved) {
-    CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
+    CommonAPI::DBus::DBusAddressTranslator::getInstance();
 }
 
 TEST_F(AddressTranslatorTest, ParsesDBusAddresses) {

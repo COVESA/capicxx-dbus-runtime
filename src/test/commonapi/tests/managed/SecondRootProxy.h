@@ -97,8 +97,8 @@ public:
 //
 template <typename ... _AttributeExtensions>
 SecondRootProxy<_AttributeExtensions...>::SecondRootProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<SecondRootProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<SecondRootProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<SecondRootProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<SecondRootProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

@@ -18,8 +18,8 @@ DBusProxyManager::DBusProxyManager(DBusProxy& dbusProxy,
                 dbusProxy_(dbusProxy),
                 dbusInstanceAvailabilityStatusEvent_(dbusProxy, interfaceId),
                 factory_(factory),
-                interfaceId_(interfaceId),
-                registry_(dbusProxy.getDBusConnection()->getDBusServiceRegistry())
+                registry_(dbusProxy.getDBusConnection()->getDBusServiceRegistry()),
+                interfaceId_(interfaceId)
 
 { }
 

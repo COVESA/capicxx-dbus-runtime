@@ -17,13 +17,13 @@ inline char eliminateZeroes(char val) {
 }
 
 inline void printLibdbusMessageBody(char* data, uint32_t fromByteIndex, uint32_t toByteIndex) {
-	for(int i = fromByteIndex; i < toByteIndex; i++) {
-		std::cout << eliminateZeroes(data[i]);
-		if(i%8 == 7) {
-			std::cout << std::endl;
-		}
-	}
-	std::cout << std::endl;
+    for (unsigned int i = fromByteIndex; i < toByteIndex; i++) {
+        std::cout << eliminateZeroes(data[i]);
+        if (i % 8 == 7) {
+            std::cout << std::endl;
+        }
+    }
+    std::cout << std::endl;
 }
 
 inline void printLibdbusMessage(DBusMessage* libdbusMessage, uint32_t fromByteIndex, uint32_t toByteIndex) {
@@ -53,6 +53,7 @@ inline std::string toString(CommonAPI::DBus::DBusServiceRegistry::DBusRecordStat
         case CommonAPI::DBus::DBusServiceRegistry::DBusRecordState::UNKNOWN:
             return "UNKNOWN";
     }
+    return "";
 }
 
 inline std::string toString(CommonAPI::AvailabilityStatus state) {
@@ -64,6 +65,7 @@ inline std::string toString(CommonAPI::AvailabilityStatus state) {
         case CommonAPI::AvailabilityStatus::UNKNOWN:
             return "UNKNOWN";
     }
+    return "";
 }
 
 inline std::string toString(CommonAPI::CallStatus state) {
@@ -79,5 +81,6 @@ inline std::string toString(CommonAPI::CallStatus state) {
         case CommonAPI::CallStatus::SUCCESS:
             return "SUCCESS";
     }
+    return "";
 }
 #endif //__DBUS_TEST_UTILS__

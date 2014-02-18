@@ -168,7 +168,6 @@ TEST_F(DBusDynamicLoadingPartiallyInvalidConfigTest, CreatedProxiesAndServicesCa
 
     servicePublisher->registerService(myStub, testServiceAddress, serviceFactory);
 
-    uint32_t i = 0;
     for (uint32_t i = 0; i < 300 && !defaultTestProxy->isAvailable(); ++i) {
         usleep(1000);
     }

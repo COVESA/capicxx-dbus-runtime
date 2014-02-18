@@ -382,8 +382,8 @@ namespace TestInterfaceExtensions {
 //
 template <typename ... _AttributeExtensions>
 TestInterfaceProxy<_AttributeExtensions...>::TestInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<TestInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

@@ -129,9 +129,7 @@ bool RootInterfaceDBusStubAdapterInternal::registerManagedStubLeafInterface(std:
                     registeredLeafInterfaceInstances.insert(instance);
                     return true;
                 } else {
-                    const bool isManagedDeregistrationSuccessful =
-                        CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(
-                                        commonApiAddress);
+                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
                 }
             }
         }
@@ -183,9 +181,7 @@ bool RootInterfaceDBusStubAdapterInternal::registerManagedStubBranchInterface(st
                     registeredBranchInterfaceInstances.insert(instance);
                     return true;
                 } else {
-                    const bool isManagedDeregistrationSuccessful =
-                        CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(
-                                        commonApiAddress);
+                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
                 }
             }
         }

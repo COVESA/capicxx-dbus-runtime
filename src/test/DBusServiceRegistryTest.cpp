@@ -90,10 +90,10 @@ struct TestDBusServiceListener {
 
     TestDBusServiceListener(const std::string& commonApiAddress,
                             const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection):
-                                commonApiAddress_(commonApiAddress),
-                                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()),
+                                availabilityStatusCount(0),
                                 isSubscribed(false),
-                                availabilityStatusCount(0) {
+                                commonApiAddress_(commonApiAddress),
+                                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()) {
     }
 
     ~TestDBusServiceListener() {

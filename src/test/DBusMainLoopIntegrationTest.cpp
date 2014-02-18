@@ -263,7 +263,6 @@ TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanCommunicate) {
 
     uint32_t uint32Value = 42;
     std::string stringValue = "Hai :)";
-    bool running = true;
 
     std::future<CommonAPI::CallStatus> futureStatus = proxy->testVoidPredefinedTypeMethodAsync(
                     uint32Value,
@@ -440,7 +439,7 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
         for (auto dependentSourceIterator = dependentSources.begin();
                 dependentSourceIterator != dependentSources.end();
                 dependentSourceIterator++) {
-            GSource* gDispatchSource = g_source_new(&standardGLibSourceCallbackFuncs, sizeof(GDispatchWrapper));
+            g_source_new(&standardGLibSourceCallbackFuncs, sizeof(GDispatchWrapper));
             GSource* gSource = gSourceMappings.find(*dependentSourceIterator)->second;
             g_source_destroy(gSource);
             g_source_unref(gSource);

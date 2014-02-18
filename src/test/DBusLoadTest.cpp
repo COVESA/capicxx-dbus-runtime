@@ -114,7 +114,7 @@ const uint32_t DBusLoadTest::numProxies_ = 100;
 TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
     std::array<std::shared_ptr<commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
 
-    for (auto i = 0; i < numProxies_; i++) {
+    for (unsigned int i = 0; i < numProxies_; i++) {
         testProxies[i] = proxyFactory_->buildProxy < commonapi::tests::TestInterfaceProxy > (serviceAddress_);
         ASSERT_TRUE((bool )testProxies[i]);
     }
@@ -128,9 +128,9 @@ TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
     ASSERT_TRUE(serviceRegistered);
 
     bool allProxiesAvailable = false;
-    for (auto i = 0; !allProxiesAvailable && i < 100; ++i) {
+    for (unsigned int i = 0; !allProxiesAvailable && i < 100; ++i) {
         allProxiesAvailable = true;
-        for (auto j = 0; j < numProxies_; ++j) {
+        for (unsigned int j = 0; j < numProxies_; ++j) {
             allProxiesAvailable = allProxiesAvailable && testProxies[j]->isAvailable();
         }
         if (!allProxiesAvailable)
@@ -139,8 +139,8 @@ TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
     ASSERT_TRUE(allProxiesAvailable);
 
     uint32_t callId = 0;
-    for (auto i = 0; i < numCallsPerProxy_; i++) {
-        for (auto j = 0; j < numProxies_; j++) {
+    for (unsigned int i = 0; i < numCallsPerProxy_; i++) {
+        for (unsigned int j = 0; j < numProxies_; j++) {
             uint32_t in1 = i;
             std::string in2 = "string" + std::to_string(i) + "_" + std::to_string(j);
             testProxies[j]->testPredefinedTypeMethodAsync(
@@ -159,7 +159,7 @@ TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
     }
 
     bool allCallsSucceeded = false;
-    for (auto i = 0; !allCallsSucceeded && i < 100; ++i) {
+    for (unsigned int i = 0; !allCallsSucceeded && i < 100; ++i) {
         allCallsSucceeded = std::all_of(callSucceeded_.cbegin(), callSucceeded_.cend(), [](int b){ return b; });
         if (!allCallsSucceeded)
             usleep(100000);
@@ -174,7 +174,7 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     std::array<std::shared_ptr<CommonAPI::Factory>, numProxies_> testProxyFactories;
     std::array<std::shared_ptr<commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
 
-    for (auto i = 0; i < numProxies_; i++) {
+    for (unsigned int i = 0; i < numProxies_; i++) {
         testProxyFactories[i] = runtime_->createFactory();
         ASSERT_TRUE((bool )testProxyFactories[i]);
         testProxies[i] = testProxyFactories[i]->buildProxy < commonapi::tests::TestInterfaceProxy > (serviceAddress_);
@@ -191,9 +191,9 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     ASSERT_TRUE(serviceRegistered);
 
     bool allProxiesAvailable = false;
-    for (auto i = 0; !allProxiesAvailable && i < 100; ++i) {
+    for (unsigned int i = 0; !allProxiesAvailable && i < 100; ++i) {
         allProxiesAvailable = true;
-        for (auto j = 0; j < numProxies_; ++j) {
+        for (unsigned int j = 0; j < numProxies_; ++j) {
             allProxiesAvailable = allProxiesAvailable && testProxies[j]->isAvailable();
         }
         if (!allProxiesAvailable)
@@ -202,8 +202,8 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     ASSERT_TRUE(allProxiesAvailable);
 
     uint32_t callId = 0;
-    for (auto i = 0; i < numCallsPerProxy_; i++) {
-        for (auto j = 0; j < numProxies_; j++) {
+    for (unsigned int i = 0; i < numCallsPerProxy_; i++) {
+        for (unsigned int j = 0; j < numProxies_; j++) {
             uint32_t in1 = i;
             std::string in2 = "string" + std::to_string(i) + "_" + std::to_string(j);
             testProxies[j]->testPredefinedTypeMethodAsync(
@@ -222,7 +222,7 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     }
 
     bool allCallsSucceeded = false;
-    for (auto i = 0; !allCallsSucceeded && i < 100; ++i) {
+    for (unsigned int i = 0; !allCallsSucceeded && i < 100; ++i) {
         allCallsSucceeded = std::all_of(callSucceeded_.cbegin(), callSucceeded_.cend(), [](int b){ return b; });
         if (!allCallsSucceeded)
             usleep(100000);
@@ -239,14 +239,14 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     std::array<std::shared_ptr<commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
     std::array<std::shared_ptr<commonapi::tests::TestInterfaceStub>, numProxies_> testStubs;
 
-    for (auto i = 0; i < numProxies_; i++) {
+    for (unsigned int i = 0; i < numProxies_; i++) {
         testProxyFactories[i] = runtime_->createFactory();
         ASSERT_TRUE((bool )testProxyFactories[i]);
         testProxies[i] = testProxyFactories[i]->buildProxy < commonapi::tests::TestInterfaceProxy > (serviceAddress_+std::to_string(i));
         ASSERT_TRUE((bool )testProxies[i]);
     }
 
-    for (auto i = 0; i < numProxies_; i++) {
+    for (unsigned int i = 0; i < numProxies_; i++) {
         testStubFactories[i] = runtime_->createFactory();
         ASSERT_TRUE((bool )testStubFactories[i]);
         testStubs[i] = std::make_shared<TestInterfaceStubFinal>();
@@ -261,9 +261,9 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     }
 
     bool allProxiesAvailable = false;
-    for (auto i = 0; !allProxiesAvailable && i < 100; ++i) {
+    for (unsigned int i = 0; !allProxiesAvailable && i < 100; ++i) {
         allProxiesAvailable = true;
-        for (auto j = 0; j < numProxies_; ++j) {
+        for (unsigned int j = 0; j < numProxies_; ++j) {
             allProxiesAvailable = allProxiesAvailable && testProxies[j]->isAvailable();
         }
         if (!allProxiesAvailable)
@@ -272,8 +272,8 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     ASSERT_TRUE(allProxiesAvailable);
 
     uint32_t callId = 0;
-    for (auto i = 0; i < numCallsPerProxy_; i++) {
-        for (auto j = 0; j < numProxies_; j++) {
+    for (unsigned int i = 0; i < numCallsPerProxy_; i++) {
+        for (unsigned int j = 0; j < numProxies_; j++) {
             uint32_t in1 = i;
             std::string in2 = "string" + std::to_string(i) + "_" + std::to_string(j);
             testProxies[j]->testPredefinedTypeMethodAsync(
@@ -299,7 +299,7 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     }
     ASSERT_TRUE(allCallsSucceeded);
 
-    for (auto i = 0; i < numProxies_; i++) {
+    for (unsigned int i = 0; i < numProxies_; i++) {
         servicePublisher_->unregisterService(serviceAddress_+std::to_string(i));
     }
 }

@@ -17,8 +17,8 @@ namespace DBus {
 
 DBusObjectManagerStub::DBusObjectManagerStub(const std::string& dbusObjectPath,
                                              const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
-                dbusConnection_(dbusConnection),
-                dbusObjectPath_(dbusObjectPath) {
+                        dbusObjectPath_(dbusObjectPath),
+                        dbusConnection_(dbusConnection) {
     assert(!dbusObjectPath.empty());
     assert(dbusObjectPath[0] == '/');
     assert(dbusConnection);

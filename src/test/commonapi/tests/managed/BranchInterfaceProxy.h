@@ -117,8 +117,8 @@ public:
 //
 template <typename ... _AttributeExtensions>
 BranchInterfaceProxy<_AttributeExtensions...>::BranchInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<BranchInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

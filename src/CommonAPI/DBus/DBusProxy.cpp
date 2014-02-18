@@ -36,16 +36,16 @@ DBusProxy::DBusProxy(const std::shared_ptr<DBusFactory>& factory,
                      const std::string& dbusObjectPath,
                      const std::shared_ptr<DBusProxyConnection>& dbusConnection):
                 DBusProxyBase(dbusConnection),
-                factory_(factory),
+                dbusProxyStatusEvent_(this),
+                availabilityStatus_(AvailabilityStatus::UNKNOWN),
+                interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
+                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()),
                 commonApiServiceId_(split(commonApiAddress, ':')[1]),
                 commonApiParticipantId_(split(commonApiAddress, ':')[2]),
                 dbusBusName_(dbusBusName),
                 dbusObjectPath_(dbusObjectPath),
                 dbusInterfaceName_(dbusInterfaceName),
-                dbusProxyStatusEvent_(this),
-                availabilityStatus_(AvailabilityStatus::UNKNOWN),
-                interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
-                dbusServiceRegistry_(dbusConnection->getDBusServiceRegistry()) {
+                factory_(factory) {
 }
 
 void DBusProxy::init() {

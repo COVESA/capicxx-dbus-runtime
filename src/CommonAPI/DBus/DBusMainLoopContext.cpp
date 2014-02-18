@@ -96,9 +96,9 @@ void DBusWatch::addDependentDispatchSource(DispatchSource* dispatchSource) {
 
 
 DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext) :
+                dueTimeInMs_(TIMEOUT_INFINITE),
                 libdbusTimeout_(libdbusTimeout),
-                mainLoopContext_(mainLoopContext),
-                dueTimeInMs_(TIMEOUT_INFINITE) {
+                mainLoopContext_(mainLoopContext) {
 }
 
 bool DBusTimeout::isReadyToBeMonitored() {

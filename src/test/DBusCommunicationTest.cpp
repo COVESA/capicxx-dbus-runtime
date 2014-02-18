@@ -413,9 +413,9 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
         std::shared_ptr<CommonAPI::DBus::DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
 
         const auto dbusObjectManager = dbusConnection->getDBusObjectManager();
-        const bool isDBusObjectRegistrationSuccessful = dbusObjectManager->registerDBusStubAdapter(dbusStubAdapter);
+        dbusObjectManager->registerDBusStubAdapter(dbusStubAdapter);
 
-        const bool isServiceExportSuccessful = rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
+        rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
 
         return dbusStubAdapter;
     }

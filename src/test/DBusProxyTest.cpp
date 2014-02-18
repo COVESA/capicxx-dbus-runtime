@@ -277,8 +277,8 @@ TEST_F(ProxyTest, IsAvailableBlocking) {
 }
 
 TEST_F(ProxyTest, HasNecessaryAttributesAndEvents) {
-    CommonAPI::InterfaceVersionAttribute& versionAttribute = (proxy_->getInterfaceVersionAttribute());
-    CommonAPI::ProxyStatusEvent& statusEvent = (proxy_->getProxyStatusEvent());
+    (proxy_->getInterfaceVersionAttribute());
+    (proxy_->getProxyStatusEvent());
 }
 
 TEST_F(ProxyTest, TestInterfaceVersionAttribute) {
@@ -432,7 +432,6 @@ TEST_F(ProxyTest, ProxyCanFetchVersionAttributeFromInheritedInterfaceStub) {
     CommonAPI::InterfaceVersionAttribute& versionAttribute = extendedProxy->getInterfaceVersionAttribute();
 
     CommonAPI::Version version;
-    CommonAPI::CallStatus status;
     bool wasCalled = false;
 
     std::future<CommonAPI::CallStatus> futureVersion = versionAttribute.getValueAsync([&](const CommonAPI::CallStatus& callStatus, CommonAPI::Version version) {

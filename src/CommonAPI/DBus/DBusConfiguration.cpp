@@ -213,6 +213,8 @@ void DBusConfiguration::readConfigFile(std::ifstream& addressConfigFile) {
                     }
                     newFactoryFound = false;
                     break;
+                case FileParsingState::UNDEFINED:
+                    break;
             }
         }
 
@@ -240,6 +242,8 @@ void DBusConfiguration::readConfigFile(std::ifstream& addressConfigFile) {
                         break;
                     case FileParsingState::PARSING_ADDRESS:
                         readValue(readLine, serviceDetails);
+                        break;
+                    case FileParsingState::UNDEFINED:
                         break;
                 }
                 break;

@@ -121,8 +121,8 @@ public:
 template <typename ... _AttributeExtensions>
 ExtendedInterfaceProxy<_AttributeExtensions...>::ExtendedInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
         TestInterfaceProxy<_AttributeExtensions...>(delegate),
-        delegate_(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<ExtendedInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

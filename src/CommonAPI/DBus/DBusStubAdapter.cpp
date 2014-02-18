@@ -25,14 +25,14 @@ DBusStubAdapter::DBusStubAdapter(const std::shared_ptr<DBusFactory>& factory,
                                  const std::string& dbusObjectPath,
                                  const std::shared_ptr<DBusProxyConnection>& dbusConnection,
                                  const bool isManagingInterface) :
-                factory_(factory),
                 commonApiDomain_(split(commonApiAddress, ':')[0]),
                 commonApiServiceId_(split(commonApiAddress, ':')[1]),
                 commonApiParticipantId_(split(commonApiAddress, ':')[2]),
-                dbusInterfaceName_(dbusInterfaceName),
                 dbusBusName_(dbusBusName),
                 dbusObjectPath_(dbusObjectPath),
+                dbusInterfaceName_(dbusInterfaceName),
                 dbusConnection_(dbusConnection),
+                factory_(factory),
                 isManagingInterface_(isManagingInterface) {
 
     assert(!dbusBusName_.empty());

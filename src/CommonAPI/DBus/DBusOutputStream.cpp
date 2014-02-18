@@ -289,7 +289,7 @@ bool DBusOutputStream::hasError() const {
  */
 void DBusOutputStream::flush() {
     const int toWrite = payload_.size();
-    const bool success = dbusMessage_.setBodyLength(toWrite);
+    dbusMessage_.setBodyLength(toWrite);
     char* destinationDataPtr = dbusMessage_.getBodyData();
 
     memcpy(destinationDataPtr, payload_.c_str(), toWrite);

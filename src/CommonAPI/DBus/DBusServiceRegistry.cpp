@@ -293,7 +293,6 @@ bool DBusServiceRegistry::isServiceInstanceAlive(const std::string& dbusInterfac
         dbusServicesMutex_.lock();
         //std::unordered_map<std::string, DBusObjectPathCache>::value_type value(dbusObjectPath, std::move(newDbusObjectPathCache));
         //auto dbusObjectPathCacheInserted = dbusObjectPathsCache->insert(std::move({dbusObjectPath, std::move(newDbusObjectPathCache)}));
-        auto dbusObjectPathCacheInserted =
                         dbusObjectPathsCache->insert(std::make_pair(dbusObjectPath, std::move(newDbusObjectPathCache)));
 
         dbusObjectPathCacheIterator = dbusObjectPathsCache->find(dbusObjectPath);
@@ -476,10 +475,7 @@ SubscriptionStatus DBusServiceRegistry::onSignalDBusMessage(const DBusMessage& d
 
     dbusInputStream >> dbusObjectPath;
 
-    bool added = false;
-
     if (dbusMessage.hasMemberName("InterfacesAdded")) {
-        added = true;
         dbusInterfaceNameState = DBusRecordState::AVAILABLE;
 
         typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;

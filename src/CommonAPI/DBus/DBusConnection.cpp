@@ -79,37 +79,38 @@ void DBusConnection::resumeDispatching() const {
 }
 
 DBusConnection::DBusConnection(BusType busType) :
-                busType_(busType),
-                libdbusConnection_(NULL),
-                dbusConnectionStatusEvent_(this),
-                stopDispatching_(false),
-                pauseDispatching_(false),
                 dispatchThread_(NULL),
-                dbusObjectMessageHandler_(),
-                watchContext_(NULL),
-                connectionNameCount_(),
-                dispatchSource_(),
+                stopDispatching_(false),
                 mainLoopContext_(std::shared_ptr<MainLoopContext>(NULL)),
-                enforcerThread_(NULL),
-                libdbusSignalMatchRulesCount_(0) {
+                dispatchSource_(),
+                watchContext_(NULL),
+                pauseDispatching_(false),
+                libdbusConnection_(NULL),
+                busType_(busType),
+                dbusConnectionStatusEvent_(this),
+                libdbusSignalMatchRulesCount_(0),
+                dbusObjectMessageHandler_(),
+                connectionNameCount_(),
+                enforcerThread_(NULL)
+                 {
 
     dbus_threads_init_default();
 }
 
 DBusConnection::DBusConnection(::DBusConnection* libDbusConnection) :
-                busType_(WRAPPED),
-                libdbusConnection_(libDbusConnection),
-                dbusConnectionStatusEvent_(this),
-                stopDispatching_(false),
-                pauseDispatching_(false),
                 dispatchThread_(NULL),
-                dbusObjectMessageHandler_(),
-                watchContext_(NULL),
-                connectionNameCount_(),
-                dispatchSource_(),
+                stopDispatching_(false),
                 mainLoopContext_(std::shared_ptr<MainLoopContext>(NULL)),
-                enforcerThread_(NULL),
-                libdbusSignalMatchRulesCount_(0) {
+                dispatchSource_(),
+                watchContext_(NULL),
+                pauseDispatching_(false),
+                libdbusConnection_(libDbusConnection),
+                busType_(WRAPPED),
+                dbusConnectionStatusEvent_(this),
+                libdbusSignalMatchRulesCount_(0),
+                dbusObjectMessageHandler_(),
+                connectionNameCount_(),
+                enforcerThread_(NULL) {
     dbus_threads_init_default();
 }
 
@@ -454,29 +455,29 @@ bool DBusConnection::sendDBusMessage(const DBusMessage& dbusMessage, uint32_t* a
 }
 
 void DBusConnection::onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void *userData) {
-	assert(userData);
-	assert(libdbusPendingCall);
+    assert(userData);
+    assert(libdbusPendingCall);
 
-	auto dbusMessageReplyAsyncHandler = reinterpret_cast<DBusMessageReplyAsyncHandler*>(userData);
+    auto dbusMessageReplyAsyncHandler = reinterpret_cast<DBusMessageReplyAsyncHandler*>(userData);
 
-	::DBusMessage* libdbusMessage = dbus_pending_call_steal_reply(libdbusPendingCall);
-	const bool increaseLibdbusMessageReferenceCount = false;
-	DBusMessage dbusMessage(libdbusMessage, increaseLibdbusMessageReferenceCount);
-	CallStatus callStatus = CallStatus::SUCCESS;
+    ::DBusMessage* libdbusMessage = dbus_pending_call_steal_reply(libdbusPendingCall);
+    const bool increaseLibdbusMessageReferenceCount = false;
+    DBusMessage dbusMessage(libdbusMessage, increaseLibdbusMessageReferenceCount);
+    CallStatus callStatus = CallStatus::SUCCESS;
 
-	if (!dbusMessage.isMethodReturnType()) {
-		callStatus = CallStatus::REMOTE_ERROR;
-	}
+    if (!dbusMessage.isMethodReturnType()) {
+        callStatus = CallStatus::REMOTE_ERROR;
+    }
 
-	dbusMessageReplyAsyncHandler->onDBusMessageReply(callStatus, dbusMessage);
+    dbusMessageReplyAsyncHandler->onDBusMessageReply(callStatus, dbusMessage);
 
-	// libdbus calls the Cleanup method below
-	dbus_pending_call_unref(libdbusPendingCall);
+    // libdbus calls the Cleanup method below
+    dbus_pending_call_unref(libdbusPendingCall);
 }
 
 void DBusConnection::onLibdbusDataCleanup(void* userData) {
-	auto dbusMessageReplyAsyncHandler = reinterpret_cast<DBusMessageReplyAsyncHandler*>(userData);
-	delete dbusMessageReplyAsyncHandler;
+    auto dbusMessageReplyAsyncHandler = reinterpret_cast<DBusMessageReplyAsyncHandler*>(userData);
+    delete dbusMessageReplyAsyncHandler;
 }
 
 

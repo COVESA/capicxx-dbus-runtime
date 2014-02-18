@@ -34,14 +34,14 @@ ExtendedInterfaceDBusProxy::ExtendedInterfaceDBusProxy(
                     const std::string& busName,
                     const std::string& objectPath,
                     const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusProxyconnection):
-        TestInterfaceDBusProxy(
+        CommonAPI::DBus::DBusProxy(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyconnection)
+        , TestInterfaceDBusProxy(
                     factory,
                     commonApiAddress,
                     interfaceName,
                     busName,
                     objectPath,
-                    dbusProxyconnection),
-        CommonAPI::DBus::DBusProxy(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyconnection)
+                    dbusProxyconnection)
     {
     }
 

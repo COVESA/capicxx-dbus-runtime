@@ -14,8 +14,8 @@ namespace tests {
 namespace managed {
 
 RootInterfaceStubDefault::RootInterfaceStubDefault():
-        autoInstanceCounter_(0),
         remoteEventHandler_(this),
+        autoInstanceCounter_(0),
         interfaceVersion_(RootInterface::getInterfaceVersion()) {
 }
 

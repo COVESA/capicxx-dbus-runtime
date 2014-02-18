@@ -287,7 +287,6 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
     dbus_message_set_signature(libdbusMessageCall, "");
 
     DBusPendingCall* libdbusPendingCall;
-    dbus_bool_t libdbusSuccess;
 
     dbus_connection_send_with_reply(
                     libdbusConnection,
@@ -341,10 +340,8 @@ TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
 
     dbus_message_set_signature(libdbusMessageCall, "");
 
-    bool hasHappened = false;
 
     DBusPendingCall* libdbusPendingCall;
-    dbus_bool_t libdbusSuccess;
 
     dbus_connection_send_with_reply(
                     libdbusConnection,

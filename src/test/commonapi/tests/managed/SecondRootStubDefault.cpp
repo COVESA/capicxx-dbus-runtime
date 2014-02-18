@@ -14,8 +14,8 @@ namespace tests {
 namespace managed {
 
 SecondRootStubDefault::SecondRootStubDefault():
-        autoInstanceCounter_(0),
         remoteEventHandler_(this),
+        autoInstanceCounter_(0),
         interfaceVersion_(SecondRoot::getInterfaceVersion()) {
 }
 

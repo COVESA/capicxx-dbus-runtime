@@ -234,12 +234,13 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
     }
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+        std::tuple<_InArgs..., _OutArgs...> argTuple;
         return handleDBusMessage(
                         dbusMessage,
                         stub,
                         dbusStubAdapterHelper,
                         typename make_sequence_range<sizeof...(_InArgs), 0>::type(),
-                        typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type());
+                        typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type(),argTuple);
     }
  private:
     template <int... _InArgIndices, int... _OutArgIndices>
@@ -247,8 +248,8 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<_InArgIndices...>,
-                                  index_sequence<_OutArgIndices...>) const {
-        std::tuple<_InArgs..., _OutArgs...> argTuple;
+                                  index_sequence<_OutArgIndices...>,
+                                  std::tuple<_InArgs..., _OutArgs...> argTuple) const {
 
         if (sizeof...(_InArgs) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);
@@ -300,12 +301,13 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
     }
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+        std::tuple<_InArgs..., _OutArgs...> argTuple;
         return handleDBusMessage(
                         dbusMessage,
                         stub,
                         dbusStubAdapterHelper,
                         typename make_sequence_range<sizeof...(_InArgs), 0>::type(),
-                        typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type());
+                        typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type(),argTuple);
     }
 
  private:
@@ -314,8 +316,8 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<_InArgIndices...>,
-                                  index_sequence<_OutArgIndices...>) const {
-        std::tuple<_InArgs..., _OutArgs...> argTuple;
+                                  index_sequence<_OutArgIndices...>,
+                                  std::tuple<_InArgs..., _OutArgs...> argTuple) const {
 
         if (sizeof...(_InArgs) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);

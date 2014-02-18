@@ -196,7 +196,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 2);
     EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
 
-    auto subscriptionResult3 = proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this));
+    proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this));
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 2); // should still be two because proxyFromSameFactory1_ is still subscribed
 
     proxyFromSameFactory2->getTestSelectiveBroadcastSelectiveEvent().unsubscribe(subscriptionResult2);
@@ -242,7 +242,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
 
     bool subbed = false;
 
-    auto subscriptionResult1 = proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(
+    proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(
                     std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this),
                     subbed);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
@@ -250,7 +250,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
 
     stub->acceptSubs = false;
 
-    auto subscriptionResult2 = proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(
+    proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(
                     std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this),
                     subbed);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);

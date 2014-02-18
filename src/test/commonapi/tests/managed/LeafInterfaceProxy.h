@@ -117,8 +117,8 @@ public:
 //
 template <typename ... _AttributeExtensions>
 LeafInterfaceProxy<_AttributeExtensions...>::LeafInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<LeafInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<LeafInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<LeafInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<LeafInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

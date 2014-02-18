@@ -11,8 +11,8 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusProxyBase::DBusProxyBase(const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
-                dbusConnection_(dbusConnection),
-                commonApiDomain_("local") {
+                        commonApiDomain_("local"),
+                        dbusConnection_(dbusConnection){
 }
 
 DBusMessage DBusProxyBase::createMethodCall(const char* methodName,

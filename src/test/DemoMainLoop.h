@@ -48,7 +48,10 @@ class MainLoop {
     MainLoop& operator=(MainLoop&&) = delete;
 
     explicit MainLoop(std::shared_ptr<MainLoopContext> context) :
-            context_(context), currentMinimalTimeoutInterval_(TIMEOUT_INFINITE), running_(false), breakLoop_(false) {
+                      context_(context),
+                      currentMinimalTimeoutInterval_(TIMEOUT_INFINITE),
+                      breakLoop_(false),
+                      running_(false) {
 
 #ifdef WIN32
         WSAEVENT wsaEvent = WSACreateEvent();

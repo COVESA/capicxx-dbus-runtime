@@ -182,7 +182,8 @@ template<
 
             CallStatus callStatus = CallStatus::NOT_AVAILABLE;
 
-            callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
+            std::tuple<_OutArgs...> argTuple;
+            callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type(), argTuple);
 
             std::promise<CallStatus> promise;
             promise.set_value(callStatus);
@@ -233,7 +234,8 @@ template<
 
             CallStatus callStatus = CallStatus::NOT_AVAILABLE;
 
-            callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type());
+            std::tuple<_OutArgs...> argTuple;
+            callCallbackOnNotAvailable(asyncCallback, typename make_sequence<sizeof...(_OutArgs)>::type(),argTuple);
 
             std::promise<CallStatus> promise;
             promise.set_value(callStatus);
@@ -268,9 +270,8 @@ template<
 
     template <int... _ArgIndices>
     static void callCallbackOnNotAvailable(std::function<void(CallStatus, _OutArgs...)> callback,
-                                           index_sequence<_ArgIndices...>) {
+                                           index_sequence<_ArgIndices...>, std::tuple<_OutArgs...> argTuple) {
 
-        std::tuple<_OutArgs...> argTuple;
         const CallStatus callstatus = CallStatus::NOT_AVAILABLE;
         callback(callstatus, std::move(std::get<_ArgIndices>(argTuple))...);
     }

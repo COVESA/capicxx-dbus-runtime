@@ -23,8 +23,8 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusObjectManager::DBusObjectManager(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
-        dbusConnection_(dbusConnection),
-        rootDBusObjectManagerStub_(new DBusObjectManagerStub("/", dbusConnection)) {
+                rootDBusObjectManagerStub_(new DBusObjectManagerStub("/", dbusConnection)),
+                dbusConnection_(dbusConnection){
 
     if (!dbusConnection->isObjectPathMessageHandlerSet()) {
         dbusConnection->setObjectPathMessageHandler(
@@ -267,9 +267,9 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
                     foundRegisteredObjects = true;
                 }
             } else {
-                for (int i = 1; i < elems.size() - 1; i++) {
+                for (unsigned int i = 1; i < elems.size() - 1; i++) {
                     std::string build;
-                    for (int j = 1; j <= i; j++) {
+                    for (unsigned int j = 1; j <= i; j++) {
                         build = build + "/" + elems[j];
                         if (dbusMessage.hasObjectPath(build)) {
                             if (nodeSet.find(elems[j + 1]) == nodeSet.end()) {

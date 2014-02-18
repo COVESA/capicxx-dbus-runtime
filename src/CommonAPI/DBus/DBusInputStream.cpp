@@ -10,11 +10,11 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusInputStream::DBusInputStream(const CommonAPI::DBus::DBusMessage& message) :
-                message_(message),
                 dataBegin_(message.getBodyData()),
                 currentDataPosition_(0),
                 dataLength_(message.getBodyLength()),
-                exception_(nullptr) {
+                exception_(nullptr),
+                message_(message) {
 }
 
 DBusInputStream::~DBusInputStream() {}

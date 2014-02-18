@@ -132,8 +132,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         }
 
         DBusServiceListenersRecord(DBusServiceListenersRecord&& other):
-            uniqueBusName(std::move(other.uniqueBusName)),
             uniqueBusNameState(other.uniqueBusNameState),
+            uniqueBusName(std::move(other.uniqueBusName)),
             promiseOnResolve(std::move(other.promiseOnResolve)),
             futureOnResolve(std::move(other.futureOnResolve)),
             mutexOnResolve(std::move(other.mutexOnResolve)),

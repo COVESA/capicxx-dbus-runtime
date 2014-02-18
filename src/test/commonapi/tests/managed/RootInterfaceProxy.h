@@ -119,8 +119,8 @@ public:
 //
 template <typename ... _AttributeExtensions>
 RootInterfaceProxy<_AttributeExtensions...>::RootInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<RootInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<RootInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<RootInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<RootInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>
