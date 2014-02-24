@@ -109,8 +109,9 @@ TEST_F(DBusServicePublisherTest, GracefullyHandlesWrongAddresses) {
     EXPECT_FALSE(servicePublisher->registerService(myStub, "too:much:stuff:here", proxyFactory));
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

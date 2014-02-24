@@ -16,7 +16,7 @@
 
 #include <CommonAPI/Factory.h>
 
-#include "CommonAPI/DBus/DBusStubAdapter.h"
+#include "DBusStubAdapter.h"
 #include "DBusConnection.h"
 #include "DBusProxy.h"
 

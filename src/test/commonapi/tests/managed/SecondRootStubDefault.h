@@ -45,8 +45,7 @@ public:
     std::set<std::string>& getLeafInterfaceInstances();
 
 protected:
-private:
-    class RemoteEventHandler: public SecondRootStubRemoteEvent {
+    class RemoteEventHandler: public virtual SecondRootStubRemoteEvent {
      public:
         RemoteEventHandler(SecondRootStubDefault* defaultStub);
 
@@ -54,8 +53,8 @@ private:
      private:
         SecondRootStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    SecondRootStubDefault::RemoteEventHandler remoteEventHandler_;
     uint32_t autoInstanceCounter_;
 
 

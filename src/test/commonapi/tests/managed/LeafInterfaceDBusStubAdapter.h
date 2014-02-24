@@ -29,7 +29,7 @@ namespace managed {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<LeafInterfaceStub> LeafInterfaceDBusStubAdapterHelper;
 
-class LeafInterfaceDBusStubAdapterInternal: public LeafInterfaceStubAdapter, public LeafInterfaceDBusStubAdapterHelper {
+class LeafInterfaceDBusStubAdapterInternal: public virtual LeafInterfaceStubAdapter, public LeafInterfaceDBusStubAdapterHelper {
  public:
     LeafInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -48,6 +48,22 @@ class LeafInterfaceDBusStubAdapterInternal: public LeafInterfaceStubAdapter, pub
     const LeafInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
 
     void deactivateManagedInstances();
+
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        LeafInterfaceStub,
+        CommonAPI::Version
+        > getLeafInterfaceInterfaceVersionStubDispatcher;
+
+
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    LeafInterfaceStub,
+    std::tuple<int32_t, std::string>,
+    std::tuple<LeafInterface::testLeafMethodError, int32_t, std::string>
+    > testLeafMethodStubDispatcher;
+
+
 
 
  protected:

@@ -68,7 +68,7 @@ protected:
     }
 
     virtual void TearDown() {
-        sleep(3);
+        usleep(1000000);
     }
 
 public:
@@ -102,7 +102,13 @@ public:
 const std::string DBusLoadTest::serviceAddress_ =
                 "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
 const uint32_t DBusLoadTest::numCallsPerProxy_ = 100;
+
+#ifdef WIN32
+// test with just 50 proxies under windows as it becomes very slow with more ones
+const uint32_t DBusLoadTest::numProxies_ = 50;
+#else
 const uint32_t DBusLoadTest::numProxies_ = 100;
+#endif
 
 // Multiple proxies in one thread, one stub
 TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
@@ -261,7 +267,7 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
             allProxiesAvailable = allProxiesAvailable && testProxies[j]->isAvailable();
         }
         if (!allProxiesAvailable)
-            sleep(1);
+            usleep(1000000);
     }
     ASSERT_TRUE(allProxiesAvailable);
 
@@ -298,7 +304,9 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     }
 }
 
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

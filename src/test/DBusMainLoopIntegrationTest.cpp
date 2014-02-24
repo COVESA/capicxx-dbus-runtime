@@ -17,8 +17,9 @@
 #include <utility>
 #include <tuple>
 #include <type_traits>
+#ifndef WIN32
 #include <glib.h>
-
+#endif
 #include <CommonAPI/CommonAPI.h>
 
 #define COMMONAPI_INTERNAL_COMPILATION
@@ -312,7 +313,7 @@ TEST_F(DBusMainLoopTest, DemoMainloopClientsHandleNonavailableServices) {
 }
 
 //##################################################################################################
-
+#ifndef WIN32
 class GDispatchWrapper: public GSource {
  public:
     GDispatchWrapper(CommonAPI::DispatchSource* dispatchSource): dispatchSource_(dispatchSource) {}
@@ -574,9 +575,11 @@ TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) 
 
     servicePublisher_->unregisterService(testAddress7);
 }
+#endif
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

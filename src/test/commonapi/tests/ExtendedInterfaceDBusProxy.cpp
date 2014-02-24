@@ -22,7 +22,7 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createExtendedInterfaceDBusProxy(
     return std::make_shared<ExtendedInterfaceDBusProxy>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-__attribute__((constructor)) void registerExtendedInterfaceDBusProxy(void) {
+INITIALIZER(registerExtendedInterfaceDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(ExtendedInterface::getInterfaceId(),
        &createExtendedInterfaceDBusProxy);
 }

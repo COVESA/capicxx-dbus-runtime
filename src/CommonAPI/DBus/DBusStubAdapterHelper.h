@@ -40,7 +40,9 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
 
     class StubDispatcher: public StubDispatcherBase {
      public:
-        virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
+        virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage,
+                                         const std::shared_ptr<_StubClass>& stub,
+                                         DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
     };
     // interfaceMemberName, interfaceMemberSignature
     typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
@@ -188,7 +190,7 @@ class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAda
     }
 
  private:
-    template <int... _InArgIndices, int... _OutArgIndices>
+    template <int... _InArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
@@ -239,7 +241,6 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
                         typename make_sequence_range<sizeof...(_InArgs), 0>::type(),
                         typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type());
     }
-
  private:
     template <int... _InArgIndices, int... _OutArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
@@ -291,6 +292,7 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
     typedef void (_StubAdapterClass::*_StubFunctor)(std::shared_ptr<CommonAPI::ClientId>, _InArgs..., _OutArgs&...);
+    typedef typename CommonAPI::Stub<typename DBusStubAdapterHelperType::StubAdapterType, typename _StubClass::RemoteEventType> StubType;
 
     DBusMethodWithReplyAdapterDispatcher(_StubFunctor stubFunctor, const char* dbusReplySignature):
             stubFunctor_(stubFunctor),
@@ -324,7 +326,7 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
 
-        (stub->getStubAdapter().get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
+        (stub->StubType::getStubAdapter().get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))..., std::get<_OutArgIndices>(argTuple)...);
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusReplySignature_);
 
         if (sizeof...(_OutArgs) > 0) {
@@ -444,10 +446,10 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
  public:
     typedef typename DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
     typedef typename DBusStubAdapterHelperType::StubAdapterType StubAdapterType;
-
     typedef typename DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
     typedef typename DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteSetFunctor OnRemoteSetFunctor;
     typedef typename DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
+    typedef typename CommonAPI::Stub<StubAdapterType, typename _StubClass::RemoteEventType> StubType;
     typedef void (StubAdapterType::*FireChangedFunctor)(const _AttributeType&);
 
     DBusSetObservableAttributeStubDispatcher(GetStubFunctor getStubFunctor,
@@ -477,7 +479,7 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
 
  private:
     inline void fireAttributeValueChanged(std::shared_ptr<CommonAPI::ClientId> clientId, DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
-        (stub->getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
+        (stub->StubType::getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
     }
 
     const FireChangedFunctor fireChangedFunctor_;

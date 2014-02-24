@@ -184,6 +184,8 @@ protected:
     }
 
     virtual void TearDown() {
+        stubDBusConnection_->releaseServiceName(dbusServiceName);
+
         stubDBusConnection_->disconnect();
         stubDBusConnection_.reset();
 
@@ -492,7 +494,9 @@ TEST_F(DBusObjectManagerStubTest, DestructorUnpublishingWorks) {
     ASSERT_TRUE(wasServiceDeregistrationSuccessful);
 }
 
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

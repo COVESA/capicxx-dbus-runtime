@@ -6,6 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <gtest/gtest.h>
+
+#define COMMONAPI_INTERNAL_COMPILATION
+
 #include "CommonAPI/DBus/DBusClientId.h"
 #include "CommonAPI/types.h"
 

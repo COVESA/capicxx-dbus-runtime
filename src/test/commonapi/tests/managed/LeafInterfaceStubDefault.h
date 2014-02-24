@@ -44,8 +44,7 @@ public:
 
 
 protected:
-private:
-    class RemoteEventHandler: public LeafInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual LeafInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(LeafInterfaceStubDefault* defaultStub);
 
@@ -53,8 +52,8 @@ private:
      private:
         LeafInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    LeafInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
 
 
     CommonAPI::Version interfaceVersion_;

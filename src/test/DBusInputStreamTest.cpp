@@ -12,7 +12,6 @@
 #include "DBusTestUtils.h"
 
 #include <unordered_map>
-#include <bits/functional_hash.h>
 
 #include <gtest/gtest.h>
 
@@ -21,8 +20,7 @@
 #include <chrono>
 #include <cstdint>
 #include <vector>
-#include <unordered_map>
-#include <bits/functional_hash.h>
+
 
 
 class InputStreamTest: public ::testing::Test {
@@ -220,10 +218,10 @@ TEST_F(InputStreamTest, ReadsDoubles) {
 }
 
 TEST_F(InputStreamTest, ReadsStrings) {
-
     std::string val = "hai";
     for (unsigned int i = 0; i < numOfElements; i += 1) {
-        dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_STRING, &val);
+        const char* valPtr = val.c_str();
+        dbus_message_iter_append_basic(&libdbusMessageWriteIter, DBUS_TYPE_STRING, &valPtr);
     }
 
     CommonAPI::DBus::DBusMessage scopedMessage(libdbusMessage);
@@ -236,8 +234,6 @@ TEST_F(InputStreamTest, ReadsStrings) {
         EXPECT_EQ(val, readVal);
     }
 }
-
-
 
 namespace bmw {
 namespace test {
@@ -291,7 +287,8 @@ TEST_F(InputStreamTest, ReadsStructs) {
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_INT16, &testStruct.b);
     dbus_bool_t dbusBool = static_cast<dbus_bool_t>(testStruct.c);
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BOOLEAN, &dbusBool);
-    dbus_message_iter_append_basic(&subIter, DBUS_TYPE_STRING, &testStruct.d);
+    const char* dPtr = testStruct.d.c_str();
+    dbus_message_iter_append_basic(&subIter, DBUS_TYPE_STRING, &dPtr);
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_DOUBLE, &testStruct.e);
     dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
 
@@ -445,7 +442,8 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
         dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BYTE, &variantTypeIndex);
         DBusMessageIter subSubIter;
         dbus_message_iter_open_container(&subIter, DBUS_TYPE_VARIANT, "s", &subSubIter);
-        dbus_message_iter_append_basic(&subSubIter, DBUS_TYPE_STRING, &fromString);
+        const char* fromStringPtr = fromString.c_str();
+        dbus_message_iter_append_basic(&subSubIter, DBUS_TYPE_STRING, &fromStringPtr);
         dbus_message_iter_close_container(&subIter, &subSubIter);
         dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
     }
@@ -495,7 +493,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
         DBusMessageIter innerArrayIter;
         dbus_message_iter_open_container(&subSubIter, DBUS_TYPE_ARRAY, "s", &innerArrayIter);
         for (unsigned int i = 0; i < numOfElements; i++) {
-            dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testInnerVector[i]);
+            const char* testPtr = testInnerVector[i].c_str();
+            dbus_message_iter_append_basic(&innerArrayIter, DBUS_TYPE_STRING, &testPtr);
         }
         dbus_message_iter_close_container(&subSubIter, &innerArrayIter);
 
@@ -661,7 +660,6 @@ TEST_F(InputStreamTest, ReadsVariantsWithStructs) {
     DBusMessageIter variantActualIter;
     DBusMessageIter innerStructIter;
 
-
     //begin variant
     dbus_message_iter_open_container(&libdbusMessageWriteIter, DBUS_TYPE_STRUCT, NULL, &variantStructIter);
     dbus_message_iter_append_basic(&variantStructIter, DBUS_TYPE_BYTE, &variantTypeIndex);
@@ -674,7 +672,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithStructs) {
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_UINT32, &testStruct.a);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_INT16, &testStruct.b);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
-    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &testStruct.d);
+    const char* dPtr = testStruct.d.c_str();
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &dPtr);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_DOUBLE, &testStruct.e);
 
     dbus_message_iter_close_container(&variantActualIter, &innerStructIter);
@@ -738,7 +737,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_UINT32, &testStruct.a);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_INT16, &testStruct.b);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
-    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &testStruct.d);
+    const char* dPtr = testStruct.d.c_str();
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &dPtr);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_DOUBLE, &testStruct.e);
 
     dbus_message_iter_close_container(&innerArrayIter, &innerStructIter);
@@ -778,8 +778,9 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
     EXPECT_EQ(referenceVariant, readVariant);
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
+#endif

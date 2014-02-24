@@ -77,7 +77,7 @@ class SecondRootStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class SecondRootStub : public virtual CommonAPI::Stub<SecondRootStubAdapter, SecondRootStubRemoteEvent> {
+class SecondRootStub: public virtual CommonAPI::Stub<SecondRootStubAdapter, SecondRootStubRemoteEvent> {
 public:
     virtual ~SecondRootStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -90,6 +90,8 @@ public:
     using CommonAPI::Stub<SecondRootStubAdapter, SecondRootStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<SecondRootStubAdapter, SecondRootStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<SecondRootStubAdapter, SecondRootStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef SecondRootStubRemoteEvent RemoteEventType;
+    typedef SecondRoot StubInterface;
 };
 
 } // namespace managed

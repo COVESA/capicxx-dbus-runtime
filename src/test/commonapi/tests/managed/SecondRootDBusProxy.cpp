@@ -23,7 +23,7 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createSecondRootDBusProxy(
     return std::make_shared<SecondRootDBusProxy>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-__attribute__((constructor)) void registerSecondRootDBusProxy(void) {
+INITIALIZER(registerSecondRootDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(SecondRoot::getInterfaceId(),
        &createSecondRootDBusProxy);
 }

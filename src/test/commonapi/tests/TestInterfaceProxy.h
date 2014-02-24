@@ -302,6 +302,12 @@ public:
     std::shared_ptr<TestInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef TestInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> TestInterfaceProxyDefault;
+#else
+    typedef TestInterfaceProxy<> TestInterfaceProxyDefault;
+#endif
+
 namespace TestInterfaceExtensions {
     template <template <typename > class _ExtensionType>
     class TestPredefinedTypeAttributeAttributeExtension {
@@ -310,6 +316,9 @@ namespace TestInterfaceExtensions {
     
         static_assert(std::is_base_of<typename CommonAPI::AttributeExtension<TestInterfaceProxyBase::TestPredefinedTypeAttributeAttribute>, extension_type>::value,
                       "Not CommonAPI Attribute Extension!");
+    #ifdef WIN32
+        TestPredefinedTypeAttributeAttributeExtension() {}
+    #endif
     
         TestPredefinedTypeAttributeAttributeExtension(TestInterfaceProxyBase& proxy): attributeExtension_(proxy.getTestPredefinedTypeAttributeAttribute()) {
         }
@@ -329,6 +338,9 @@ namespace TestInterfaceExtensions {
     
         static_assert(std::is_base_of<typename CommonAPI::AttributeExtension<TestInterfaceProxyBase::TestDerivedStructAttributeAttribute>, extension_type>::value,
                       "Not CommonAPI Attribute Extension!");
+    #ifdef WIN32
+        TestDerivedStructAttributeAttributeExtension() {}
+    #endif
     
         TestDerivedStructAttributeAttributeExtension(TestInterfaceProxyBase& proxy): attributeExtension_(proxy.getTestDerivedStructAttributeAttribute()) {
         }
@@ -348,6 +360,9 @@ namespace TestInterfaceExtensions {
     
         static_assert(std::is_base_of<typename CommonAPI::AttributeExtension<TestInterfaceProxyBase::TestDerivedArrayAttributeAttribute>, extension_type>::value,
                       "Not CommonAPI Attribute Extension!");
+    #ifdef WIN32
+        TestDerivedArrayAttributeAttributeExtension() {}
+    #endif
     
         TestDerivedArrayAttributeAttributeExtension(TestInterfaceProxyBase& proxy): attributeExtension_(proxy.getTestDerivedArrayAttributeAttribute()) {
         }

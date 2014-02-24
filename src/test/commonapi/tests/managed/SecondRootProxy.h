@@ -85,6 +85,12 @@ public:
     std::shared_ptr<SecondRootProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef SecondRootProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> SecondRootProxyDefault;
+#else
+    typedef SecondRootProxy<> SecondRootProxyDefault;
+#endif
+
 
 //
 // SecondRootProxy Implementation

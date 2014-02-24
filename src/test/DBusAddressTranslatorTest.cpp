@@ -9,12 +9,13 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include <thread>
-#include <unistd.h>
 
 #include <CommonAPI/CommonAPI.h>
 
+
 #define COMMONAPI_INTERNAL_COMPILATION
 
+#include <CommonAPI/types.h>
 #include <CommonAPI/DBus/DBusAddressTranslator.h>
 #include <CommonAPI/DBus/DBusUtils.h>
 #include <CommonAPI/DBus/DBusConnection.h>
@@ -86,7 +87,30 @@ static const std::string fileString =
 "dbus_connection=fake.legacy.service.connection\n"
 "dbus_object=/some/legacy/path/6259504\n"
 "dbus_interface=fake.legacy.service.LegacyInterface\n"
-"dbus_predefined=true\n";
+"dbus_predefined=true\n"
+// all tests run within the same binary under windows, meaning the config file will only be read once. That's why we already have to add the factory configuration used by DBusFactoryTest and the predifined instances for DBusServiceRegistryTest here.
+#ifdef WIN32
+"[local:Interface1:predefined.Instance1]\n"
+"dbus_connection=DBusServiceRegistryTest.Predefined.Service\n"
+"dbus_object=/tests/predefined/Object1\n"
+"dbus_interface=tests.Interface1\n"
+"dbus_predefined=true\n"
+"[local:Interface1:predefined.Instance2]\n"
+"dbus_connection=DBusServiceRegistryTest.Predefined.Service\n"
+"dbus_object=/tests/predefined/Object2\n"
+"dbus_interface=tests.Interface1\n"
+"dbus_predefined=true\n"
+"[local:Interface2:predefined.Instance]\n"
+"dbus_connection=DBusServiceRegistryTest.Predefined.Service\n"
+"dbus_object=/tests/predefined/Object1\n"
+"dbus_interface=tests.Interface2\n"
+"dbus_predefined=true\n"
+"[factory$session]\n"
+"dbus_bustype=session\n"
+"[factory$system]\n"
+"dbus_bustype=system\n"
+#endif
+;
 
 typedef std::vector<CommonAPI::DBus::DBusServiceAddress>::value_type vt;
 static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
@@ -101,13 +125,9 @@ static const std::vector<CommonAPI::DBus::DBusServiceAddress> dbusAddresses = {
                 vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
 };
 
-
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
+class AddressTranslatorTest: public ::testing::Test {
+protected:
+    void SetUp() {
         configFileName_ = CommonAPI::getCurrentBinaryFileFQN();
         configFileName_ += CommonAPI::DBus::DBUS_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
@@ -117,28 +137,15 @@ public:
     }
 
     virtual void TearDown() {
+        usleep(30000);
         std::remove(configFileName_.c_str());
     }
-
     std::string configFileName_;
 };
-
-
-class AddressTranslatorTest: public ::testing::Test {
-protected:
-    void SetUp() {
-    }
-
-    virtual void TearDown() {
-        usleep(30000);
-    }
-};
-
 
 TEST_F(AddressTranslatorTest, InstanceCanBeRetrieved) {
     CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
 }
-
 
 TEST_F(AddressTranslatorTest, ParsesDBusAddresses) {
     CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
@@ -151,7 +158,6 @@ TEST_F(AddressTranslatorTest, ParsesDBusAddresses) {
         ASSERT_EQ(std::get<2>(dbusAddresses[i]), interfaceName);
     }
 }
-
 
 TEST_F(AddressTranslatorTest, ParsesCommonAPIAddresses) {
     CommonAPI::DBus::DBusAddressTranslator& translator = CommonAPI::DBus::DBusAddressTranslator::getInstance();
@@ -166,7 +172,6 @@ TEST_F(AddressTranslatorTest, ParsesCommonAPIAddresses) {
         ASSERT_EQ(commonApiAddresses[i], commonApiAddress);
     }
 }
-
 
 TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
@@ -208,7 +213,7 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     servicePublisher->unregisterService(commonApiAddresses[0]);
 }
 
-
+#ifndef WIN32
 const std::string addressOfFakeLegacyService = commonApiAddresses[8];
 
 const std::string domainOfFakeLegacyService = "local";
@@ -281,9 +286,8 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
     fakeServiceThread.join();
 }
 
-
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
+#endif // !WIN32

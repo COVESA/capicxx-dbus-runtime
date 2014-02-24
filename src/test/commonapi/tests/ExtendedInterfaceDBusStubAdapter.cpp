@@ -24,7 +24,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createExtendedInterfaceDBusStu
     return std::make_shared<ExtendedInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerExtendedInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerExtendedInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(ExtendedInterface::getInterfaceId(),
                                                                &createExtendedInterfaceDBusStubAdapter);
 }
@@ -37,6 +37,7 @@ ExtendedInterfaceDBusStubAdapterInternal::~ExtendedInterfaceDBusStubAdapterInter
 }
 
 void ExtendedInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
+
 }
 
 const char* ExtendedInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlData() const {
@@ -50,19 +51,138 @@ const char* ExtendedInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectio
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         ExtendedInterfaceStub,
         CommonAPI::Version
-        > getExtendedInterfaceInterfaceVersionStubDispatcher(&ExtendedInterfaceStub::getInterfaceVersion, "uu");
+        > ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher(&ExtendedInterfaceStub::getInterfaceVersion, "uu");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+#ifdef WIN32
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        uint32_t
+        > ExtendedInterfaceDBusStubAdapterInternal::getTestPredefinedTypeAttributeAttributeStubDispatcher(&ExtendedInterfaceStub::getTestPredefinedTypeAttributeAttribute, "u");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        uint32_t
+        > ExtendedInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher(
+                &ExtendedInterfaceStub::getTestPredefinedTypeAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestPredefinedTypeAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged,
+                &ExtendedInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged,
+                "u");
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > ExtendedInterfaceDBusStubAdapterInternal::getTestDerivedStructAttributeAttributeStubDispatcher(&ExtendedInterfaceStub::getTestDerivedStructAttributeAttribute, "(sqi)");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher(
+                &ExtendedInterfaceStub::getTestDerivedStructAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestDerivedStructAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged,
+                &ExtendedInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged,
+                "(sqi)");
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > ExtendedInterfaceDBusStubAdapterInternal::getTestDerivedArrayAttributeAttributeStubDispatcher(&ExtendedInterfaceStub::getTestDerivedArrayAttributeAttribute, "at");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher(
+                &ExtendedInterfaceStub::getTestDerivedArrayAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestDerivedArrayAttributeAttribute,
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged,
+                &ExtendedInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged,
+                "at");
+#endif
+
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     ExtendedInterfaceStub,
     std::tuple<uint32_t>,
     std::tuple<>
-    > testIntMethodExtendedStubDispatcher(&ExtendedInterfaceStub::TestIntMethodExtended, "");
+    > ExtendedInterfaceDBusStubAdapterInternal::testIntMethodExtendedStubDispatcher(&ExtendedInterfaceStub::TestIntMethodExtended, "");
+
+#ifdef WIN32
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testEmptyMethodStubDispatcher(&ExtendedInterfaceStub::testEmptyMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testVoidPredefinedTypeMethodStubDispatcher(&ExtendedInterfaceStub::testVoidPredefinedTypeMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<uint32_t, std::string>
+    > ExtendedInterfaceDBusStubAdapterInternal::testPredefinedTypeMethodStubDispatcher(&ExtendedInterfaceStub::testPredefinedTypeMethod, "us");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testVoidDerivedTypeMethodStubDispatcher(&ExtendedInterfaceStub::testVoidDerivedTypeMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
+    > ExtendedInterfaceDBusStubAdapterInternal::testDerivedTypeMethodStubDispatcher(&ExtendedInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testArrayOfPolymorphicStructMethodStubDispatcher(&ExtendedInterfaceStub::TestArrayOfPolymorphicStructMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::MapIntToPolymorphic>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testMapOfPolymorphicStructMethodStubDispatcher(&ExtendedInterfaceStub::TestMapOfPolymorphicStructMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testStructWithPolymorphicMemberMethodStubDispatcher(&ExtendedInterfaceStub::TestStructWithPolymorphicMemberMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithEnumKeyMap>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::testStructWithEnumKeyMapMemberStubDispatcher(&ExtendedInterfaceStub::TestStructWithEnumKeyMapMember, "");
+#endif
 
 
+
+#ifdef WIN32
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > ExtendedInterfaceDBusStubAdapterInternal::subscribeTestSelectiveBroadcastSelectiveStubDispatcher(&ExtendedInterfaceStubAdapter::subscribeForTestSelectiveBroadcastSelective, "b");
+
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher(&ExtendedInterfaceStubAdapter::unsubscribeFromTestSelectiveBroadcastSelective, "");
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > ExtendedInterfaceDBusStubAdapterInternal::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&ExtendedInterfaceStubAdapter::subscribeForTestBroadcastWithOutArgsSelective, "b");
+
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<>
+    > ExtendedInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&ExtendedInterfaceStubAdapter::unsubscribeFromTestBroadcastWithOutArgsSelective, "");
+#endif
 
 const ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable& ExtendedInterfaceDBusStubAdapterInternal::getStubDispatcherTable() {
     return stubDispatcherTable_;
@@ -103,18 +223,48 @@ ExtendedInterfaceDBusStubAdapterInternal::ExtendedInterfaceDBusStubAdapterIntern
             dbusConnection,
             stub),
         stubDispatcherTable_({
-            { { "TestIntMethodExtended", "u" }, &commonapi::tests::testIntMethodExtendedStubDispatcher }
+            { { "TestIntMethodExtended", "u" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testIntMethodExtendedStubDispatcher }
+            #ifdef WIN32
+            ,
+            { { "getTestPredefinedTypeAttributeAttribute", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getTestPredefinedTypeAttributeAttributeStubDispatcher }
+            , { { "setTestPredefinedTypeAttributeAttribute", "u" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher },
+            { { "getTestDerivedStructAttributeAttribute", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getTestDerivedStructAttributeAttributeStubDispatcher }
+            , { { "setTestDerivedStructAttributeAttribute", "(sqi)" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher },
+            { { "getTestDerivedArrayAttributeAttribute", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getTestDerivedArrayAttributeAttributeStubDispatcher }
+            , { { "setTestDerivedArrayAttributeAttribute", "at" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher }
+            ,
+            { { "testEmptyMethod", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testEmptyMethodStubDispatcher },
+            { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testVoidPredefinedTypeMethodStubDispatcher },
+            { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testPredefinedTypeMethodStubDispatcher },
+            { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testVoidDerivedTypeMethodStubDispatcher },
+            { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testDerivedTypeMethodStubDispatcher },
+            { { "TestArrayOfPolymorphicStructMethod", "a(uv)" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testArrayOfPolymorphicStructMethodStubDispatcher },
+            { { "TestMapOfPolymorphicStructMethod", "a{y(uv)}" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testMapOfPolymorphicStructMethodStubDispatcher },
+            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testStructWithPolymorphicMemberMethodStubDispatcher },
+            { { "TestStructWithEnumKeyMapMember", "(a{is})" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::testStructWithEnumKeyMapMemberStubDispatcher }
+            ,
+            { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::subscribeTestSelectiveBroadcastSelectiveStubDispatcher }
+            ,
+            { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },
+            { { "subscribeForTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
+            ,
+            { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
+            #endif
             }) {
 
+    #ifdef WIN32
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher });
+    #else
     auto parentDispatcherTable = TestInterfaceDBusStubAdapterInternal::getStubDispatcherTable();
     stubDispatcherTable_.insert(parentDispatcherTable.begin(), parentDispatcherTable.end());
 
     auto interfaceVersionGetter = stubDispatcherTable_.find({ "getInterfaceVersion", "" });
     if(interfaceVersionGetter != stubDispatcherTable_.end()) {
-        interfaceVersionGetter->second = &commonapi::tests::getExtendedInterfaceInterfaceVersionStubDispatcher;
+        interfaceVersionGetter->second = &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher;
     } else {
-        stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::getExtendedInterfaceInterfaceVersionStubDispatcher });
+        stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher });
     }
+    #endif
 }
 
 } // namespace tests

@@ -29,7 +29,7 @@ namespace managed {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<BranchInterfaceStub> BranchInterfaceDBusStubAdapterHelper;
 
-class BranchInterfaceDBusStubAdapterInternal: public BranchInterfaceStubAdapter, public BranchInterfaceDBusStubAdapterHelper {
+class BranchInterfaceDBusStubAdapterInternal: public virtual BranchInterfaceStubAdapter, public BranchInterfaceDBusStubAdapterHelper {
  public:
     BranchInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -48,6 +48,22 @@ class BranchInterfaceDBusStubAdapterInternal: public BranchInterfaceStubAdapter,
     const BranchInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
 
     void deactivateManagedInstances();
+
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        BranchInterfaceStub,
+        CommonAPI::Version
+        > getBranchInterfaceInterfaceVersionStubDispatcher;
+
+
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    BranchInterfaceStub,
+    std::tuple<int32_t, std::string>,
+    std::tuple<BranchInterface::testBranchMethodError, int32_t, std::string>
+    > testBranchMethodStubDispatcher;
+
+
 
 
  protected:

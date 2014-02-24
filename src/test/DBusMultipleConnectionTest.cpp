@@ -55,15 +55,14 @@ class DBusMultipleConnectionTest: public ::testing::Test {
 
     virtual void TearDown() {
         servicePublisher->unregisterService(serviceAddress);
-    	usleep(30000);
+        usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Factory> proxyFactory;
     std::shared_ptr<CommonAPI::Factory> stubFactory;
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher;
     std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub;
-    std::shared_ptr<commonapi::tests::TestInterfaceProxy<> > proxy;
-
+    std::shared_ptr<commonapi::tests::TestInterfaceProxyDefault> proxy;
 };
 
 
@@ -139,9 +138,9 @@ TEST_F(DBusMultipleConnectionTest, GetAttribute) {
     ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-
+#endif

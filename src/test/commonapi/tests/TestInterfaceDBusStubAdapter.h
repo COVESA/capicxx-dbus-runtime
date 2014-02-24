@@ -28,7 +28,7 @@ namespace tests {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<TestInterfaceStub> TestInterfaceDBusStubAdapterHelper;
 
-class TestInterfaceDBusStubAdapterInternal: public TestInterfaceStubAdapter, public TestInterfaceDBusStubAdapterHelper {
+class TestInterfaceDBusStubAdapterInternal: public virtual TestInterfaceStubAdapter, public TestInterfaceDBusStubAdapterHelper {
  public:
     TestInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -61,6 +61,112 @@ class TestInterfaceDBusStubAdapterInternal: public TestInterfaceStubAdapter, pub
     const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
 
     void deactivateManagedInstances();
+
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        TestInterfaceStub,
+        CommonAPI::Version
+        > getTestInterfaceInterfaceVersionStubDispatcher;
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        TestInterfaceStub,
+        uint32_t
+        > getTestPredefinedTypeAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        TestInterfaceStub,
+        uint32_t
+        > setTestPredefinedTypeAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        TestInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > getTestDerivedStructAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        TestInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > setTestDerivedStructAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        TestInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > getTestDerivedArrayAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        TestInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > setTestDerivedArrayAttributeAttributeStubDispatcher;
+
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<>,
+    std::tuple<>
+    > testEmptyMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<>
+    > testVoidPredefinedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<uint32_t, std::string>
+    > testPredefinedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<>
+    > testVoidDerivedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
+    > testDerivedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+    std::tuple<>
+    > testArrayOfPolymorphicStructMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::MapIntToPolymorphic>,
+    std::tuple<>
+    > testMapOfPolymorphicStructMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
+    std::tuple<>
+    > testStructWithPolymorphicMemberMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    TestInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithEnumKeyMap>,
+    std::tuple<>
+    > testStructWithEnumKeyMapMemberStubDispatcher;
+
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestSelectiveBroadcastSelectiveStubDispatcher;
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+ std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher;
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    TestInterfaceStub,
+    TestInterfaceStubAdapter,
+ std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher;
 
 
  protected:

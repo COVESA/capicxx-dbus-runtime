@@ -23,6 +23,7 @@
 #include <CommonAPI/CommonAPI.h>
 
 #define COMMONAPI_INTERNAL_COMPILATION
+#include <CommonAPI/types.h>
 
 #include <CommonAPI/DBus/DBusConnection.h>
 #include <CommonAPI/DBus/DBusProxy.h>
@@ -35,7 +36,6 @@
 #include "commonapi/tests/TestInterfaceDBusStubAdapter.h"
 
 #include "commonapi/tests/TestInterfaceDBusProxy.h"
-
 
 class DBusCommunicationTest: public ::testing::Test {
  protected:
@@ -55,6 +55,11 @@ class DBusCommunicationTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
+        servicePublisher_->unregisterService(serviceAddress_);
+        servicePublisher_->unregisterService(serviceAddress2_);
+        servicePublisher_->unregisterService(serviceAddress3_);
+        servicePublisher_->unregisterService(serviceAddress4_);
+        servicePublisher_->unregisterService(serviceAddress5_);
         usleep(30000);
     }
 
@@ -433,17 +438,18 @@ const std::string DBusLowLevelCommunicationTest::lowLevelAddress2_ = "local:Comm
 const std::string DBusLowLevelCommunicationTest::lowLevelAddress3_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyLowLevelService3";
 const std::string DBusLowLevelCommunicationTest::lowLevelAddress4_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyLowLevelService4";
 
+namespace DBusCommunicationTestNamespace {
 ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
                                                     ::DBusMessage* libdbusMessage,
                                                     void* userData) {
-   return ::DBusHandlerResult::DBUS_HANDLER_RESULT_HANDLED;
+    return ::DBusHandlerResult::DBUS_HANDLER_RESULT_HANDLED;
 }
 
 DBusObjectPathVTable libdbusObjectPathVTable = {
-               NULL,
-               &onLibdbusObjectPathMessageThunk
+                NULL,
+                &onLibdbusObjectPathMessageThunk
 };
-
+}
 
 TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCorrectly) {
     std::shared_ptr<CommonAPI::DBus::DBusConnection> connection1 = CommonAPI::DBus::DBusConnection::getSessionBus();
@@ -461,7 +467,7 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
         status = stat;
     });
 
-    sleep(1);
+    usleep(1000000);
 
     EXPECT_EQ(1, counter);
     EXPECT_EQ(CommonAPI::AvailabilityStatus::NOT_AVAILABLE, status);
@@ -501,11 +507,11 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
 
     dbus_connection_try_register_object_path(libdbusConnection1,
                     "/",
-                    &libdbusObjectPathVTable,
+                    &DBusCommunicationTestNamespace::libdbusObjectPathVTable,
                     NULL,
                     NULL);
 
-    sleep(1);
+    usleep(1000000);
 
     EXPECT_EQ(DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER, libdbusStatus);
     EXPECT_EQ(2, counter);
@@ -523,11 +529,11 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
 
     dbus_connection_try_register_object_path(libdbusConnection2,
                     "/",
-                    &libdbusObjectPathVTable,
+                    &DBusCommunicationTestNamespace::libdbusObjectPathVTable,
                     NULL,
                     NULL);
 
-    sleep(1);
+    usleep(1000000);
 
     EXPECT_EQ(DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER, libdbusStatus);
 
@@ -540,8 +546,9 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
     ASSERT_TRUE(hasEnded.get());
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

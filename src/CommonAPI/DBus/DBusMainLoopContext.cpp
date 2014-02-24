@@ -9,7 +9,11 @@
 #include "DBusMainLoopContext.h"
 #include "DBusConnection.h"
 
+#ifdef WIN32
+#include <WinSock2.h>
+#else
 #include <poll.h>
+#endif
 #include <chrono>
 
 

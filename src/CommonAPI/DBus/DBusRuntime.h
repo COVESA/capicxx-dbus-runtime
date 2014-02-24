@@ -21,23 +21,19 @@ namespace CommonAPI {
 namespace DBus {
 
 class DBusRuntime: public Runtime, public std::enable_shared_from_this<DBusRuntime> {
- public:
+public:
     static std::shared_ptr<Runtime> getInstance();
     std::shared_ptr<ServicePublisher> getServicePublisher();
-
- protected:
+    static const MiddlewareInfo middlewareInfo_;
+protected:
     std::shared_ptr<Factory> doCreateFactory(std::shared_ptr<MainLoopContext> mainLoopContext,
                                              const std::string& factoryName,
                                              const bool nullOnInvalidName);
-
- private:
+private:
     static std::unordered_map<std::string, DBusRuntime> registeredRuntimes;
 };
 
 } // namespace DBus
 } // namespace CommonAPI
-
-
-extern "C" const CommonAPI::MiddlewareInfo middlewareInfo;
 
 #endif // COMMONAPI_DBUS_DBUS_RUNTIME_H_

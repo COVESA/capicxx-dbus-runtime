@@ -25,7 +25,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createBranchInterfaceDBusStubA
     return std::make_shared<BranchInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerBranchInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerBranchInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(BranchInterface::getInterfaceId(),
                                                                &createBranchInterfaceDBusStubAdapter);
 }
@@ -38,6 +38,7 @@ BranchInterfaceDBusStubAdapterInternal::~BranchInterfaceDBusStubAdapterInternal(
 }
 
 void BranchInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
+
 }
 
 const char* BranchInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlData() const {
@@ -57,17 +58,20 @@ const char* BranchInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionX
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         BranchInterfaceStub,
         CommonAPI::Version
-        > getBranchInterfaceInterfaceVersionStubDispatcher(&BranchInterfaceStub::getInterfaceVersion, "uu");
+        > BranchInterfaceDBusStubAdapterInternal::getBranchInterfaceInterfaceVersionStubDispatcher(&BranchInterfaceStub::getInterfaceVersion, "uu");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     BranchInterfaceStub,
     std::tuple<int32_t, std::string>,
     std::tuple<BranchInterface::testBranchMethodError, int32_t, std::string>
-    > testBranchMethodStubDispatcher(&BranchInterfaceStub::testBranchMethod, "iis");
+    > BranchInterfaceDBusStubAdapterInternal::testBranchMethodStubDispatcher(&BranchInterfaceStub::testBranchMethod, "iis");
+
+
 
 
 
@@ -102,10 +106,10 @@ BranchInterfaceDBusStubAdapterInternal::BranchInterfaceDBusStubAdapterInternal(
             std::dynamic_pointer_cast<BranchInterfaceStub>(stub),
             false),
         stubDispatcherTable_({
-            { { "testBranchMethod", "is" }, &commonapi::tests::managed::testBranchMethodStubDispatcher }
+            { { "testBranchMethod", "is" }, &commonapi::tests::managed::BranchInterfaceDBusStubAdapterInternal::testBranchMethodStubDispatcher }
             }) {
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::getBranchInterfaceInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::BranchInterfaceDBusStubAdapterInternal::getBranchInterfaceInterfaceVersionStubDispatcher });
 }
 
 } // namespace managed

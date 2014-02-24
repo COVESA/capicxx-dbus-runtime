@@ -108,6 +108,12 @@ public:
     std::shared_ptr<ExtendedInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef ExtendedInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> ExtendedInterfaceProxyDefault;
+#else
+    typedef ExtendedInterfaceProxy<> ExtendedInterfaceProxyDefault;
+#endif
+
 
 //
 // ExtendedInterfaceProxy Implementation

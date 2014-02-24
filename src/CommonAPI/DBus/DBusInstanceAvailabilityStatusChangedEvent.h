@@ -47,6 +47,11 @@ class DBusInstanceAvailabilityStatusChangedEvent:
         return CommonAPI::SubscriptionStatus::RETAIN;
     }
 
+    virtual ~DBusInstanceAvailabilityStatusChangedEvent() {
+        dbusProxy_.removeSignalMemberHandler(interfacesAddedSubscription_);
+        dbusProxy_.removeSignalMemberHandler(interfacesRemovedSubscription_);
+    }
+
  protected:
     virtual void onFirstListenerAdded(const CancellableListener&) {
         interfacesAddedSubscription_ = dbusProxy_.addSignalMemberHandler(

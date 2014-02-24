@@ -74,7 +74,7 @@ class LeafInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class LeafInterfaceStub : public virtual CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent> {
+class LeafInterfaceStub: public virtual CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent> {
 public:
     virtual ~LeafInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -86,6 +86,8 @@ public:
     using CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<LeafInterfaceStubAdapter, LeafInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef LeafInterfaceStubRemoteEvent RemoteEventType;
+    typedef LeafInterface StubInterface;
 };
 
 } // namespace managed

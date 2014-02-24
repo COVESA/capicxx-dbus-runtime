@@ -50,13 +50,13 @@ DBusAddressTranslator& DBusAddressTranslator::getInstance() {
 
 
 void DBusAddressTranslator::searchForDBusAddress(const std::string& domain,
-                              const std::string& interface,
+                              const std::string& interf,
                               const std::string& instance,
                               std::string& interfaceName,
                               std::string& connectionName,
                               std::string& objectPath) {
     std::stringstream ss;
-    ss << domain << ":" << interface << ":" << instance;
+    ss << domain << ":" << interf << ":" << instance;
     searchForDBusAddress(ss.str(), interfaceName, connectionName, objectPath);
 }
 

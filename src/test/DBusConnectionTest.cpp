@@ -362,8 +362,9 @@ TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
     dispatchThread.join();
 }
 
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-
+#endif

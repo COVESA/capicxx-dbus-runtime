@@ -13,28 +13,34 @@
 
 const char middlewareIdentifier[] = "DBus";
 
-const CommonAPI::MiddlewareInfo middlewareInfo(middlewareIdentifier,
-                                               &CommonAPI::DBus::DBusRuntime::getInstance,
-                                               {COMMONAPI_DBUS_VERSION_MAJOR, COMMONAPI_DBUS_VERSION_MINOR} );
-
-
 namespace CommonAPI {
 namespace DBus {
 
-__attribute__((constructor)) void registerDBusMiddleware(void) {
+INITIALIZER(registerDBusMiddleware) {
     Runtime::registerRuntimeLoader(middlewareIdentifier, &DBusRuntime::getInstance);
 }
+
+const CommonAPI::MiddlewareInfo DBusRuntime::middlewareInfo_(middlewareIdentifier,
+                                                             &CommonAPI::DBus::DBusRuntime::getInstance,
+                                                             {COMMONAPI_DBUS_VERSION_MAJOR,
+                                                              COMMONAPI_DBUS_VERSION_MINOR}
+);
+
+
+
 
 std::shared_ptr<Runtime> DBusRuntime::getInstance() {
     static std::shared_ptr<Runtime> dbusRuntimeSingleton_;
     if (!dbusRuntimeSingleton_) {
         dbusRuntimeSingleton_ = std::make_shared<DBusRuntime>();
-        for (const auto& genericLibraryPath: Configuration::getInstance().getGenericLibraryPaths(middlewareIdentifier)) {
+#ifndef WIN32
+        for (const auto& genericLibraryPath : Configuration::getInstance().getGenericLibraryPaths(middlewareIdentifier)) {
             if (!loadGenericLibrary(middlewareIdentifier, genericLibraryPath, false)) {
                 return std::shared_ptr<Runtime>(NULL);
             }
         }
         findAndLoadGenericLibraries(middlewareIdentifier, Configuration::getInstance().getLibrarySearchPaths());
+#endif
     }
     return dbusRuntimeSingleton_;
 }
@@ -46,7 +52,7 @@ std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopCo
     auto factory = std::shared_ptr<DBusFactory>(NULL);
 
     if (factoryName == "") {
-        factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo, mainLoopContext);
+        factory = std::make_shared<DBusFactory>(this->shared_from_this(), &middlewareInfo_, mainLoopContext);
     } else {
         const DBusFactoryConfig* dbusFactoryConfig = DBusConfiguration::getInstance().getFactoryConfiguration(factoryName);
 
@@ -60,7 +66,7 @@ std::shared_ptr<Factory> DBusRuntime::doCreateFactory(std::shared_ptr<MainLoopCo
 
         factory = std::make_shared<DBusFactory>(
                         this->shared_from_this(),
-                        &middlewareInfo,
+                        &middlewareInfo_,
                         mainLoopContext,
                         *dbusFactoryConfig);
     }
@@ -74,3 +80,7 @@ std::shared_ptr<ServicePublisher> DBusRuntime::getServicePublisher() {
 
 } // namespace DBus
 } // namespace CommonAPI
+
+extern "C" {
+    CommonAPI::MiddlewareInfo middlewareInfo = CommonAPI::DBus::DBusRuntime::middlewareInfo_;
+}

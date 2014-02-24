@@ -105,6 +105,12 @@ public:
     std::shared_ptr<LeafInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef LeafInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> LeafInterfaceProxyDefault;
+#else
+    typedef LeafInterfaceProxy<> LeafInterfaceProxyDefault;
+#endif
+
 
 //
 // LeafInterfaceProxy Implementation

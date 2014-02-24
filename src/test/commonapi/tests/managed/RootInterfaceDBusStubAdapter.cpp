@@ -25,7 +25,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createRootInterfaceDBusStubAda
     return std::make_shared<RootInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerRootInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerRootInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(RootInterface::getInterfaceId(),
                                                                &createRootInterfaceDBusStubAdapter);
 }
@@ -38,13 +38,30 @@ RootInterfaceDBusStubAdapterInternal::~RootInterfaceDBusStubAdapterInternal() {
 }
 
 void RootInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
-    for(std::set<std::string>::iterator iter = registeredLeafInterfaceInstances.begin();
-            iter != registeredLeafInterfaceInstances.end(); ++iter) {
-        deregisterManagedStubLeafInterface(*iter);
+    std::set<std::string>::iterator iter;
+    std::set<std::string>::iterator iterNext;
+
+    iter = registeredLeafInterfaceInstances.begin();
+    while (iter != registeredLeafInterfaceInstances.end()) {
+        iterNext = std::next(iter);
+
+        if (deregisterManagedStubLeafInterface(*iter)) {
+            iter = iterNext;
+        }
+        else {
+            iter++;
+        }
     }
-    for(std::set<std::string>::iterator iter = registeredBranchInterfaceInstances.begin();
-            iter != registeredBranchInterfaceInstances.end(); ++iter) {
-        deregisterManagedStubBranchInterface(*iter);
+    iter = registeredBranchInterfaceInstances.begin();
+    while (iter != registeredBranchInterfaceInstances.end()) {
+        iterNext = std::next(iter);
+
+        if (deregisterManagedStubBranchInterface(*iter)) {
+            iter = iterNext;
+        }
+        else {
+            iter++;
+        }
     }
 }
 
@@ -65,17 +82,20 @@ const char* RootInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXml
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         RootInterfaceStub,
         CommonAPI::Version
-        > getRootInterfaceInterfaceVersionStubDispatcher(&RootInterfaceStub::getInterfaceVersion, "uu");
+        > RootInterfaceDBusStubAdapterInternal::getRootInterfaceInterfaceVersionStubDispatcher(&RootInterfaceStub::getInterfaceVersion, "uu");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     RootInterfaceStub,
     std::tuple<int32_t, std::string>,
     std::tuple<RootInterface::testRootMethodError, int32_t, std::string>
-    > testRootMethodStubDispatcher(&RootInterfaceStub::testRootMethod, "iis");
+    > RootInterfaceDBusStubAdapterInternal::testRootMethodStubDispatcher(&RootInterfaceStub::testRootMethod, "iis");
+
+
 
 
 
@@ -218,10 +238,10 @@ RootInterfaceDBusStubAdapterInternal::RootInterfaceDBusStubAdapterInternal(
             std::dynamic_pointer_cast<RootInterfaceStub>(stub),
             true),
         stubDispatcherTable_({
-            { { "testRootMethod", "is" }, &commonapi::tests::managed::testRootMethodStubDispatcher }
+            { { "testRootMethod", "is" }, &commonapi::tests::managed::RootInterfaceDBusStubAdapterInternal::testRootMethodStubDispatcher }
             }) {
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::getRootInterfaceInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::RootInterfaceDBusStubAdapterInternal::getRootInterfaceInterfaceVersionStubDispatcher });
 }
 
 } // namespace managed

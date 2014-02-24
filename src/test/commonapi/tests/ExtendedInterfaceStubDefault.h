@@ -44,8 +44,7 @@ public:
 
 
 protected:
-private:
-    class RemoteEventHandler: public ExtendedInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual ExtendedInterfaceStubRemoteEvent, public virtual TestInterfaceStubDefault::RemoteEventHandler {
      public:
         RemoteEventHandler(ExtendedInterfaceStubDefault* defaultStub);
 
@@ -53,8 +52,8 @@ private:
      private:
         ExtendedInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    ExtendedInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
 
 
     CommonAPI::Version interfaceVersion_;

@@ -22,7 +22,7 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createTestInterfaceDBusProxy(
     return std::make_shared<TestInterfaceDBusProxy>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-__attribute__((constructor)) void registerTestInterfaceDBusProxy(void) {
+INITIALIZER(registerTestInterfaceDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(TestInterface::getInterfaceId(),
        &createTestInterfaceDBusProxy);
 }

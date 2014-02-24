@@ -14,11 +14,10 @@
 
 #include <list>
 #include <memory>
-#include <poll.h>
+#include <CommonAPI/MainLoopContext.h>
 
 #include <dbus/dbus.h>
 
-#include <CommonAPI/MainLoopContext.h>
 
 
 namespace CommonAPI {
@@ -55,7 +54,6 @@ class DBusWatch: public Watch {
 
     const std::vector<DispatchSource*>& getDependentDispatchSources();
     void addDependentDispatchSource(DispatchSource* dispatchSource);
-
  private:
     bool isReady();
 
@@ -79,7 +77,6 @@ class DBusTimeout: public Timeout {
 
     int64_t getTimeoutInterval() const;
     int64_t getReadyTime() const;
-
  private:
     void recalculateDueTime();
 

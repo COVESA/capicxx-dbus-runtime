@@ -33,7 +33,7 @@ public:
     static DBusAddressTranslator& getInstance();
 
     void searchForDBusAddress(const std::string& domain,
-                              const std::string& interface,
+                              const std::string& interf,
                               const std::string& instance,
                               std::string& interfaceName,
                               std::string& connectionName,

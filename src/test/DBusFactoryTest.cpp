@@ -164,8 +164,9 @@ TEST_F(DBusProxyFactoryTest, CreateNamedFactory) {
     ASSERT_TRUE(nullFactory == NULL);
 }
 
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

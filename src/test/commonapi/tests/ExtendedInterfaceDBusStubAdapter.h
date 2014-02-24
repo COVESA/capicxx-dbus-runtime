@@ -29,7 +29,7 @@ namespace tests {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<ExtendedInterfaceStub> ExtendedInterfaceDBusStubAdapterHelper;
 
-class ExtendedInterfaceDBusStubAdapterInternal: public ExtendedInterfaceStubAdapter, public ExtendedInterfaceDBusStubAdapterHelper, public TestInterfaceDBusStubAdapterInternal {
+class ExtendedInterfaceDBusStubAdapterInternal: public virtual ExtendedInterfaceStubAdapter, public ExtendedInterfaceDBusStubAdapterHelper, public TestInterfaceDBusStubAdapterInternal {
  public:
     ExtendedInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -66,16 +66,133 @@ class ExtendedInterfaceDBusStubAdapterInternal: public ExtendedInterfaceStubAdap
     }
 
     virtual void init(std::shared_ptr<DBusStubAdapter> instance) {
-        return DBusStubAdapter::init(instance);
+        return ExtendedInterfaceDBusStubAdapterHelper::init(instance);
     }
 
     virtual void deinit() {
-        return DBusStubAdapter::deinit();
+        return ExtendedInterfaceDBusStubAdapterHelper::deinit();
     }
 
     virtual bool onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
         return ExtendedInterfaceDBusStubAdapterHelper::onInterfaceDBusMessage(dbusMessage);
     }
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        CommonAPI::Version
+        > getExtendedInterfaceInterfaceVersionStubDispatcher;
+
+
+#ifdef WIN32
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        uint32_t
+        > getTestPredefinedTypeAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        uint32_t
+        > setTestPredefinedTypeAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > getTestDerivedStructAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestStructExtended
+        > setTestDerivedStructAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > getTestDerivedArrayAttributeAttributeStubDispatcher;
+static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        ExtendedInterfaceStub,
+        DerivedTypeCollection::TestArrayUInt64
+        > setTestDerivedArrayAttributeAttributeStubDispatcher;
+#endif
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<uint32_t>,
+    std::tuple<>
+    > testIntMethodExtendedStubDispatcher;
+
+#ifdef WIN32
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<>,
+    std::tuple<>
+    > testEmptyMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<>
+    > testVoidPredefinedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<uint32_t, std::string>,
+    std::tuple<uint32_t, std::string>
+    > testPredefinedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<>
+    > testVoidDerivedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
+    std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
+    > testDerivedTypeMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
+    std::tuple<>
+    > testArrayOfPolymorphicStructMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::MapIntToPolymorphic>,
+    std::tuple<>
+    > testMapOfPolymorphicStructMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
+    std::tuple<>
+    > testStructWithPolymorphicMemberMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    ExtendedInterfaceStub,
+    std::tuple<DerivedTypeCollection::StructWithEnumKeyMap>,
+    std::tuple<>
+    > testStructWithEnumKeyMapMemberStubDispatcher;
+#endif
+
+
+#ifdef WIN32
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestSelectiveBroadcastSelectiveStubDispatcher;
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+ std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+    std::tuple<>,
+    std::tuple<bool>
+    > subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher;
+
+static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+    ExtendedInterfaceStub,
+    ExtendedInterfaceStubAdapter,
+ std::tuple<>,
+    std::tuple<>
+    > unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher;
+#endif
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;

@@ -389,10 +389,10 @@ public:
     }
 
 protected:
-    void onInternalEvent(const std::string& interface,
+    void onInternalEvent(const std::string& interfaceName,
                     const std::unordered_map<std::string, DBusLegacyVariantWrapper<Variant<_Types> > >& props,
                     const std::vector<std::string>& invalid) {
-        if (std::string(interfaceName_) == interface) {
+        if (std::string(interfaceName_) == interfaceName) {
             auto mapIter = props.find(std::string(propertyName_));
             if (mapIter != props.end()) {
                 notifyListeners(mapIter->second.contained_.template get<ValueType>());
@@ -481,10 +481,10 @@ public:
     }
 
 protected:
-    void onInternalEvent(const std::string& interface,
+    void onInternalEvent(const std::string& interfaceName,
                     const std::unordered_map<std::string, DBusLegacyVariantWrapper<ValueType> >& props,
                     const std::vector<std::string>& invalid) {
-        if (std::string(interfaceName_) == interface) {
+        if (std::string(interfaceName_) == interfaceName) {
             auto mapIter = props.find(std::string(propertyName_));
             if (mapIter != props.end()) {
                 notifyListeners(mapIter->second.contained_);

@@ -35,7 +35,7 @@ namespace tests {
  * and attribute-changed-notifications of observable attributes as defined by this service.
  * An application developer should not need to bother with this class.
  */
-class ExtendedInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public ExtendedInterface {
+class ExtendedInterfaceStubAdapter: virtual public CommonAPI::StubAdapter, public ExtendedInterface, public virtual TestInterfaceStubAdapter {
  public:
 
 
@@ -61,7 +61,7 @@ protected:
  * This class and the one below are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class ExtendedInterfaceStubRemoteEvent {
+class ExtendedInterfaceStubRemoteEvent: public virtual TestInterfaceStubRemoteEvent {
  public:
     virtual ~ExtendedInterfaceStubRemoteEvent() { }
 
@@ -74,7 +74,7 @@ class ExtendedInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class ExtendedInterfaceStub : public virtual CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>, public virtual TestInterfaceStub {
+class ExtendedInterfaceStub: public virtual CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>, public virtual TestInterfaceStub {
 public:
     virtual ~ExtendedInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -86,6 +86,8 @@ public:
     using CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef ExtendedInterfaceStubRemoteEvent RemoteEventType;
+    typedef ExtendedInterface StubInterface;
 };
 
 } // namespace tests

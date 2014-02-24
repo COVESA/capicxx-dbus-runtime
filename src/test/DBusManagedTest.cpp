@@ -226,7 +226,7 @@ TEST_F(DBusManagedTest, RegisterLeafManagedAndCreateProxyForLeaf) {
     success = rootStub->registerManagedStubLeafInterface(leafStub, leafInstance);
     ASSERT_TRUE(success);
 
-    sleep(2);
+    usleep(2000000);
 
     auto leafProxy = proxyManagerLeafInterface.buildProxy<commonapi::tests::managed::LeafInterfaceProxy>(leafInstance);
     for (uint32_t i = 0; !leafProxy->isAvailable() && i < 500; ++i) {
@@ -290,7 +290,7 @@ TEST_F(DBusManagedTest, PropagateTeardown) {
     bool reg = rootStub->registerManagedStubLeafInterface(leafStub, leafInstance);
     ASSERT_TRUE(reg);
 
-    sleep(2);
+    usleep(2000000);
 
     auto leafProxy = proxyManagerLeafInterface.buildProxy<commonapi::tests::managed::LeafInterfaceProxy>(leafInstance);
 
@@ -377,12 +377,11 @@ protected:
     bool waitForAllProxiesToBeAvailable(const std::vector<_ProxyType>& dbusProxies) {
         bool allAreAvailable = false;
         for (size_t i = 0; i < 500 && !allAreAvailable; i++) {
-            allAreAvailable = std::all_of(
-                    dbusProxies.begin(),
-                    dbusProxies.end(),
-                    [](const _ProxyType& proxy) {
-                        return proxy->isAvailable();
-                    });
+            allAreAvailable = std::all_of(dbusProxies.begin(),
+                                          dbusProxies.end(),
+                                          [](const _ProxyType& proxy) {
+                                              return proxy->isAvailable();
+                                          });
             usleep(10 * 1000);
         }
         return allAreAvailable;
@@ -413,22 +412,21 @@ protected:
     }
 
     void createXLeafProxiesForAllExistingLeafs() {
-        for (auto rootProxyIterator: rootProxies_) {
-            std::vector<std::shared_ptr<commonapi::tests::managed::LeafInterfaceProxy<>>> leafProxiesForRootX;
+        for (auto rootProxyIterator : rootProxies_) {
+            std::vector<std::shared_ptr<commonapi::tests::managed::LeafInterfaceProxyDefault>> leafProxiesForRootX;
 
             CommonAPI::ProxyManager& leafProxyManager = rootProxyIterator->getProxyManagerLeafInterface();
             std::vector<std::string> availableInstances;
             CommonAPI::CallStatus status;
             leafProxyManager.getAvailableInstances(status, availableInstances);
 
-            for (const std::string& availableInstance: availableInstances) {
+            for (const std::string& availableInstance : availableInstances) {
                 auto newLeafProxy = leafProxyManager.buildProxy<commonapi::tests::managed::LeafInterfaceProxy>(availableInstance);
                 leafProxiesForRootX.push_back(newLeafProxy);
             }
             leafProxies_.push_back(std::move(leafProxiesForRootX));
         }
     }
-
 
     std::shared_ptr<CommonAPI::DBus::DBusRuntime> runtime_;
     std::shared_ptr<CommonAPI::Factory> serviceFactory_;
@@ -437,12 +435,11 @@ protected:
     std::shared_ptr<CommonAPI::DBus::DBusConnection> manualTestDBusConnection_;
 
     std::unordered_map<std::string, std::shared_ptr<commonapi::tests::managed::RootInterfaceStubDefault>> rootStubs_;
-    std::vector<std::shared_ptr<commonapi::tests::managed::RootInterfaceProxy<>>> rootProxies_;
-    std::vector<std::vector<std::shared_ptr<commonapi::tests::managed::LeafInterfaceProxy<>>>> leafProxies_;
+    std::vector<std::shared_ptr<commonapi::tests::managed::RootInterfaceProxyDefault>> rootProxies_;
+    std::vector<std::vector<std::shared_ptr<commonapi::tests::managed::LeafInterfaceProxyDefault>>>leafProxies_;
 
     CommonAPI::AvailabilityStatus leafInstanceAvailability;
     CommonAPI::AvailabilityStatus branchInstanceAvailability;
-
 public:
     void onLeafInstanceAvailabilityStatusChanged(const std::string instanceName, CommonAPI::AvailabilityStatus availabilityStatus) {
         leafInstanceAvailability = availabilityStatus;
@@ -451,9 +448,7 @@ public:
     void onBranchInstanceAvailabilityStatusChanged(const std::string instanceName, CommonAPI::AvailabilityStatus availabilityStatus) {
         branchInstanceAvailability = availabilityStatus;
     }
-
 };
-
 
 TEST_F(DBusManagedTestExtended, RegisterSeveralRootsOnSameObjectPath) {
     ASSERT_TRUE(registerRootStubForSuffix("One"));
@@ -485,13 +480,12 @@ TEST_F(DBusManagedTestExtended, RegisterSeveralRootsOnSameObjectPathAndCommunica
     std::string outString;
 
     for (size_t i = 0; i < rootProxies_.size(); ++i) {
-        rootProxies_[i]->testRootMethod(
-                            -5,
-                            std::string("More Cars"),
-                            callStatus,
-                            applicationError,
-                            outInt,
-                            outString);
+        rootProxies_[i]->testRootMethod(-5,
+                                        std::string("More Cars"),
+                                        callStatus,
+                                        applicationError,
+                                        outInt,
+                                        outString);
         EXPECT_EQ(CommonAPI::CallStatus::SUCCESS, callStatus);
     }
 }
@@ -537,8 +531,8 @@ TEST_F(DBusManagedTestExtended, RegisterSeveralRootsAndSeveralLeafsForEachOnSame
     ASSERT_EQ(3, leafProxies_.size());
 
     uint32_t runNr = 1;
-    for (const auto& leafProxiesForCurrentRoot: leafProxies_) {
-        ASSERT_EQ(5, leafProxiesForCurrentRoot.size()) << "in run #" << runNr++;
+    for (const auto& leafProxiesForCurrentRoot : leafProxies_) {
+        ASSERT_EQ(5, leafProxiesForCurrentRoot.size())<< "in run #" << runNr++;
 
         bool allLeafProxiesForCurrentRootAreAvailable = waitForAllProxiesToBeAvailable(leafProxiesForCurrentRoot);
         EXPECT_TRUE(allLeafProxiesForCurrentRootAreAvailable);
@@ -591,9 +585,8 @@ TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
 
     std::shared_ptr<commonapi::tests::managed::SecondRootStubDefault> secondRootStub = std::make_shared<
                     commonapi::tests::managed::SecondRootStubDefault>();
-    const std::string rootAddress = getSuffixedRootAddress("Two");
-    runtime_->getServicePublisher()->registerService(secondRootStub, rootAddress, serviceFactory_);
-
+    const std::string rootAddressLocal = getSuffixedRootAddress("Two");
+    runtime_->getServicePublisher()->registerService(secondRootStub, rootAddressLocal, serviceFactory_);
 
     auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
     auto leafStub2 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
@@ -604,7 +597,7 @@ TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
     bool leafStub2Registered = secondRootStub->registerManagedStubLeafInterface(leafStub2, secondLeafInstance);
     ASSERT_TRUE(leafStub2Registered);
 
-    runtime_->getServicePublisher()->unregisterService(rootAddress);
+    runtime_->getServicePublisher()->unregisterService(rootAddressLocal);
 }
 
 TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootManaged) {
@@ -612,11 +605,21 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootMan
 
     createRootProxyForSuffix("One");
     auto rootProxy = *(rootProxies_.begin());
-    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
-    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent =
+                    rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent =
+                    rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
 
-    leafInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
-    branchInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+    leafInstanceAvailabilityStatusEvent.subscribe(
+                    std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
+    branchInstanceAvailabilityStatusEvent.subscribe(
+                    std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
 
     auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
     auto leafStub2 = std::make_shared<commonapi::tests::managed::BranchInterfaceStubDefault>();
@@ -630,8 +633,9 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootMan
     // check that event for branch instances is not triggered by leaf instances
     ASSERT_NE(CommonAPI::AvailabilityStatus::AVAILABLE, branchInstanceAvailability);
 
-
-    bool leafStub2Registered = rootStubs_.begin()->second->registerManagedStubBranchInterface(leafStub2, branchInstance);
+    bool leafStub2Registered = rootStubs_.begin()->second->registerManagedStubBranchInterface(
+                    leafStub2,
+                    branchInstance);
     ASSERT_TRUE(leafStub2Registered);
     usleep(50000);
 
@@ -643,11 +647,21 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
 
     createRootProxyForSuffix("One");
     auto rootProxy = *(rootProxies_.begin());
-    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
-    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent = rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& leafInstanceAvailabilityStatusEvent =
+                    rootProxy->getProxyManagerLeafInterface().getInstanceAvailabilityStatusChangedEvent();
+    CommonAPI::ProxyManager::InstanceAvailabilityStatusChangedEvent& branchInstanceAvailabilityStatusEvent =
+                    rootProxy->getProxyManagerBranchInterface().getInstanceAvailabilityStatusChangedEvent();
 
-    leafInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
-    branchInstanceAvailabilityStatusEvent.subscribe(std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged, this, std::placeholders::_1, std::placeholders::_2));
+    leafInstanceAvailabilityStatusEvent.subscribe(
+                    std::bind(&DBusManagedTestExtended::onLeafInstanceAvailabilityStatusChanged,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
+    branchInstanceAvailabilityStatusEvent.subscribe(
+                    std::bind(&DBusManagedTestExtended::onBranchInstanceAvailabilityStatusChanged,
+                              this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
 
     auto leafStub1 = std::make_shared<commonapi::tests::managed::LeafInterfaceStubDefault>();
     runtime_->getServicePublisher()->registerService(leafStub1, leafAddress, serviceFactory_);
@@ -660,14 +674,18 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
     // check, that events do not get triggered by unmanaged registration
     ASSERT_EQ(CommonAPI::AvailabilityStatus::UNKNOWN, leafInstanceAvailability);
     ASSERT_EQ(CommonAPI::AvailabilityStatus::UNKNOWN, branchInstanceAvailability);
+
+    runtime_->getServicePublisher()->unregisterService(leafAddress);
+    runtime_->getServicePublisher()->unregisterService(branchAddress);
 }
 
 //XXX: Needs tests for invalid instances for the children.
 //XXX: Also later on need auto generated instance ID test and
 //XXX: If stub cannot manage, ensure the objectManager interface does not appear on dbus
 //XXX: Tests if configuration file is present
-
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

@@ -44,8 +44,7 @@ public:
 
 
 protected:
-private:
-    class RemoteEventHandler: public BranchInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual BranchInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(BranchInterfaceStubDefault* defaultStub);
 
@@ -53,8 +52,8 @@ private:
      private:
         BranchInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    BranchInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
 
 
     CommonAPI::Version interfaceVersion_;

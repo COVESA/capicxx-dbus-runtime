@@ -81,6 +81,8 @@ Use autotools to build this package withthe above requirements available through
 # make
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
+To build the Windows version with Visual Studio, you can use the solution file CommonAPI-DBus.sln. It is configured to build CommonAPI-DBus as a static library.
+Add the path of CommonAPI.lib to "Additional Library Directories"
 
 == Linking against CommonAPI-D-Bus
 
@@ -183,6 +185,14 @@ dbus_bustype=<valid D-Bus Bustype>
 All "dbus_*"-values are optional. For each such omitted value the default value as described below will be used. 
 
 # dbus_bustype may be set to "session" or "system" for communication on the user's session bus or on the system wide bus. The default value is "session"
+
+== Remarks on Windows version
+
+On Windows systems there are some drawbacks:
+# Calling disconnect and later connect on the same DBusConnection somehow damages the libdbus connection. On Linux
+implementation this all works fine.
+# The DBusLoadTest revealed that a number of more than about 50 proxies slows down the dbus communication
+significantly. That's why we run the DBusLoadTest on windows with just 50 instead of 100 proxies.
 
 == Working on the code & contribution
 

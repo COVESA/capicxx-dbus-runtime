@@ -29,7 +29,7 @@ namespace managed {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<SecondRootStub> SecondRootDBusStubAdapterHelper;
 
-class SecondRootDBusStubAdapterInternal: public SecondRootStubAdapter, public SecondRootDBusStubAdapterHelper {
+class SecondRootDBusStubAdapterInternal: public virtual SecondRootStubAdapter, public SecondRootDBusStubAdapterHelper {
  public:
     SecondRootDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -51,6 +51,17 @@ class SecondRootDBusStubAdapterInternal: public SecondRootStubAdapter, public Se
     const SecondRootDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
 
     void deactivateManagedInstances();
+
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        SecondRootStub,
+        CommonAPI::Version
+        > getSecondRootInterfaceVersionStubDispatcher;
+
+
+
+
+
 
 
  protected:

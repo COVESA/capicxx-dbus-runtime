@@ -199,6 +199,11 @@ TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
     proxyDeregisterForAvailabilityStatus();
 }
 
+/*
+This test fails in Windows. Calling disconnect and then connect again somehow
+damages the connection in libdbus. In Linux this all works fine.
+*/
+#ifndef WIN32
 TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
     proxyDBusConnection_->disconnect();
 
@@ -217,6 +222,7 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
 
     proxyDeregisterForAvailabilityStatus();
 }
+#endif
 
 TEST_F(ProxyTest, ServiceStatus) {
     registerTestStub();
@@ -348,6 +354,70 @@ TEST_F(ProxyTest, CallMethodFromParentInterface) {
     deregisterExtendedStub();
 }
 
+TEST_F(ProxyTest, CanHandleRemoteAttribute) {
+    registerTestStub();
+
+    for (uint32_t i = 0; !proxy_->isAvailable() && i < 200; ++i) {
+        usleep(20 * 1000);
+    }
+    ASSERT_TRUE(proxy_->isAvailable());
+
+    CommonAPI::CallStatus callStatus(CommonAPI::CallStatus::REMOTE_ERROR);
+    uint32_t value;
+
+    auto& testAttribute = proxy_->getTestPredefinedTypeAttributeAttribute();
+
+    testAttribute.getValue(callStatus, value);
+
+    EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
+
+    value = 7;
+    uint32_t responseValue;
+    testAttribute.setValue(value, callStatus, responseValue);
+
+    EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(value, responseValue);
+
+    usleep(50000);
+    deregisterTestStub();
+}
+
+
+TEST_F(ProxyTest, CanHandleRemoteAttributeFromParentInterface) {
+    registerExtendedStub();
+
+    std::shared_ptr<CommonAPI::DBus::DBusFactory> proxyFactory_ = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime_->createFactory());
+
+    auto extendedProxy = proxyFactory_->buildProxy<commonapi::tests::ExtendedInterfaceProxy>(commonApiAddressExtended);
+
+
+    for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
+        usleep(20 * 1000);
+    }
+    ASSERT_TRUE(extendedProxy->isAvailable());
+
+    CommonAPI::CallStatus callStatus(CommonAPI::CallStatus::REMOTE_ERROR);
+    uint32_t value;
+
+    //usleep(200000000);
+
+    auto& testAttribute = extendedProxy->getTestPredefinedTypeAttributeAttribute();
+
+    testAttribute.getValue(callStatus, value);
+
+    EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
+
+    value = 7;
+    uint32_t responseValue;
+    testAttribute.setValue(value, callStatus, responseValue);
+
+    EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(value, responseValue);
+
+    usleep(50000);
+    deregisterExtendedStub();
+}
+
 TEST_F(ProxyTest, ProxyCanFetchVersionAttributeFromInheritedInterfaceStub) {
     registerExtendedStub();
 
@@ -379,7 +449,102 @@ TEST_F(ProxyTest, ProxyCanFetchVersionAttributeFromInheritedInterfaceStub) {
     deregisterExtendedStub();
 }
 
+// this test does not build its proxies within SetUp
+class ProxyTest2: public ::testing::Test {
+protected:
+    virtual void SetUp() {
+        runtime_ = std::dynamic_pointer_cast<CommonAPI::DBus::DBusRuntime>(CommonAPI::Runtime::load());
+        serviceFactory_ = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime_->createFactory());
+    }
+
+    virtual void TearDown() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    }
+
+    void registerTestStub() {
+        stubDefault_ = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+        bool isTestStubAdapterRegistered_ = runtime_->getServicePublisher()->registerService<
+                        commonapi::tests::TestInterfaceStub>(stubDefault_, commonApiAddress, serviceFactory_);
+        ASSERT_TRUE(isTestStubAdapterRegistered_);
+
+        usleep(100000);
+    }
+
+    void deregisterTestStub() {
+        const bool isStubAdapterUnregistered = CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(
+                        commonApiAddress);
+        ASSERT_TRUE(isStubAdapterUnregistered);
+        stubDefault_.reset();
+        isTestStubAdapterRegistered_ = false;
+    }
+
+    void proxyRegisterForAvailabilityStatus() {
+        proxyAvailabilityStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
+
+        proxyStatusSubscription_ = proxy_->getProxyStatusEvent().subscribe(
+                        [&](const CommonAPI::AvailabilityStatus& availabilityStatus) {
+                            proxyAvailabilityStatus_ = availabilityStatus;
+                        });
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    void proxyDeregisterForAvailabilityStatus() {
+        proxy_->getProxyStatusEvent().unsubscribe(proxyStatusSubscription_);
+    }
+
+    bool proxyWaitForAvailabilityStatus(const CommonAPI::AvailabilityStatus& availabilityStatus) const {
+        for (int i = 0; i < 100; i++) {
+            if (proxyAvailabilityStatus_ == availabilityStatus)
+                return true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        return false;
+    }
+
+    bool isTestStubAdapterRegistered_;
+    std::shared_ptr<CommonAPI::DBus::DBusRuntime> runtime_;
+    std::shared_ptr<CommonAPI::DBus::DBusFactory> serviceFactory_;
+
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
+    std::shared_ptr<commonapi::tests::TestInterfaceDBusProxy> proxy_;
+    CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
+
+    CommonAPI::ProxyStatusEvent::Subscription proxyStatusSubscription_;
+
+    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stubDefault_;
+};
+
+TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
+    registerTestStub();
+
+    proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+    ASSERT_TRUE(proxyDBusConnection_->connect());
+
+    proxy_ = std::make_shared<commonapi::tests::TestInterfaceDBusProxy>(
+                    serviceFactory_,
+                    commonApiAddress,
+                    interfaceName,
+                    busName,
+                    objectPath,
+                    proxyDBusConnection_);
+    proxy_->init();
+
+    proxyRegisterForAvailabilityStatus();
+
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
+
+    deregisterTestStub();
+    usleep(100000);
+
+    EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
+
+    proxyDeregisterForAvailabilityStatus();
+}
+
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

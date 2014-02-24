@@ -24,7 +24,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createTestInterfaceDBusStubAda
     return std::make_shared<TestInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerTestInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerTestInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(TestInterface::getInterfaceId(),
                                                                &createTestInterfaceDBusStubAdapter);
 }
@@ -37,6 +37,7 @@ TestInterfaceDBusStubAdapterInternal::~TestInterfaceDBusStubAdapterInternal() {
 }
 
 void TestInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
+
 }
 
 const char* TestInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlData() const {
@@ -123,47 +124,45 @@ const char* TestInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXml
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         CommonAPI::Version
-        > getTestInterfaceInterfaceVersionStubDispatcher(&TestInterfaceStub::getInterfaceVersion, "uu");
+        > TestInterfaceDBusStubAdapterInternal::getTestInterfaceInterfaceVersionStubDispatcher(&TestInterfaceStub::getInterfaceVersion, "uu");
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         uint32_t
-        > getTestPredefinedTypeAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestPredefinedTypeAttributeAttribute, "u");
-static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        > TestInterfaceDBusStubAdapterInternal::getTestPredefinedTypeAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestPredefinedTypeAttributeAttribute, "u");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         TestInterfaceStub,
         uint32_t
-        > setTestPredefinedTypeAttributeAttributeStubDispatcher(
+        > TestInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestPredefinedTypeAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestPredefinedTypeAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged,
                 &TestInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged,
                 "u");
-
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestStructExtended
-        > getTestDerivedStructAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedStructAttributeAttribute, "(sqi)");
-static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        > TestInterfaceDBusStubAdapterInternal::getTestDerivedStructAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedStructAttributeAttribute, "(sqi)");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestStructExtended
-        > setTestDerivedStructAttributeAttributeStubDispatcher(
+        > TestInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestDerivedStructAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestDerivedStructAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged,
                 &TestInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged,
                 "(sqi)");
-
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestArrayUInt64
-        > getTestDerivedArrayAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedArrayAttributeAttribute, "at");
-static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
+        > TestInterfaceDBusStubAdapterInternal::getTestDerivedArrayAttributeAttributeStubDispatcher(&TestInterfaceStub::getTestDerivedArrayAttributeAttribute, "at");
+CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestArrayUInt64
-        > setTestDerivedArrayAttributeAttributeStubDispatcher(
+        > TestInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestDerivedArrayAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestDerivedArrayAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged,
@@ -171,51 +170,52 @@ static CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
                 "at");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<>,
     std::tuple<>
-    > testEmptyMethodStubDispatcher(&TestInterfaceStub::testEmptyMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testEmptyMethodStubDispatcher(&TestInterfaceStub::testEmptyMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<uint32_t, std::string>,
     std::tuple<>
-    > testVoidPredefinedTypeMethodStubDispatcher(&TestInterfaceStub::testVoidPredefinedTypeMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testVoidPredefinedTypeMethodStubDispatcher(&TestInterfaceStub::testVoidPredefinedTypeMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<uint32_t, std::string>,
     std::tuple<uint32_t, std::string>
-    > testPredefinedTypeMethodStubDispatcher(&TestInterfaceStub::testPredefinedTypeMethod, "us");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testPredefinedTypeMethodStubDispatcher(&TestInterfaceStub::testPredefinedTypeMethod, "us");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
     std::tuple<>
-    > testVoidDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testVoidDerivedTypeMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testVoidDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testVoidDerivedTypeMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>,
     std::tuple<DerivedTypeCollection::TestEnumExtended2, DerivedTypeCollection::TestMap>
-    > testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testDerivedTypeMethodStubDispatcher(&TestInterfaceStub::testDerivedTypeMethod, "ia{ua(sq)}");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<std::vector<std::shared_ptr<DerivedTypeCollection::TestPolymorphicStruct>>>,
     std::tuple<>
-    > testArrayOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestArrayOfPolymorphicStructMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testArrayOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestArrayOfPolymorphicStructMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<DerivedTypeCollection::MapIntToPolymorphic>,
     std::tuple<>
-    > testMapOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestMapOfPolymorphicStructMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testMapOfPolymorphicStructMethodStubDispatcher(&TestInterfaceStub::TestMapOfPolymorphicStructMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<DerivedTypeCollection::StructWithPolymorphicMember>,
     std::tuple<>
-    > testStructWithPolymorphicMemberMethodStubDispatcher(&TestInterfaceStub::TestStructWithPolymorphicMemberMethod, "");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > TestInterfaceDBusStubAdapterInternal::testStructWithPolymorphicMemberMethodStubDispatcher(&TestInterfaceStub::TestStructWithPolymorphicMemberMethod, "");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     TestInterfaceStub,
     std::tuple<DerivedTypeCollection::StructWithEnumKeyMap>,
     std::tuple<>
-    > testStructWithEnumKeyMapMemberStubDispatcher(&TestInterfaceStub::TestStructWithEnumKeyMapMember, "");
+    > TestInterfaceDBusStubAdapterInternal::testStructWithEnumKeyMapMemberStubDispatcher(&TestInterfaceStub::TestStructWithEnumKeyMapMember, "");
+
 
 void TestInterfaceDBusStubAdapterInternal::fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value) {
     CommonAPI::DBus::DBusStubSignalHelper<CommonAPI::DBus::DBusSerializableArguments<uint32_t>>
@@ -254,20 +254,19 @@ void TestInterfaceDBusStubAdapterInternal::fireTestPredefinedTypeBroadcastEvent(
                 uint32Value, stringValue
         );
 }
-static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
     TestInterfaceStub,
     TestInterfaceStubAdapter,
     std::tuple<>,
     std::tuple<bool>
-    > subscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestSelectiveBroadcastSelective, "b");
+    > TestInterfaceDBusStubAdapterInternal::subscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestSelectiveBroadcastSelective, "b");
 
-static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
     TestInterfaceStub,
     TestInterfaceStubAdapter,
     std::tuple<>,
     std::tuple<>
-    > unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestSelectiveBroadcastSelective, "");
-
+    > TestInterfaceDBusStubAdapterInternal::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestSelectiveBroadcastSelective, "");
 
 void TestInterfaceDBusStubAdapterInternal::fireTestSelectiveBroadcastSelective(const std::shared_ptr<CommonAPI::ClientId> clientId) {
     std::shared_ptr<CommonAPI::DBus::DBusClientId> dbusClientId = std::dynamic_pointer_cast<CommonAPI::DBus::DBusClientId, CommonAPI::ClientId>(clientId);
@@ -323,20 +322,19 @@ std::shared_ptr<CommonAPI::ClientIdList> const TestInterfaceDBusStubAdapterInter
     return subscribersForTestSelectiveBroadcastSelective_;
 }
 
-static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
     TestInterfaceStub,
     TestInterfaceStubAdapter,
     std::tuple<>,
     std::tuple<bool>
-    > subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestBroadcastWithOutArgsSelective, "b");
+    > TestInterfaceDBusStubAdapterInternal::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::subscribeForTestBroadcastWithOutArgsSelective, "b");
 
-static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
+CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
     TestInterfaceStub,
     TestInterfaceStubAdapter,
     std::tuple<>,
     std::tuple<>
-    > unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestBroadcastWithOutArgsSelective, "");
-
+    > TestInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher(&TestInterfaceStubAdapter::unsubscribeFromTestBroadcastWithOutArgsSelective, "");
 
 void TestInterfaceDBusStubAdapterInternal::fireTestBroadcastWithOutArgsSelective(const std::shared_ptr<CommonAPI::ClientId> clientId, const uint32_t& uint32Value, const std::string& stringValue) {
     std::shared_ptr<CommonAPI::DBus::DBusClientId> dbusClientId = std::dynamic_pointer_cast<CommonAPI::DBus::DBusClientId, CommonAPI::ClientId>(clientId);
@@ -394,6 +392,7 @@ std::shared_ptr<CommonAPI::ClientIdList> const TestInterfaceDBusStubAdapterInter
 }
 
 
+
 const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable& TestInterfaceDBusStubAdapterInternal::getStubDispatcherTable() {
     return stubDispatcherTable_;
 }
@@ -425,32 +424,34 @@ TestInterfaceDBusStubAdapterInternal::TestInterfaceDBusStubAdapterInternal(
             std::dynamic_pointer_cast<TestInterfaceStub>(stub),
             false),
         stubDispatcherTable_({
-            { { "getTestPredefinedTypeAttributeAttribute", "" }, &commonapi::tests::getTestPredefinedTypeAttributeAttributeStubDispatcher }
-            , { { "setTestPredefinedTypeAttributeAttribute", "u" }, &commonapi::tests::setTestPredefinedTypeAttributeAttributeStubDispatcher },
-            { { "getTestDerivedStructAttributeAttribute", "" }, &commonapi::tests::getTestDerivedStructAttributeAttributeStubDispatcher }
-            , { { "setTestDerivedStructAttributeAttribute", "(sqi)" }, &commonapi::tests::setTestDerivedStructAttributeAttributeStubDispatcher },
-            { { "getTestDerivedArrayAttributeAttribute", "" }, &commonapi::tests::getTestDerivedArrayAttributeAttributeStubDispatcher }
-            , { { "setTestDerivedArrayAttributeAttribute", "at" }, &commonapi::tests::setTestDerivedArrayAttributeAttributeStubDispatcher }
+            { { "getTestPredefinedTypeAttributeAttribute", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::getTestPredefinedTypeAttributeAttributeStubDispatcher }
+            , { { "setTestPredefinedTypeAttributeAttribute", "u" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher },
+            { { "getTestDerivedStructAttributeAttribute", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::getTestDerivedStructAttributeAttributeStubDispatcher }
+            , { { "setTestDerivedStructAttributeAttribute", "(sqi)" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher },
+            { { "getTestDerivedArrayAttributeAttribute", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::getTestDerivedArrayAttributeAttributeStubDispatcher }
+            , { { "setTestDerivedArrayAttributeAttribute", "at" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher }
             ,
-            { { "testEmptyMethod", "" }, &commonapi::tests::testEmptyMethodStubDispatcher },
-            { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::testVoidPredefinedTypeMethodStubDispatcher },
-            { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::testPredefinedTypeMethodStubDispatcher },
-            { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testVoidDerivedTypeMethodStubDispatcher },
-            { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::testDerivedTypeMethodStubDispatcher },
-            { { "TestArrayOfPolymorphicStructMethod", "a(uv)" }, &commonapi::tests::testArrayOfPolymorphicStructMethodStubDispatcher },
-            { { "TestMapOfPolymorphicStructMethod", "a{y(uv)}" }, &commonapi::tests::testMapOfPolymorphicStructMethodStubDispatcher },
-            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::testStructWithPolymorphicMemberMethodStubDispatcher },
-            { { "TestStructWithEnumKeyMapMember", "(a{is})" }, &commonapi::tests::testStructWithEnumKeyMapMemberStubDispatcher }
+            { { "testEmptyMethod", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testEmptyMethodStubDispatcher },
+            { { "testVoidPredefinedTypeMethod", "us" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testVoidPredefinedTypeMethodStubDispatcher },
+            { { "testPredefinedTypeMethod", "us" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testPredefinedTypeMethodStubDispatcher },
+            { { "testVoidDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testVoidDerivedTypeMethodStubDispatcher },
+            { { "testDerivedTypeMethod", "ia{ua(sq)}" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testDerivedTypeMethodStubDispatcher },
+            { { "TestArrayOfPolymorphicStructMethod", "a(uv)" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testArrayOfPolymorphicStructMethodStubDispatcher },
+            { { "TestMapOfPolymorphicStructMethod", "a{y(uv)}" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testMapOfPolymorphicStructMethodStubDispatcher },
+            { { "TestStructWithPolymorphicMemberMethod", "(u(uv))" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testStructWithPolymorphicMemberMethodStubDispatcher },
+            { { "TestStructWithEnumKeyMapMember", "(a{is})" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::testStructWithEnumKeyMapMemberStubDispatcher }
             ,
-            { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::subscribeTestSelectiveBroadcastSelectiveStubDispatcher },
-            { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },
-            { { "subscribeForTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher },
-            { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
+            { { "subscribeForTestSelectiveBroadcastSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::subscribeTestSelectiveBroadcastSelectiveStubDispatcher }
+            ,
+            { { "unsubscribeFromTestSelectiveBroadcastSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::unsubscribeTestSelectiveBroadcastSelectiveStubDispatcher },
+            { { "subscribeForTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
+            ,
+            { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
             }) {
     subscribersForTestSelectiveBroadcastSelective_ = std::make_shared<CommonAPI::ClientIdList>();
     subscribersForTestBroadcastWithOutArgsSelective_ = std::make_shared<CommonAPI::ClientIdList>();
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::getTestInterfaceInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::getTestInterfaceInterfaceVersionStubDispatcher });
 }
 
 } // namespace tests

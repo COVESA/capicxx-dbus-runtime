@@ -107,6 +107,12 @@ public:
     std::shared_ptr<RootInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef RootInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> RootInterfaceProxyDefault;
+#else
+    typedef RootInterfaceProxy<> RootInterfaceProxyDefault;
+#endif
+
 
 //
 // RootInterfaceProxy Implementation

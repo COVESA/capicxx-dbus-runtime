@@ -25,7 +25,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createLeafInterfaceDBusStubAda
     return std::make_shared<LeafInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerLeafInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerLeafInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(LeafInterface::getInterfaceId(),
                                                                &createLeafInterfaceDBusStubAdapter);
 }
@@ -38,6 +38,7 @@ LeafInterfaceDBusStubAdapterInternal::~LeafInterfaceDBusStubAdapterInternal() {
 }
 
 void LeafInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
+
 }
 
 const char* LeafInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlData() const {
@@ -57,17 +58,20 @@ const char* LeafInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXml
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         LeafInterfaceStub,
         CommonAPI::Version
-        > getLeafInterfaceInterfaceVersionStubDispatcher(&LeafInterfaceStub::getInterfaceVersion, "uu");
+        > LeafInterfaceDBusStubAdapterInternal::getLeafInterfaceInterfaceVersionStubDispatcher(&LeafInterfaceStub::getInterfaceVersion, "uu");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     LeafInterfaceStub,
     std::tuple<int32_t, std::string>,
     std::tuple<LeafInterface::testLeafMethodError, int32_t, std::string>
-    > testLeafMethodStubDispatcher(&LeafInterfaceStub::testLeafMethod, "iis");
+    > LeafInterfaceDBusStubAdapterInternal::testLeafMethodStubDispatcher(&LeafInterfaceStub::testLeafMethod, "iis");
+
+
 
 
 
@@ -102,10 +106,10 @@ LeafInterfaceDBusStubAdapterInternal::LeafInterfaceDBusStubAdapterInternal(
             std::dynamic_pointer_cast<LeafInterfaceStub>(stub),
             false),
         stubDispatcherTable_({
-            { { "testLeafMethod", "is" }, &commonapi::tests::managed::testLeafMethodStubDispatcher }
+            { { "testLeafMethod", "is" }, &commonapi::tests::managed::LeafInterfaceDBusStubAdapterInternal::testLeafMethodStubDispatcher }
             }) {
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::getLeafInterfaceInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::LeafInterfaceDBusStubAdapterInternal::getLeafInterfaceInterfaceVersionStubDispatcher });
 }
 
 } // namespace managed

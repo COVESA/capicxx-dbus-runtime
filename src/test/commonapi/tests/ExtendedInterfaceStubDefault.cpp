@@ -22,6 +22,7 @@ const CommonAPI::Version& ExtendedInterfaceStubDefault::getInterfaceVersion(std:
 }
 
 ExtendedInterfaceStubRemoteEvent* ExtendedInterfaceStubDefault::initStubAdapter(const std::shared_ptr<ExtendedInterfaceStubAdapter>& stubAdapter) {
+    TestInterfaceStubDefault::initStubAdapter(stubAdapter);
     CommonAPI::Stub<ExtendedInterfaceStubAdapter, ExtendedInterfaceStubRemoteEvent>::stubAdapter_ = stubAdapter;
     return &remoteEventHandler_;
 }
@@ -39,6 +40,7 @@ void ExtendedInterfaceStubDefault::TestIntMethodExtended(uint32_t inInt) {
 
 
 ExtendedInterfaceStubDefault::RemoteEventHandler::RemoteEventHandler(ExtendedInterfaceStubDefault* defaultStub):
+        TestInterfaceStubDefault::RemoteEventHandler(defaultStub),
         defaultStub_(defaultStub) {
 }
 

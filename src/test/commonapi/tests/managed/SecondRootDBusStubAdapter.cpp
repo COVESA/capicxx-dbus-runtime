@@ -25,7 +25,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createSecondRootDBusStubAdapte
     return std::make_shared<SecondRootDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerSecondRootDBusStubAdapter(void) {
+INITIALIZER(registerSecondRootDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(SecondRoot::getInterfaceId(),
                                                                &createSecondRootDBusStubAdapter);
 }
@@ -38,9 +38,19 @@ SecondRootDBusStubAdapterInternal::~SecondRootDBusStubAdapterInternal() {
 }
 
 void SecondRootDBusStubAdapterInternal::deactivateManagedInstances() {
-    for(std::set<std::string>::iterator iter = registeredLeafInterfaceInstances.begin();
-            iter != registeredLeafInterfaceInstances.end(); ++iter) {
-        deregisterManagedStubLeafInterface(*iter);
+    std::set<std::string>::iterator iter;
+    std::set<std::string>::iterator iterNext;
+
+    iter = registeredLeafInterfaceInstances.begin();
+    while (iter != registeredLeafInterfaceInstances.end()) {
+        iterNext = std::next(iter);
+
+        if (deregisterManagedStubLeafInterface(*iter)) {
+            iter = iterNext;
+        }
+        else {
+            iter++;
+        }
     }
 }
 
@@ -55,10 +65,13 @@ const char* SecondRootDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlDat
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         SecondRootStub,
         CommonAPI::Version
-        > getSecondRootInterfaceVersionStubDispatcher(&SecondRootStub::getInterfaceVersion, "uu");
+        > SecondRootDBusStubAdapterInternal::getSecondRootInterfaceVersionStubDispatcher(&SecondRootStub::getInterfaceVersion, "uu");
+
+
+
 
 
 
@@ -151,7 +164,7 @@ SecondRootDBusStubAdapterInternal::SecondRootDBusStubAdapterInternal(
         stubDispatcherTable_({
             }) {
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::getSecondRootInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::SecondRootDBusStubAdapterInternal::getSecondRootInterfaceVersionStubDispatcher });
 }
 
 } // namespace managed

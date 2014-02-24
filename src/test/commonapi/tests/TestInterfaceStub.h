@@ -127,7 +127,7 @@ class TestInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class TestInterfaceStub : public virtual CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent> {
+class TestInterfaceStub: public virtual CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent> {
 public:
     virtual ~TestInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -187,6 +187,8 @@ public:
     using CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<TestInterfaceStubAdapter, TestInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef TestInterfaceStubRemoteEvent RemoteEventType;
+    typedef TestInterface StubInterface;
 };
 
 } // namespace tests

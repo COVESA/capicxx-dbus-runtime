@@ -265,7 +265,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
                                         const std::string& rootObjectPath,
                                         const std::string& dbusServiceUniqueName);
 
-    void processIntrospectionInterface(const pugi::xml_node& interface,
+    void processIntrospectionInterface(const pugi::xml_node& node,
                                        const std::string& rootObjectPath,
                                        const std::string& fullObjectPath,
                                        const std::string& dbusServiceUniqueName);

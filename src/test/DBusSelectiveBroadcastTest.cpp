@@ -135,19 +135,16 @@ protected:
    int selectiveBroadcastArrivedAtProxyFromSameFactory2;
    int selectiveBroadcastArrivedAtProxyFromOtherFactory;
 public:
-   CommonAPI::SubscriptionStatus selectiveBroadcastCallbackForProxyFromSameFactory1() {
+   void selectiveBroadcastCallbackForProxyFromSameFactory1() {
        selectiveBroadcastArrivedAtProxyFromSameFactory1++;
-       return CommonAPI::SubscriptionStatus::RETAIN;
    }
 
-   CommonAPI::SubscriptionStatus selectiveBroadcastCallbackForProxyFromSameFactory2() {
+   void selectiveBroadcastCallbackForProxyFromSameFactory2() {
        selectiveBroadcastArrivedAtProxyFromSameFactory2++;
-       return CommonAPI::SubscriptionStatus::RETAIN;
    }
 
-   CommonAPI::SubscriptionStatus selectiveBroadcastCallbackForProxyFromOtherFactory() {
+   void selectiveBroadcastCallbackForProxyFromOtherFactory() {
        selectiveBroadcastArrivedAtProxyFromOtherFactory++;
-       return CommonAPI::SubscriptionStatus::RETAIN;
    }
 };
 
@@ -266,7 +263,9 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
     ASSERT_EQ(selectiveBroadcastArrivedAtProxyFromOtherFactory, 0);
 }
 
+#ifndef WIN32
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

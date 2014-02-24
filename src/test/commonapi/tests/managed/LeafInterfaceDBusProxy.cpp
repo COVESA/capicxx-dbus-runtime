@@ -23,7 +23,7 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createLeafInterfaceDBusProxy(
     return std::make_shared<LeafInterfaceDBusProxy>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-__attribute__((constructor)) void registerLeafInterfaceDBusProxy(void) {
+INITIALIZER(registerLeafInterfaceDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(LeafInterface::getInterfaceId(),
        &createLeafInterfaceDBusProxy);
 }

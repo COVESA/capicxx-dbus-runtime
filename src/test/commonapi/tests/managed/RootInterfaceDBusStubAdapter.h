@@ -29,7 +29,7 @@ namespace managed {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<RootInterfaceStub> RootInterfaceDBusStubAdapterHelper;
 
-class RootInterfaceDBusStubAdapterInternal: public RootInterfaceStubAdapter, public RootInterfaceDBusStubAdapterHelper {
+class RootInterfaceDBusStubAdapterInternal: public virtual RootInterfaceStubAdapter, public RootInterfaceDBusStubAdapterHelper {
  public:
     RootInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -54,6 +54,22 @@ class RootInterfaceDBusStubAdapterInternal: public RootInterfaceStubAdapter, pub
     const RootInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
 
     void deactivateManagedInstances();
+
+
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        RootInterfaceStub,
+        CommonAPI::Version
+        > getRootInterfaceInterfaceVersionStubDispatcher;
+
+
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    RootInterfaceStub,
+    std::tuple<int32_t, std::string>,
+    std::tuple<RootInterface::testRootMethodError, int32_t, std::string>
+    > testRootMethodStubDispatcher;
+
+
 
 
  protected:

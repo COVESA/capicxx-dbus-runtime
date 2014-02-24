@@ -101,8 +101,7 @@ protected:
     virtual bool trySetTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value);
     virtual bool validateTestDerivedArrayAttributeAttributeRequestedValue(const DerivedTypeCollection::TestArrayUInt64& value);
     virtual void onRemoteTestDerivedArrayAttributeAttributeChanged();
-private:
-    class RemoteEventHandler: public TestInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual TestInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(TestInterfaceStubDefault* defaultStub);
 
@@ -122,8 +121,8 @@ private:
      private:
         TestInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    TestInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
 
     uint32_t testPredefinedTypeAttributeAttributeValue_;
     DerivedTypeCollection::TestStructExtended testDerivedStructAttributeAttributeValue_;

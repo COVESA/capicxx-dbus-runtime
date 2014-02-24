@@ -43,10 +43,11 @@ const DBusObjectPathVTable* DBusConnection::getDBusObjectPathVTable() {
 }
 
 
+
 //std::bind used to start the dispatch thread holds one reference, and the selfReference
 //created within the thread is the second. If only those two remain, no one but the
 //dispatch thread references the connection, which therefore can be finished.
-constexpr uint32_t ownUseCount = 2;
+const uint32_t ownUseCount = 2;
 
 void DBusConnection::dispatch() {
     std::shared_ptr<DBusConnection> selfReference = this->shared_from_this();

@@ -23,7 +23,7 @@ std::shared_ptr<CommonAPI::DBus::DBusProxy> createBranchInterfaceDBusProxy(
     return std::make_shared<BranchInterfaceDBusProxy>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection);
 }
 
-__attribute__((constructor)) void registerBranchInterfaceDBusProxy(void) {
+INITIALIZER(registerBranchInterfaceDBusProxy) {
     CommonAPI::DBus::DBusFactory::registerProxyFactoryMethod(BranchInterface::getInterfaceId(),
        &createBranchInterfaceDBusProxy);
 }

@@ -74,7 +74,7 @@ class BranchInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class BranchInterfaceStub : public virtual CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent> {
+class BranchInterfaceStub: public virtual CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent> {
 public:
     virtual ~BranchInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -86,6 +86,8 @@ public:
     using CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<BranchInterfaceStubAdapter, BranchInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef BranchInterfaceStubRemoteEvent RemoteEventType;
+    typedef BranchInterface StubInterface;
 };
 
 } // namespace managed

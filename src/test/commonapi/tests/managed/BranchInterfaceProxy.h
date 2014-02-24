@@ -105,6 +105,12 @@ public:
     std::shared_ptr<BranchInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef BranchInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> BranchInterfaceProxyDefault;
+#else
+    typedef BranchInterfaceProxy<> BranchInterfaceProxyDefault;
+#endif
+
 
 //
 // BranchInterfaceProxy Implementation

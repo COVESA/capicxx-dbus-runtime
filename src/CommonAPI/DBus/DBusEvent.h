@@ -66,16 +66,20 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
     }
  protected:
     virtual void onFirstListenerAdded(const CancellableListener&) {
-         subscription_ = dbusProxy_.addSignalMemberHandler(objectPath_, interfaceName_,
-                         eventName_, eventSignature_, this);
-     }
+        subscription_ = dbusProxy_.addSignalMemberHandler(objectPath_,
+                                                          interfaceName_,
+                                                          eventName_,
+                                                          eventSignature_,
+                                                          this);
+    }
 
     virtual void onLastListenerRemoved(const CancellableListener&) {
         dbusProxy_.removeSignalMemberHandler(subscription_);
     }
 
-    template <typename ... _Arguments>
-    inline SubscriptionStatus unpackArgumentsAndHandleSignalDBusMessage(const DBusMessage& dbusMessage, std::tuple<_Arguments...> argTuple) {
+    template<typename ... _Arguments>
+    inline SubscriptionStatus unpackArgumentsAndHandleSignalDBusMessage(const DBusMessage& dbusMessage,
+                                                                        std::tuple<_Arguments...> argTuple) {
         return handleSignalDBusMessage(dbusMessage, std::move(argTuple), typename make_sequence<sizeof...(_Arguments)>::type());
     }
 

@@ -52,8 +52,7 @@ public:
     std::set<std::string>& getBranchInterfaceInstances();
 
 protected:
-private:
-    class RemoteEventHandler: public RootInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual RootInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(RootInterfaceStubDefault* defaultStub);
 
@@ -61,8 +60,8 @@ private:
      private:
         RootInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    RootInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
     uint32_t autoInstanceCounter_;
 
 

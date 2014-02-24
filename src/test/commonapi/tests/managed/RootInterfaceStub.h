@@ -82,7 +82,7 @@ class RootInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class RootInterfaceStub : public virtual CommonAPI::Stub<RootInterfaceStubAdapter, RootInterfaceStubRemoteEvent> {
+class RootInterfaceStub: public virtual CommonAPI::Stub<RootInterfaceStubAdapter, RootInterfaceStubRemoteEvent> {
 public:
     virtual ~RootInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -100,6 +100,8 @@ public:
     using CommonAPI::Stub<RootInterfaceStubAdapter, RootInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<RootInterfaceStubAdapter, RootInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<RootInterfaceStubAdapter, RootInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef RootInterfaceStubRemoteEvent RemoteEventType;
+    typedef RootInterface StubInterface;
 };
 
 } // namespace managed
