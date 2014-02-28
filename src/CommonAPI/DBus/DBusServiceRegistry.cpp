@@ -717,8 +717,7 @@ bool DBusServiceRegistry::introspectDBusObjectPath(const std::string& dbusServic
 
         dbusConnection->sendDBusMessageWithReplyAsync(
             dbusMessageCall,
-            DBusProxyAsyncCallbackHandler<std::string>::create(instrospectAsyncCallback),
-            2000);
+            DBusProxyAsyncCallbackHandler<std::string>::create(instrospectAsyncCallback));
 
         isResolvingInProgress = true;
     }
@@ -757,7 +756,7 @@ void DBusServiceRegistry::onIntrospectCallback(const CallStatus& callStatus,
         return;
     }
 
-    auto& dbusUniqueNameRecord = dbusServiceUniqueNameIterator->second;
+    DBusUniqueNameRecord& dbusUniqueNameRecord = dbusServiceUniqueNameIterator->second;
     auto dbusObjectPathIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
     const bool isDBusObjectPathFound = (dbusObjectPathIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end());
 
@@ -765,7 +764,7 @@ void DBusServiceRegistry::onIntrospectCallback(const CallStatus& callStatus,
         return;
     }
 
-    auto& dbusObjectPathRecord = dbusObjectPathIterator->second;
+    DBusObjectPathCache& dbusObjectPathRecord = dbusObjectPathIterator->second;
 
     dbusObjectPathRecord.state = DBusRecordState::RESOLVED;
     dbusObjectPathRecord.promiseOnResolve.set_value(dbusObjectPathRecord.state);
@@ -1007,14 +1006,14 @@ void DBusServiceRegistry::notifyDBusServiceListeners(const DBusUniqueNameRecord&
                                                      const DBusRecordState& dbusInterfaceNamesState) {
     notificationThread_ = std::this_thread::get_id();
 
-    for (auto& dbusServiceName : dbusUniqueNameRecord.ownedBusNames) {
+    for (const std::string& dbusServiceName : dbusUniqueNameRecord.ownedBusNames) {
         auto dbusServiceListenersIterator = dbusServiceListenersMap.find(dbusServiceName);
 
         if(dbusServiceListenersIterator == dbusServiceListenersMap.end()) {
             continue;
         }
 
-        auto& dbusServiceListenersRecord = dbusServiceListenersIterator->second;
+        DBusServiceListenersRecord& dbusServiceListenersRecord = dbusServiceListenersIterator->second;
         if(dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVED) {
             continue;
         }
