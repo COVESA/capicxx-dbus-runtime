@@ -94,8 +94,8 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
 
     bool isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-    inline const std::string& getDBusObjectPath() const;
-    inline static const char* getInterfaceName();
+    const std::string& getDBusObjectPath() const;
+    static const char* getInterfaceName();
 
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage);
@@ -119,15 +119,6 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
 
     std::mutex dbusObjectManagerStubLock_;
 };
-
-
-inline const std::string& DBusObjectManagerStub::getDBusObjectPath() const {
-    return dbusObjectPath_;
-}
-
-const char* DBusObjectManagerStub::getInterfaceName() {
-    return "org.freedesktop.DBus.ObjectManager";
-}
 
 } // namespace DBus
 } // namespace CommonAPI

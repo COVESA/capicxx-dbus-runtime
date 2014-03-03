@@ -37,7 +37,7 @@ class DBusObjectManager {
 
     bool handleMessage(const DBusMessage&);
 
-    inline std::shared_ptr<DBusObjectManagerStub> getRootDBusObjectManagerStub();
+    std::shared_ptr<DBusObjectManagerStub> getRootDBusObjectManagerStub();
 
  private:
     // objectPath, interfaceName
@@ -63,11 +63,6 @@ class DBusObjectManager {
     std::weak_ptr<DBusProxyConnection> dbusConnection_;
     std::recursive_mutex objectPathLock_;
 };
-
-
-std::shared_ptr<DBusObjectManagerStub> DBusObjectManager::getRootDBusObjectManagerStub() {
-    return rootDBusObjectManagerStub_;
-}
 
 } // namespace DBus
 } // namespace CommonAPI

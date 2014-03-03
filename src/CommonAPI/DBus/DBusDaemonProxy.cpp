@@ -199,6 +199,10 @@ std::future<CallStatus> DBusDaemonProxy::getNameOwnerAsync(const std::string& bu
                     2000);
 }
 
+const char* DBusDaemonProxy::getInterfaceId() {
+    static const char interfaceId[] = "org.freedesktop.DBus";
+    return interfaceId;
+}
 
 } // namespace DBus
 } // namespace CommonAPI

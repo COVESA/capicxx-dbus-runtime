@@ -279,5 +279,14 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
     return dbusMessageReplySent;
 }
 
+
+const std::string& DBusObjectManagerStub::getDBusObjectPath() const {
+    return dbusObjectPath_;
+}
+
+const char* DBusObjectManagerStub::getInterfaceName() {
+    return "org.freedesktop.DBus.ObjectManager";
+}
+
 } // namespace DBus
 } // namespace CommonAPI

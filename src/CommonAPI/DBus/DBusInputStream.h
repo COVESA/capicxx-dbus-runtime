@@ -227,10 +227,6 @@ private:
     std::stack<position_t> savedStreamPositions_;
 };
 
-inline void DBusInputStream::setError() {
-    exception_ = new CommonAPI::DBus::DBusError();
-}
-
 } // namespace DBus
 } // namespace CommonAPI
 

@@ -347,5 +347,9 @@ void DBusInputStream::beginReadMapElement() {
 void DBusInputStream::endReadMapElement() {
 }
 
+void DBusInputStream::setError() {
+    exception_ = new CommonAPI::DBus::DBusError();
+}
+
 } // namespace DBus
 } // namespace CommonAPI

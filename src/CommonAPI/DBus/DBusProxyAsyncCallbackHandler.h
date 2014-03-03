@@ -21,16 +21,16 @@
 #include <future>
 #include <memory>
 
-
 namespace CommonAPI {
 namespace DBus {
 
-template <typename ... _ArgTypes>
+template<typename ... _ArgTypes>
 class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
     typedef std::function<void(CallStatus, _ArgTypes...)> FunctionType;
 
-    static inline std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(FunctionType&& callback) {
+    static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
+            FunctionType&& callback) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
                 new DBusProxyAsyncCallbackHandler(std::move(callback)));
     }

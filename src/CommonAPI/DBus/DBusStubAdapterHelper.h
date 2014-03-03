@@ -48,7 +48,6 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
     typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
     typedef std::unordered_map<DBusInterfaceMemberPath, StubDispatcherBase*> StubDispatcherTable;
 
- public:
     DBusStubAdapterHelper(const std::shared_ptr<DBusFactory>& factory,
                           const std::string& commonApiAddress,
                           const std::string& dbusInterfaceName,

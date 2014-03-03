@@ -57,7 +57,7 @@ class DBusDaemonProxy: public DBusProxyBase {
 
     void init();
 
-    static inline const char* getInterfaceId();
+    static const char* getInterfaceId();
 
     NameOwnerChangedEvent& getNameOwnerChangedEvent();
 
@@ -94,11 +94,6 @@ class DBusDaemonProxy: public DBusProxyBase {
     DBusEvent<NameOwnerChangedEvent> nameOwnerChangedEvent_;
     StaticInterfaceVersionAttribute interfaceVersionAttribute_;
 };
-
-const char* DBusDaemonProxy::getInterfaceId() {
-    static const char interfaceId[] = "org.freedesktop.DBus";
-    return interfaceId;
-}
 
 } // namespace DBus
 } // namespace CommonAPI

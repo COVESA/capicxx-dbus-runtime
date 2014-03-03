@@ -25,5 +25,43 @@ DBusMessage DBusProxyBase::createMethodCall(const char* methodName,
                     methodSignature);
 }
 
+const std::shared_ptr<DBusProxyConnection>& DBusProxyBase::getDBusConnection() const {
+    return dbusConnection_;
+}
+
+DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
+        const std::string& signalName,
+        const std::string& signalSignature,
+        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+        const bool justAddFilter) {
+    return addSignalMemberHandler(
+            getDBusObjectPath(),
+            getInterfaceName(),
+            signalName,
+            signalSignature,
+            dbusSignalHandler,
+            justAddFilter);
+}
+
+DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
+                const std::string& objectPath,
+                const std::string& interfaceName,
+                const std::string& signalName,
+                const std::string& signalSignature,
+                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                const bool justAddFilter) {
+    return dbusConnection_->addSignalMemberHandler(
+                objectPath,
+                interfaceName,
+                signalName,
+                signalSignature,
+                dbusSignalHandler,
+                justAddFilter);
+}
+
+bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken) {
+    return dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerToken);
+}
+
 } // namespace DBus
 } // namespace CommonAPI

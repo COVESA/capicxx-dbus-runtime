@@ -95,19 +95,19 @@ const DBusFactoryConfig* DBusConfiguration::getFactoryConfiguration(const std::s
     return NULL;
 }
 
-inline void reset(DBusServiceAddress& dbusServiceAddress) {
+void reset(DBusServiceAddress& dbusServiceAddress) {
     std::get<0>(dbusServiceAddress) = "";
     std::get<1>(dbusServiceAddress) = "";
     std::get<2>(dbusServiceAddress) = "";
 }
 
-inline void reset(CommonApiServiceDetails& serviceDetails) {
+void reset(CommonApiServiceDetails& serviceDetails) {
     reset(std::get<0>(serviceDetails));
     std::get<1>(serviceDetails) = false;
 }
 
 
-inline void reset(DBusFactoryConfig& dbusFactoryconfiguration) {
+void reset(DBusFactoryConfig& dbusFactoryconfiguration) {
     dbusFactoryconfiguration.factoryName_ = "";
     dbusFactoryconfiguration.busType_ = BusType::SESSION;
 }

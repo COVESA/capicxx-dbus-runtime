@@ -273,5 +273,29 @@ bool DBusMessage::setDestination(const char* destination)
     return dbus_message_set_destination(libdbusMessage_, destination);
 }
 
+bool DBusMessage::hasObjectPath(const std::string& objectPath) const {
+    return hasObjectPath(objectPath.c_str());
+}
+
+bool DBusMessage::isInvalidType() const {
+    return (getType() == Type::Invalid);
+}
+
+bool DBusMessage::isMethodCallType() const {
+    return (getType() == Type::MethodCall);
+}
+
+bool DBusMessage::isMethodReturnType() const {
+    return (getType() == Type::MethodReturn);
+}
+
+bool DBusMessage::isErrorType() const {
+    return (getType() == Type::Error);
+}
+
+bool DBusMessage::isSignalType() const {
+    return (getType() == Type::Signal);
+}
+
 } // namespace DBus
 } // namespace CommonAPI

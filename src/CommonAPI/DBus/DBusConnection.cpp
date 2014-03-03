@@ -1207,5 +1207,26 @@ void notifyDBusSignalHandlers(DBusSignalHandlersTable& dbusSignalHandlerstable,
     return dbusConnection->onLibdbusObjectPathMessage(libdbusMessage);
 }
 
+
+std::shared_ptr<DBusConnection> DBusConnection::getBus(const BusType& busType) {
+    return std::make_shared<DBusConnection>(busType);
+}
+
+std::shared_ptr<DBusConnection> DBusConnection::wrapLibDBus(::DBusConnection* libDbusConnection) {
+    return std::make_shared<DBusConnection>(libDbusConnection);
+}
+
+std::shared_ptr<DBusConnection> DBusConnection::getSessionBus() {
+    return getBus(BusType::SESSION);
+}
+
+std::shared_ptr<DBusConnection> DBusConnection::getSystemBus() {
+    return getBus(BusType::SYSTEM);
+}
+
+std::shared_ptr<DBusConnection> DBusConnection::getStarterBus() {
+    return getBus(BusType::STARTER);
+}
+
 } // namespace DBus
 } // namespace CommonAPI

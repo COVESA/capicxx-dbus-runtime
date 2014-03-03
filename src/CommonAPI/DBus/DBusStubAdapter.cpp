@@ -69,5 +69,25 @@ const std::string& DBusStubAdapter::getInstanceId() const {
     return commonApiParticipantId_;
 }
 
+const bool DBusStubAdapter::isManagingInterface() {
+    return isManagingInterface_;
+}
+
+const std::string& DBusStubAdapter::getDBusName() const {
+    return dbusBusName_;
+}
+
+const std::string& DBusStubAdapter::getObjectPath() const {
+    return dbusObjectPath_;
+}
+
+const std::string& DBusStubAdapter::getInterfaceName() const {
+    return dbusInterfaceName_;
+}
+
+const std::shared_ptr<DBusProxyConnection>& DBusStubAdapter::getDBusConnection() const {
+    return dbusConnection_;
+}
+
 } // namespace dbus
 } // namespace CommonAPI

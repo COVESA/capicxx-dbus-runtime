@@ -77,7 +77,7 @@ class DBusMessage {
     const char* getErrorName() const;
     const char* getDestination() const;
 
-    inline bool hasObjectPath(const std::string& objectPath) const;
+    bool hasObjectPath(const std::string& objectPath) const;
 
     bool hasObjectPath(const char* objectPath) const;
     bool hasInterfaceName(const char* interfaceName) const;
@@ -92,11 +92,11 @@ class DBusMessage {
         Signal = DBUS_MESSAGE_TYPE_SIGNAL
     };
     const Type getType() const;
-    inline bool isInvalidType() const;
-    inline bool isMethodCallType() const;
-    inline bool isMethodReturnType() const;
-    inline bool isErrorType() const;
-    inline bool isSignalType() const;
+    bool isInvalidType() const;
+    bool isMethodCallType() const;
+    bool isMethodReturnType() const;
+    bool isErrorType() const;
+    bool isSignalType() const;
 
     char* getBodyData() const;
     int getBodyLength() const;
@@ -110,30 +110,6 @@ class DBusMessage {
 
     friend class DBusConnection;
 };
-
-bool DBusMessage::hasObjectPath(const std::string& objectPath) const {
-    return hasObjectPath(objectPath.c_str());
-}
-
-bool DBusMessage::isInvalidType() const {
-    return (getType() == Type::Invalid);
-}
-
-bool DBusMessage::isMethodCallType() const {
-    return (getType() == Type::MethodCall);
-}
-
-bool DBusMessage::isMethodReturnType() const {
-    return (getType() == Type::MethodReturn);
-}
-
-bool DBusMessage::isErrorType() const {
-    return (getType() == Type::Error);
-}
-
-bool DBusMessage::isSignalType() const {
-    return (getType() == Type::Signal);
-}
 
 } // namespace DBus
 } // namespace CommonAPI

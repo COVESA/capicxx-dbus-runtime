@@ -307,5 +307,10 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
     return false;
 }
 
+
+std::shared_ptr<DBusObjectManagerStub> DBusObjectManager::getRootDBusObjectManagerStub() {
+    return rootDBusObjectManagerStub_;
+}
+
 } // namespace DBus
 } // namespace CommonAPI

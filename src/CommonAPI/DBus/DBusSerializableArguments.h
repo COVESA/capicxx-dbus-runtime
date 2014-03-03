@@ -23,41 +23,41 @@ struct DBusSerializableArguments;
 
 template <>
 struct DBusSerializableArguments<> {
-	static inline bool serialize(OutputStream& outputStream) {
-		return true;
-	}
+    static bool serialize(OutputStream& outputStream) {
+        return true;
+    }
 
-	static inline bool deserialize(DBusInputStream& inputStream) {
-		return true;
-	}
+    static bool deserialize(DBusInputStream& inputStream) {
+        return true;
+    }
 };
 
 template <typename _ArgumentType>
 struct DBusSerializableArguments<_ArgumentType> {
-	static inline bool serialize(OutputStream& outputStream, const _ArgumentType& argument) {
-		outputStream << argument;
-		return !outputStream.hasError();
-	}
+    static bool serialize(OutputStream& outputStream, const _ArgumentType& argument) {
+        outputStream << argument;
+        return !outputStream.hasError();
+    }
 
-	static inline bool deserialize(DBusInputStream& inputStream, _ArgumentType& argument) {
-		inputStream >> argument;
-		return !inputStream.hasError();
-	}
+    static bool deserialize(DBusInputStream& inputStream, _ArgumentType& argument) {
+        inputStream >> argument;
+        return !inputStream.hasError();
+    }
 };
 
 template <typename _ArgumentType, typename ... _Rest>
 struct DBusSerializableArguments<_ArgumentType, _Rest...> {
-	static inline bool serialize(OutputStream& outputStream, const _ArgumentType& argument, const _Rest&... rest) {
-		outputStream << argument;
-		const bool success = !outputStream.hasError();
-		return success ? DBusSerializableArguments<_Rest...>::serialize(outputStream, rest...) : false;
-	}
+    static bool serialize(OutputStream& outputStream, const _ArgumentType& argument, const _Rest&... rest) {
+        outputStream << argument;
+        const bool success = !outputStream.hasError();
+        return success ? DBusSerializableArguments<_Rest...>::serialize(outputStream, rest...) : false;
+    }
 
-	static inline bool deserialize(DBusInputStream& inputStream, _ArgumentType& argument, _Rest&... rest) {
-		inputStream >> argument;
-		const bool success = !inputStream.hasError();
-		return success ? DBusSerializableArguments<_Rest...>::deserialize(inputStream, rest...) : false;
-	}
+    static bool deserialize(DBusInputStream& inputStream, _ArgumentType& argument, _Rest&... rest) {
+        inputStream >> argument;
+        const bool success = !inputStream.hasError();
+        return success ? DBusSerializableArguments<_Rest...>::deserialize(inputStream, rest...) : false;
+    }
 };
 
 } // namespace DBus
