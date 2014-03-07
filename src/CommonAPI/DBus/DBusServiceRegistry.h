@@ -328,7 +328,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
 
     inline const bool isOrgFreedesktopDBusInterface(const std::string& dbusInterfaceName) {
-        return dbusInterfaceName.find("org.freedesktop.") == 0;
+        return dbusInterfaceName.find("org.freedesktop.DBus.") == 0;
     }
 
     std::thread::id notificationThread_;

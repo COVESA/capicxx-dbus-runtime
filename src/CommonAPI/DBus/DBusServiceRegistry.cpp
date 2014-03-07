@@ -730,7 +730,7 @@ bool DBusServiceRegistry::introspectDBusObjectPath(const std::string& dbusServic
  *
  * This is the other end of checking if a dbus object path is available.
  * On success it'll extract all interface names from the xml data response.
- * Special interfaces that start with org.freedesktop will be ignored.
+ * Special interfaces that start with "org.freedesktop.DBus." will be ignored.
  *
  * @param status
  * @param xmlData

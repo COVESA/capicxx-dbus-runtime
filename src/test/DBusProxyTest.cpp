@@ -53,6 +53,7 @@ static const std::string interfaceName = "CommonAPI.DBus.tests.DBusProxyTestInte
 static const std::string busName = "CommonAPI.DBus.tests.DBusProxyTestService";
 static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
 static const std::string objectPathExtended = "/CommonAPI/DBus/tests/DBusProxyTestService2";
+static const std::string commonApiAddressFreedesktop = "local:org.freedesktop.XYZ:CommonAPI.DBus.tests.DBusProxyTestInterface";
 
 
 class ProxyTest: public ::testing::Test {
@@ -460,7 +461,7 @@ protected:
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
-    void registerTestStub() {
+    void registerTestStub(const std::string commonApiAddress) {
         stubDefault_ = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
         bool isTestStubAdapterRegistered_ = runtime_->getServicePublisher()->registerService<
                         commonapi::tests::TestInterfaceStub>(stubDefault_, commonApiAddress, serviceFactory_);
@@ -469,7 +470,7 @@ protected:
         usleep(100000);
     }
 
-    void deregisterTestStub() {
+    void deregisterTestStub(const std::string commonApiAddress) {
         const bool isStubAdapterUnregistered = CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterService(
                         commonApiAddress);
         ASSERT_TRUE(isStubAdapterUnregistered);
@@ -515,7 +516,7 @@ protected:
 };
 
 TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
-    registerTestStub();
+    registerTestStub(commonApiAddress);
 
     proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
     ASSERT_TRUE(proxyDBusConnection_->connect());
@@ -533,12 +534,42 @@ TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
 
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::AVAILABLE));
 
-    deregisterTestStub();
+    deregisterTestStub(commonApiAddress);
     usleep(100000);
 
     EXPECT_TRUE(proxyWaitForAvailabilityStatus(CommonAPI::AvailabilityStatus::NOT_AVAILABLE));
 
     proxyDeregisterForAvailabilityStatus();
+}
+
+TEST_F(ProxyTest2, DBusProxyCanUseOrgFreedesktopAddress) {
+    registerTestStub(commonApiAddressFreedesktop);
+
+    std::shared_ptr<commonapi::tests::TestInterfaceProxyDefault> proxy =
+                    serviceFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(commonApiAddressFreedesktop);
+
+    for (int i = 0; i < 100; i++) {
+        if (proxy->isAvailable())
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    const bool proxyIsAvailable = proxy->isAvailable();
+
+    EXPECT_TRUE(proxyIsAvailable);
+
+    if(proxyIsAvailable) { // if we are not available, we failed the test and do not check a method call
+        bool wasCalled = false;
+        proxy->testEmptyMethodAsync(
+                        [&](const CommonAPI::CallStatus& callStatus) {
+                            ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
+                            wasCalled = true;
+                        });
+        usleep(100000);
+        EXPECT_TRUE(wasCalled);
+    }
+
+    deregisterTestStub(commonApiAddressFreedesktop);
 }
 
 #ifndef WIN32
