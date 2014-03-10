@@ -18,9 +18,9 @@ namespace DBus {
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection) :
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
                 initialized_(false),
-                notificationThread_(),
                 servicesToResolve(0),
-                objectPathsToResolve(0) {
+                objectPathsToResolve(0),
+                notificationThread_() {
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
