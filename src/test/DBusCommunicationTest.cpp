@@ -112,6 +112,39 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     servicePublisher_->unregisterService(serviceAddress_);
 }
 
+TEST_F(DBusCommunicationTest, AccessStubAdapterAfterInitialised) {
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+
+    unsigned int in = 5;
+    stub->setTestPredefinedTypeAttributeAttribute(in);
+
+    for (unsigned int i = 0; !serviceRegistered && i < 100; i++) {
+        if (!serviceRegistered) {
+            serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        }
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+    ASSERT_EQ(in, stub->getTestPredefinedTypeAttributeAttribute());
+}
+
+TEST_F(DBusCommunicationTest, AccessStubAdapterBeforeInitialised) {
+    auto stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
+
+    unsigned int in = 5;
+    stub->setTestPredefinedTypeAttributeAttribute(in);
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+
+    for (unsigned int i = 0; !serviceRegistered && i < 100; i++) {
+        if (!serviceRegistered) {
+            serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        }
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+}
 
 TEST_F(DBusCommunicationTest, SameStubCanBeRegisteredSeveralTimes) {
     auto defaultTestProxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);

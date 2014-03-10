@@ -36,7 +36,7 @@ const uint32_t& TestInterfaceStubDefault::getTestPredefinedTypeAttributeAttribut
 
 void TestInterfaceStubDefault::setTestPredefinedTypeAttributeAttribute(uint32_t value) {
     const bool valueChanged = trySetTestPredefinedTypeAttributeAttribute(std::move(value));
-    if (valueChanged) {
+    if (valueChanged && stubAdapter_ != NULL) {
         stubAdapter_->fireTestPredefinedTypeAttributeAttributeChanged(testPredefinedTypeAttributeAttributeValue_);
     }
 }
@@ -84,7 +84,7 @@ const DerivedTypeCollection::TestStructExtended& TestInterfaceStubDefault::getTe
 
 void TestInterfaceStubDefault::setTestDerivedStructAttributeAttribute(DerivedTypeCollection::TestStructExtended value) {
     const bool valueChanged = trySetTestDerivedStructAttributeAttribute(std::move(value));
-    if (valueChanged) {
+    if (valueChanged && stubAdapter_ != NULL) {
         stubAdapter_->fireTestDerivedStructAttributeAttributeChanged(testDerivedStructAttributeAttributeValue_);
     }
 }
@@ -132,7 +132,7 @@ const DerivedTypeCollection::TestArrayUInt64& TestInterfaceStubDefault::getTestD
 
 void TestInterfaceStubDefault::setTestDerivedArrayAttributeAttribute(DerivedTypeCollection::TestArrayUInt64 value) {
     const bool valueChanged = trySetTestDerivedArrayAttributeAttribute(std::move(value));
-    if (valueChanged) {
+    if (valueChanged && stubAdapter_ != NULL) {
         stubAdapter_->fireTestDerivedArrayAttributeAttributeChanged(testDerivedArrayAttributeAttributeValue_);
     }
 }

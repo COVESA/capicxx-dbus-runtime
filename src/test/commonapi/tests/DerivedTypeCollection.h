@@ -350,9 +350,6 @@ static inline const char* getTypeCollectionName() {
     return typeCollectionName;
 }
 
-inline CommonAPI::Version getTypeCollectionVersion() {
-    return CommonAPI::Version(1, 0);
-}
 
 } // namespace DerivedTypeCollection
 
