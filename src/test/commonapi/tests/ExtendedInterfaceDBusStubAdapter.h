@@ -42,10 +42,13 @@ class ExtendedInterfaceDBusStubAdapterInternal: public virtual ExtendedInterface
 
     ~ExtendedInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
 
     const ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -75,6 +78,10 @@ class ExtendedInterfaceDBusStubAdapterInternal: public virtual ExtendedInterface
 
     virtual bool onInterfaceDBusMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
         return ExtendedInterfaceDBusStubAdapterHelper::onInterfaceDBusMessage(dbusMessage);
+    }
+
+    virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
+        return ExtendedInterfaceDBusStubAdapterHelper::onInterfaceDBusFreedesktopPropertiesMessage(dbusMessage);
     }
 
 static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
@@ -196,9 +203,10 @@ static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class ExtendedInterfaceDBusStubAdapter: public ExtendedInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<ExtendedInterfaceDBusStubAdapter> {

@@ -144,14 +144,20 @@ public:
     std::shared_ptr<LegacyInterfaceProxyBase> delegate_;
 };
 
+#ifdef WIN32
+    typedef LegacyInterfaceProxy<CommonAPI::WINDummyAttributeExtension<CommonAPI::WINDummyAttribute>> LegacyInterfaceProxyDefault;
+#else
+    typedef LegacyInterfaceProxy<> LegacyInterfaceProxyDefault;
+#endif
+
 
 //
 // LegacyInterfaceProxy Implementation
 //
 template <typename ... _AttributeExtensions>
 LegacyInterfaceProxy<_AttributeExtensions...>::LegacyInterfaceProxy(std::shared_ptr<CommonAPI::Proxy> delegate):
-        delegate_(std::dynamic_pointer_cast<LegacyInterfaceProxyBase>(delegate)),
-        _AttributeExtensions(*(std::dynamic_pointer_cast<LegacyInterfaceProxyBase>(delegate)))... {
+        _AttributeExtensions(*(std::dynamic_pointer_cast<LegacyInterfaceProxyBase>(delegate)))...,
+        delegate_(std::dynamic_pointer_cast<LegacyInterfaceProxyBase>(delegate)) {
 }
 
 template <typename ... _AttributeExtensions>

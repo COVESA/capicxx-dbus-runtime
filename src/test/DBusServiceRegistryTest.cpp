@@ -168,6 +168,10 @@ public:
         return false;
     }
 
+    virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
+        return false;
+    }
+
     mutable size_t introspectionCount;
 };
 

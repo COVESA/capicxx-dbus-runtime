@@ -99,6 +99,7 @@ class DBusObjectManagerStub: public DBusInterfaceHandler {
 
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage);
+    virtual const bool hasFreedesktopProperties();
 
  private:
     bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);

@@ -133,6 +133,10 @@ public:
         signature_.append("(yv)");
     }
 
+    void writeLegacyVariantType() {
+        signature_.append("v");
+    }
+
     virtual std::string retrieveSignature() {
         return std::move(signature_);
     }

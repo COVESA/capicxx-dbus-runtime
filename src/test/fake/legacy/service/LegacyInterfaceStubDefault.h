@@ -50,8 +50,7 @@ public:
 
 
 protected:
-private:
-    class RemoteEventHandler: public LegacyInterfaceStubRemoteEvent {
+    class RemoteEventHandler: public virtual LegacyInterfaceStubRemoteEvent {
      public:
         RemoteEventHandler(LegacyInterfaceStubDefault* defaultStub);
 
@@ -59,8 +58,8 @@ private:
      private:
         LegacyInterfaceStubDefault* defaultStub_;
     };
-
-    RemoteEventHandler remoteEventHandler_;
+private:
+    LegacyInterfaceStubDefault::RemoteEventHandler remoteEventHandler_;
 
 
     CommonAPI::Version interfaceVersion_;

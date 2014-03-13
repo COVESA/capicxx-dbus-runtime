@@ -56,6 +56,10 @@ public:
         return false;
     }
 
+    virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const CommonAPI::DBus::DBusMessage& dbusMessage) {
+        return false;
+    }
+
 protected:
     TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
                         const std::string& dbusObjectPath,

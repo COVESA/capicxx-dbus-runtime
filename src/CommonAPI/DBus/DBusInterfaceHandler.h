@@ -22,6 +22,8 @@ class DBusInterfaceHandler {
     virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
 
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
+
+    virtual const bool hasFreedesktopProperties() = 0;
 };
 
 } // namespace dbus

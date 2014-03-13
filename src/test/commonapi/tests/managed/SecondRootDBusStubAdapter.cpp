@@ -81,58 +81,61 @@ const SecondRootDBusStubAdapterHelper::StubDispatcherTable& SecondRootDBusStubAd
     return stubDispatcherTable_;
 }
 
-
-bool SecondRootDBusStubAdapterInternal::registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub> stub, const std::string& instance) {
-    if (registeredLeafInterfaceInstances.find(instance) == registeredLeafInterfaceInstances.end()) {
-        std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
-
-        std::string interfaceName;
-        std::string connectionName;
-        std::string objectPath;
-
-        CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
-                commonApiAddress,
-                interfaceName,
-                connectionName,
-                objectPath);
-
-        if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
-            auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.LeafInterface",
-                    instance, "commonapi.tests.managed.LeafInterface", "local");
-
-            bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
-            if (success) {
-                bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-                if (isServiceExportSuccessful) {
-                    registeredLeafInterfaceInstances.insert(instance);
-                    return true;
-                } else {
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-                }
-            }
-        }
-    }
-    return false;
+const CommonAPI::DBus::StubAttributeTable& SecondRootDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
 }
 
-bool SecondRootDBusStubAdapterInternal::deregisterManagedStubLeafInterface(const std::string& instance) {
-    std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
-    if (registeredLeafInterfaceInstances.find(instance) != registeredLeafInterfaceInstances.end()) {
-        std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
-        if (dbusStubAdapter != nullptr) {
-            dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-            CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-            registeredLeafInterfaceInstances.erase(instance);
-            return true;
-        }
-    }
-    return false;
-}
+  bool SecondRootDBusStubAdapterInternal::registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub> stub, const std::string& instance) {
+      if (registeredLeafInterfaceInstances.find(instance) == registeredLeafInterfaceInstances.end()) {
+          std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
 
-std::set<std::string>& SecondRootDBusStubAdapterInternal::getLeafInterfaceInstances() {
-    return registeredLeafInterfaceInstances;
-}
+          std::string interfaceName;
+          std::string connectionName;
+          std::string objectPath;
+
+          CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
+                  commonApiAddress,
+                  interfaceName,
+                  connectionName,
+                  objectPath);
+
+          if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
+              auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.LeafInterface",
+                      instance, "commonapi.tests.managed.LeafInterface", "local");
+
+              bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
+              if (success) {
+                  bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+                  if (isServiceExportSuccessful) {
+                      registeredLeafInterfaceInstances.insert(instance);
+                      return true;
+                  } else {
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+                  }
+              }
+          }
+      }
+      return false;
+  }
+
+  bool SecondRootDBusStubAdapterInternal::deregisterManagedStubLeafInterface(const std::string& instance) {
+      std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
+      if (registeredLeafInterfaceInstances.find(instance) != registeredLeafInterfaceInstances.end()) {
+          std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
+          if (dbusStubAdapter != nullptr) {
+              dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+              CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+              registeredLeafInterfaceInstances.erase(instance);
+              return true;
+          }
+      }
+      return false;
+  }
+
+  std::set<std::string>& SecondRootDBusStubAdapterInternal::getLeafInterfaceInstances() {
+      return registeredLeafInterfaceInstances;
+  }
 
 SecondRootDBusStubAdapterInternal::SecondRootDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -160,9 +163,14 @@ SecondRootDBusStubAdapterInternal::SecondRootDBusStubAdapterInternal(
             std::dynamic_pointer_cast<SecondRootStub>(stub),
             true),
         stubDispatcherTable_({
-            }) {
+            }),
+        stubAttributeTable_() {
 
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::SecondRootDBusStubAdapterInternal::getSecondRootInterfaceVersionStubDispatcher });
+}
+
+const bool SecondRootDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace managed

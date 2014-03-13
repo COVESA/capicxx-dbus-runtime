@@ -42,6 +42,8 @@ class SecondRootDBusStubAdapterInternal: public virtual SecondRootStubAdapter, p
 
     ~SecondRootDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
     bool registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub>, const std::string&);
@@ -49,6 +51,7 @@ class SecondRootDBusStubAdapterInternal: public virtual SecondRootStubAdapter, p
     std::set<std::string>& getLeafInterfaceInstances();
 
     const SecondRootDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -66,10 +69,11 @@ static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     std::set<std::string> registeredLeafInterfaceInstances;
     SecondRootDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class SecondRootDBusStubAdapter: public SecondRootDBusStubAdapterInternal, public std::enable_shared_from_this<SecondRootDBusStubAdapter> {

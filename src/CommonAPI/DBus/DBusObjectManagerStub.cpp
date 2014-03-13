@@ -186,6 +186,10 @@ bool DBusObjectManagerStub::emitInterfacesAddedSignal(std::shared_ptr<DBusStubAd
         dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
     }
 
+    if (dbusStubAdapter->hasFreedesktopProperties()) {
+        dbusInterfacesAndPropertiesDict.insert({ "org.freedesktop.DBus.Properties", DBusPropertiesChangedDict() });
+    }
+
     dbusOutputStream << dbusStubObjectPath;
     dbusOutputStream << dbusInterfacesAndPropertiesDict;
     dbusOutputStream.flush();
@@ -279,6 +283,10 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
     return dbusMessageReplySent;
 }
 
+
+const bool DBusObjectManagerStub::hasFreedesktopProperties() {
+    return false;
+}
 
 const std::string& DBusObjectManagerStub::getDBusObjectPath() const {
     return dbusObjectPath_;

@@ -19,26 +19,31 @@
 namespace std {
 
 template<>
-struct hash< pair<const char*, const char*> >:
-		public unary_function< pair<const char*, const char*>, size_t > {
+struct hash<pair<const char*, const char*> > :
+                public unary_function<pair<const char*, const char*>, size_t> {
 
-	size_t operator()(const pair<const char*, const char*>& t) const;
+    size_t operator()(const pair<const char*, const char*>& t) const;
 };
 
-
 template<>
-struct hash< pair<string, string> >:
-		public unary_function< pair<string, string>, size_t > {
+struct hash<const char*> :
+                public unary_function<const char*, size_t> {
 
-	size_t operator()(const pair<string, string>& t) const;
+    size_t operator()(const char* const t) const;
 };
 
+template<>
+struct hash<pair<string, string> > :
+                public unary_function<pair<string, string>, size_t> {
+
+    size_t operator()(const pair<string, string>& t) const;
+};
 
 template<>
-struct hash< tuple<string, string, string> >:
-		public unary_function< tuple<string, string, string>, size_t > {
+struct hash<tuple<string, string, string> > :
+                public unary_function<tuple<string, string, string>, size_t> {
 
-	size_t operator()(const tuple<string, string, string>& t) const;
+    size_t operator()(const tuple<string, string, string>& t) const;
 };
 
 template<>

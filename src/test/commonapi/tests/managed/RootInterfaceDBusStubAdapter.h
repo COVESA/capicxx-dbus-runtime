@@ -42,6 +42,8 @@ class RootInterfaceDBusStubAdapterInternal: public virtual RootInterfaceStubAdap
 
     ~RootInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
     bool registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub>, const std::string&);
@@ -52,6 +54,7 @@ class RootInterfaceDBusStubAdapterInternal: public virtual RootInterfaceStubAdap
     std::set<std::string>& getBranchInterfaceInstances();
 
     const RootInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -74,11 +77,12 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     std::set<std::string> registeredLeafInterfaceInstances;
     std::set<std::string> registeredBranchInterfaceInstances;
     RootInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class RootInterfaceDBusStubAdapter: public RootInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<RootInterfaceDBusStubAdapter> {

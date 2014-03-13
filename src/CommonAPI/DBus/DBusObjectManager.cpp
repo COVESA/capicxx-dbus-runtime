@@ -10,6 +10,8 @@
 #include "DBusOutputStream.h"
 #include "DBusUtils.h"
 
+#include "DBusFreedesktopPropertiesStub.h"
+
 #include <CommonAPI/utils.h>
 
 #include <dbus/dbus-protocol.h>
@@ -53,6 +55,20 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
 
     objectPathLock_.lock();
     isRegistrationSuccessful = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
+
+    if(isRegistrationSuccessful && dbusStubAdapter->hasFreedesktopProperties()) {
+        const std::shared_ptr<DBusFreedesktopPropertiesStub> dbusFreedesktopPropertiesStub =
+                        std::make_shared<DBusFreedesktopPropertiesStub>(dbusStubAdapterObjectPath,
+                                                                        dbusStubAdapterInterfaceName,
+                                                                        dbusStubAdapter->getDBusConnection(),
+                                                                        dbusStubAdapter);
+        isRegistrationSuccessful = isRegistrationSuccessful
+                        && addDBusInterfaceHandler(
+                                        {dbusFreedesktopPropertiesStub->getDBusObjectPath(),
+                                         dbusFreedesktopPropertiesStub->getInterfaceName()
+                                        },
+                                        dbusFreedesktopPropertiesStub);
+    }
 
     if (isRegistrationSuccessful && dbusStubAdapter->isManagingInterface()) {
         auto managerStubIterator = managerStubs_.find(dbusStubAdapterObjectPath);
@@ -252,7 +268,6 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
                             << dbusStubAdapterBase->getMethodsDBusIntrospectionXmlData() << "\n"
                             "</interface>\n";
             nodeSet.insert(elems.back());
-            //break;
         } else {
             if (dbusMessage.hasObjectPath("/") && elems.size() > 1) {
                 if (nodeSet.find(elems[1]) == nodeSet.end()) {

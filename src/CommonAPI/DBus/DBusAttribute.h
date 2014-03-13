@@ -29,31 +29,31 @@ class DBusProxy;
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
 class DBusReadonlyAttribute: public _AttributeType {
  public:
-	typedef typename _AttributeType::ValueType ValueType;
-	typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename _AttributeType::ValueType ValueType;
+    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
-	DBusReadonlyAttribute(_DBusProxyType& dbusProxy, const char* setMethodSignature, const char* getMethodName):
-			dbusProxy_(dbusProxy),
-			getMethodName_(getMethodName),
-			setMethodSignature_(setMethodSignature) {
-		assert(getMethodName);
-	}
+    DBusReadonlyAttribute(_DBusProxyType& dbusProxy, const char* setMethodSignature, const char* getMethodName):
+            dbusProxy_(dbusProxy),
+            getMethodName_(getMethodName),
+            setMethodSignature_(setMethodSignature) {
+        assert(getMethodName);
+    }
 
-	void getValue(CallStatus& callStatus, ValueType& value) const {
+    void getValue(CallStatus& callStatus, ValueType& value) const {
 
-	    DBusProxyHelper<DBusSerializableArguments<>,
-						DBusSerializableArguments<ValueType> >::callMethodWithReply(dbusProxy_, getMethodName_, "", callStatus, value);
-	}
+        DBusProxyHelper<DBusSerializableArguments<>,
+                        DBusSerializableArguments<ValueType> >::callMethodWithReply(dbusProxy_, getMethodName_, "", callStatus, value);
+    }
 
-	std::future<CallStatus> getValueAsync(AttributeAsyncCallback attributeAsyncCallback) {
-		return DBusProxyHelper<DBusSerializableArguments<>,
-							   DBusSerializableArguments<ValueType> >::callMethodAsync(dbusProxy_, getMethodName_, "", std::move(attributeAsyncCallback));
-	}
+    std::future<CallStatus> getValueAsync(AttributeAsyncCallback attributeAsyncCallback) {
+        return DBusProxyHelper<DBusSerializableArguments<>,
+                               DBusSerializableArguments<ValueType> >::callMethodAsync(dbusProxy_, getMethodName_, "", std::move(attributeAsyncCallback));
+    }
 
  protected:
-	_DBusProxyType& dbusProxy_;
-	const char* getMethodName_;
-	const char* setMethodSignature_;
+    _DBusProxyType& dbusProxy_;
+    const char* getMethodName_;
+    const char* setMethodSignature_;
 };
 
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
@@ -81,8 +81,8 @@ class DBusFreedesktopReadonlyAttribute: public _AttributeType {
                         "org.freedesktop.DBus.Properties",
                         "Get",
                         "ss",
-                        std::string(interfaceName_),
-                        std::string(propertyName_),
+                        interfaceName_,
+                        propertyName_,
                         callStatus,
                         variantVal);
         value = variantVal.contained_.template get<ValueType>();
@@ -98,8 +98,8 @@ class DBusFreedesktopReadonlyAttribute: public _AttributeType {
                         "org.freedesktop.DBus.Properties",
                         "Get",
                         "ss",
-                        std::string(interfaceName_),
-                        std::string(propertyName_),
+                        interfaceName_,
+                        propertyName_,
                         std::bind(
                                         &CommonAPI::DBus::DBusFreedesktopReadonlyAttribute<_AttributeType>::AsyncVariantStripper,
                                         this,
@@ -116,8 +116,8 @@ class DBusFreedesktopReadonlyAttribute: public _AttributeType {
 
  protected:
     _DBusProxyType& dbusProxy_;
-    const char* interfaceName_;
-    const char* propertyName_;
+    const std::string interfaceName_;
+    const std::string propertyName_;
 };
 
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
@@ -145,8 +145,8 @@ class DBusFreedesktopUnionReadonlyAttribute: public _AttributeType {
                         "org.freedesktop.DBus.Properties",
                         "Get",
                         "ss",
-                        std::string(interfaceName_),
-                        std::string(propertyName_),
+                        interfaceName_,
+                        propertyName_,
                         callStatus,
                         variantVal);
         value = variantVal.contained_;
@@ -161,8 +161,8 @@ class DBusFreedesktopUnionReadonlyAttribute: public _AttributeType {
                         "org.freedesktop.DBus.Properties",
                         "Get",
                         "ss",
-                        std::string(interfaceName_),
-                        std::string(propertyName_),
+                        interfaceName_,
+                        propertyName_,
                         std::bind(
                                         &CommonAPI::DBus::DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::AsyncVariantStripper,
                                         this,
@@ -179,23 +179,23 @@ class DBusFreedesktopUnionReadonlyAttribute: public _AttributeType {
 
  protected:
     _DBusProxyType& dbusProxy_;
-    const char* interfaceName_;
-    const char* propertyName_;
+    const std::string interfaceName_;
+    const std::string propertyName_;
 };
 
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
 class DBusAttribute: public DBusReadonlyAttribute<_AttributeType> {
  public:
-	typedef typename _AttributeType::ValueType ValueType;
-	typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename _AttributeType::ValueType ValueType;
+    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
-	DBusAttribute(_DBusProxyType& dbusProxy, const char* setMethodName, const char* setMethodSignature, const char* getMethodName):
-	    DBusReadonlyAttribute<_AttributeType>(dbusProxy, setMethodSignature, getMethodName),
-			setMethodName_(setMethodName),
-			setMethodSignature_(setMethodSignature) {
-		assert(setMethodName);
-		assert(setMethodSignature);
-	}
+    DBusAttribute(_DBusProxyType& dbusProxy, const char* setMethodName, const char* setMethodSignature, const char* getMethodName):
+        DBusReadonlyAttribute<_AttributeType>(dbusProxy, setMethodSignature, getMethodName),
+            setMethodName_(setMethodName),
+            setMethodSignature_(setMethodSignature) {
+        assert(setMethodName);
+        assert(setMethodSignature);
+    }
 
     void setValue(const ValueType& requestValue, CallStatus& callStatus, ValueType& responseValue) {
         DBusProxyHelper<DBusSerializableArguments<ValueType>,
@@ -209,19 +209,19 @@ class DBusAttribute: public DBusReadonlyAttribute<_AttributeType> {
     }
 
 
-	std::future<CallStatus> setValueAsync(const ValueType& requestValue, AttributeAsyncCallback attributeAsyncCallback) {
-		return DBusProxyHelper<DBusSerializableArguments<ValueType>,
-							   DBusSerializableArguments<ValueType> >::callMethodAsync(
-									   this->dbusProxy_,
-									   setMethodName_,
-									   setMethodSignature_,
-									   requestValue,
-									   attributeAsyncCallback);
-	}
+    std::future<CallStatus> setValueAsync(const ValueType& requestValue, AttributeAsyncCallback attributeAsyncCallback) {
+        return DBusProxyHelper<DBusSerializableArguments<ValueType>,
+                               DBusSerializableArguments<ValueType> >::callMethodAsync(
+                                       this->dbusProxy_,
+                                       setMethodName_,
+                                       setMethodSignature_,
+                                       requestValue,
+                                       attributeAsyncCallback);
+    }
 
  protected:
-	const char* setMethodName_;
-	const char* setMethodSignature_;
+    const char* setMethodName_;
+    const char* setMethodSignature_;
 };
 
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
@@ -251,8 +251,8 @@ class DBusFreedesktopAttribute: public DBusFreedesktopReadonlyAttribute<_Attribu
                         "org.freedesktop.DBus.Properties",
                         "Set",
                         "ssv",
-                        std::string(DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_),
-                        std::string(DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_),
+                        DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_,
+                        DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_,
                         variantVal,
                         callStatus);
         responseValue = requestValue;
@@ -269,8 +269,8 @@ class DBusFreedesktopAttribute: public DBusFreedesktopReadonlyAttribute<_Attribu
                             "org.freedesktop.DBus.Properties",
                             "Set",
                             "ssv",
-                            std::string(DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_),
-                            std::string(DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_),
+                            DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_,
+                            DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_,
                             variantVal,
                             std::bind(
                                             &CommonAPI::DBus::DBusFreedesktopAttribute<_AttributeType>::AsyncVariantStripper,
@@ -314,8 +314,8 @@ class DBusFreedesktopUnionAttribute: public DBusFreedesktopUnionReadonlyAttribut
                         "org.freedesktop.DBus.Properties",
                         "Set",
                         "ssv",
-                        std::string(DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::interfaceName_),
-                        std::string(DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::propertyName_),
+                        DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::interfaceName_,
+                        DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::propertyName_,
                         variantVal,
                         callStatus);
         responseValue = requestValue;
@@ -332,8 +332,8 @@ class DBusFreedesktopUnionAttribute: public DBusFreedesktopUnionReadonlyAttribut
                             "org.freedesktop.DBus.Properties",
                             "Set",
                             "ssv",
-                            std::string(DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::interfaceName_),
-                            std::string(DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::propertyName_),
+                            DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::interfaceName_,
+                            DBusFreedesktopUnionReadonlyAttribute<_AttributeType>::propertyName_,
                             variantVal,
                             std::bind(
                                             &CommonAPI::DBus::DBusFreedesktopUnionAttribute<_AttributeType>::AsyncVariantStripper,
@@ -353,22 +353,22 @@ class DBusFreedesktopUnionAttribute: public DBusFreedesktopUnionReadonlyAttribut
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
 class DBusObservableAttribute: public _AttributeType {
  public:
-	typedef typename _AttributeType::ValueType ValueType;
-	typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
-	typedef typename _AttributeType::ChangedEvent ChangedEvent;
+    typedef typename _AttributeType::ValueType ValueType;
+    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename _AttributeType::ChangedEvent ChangedEvent;
 
-	template <typename... _AttributeTypeArguments>
-	DBusObservableAttribute(_DBusProxyType& dbusProxy, const char* changedEventName, _AttributeTypeArguments... arguments):
-		_AttributeType(dbusProxy, arguments...),
-		changedEvent_(dbusProxy, changedEventName, this->setMethodSignature_) {
-	}
+    template <typename... _AttributeTypeArguments>
+    DBusObservableAttribute(_DBusProxyType& dbusProxy, const char* changedEventName, _AttributeTypeArguments... arguments):
+        _AttributeType(dbusProxy, arguments...),
+        changedEvent_(dbusProxy, changedEventName, this->setMethodSignature_) {
+    }
 
-	ChangedEvent& getChangedEvent() {
-		return changedEvent_;
-	}
+    ChangedEvent& getChangedEvent() {
+        return changedEvent_;
+    }
 
  protected:
-	DBusEvent<ChangedEvent> changedEvent_;
+    DBusEvent<ChangedEvent> changedEvent_;
 };
 
 template< class, class >
@@ -392,8 +392,8 @@ protected:
     void onInternalEvent(const std::string& interfaceName,
                     const std::unordered_map<std::string, DBusLegacyVariantWrapper<Variant<_Types> > >& props,
                     const std::vector<std::string>& invalid) {
-        if (std::string(interfaceName_) == interfaceName) {
-            auto mapIter = props.find(std::string(propertyName_));
+        if (interfaceName_ == interfaceName) {
+            auto mapIter = props.find(propertyName_);
             if (mapIter != props.end()) {
                 notifyListeners(mapIter->second.contained_.template get<ValueType>());
             }
@@ -423,15 +423,13 @@ protected:
     typedef std::vector<std::string> InvalidArray;
     typedef Event<std::string, PropertyMap, InvalidArray> SignalEvent;
 
-    DBusEvent<SignalEvent> internalEvent_;
 
     typename DBusEvent<SignalEvent>::Subscription sub;
 
-    const char* interfaceName_;
-    const char* propertyName_;
-
+    const std::string interfaceName_;
+    const std::string propertyName_;
     bool subSet_;
-
+    DBusEvent<SignalEvent> internalEvent_;
 };
 
 template <typename _AttributeType, typename _DBusProxyType = DBusProxy>
@@ -447,10 +445,7 @@ class DBusFreedesktopObservableAttribute: public _AttributeType {
                     const char* propertyName,
                     _AttributeTypeArguments... arguments):
         _AttributeType(dbusProxy, interfaceName, propertyName, arguments...),
-        propertyName_(propertyName),
-        interfaceName_(interfaceName),
         externalChangedEvent_(dbusProxy, interfaceName, propertyName) {
-
     }
 
     ChangedEvent& getChangedEvent() {
@@ -459,8 +454,6 @@ class DBusFreedesktopObservableAttribute: public _AttributeType {
 
  protected:
     LegacyEvent<ChangedEvent, _DBusProxyType> externalChangedEvent_;
-    const char * propertyName_;
-    const char * interfaceName_;
 };
 
 template< class, class >
@@ -484,8 +477,8 @@ protected:
     void onInternalEvent(const std::string& interfaceName,
                     const std::unordered_map<std::string, DBusLegacyVariantWrapper<ValueType> >& props,
                     const std::vector<std::string>& invalid) {
-        if (std::string(interfaceName_) == interfaceName) {
-            auto mapIter = props.find(std::string(propertyName_));
+        if (interfaceName_ == interfaceName) {
+            auto mapIter = props.find(propertyName_);
             if (mapIter != props.end()) {
                 notifyListeners(mapIter->second.contained_);
             }
@@ -519,8 +512,8 @@ protected:
 
     typename DBusEvent<SignalEvent>::Subscription sub;
 
-    const char* interfaceName_;
-    const char* propertyName_;
+    const std::string interfaceName_;
+    const std::string propertyName_;
 
     bool subSet_;
 
@@ -539,10 +532,7 @@ class DBusFreedesktopUnionObservableAttribute: public _AttributeType {
                     const char* propertyName,
                     _AttributeTypeArguments... arguments):
         _AttributeType(dbusProxy, interfaceName, propertyName, arguments...),
-        propertyName_(propertyName),
-        interfaceName_(interfaceName),
         externalChangedEvent_(dbusProxy, interfaceName, propertyName) {
-
     }
 
     ChangedEvent& getChangedEvent() {
@@ -551,8 +541,6 @@ class DBusFreedesktopUnionObservableAttribute: public _AttributeType {
 
  protected:
     LegacyUnionEvent<ChangedEvent, _DBusProxyType> externalChangedEvent_;
-    const char * propertyName_;
-    const char * interfaceName_;
 };
 
 } // namespace DBus

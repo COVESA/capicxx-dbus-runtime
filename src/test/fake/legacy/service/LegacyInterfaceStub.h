@@ -74,7 +74,7 @@ class LegacyInterfaceStubRemoteEvent {
  * This class and the one above are the ones an application developer needs to have
  * a look at if he wants to implement a service.
  */
-class LegacyInterfaceStub : public virtual CommonAPI::Stub<LegacyInterfaceStubAdapter, LegacyInterfaceStubRemoteEvent> {
+class LegacyInterfaceStub: public virtual CommonAPI::Stub<LegacyInterfaceStubAdapter, LegacyInterfaceStubRemoteEvent> {
 public:
     virtual ~LegacyInterfaceStub() { }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> clientId) = 0;
@@ -90,6 +90,8 @@ public:
     using CommonAPI::Stub<LegacyInterfaceStubAdapter, LegacyInterfaceStubRemoteEvent>::initStubAdapter;
     typedef CommonAPI::Stub<LegacyInterfaceStubAdapter, LegacyInterfaceStubRemoteEvent>::StubAdapterType StubAdapterType;
     typedef CommonAPI::Stub<LegacyInterfaceStubAdapter, LegacyInterfaceStubRemoteEvent>::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef LegacyInterfaceStubRemoteEvent RemoteEventType;
+    typedef LegacyInterface StubInterface;
 };
 
 } // namespace service

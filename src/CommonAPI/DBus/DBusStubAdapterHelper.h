@@ -12,12 +12,15 @@
 #ifndef COMMONAPI_DBUS_DBUS_STUB_ADAPTER_HELPER_H_
 #define COMMONAPI_DBUS_DBUS_STUB_ADAPTER_HELPER_H_
 
+#include <CommonAPI/SerializableVariant.h>
+
 #include "DBusStubAdapter.h"
 #include "DBusInputStream.h"
 #include "DBusOutputStream.h"
 #include "DBusHelper.h"
 #include "DBusSerializableArguments.h"
 #include "DBusClientId.h"
+#include "DBusLegacyVariant.h"
 
 #include <memory>
 #include <initializer_list>
@@ -31,6 +34,21 @@ class StubDispatcherBase {
 public:
    virtual ~StubDispatcherBase() { }
 };
+
+template <typename _StubClass>
+class DBusGetFreedesktopAttributeStubDispatcherBase;
+
+struct DBusAttributeDispatcherStruct {
+    StubDispatcherBase* getter;
+    StubDispatcherBase* setter;
+
+    DBusAttributeDispatcherStruct(StubDispatcherBase* g, StubDispatcherBase* s) {
+        getter = g;
+        setter = s;
+    }
+};
+
+typedef std::unordered_map<std::string, DBusAttributeDispatcherStruct> StubAttributeTable;
 
 template <typename _StubClass>
 class DBusStubAdapterHelper: public virtual DBusStubAdapter {
@@ -57,7 +75,8 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
                           const std::shared_ptr<_StubClass>& stub,
                           const bool isManagingInterface):
                     DBusStubAdapter(factory, commonApiAddress, dbusInterfaceName, dbusBusName, dbusObjectPath, dbusConnection, isManagingInterface),
-                    stub_(stub) {
+                    stub_(stub),
+                    remoteEventHandler_(NULL) {
     }
 
     virtual ~DBusStubAdapterHelper() {
@@ -104,10 +123,118 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         return dbusMessageHandled;
     }
 
+    virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const DBusMessage& dbusMessage) {
+        DBusInputStream dbusInputStream(dbusMessage);
+
+        if(dbusMessage.hasMemberName("Get")) {
+            return handleFreedesktopGet(dbusMessage, dbusInputStream);
+        } else if(dbusMessage.hasMemberName("Set")) {
+            return handleFreedesktopSet(dbusMessage, dbusInputStream);
+        } else if(dbusMessage.hasMemberName("GetAll")) {
+            return handleFreedesktopGetAll(dbusMessage, dbusInputStream);
+        }
+
+        return false;
+    }
+
     virtual const StubDispatcherTable& getStubDispatcherTable() = 0;
+    virtual const StubAttributeTable& getStubAttributeTable() = 0;
 
     std::weak_ptr<_StubClass> stub_;
     RemoteEventHandlerType* remoteEventHandler_;
+ private:
+    bool handleFreedesktopGet(const DBusMessage& dbusMessage, DBusInputStream& dbusInputStream) {
+        std::string interfaceName;
+        std::string attributeName;
+        dbusInputStream >> interfaceName;
+        dbusInputStream >> attributeName;
+
+        if (dbusInputStream.hasError()) {
+            return false;
+        }
+
+        auto attributeDispatcherIterator = getStubAttributeTable().find(attributeName);
+        // check, if we want to access with a valid attribute name
+        if (attributeDispatcherIterator == getStubAttributeTable().end()) {
+            return false;
+        }
+
+        //To prevent the destruction of the stub whilst still handling a message
+        auto stubSafety = stub_.lock();
+        if (stubSafety) {
+            StubDispatcher* getterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.getter);
+            assert(getterDispatcher != NULL); // all attributes have at least a getter
+            return (getterDispatcher->dispatchDBusMessage(dbusMessage, stubSafety, *this));
+        }
+
+        return false;
+    }
+
+    bool handleFreedesktopSet(const DBusMessage& dbusMessage, DBusInputStream& dbusInputStream) {
+        std::string interfaceName;
+        std::string attributeName;
+        dbusInputStream >> interfaceName;
+        dbusInputStream >> attributeName;
+
+        if(dbusInputStream.hasError()) {
+            return false;
+        }
+
+        auto attributeDispatcherIterator = getStubAttributeTable().find(attributeName);
+        // check, if we want to access with a valid attribute name
+        if(attributeDispatcherIterator == getStubAttributeTable().end()) {
+            return false;
+        }
+
+        //To prevent the destruction of the stub whilst still handling a message
+        auto stubSafety = stub_.lock();
+        if (stubSafety) {
+            StubDispatcher* setterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.setter);
+
+            if(setterDispatcher == NULL) { // readonly attributes do not have a setter
+                return false;
+            }
+
+            return(setterDispatcher->dispatchDBusMessage(dbusMessage, stubSafety, *this));
+        }
+
+        return false;
+    }
+
+    bool handleFreedesktopGetAll(const DBusMessage& dbusMessage, DBusInputStream& dbusInputStream) {
+        std::string interfaceName;
+        dbusInputStream >> interfaceName;
+
+        if(dbusInputStream.hasError()) {
+            return false;
+        }
+
+        DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{sv}");
+        DBusOutputStream dbusOutputStream(dbusMessageReply);
+        dbusOutputStream.beginWriteVectorOfSerializableStructs(getStubAttributeTable().size());
+
+        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
+
+        auto stubSafety = stub_.lock();
+
+        for(auto attributeDispatcherIterator = getStubAttributeTable().begin(); attributeDispatcherIterator != getStubAttributeTable().end(); attributeDispatcherIterator++) {
+            //To prevent the destruction of the stub whilst still handling a message
+            if (stubSafety) {
+                DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass>* const getterDispatcher = dynamic_cast<DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass>*>(attributeDispatcherIterator->second.getter);
+
+                if(getterDispatcher == NULL) { // readonly attributes do not have a setter
+                    return false;
+                }
+
+                dbusOutputStream << attributeDispatcherIterator->first;
+                getterDispatcher->dispatchDBusMessageAndAppendReply(dbusMessage, stubSafety, dbusOutputStream, clientId);
+            }
+        }
+
+        dbusOutputStream.endWriteVector();
+        dbusOutputStream.flush();
+        return getDBusConnection()->sendDBusMessage(dbusMessageReply);
+    }
 };
 
 template< class >
@@ -115,14 +242,16 @@ struct DBusStubSignalHelper;
 
 template<template<class ...> class _In, class... _InArgs>
 struct DBusStubSignalHelper<_In<_InArgs...>> {
-    template <typename _DBusStub = DBusStubAdapter>
-    static bool sendSignal(const _DBusStub& dbusStub,
+
+    static inline bool sendSignal(const char* objectPath,
+                           const char* interfaceName,
                     const char* signalName,
                     const char* signalSignature,
+                    const std::shared_ptr<DBusProxyConnection>& dbusConnection,
                     const _InArgs&... inArgs) {
         DBusMessage dbusMessage = DBusMessage::createSignal(
-                        dbusStub.getObjectPath().c_str(),
-                        dbusStub.getInterfaceName(),
+                        objectPath,
+                        interfaceName,
                         signalName,
                         signalSignature);
 
@@ -135,9 +264,23 @@ struct DBusStubSignalHelper<_In<_InArgs...>> {
             outputStream.flush();
         }
 
-        const bool dbusMessageSent = dbusStub.getDBusConnection()->sendDBusMessage(dbusMessage);
+        const bool dbusMessageSent = dbusConnection->sendDBusMessage(dbusMessage);
         return dbusMessageSent;
     }
+
+    template <typename _DBusStub = DBusStubAdapter>
+    static bool sendSignal(const _DBusStub& dbusStub,
+                    const char* signalName,
+                    const char* signalSignature,
+                    const _InArgs&... inArgs) {
+        return(sendSignal(dbusStub.getObjectPath().c_str(),
+                          dbusStub.getInterfaceName().c_str(),
+                          signalName,
+                          signalSignature,
+                          dbusStub.getDBusConnection(),
+                          inArgs...));
+    }
+
 
     template <typename _DBusStub = DBusStubAdapter>
        static bool sendSignal( const char* target,
@@ -167,7 +310,68 @@ struct DBusStubSignalHelper<_In<_InArgs...>> {
        }
 };
 
+template< class >
+struct DBusStubFreedesktopPropertiesSignalHelper;
 
+template<template<class ...> class _In, class _InArg>
+struct DBusStubFreedesktopPropertiesSignalHelper<_In<_InArg>> {
+    template <typename _ValueType>
+    struct DBusPropertiesEntry: public CommonAPI::SerializableStruct {
+        std::string propertyName_;
+        DBusLegacyVariantWrapper<CommonAPI::Variant<_ValueType>> propertyValue_;
+
+        DBusPropertiesEntry() = default;
+        DBusPropertiesEntry(const std::string& propertyName,
+                            const DBusLegacyVariantWrapper<CommonAPI::Variant<_ValueType>>& propertyValue):
+                                propertyName_(propertyName),
+                                propertyValue_(propertyValue) {
+        };
+
+        virtual void readFromInputStream(CommonAPI::InputStream& inputStream) {
+            inputStream >> propertyName_;
+            inputStream >> propertyValue_;
+        }
+
+        virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+            outputStream << propertyName_;
+            outputStream << propertyValue_;
+        }
+
+        static inline void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+            typeOutputStream.writeStringType();
+            typeOutputStream.writeVariantType();
+        }
+
+    };
+
+    template <typename _DBusStub = DBusStubAdapter>
+    static bool sendPropertiesChangedSignal(const _DBusStub& dbusStub, const std::string& propertyName, const _InArg& inArg) {
+        const std::vector<std::string> invalidatedProperties;
+        const std::vector<DBusPropertiesEntry<_InArg>> changedProperties = {wrapValue(propertyName, inArg)};
+
+        return DBusStubSignalHelper<_In<const std::string, std::vector<DBusPropertiesEntry<_InArg>>, std::vector<std::string>>>::
+                        sendSignal(dbusStub.getObjectPath().c_str(),
+                                   "org.freedesktop.DBus.Properties",
+                                   "PropertiesChanged",
+                                   "sa{sv}as",
+                                   dbusStub.getDBusConnection(),
+                                   dbusStub.getInterfaceName(),
+                                   changedProperties,
+                                   invalidatedProperties);
+    }
+private:
+    template <typename _ValueType>
+    static DBusPropertiesEntry<_ValueType> wrapValue(const std::string& propertyName, _ValueType value) {
+        CommonAPI::Variant<_ValueType> returnVariant(value);
+
+        DBusLegacyVariantWrapper<CommonAPI::Variant<_ValueType>> wrappedReturnVariant;
+        wrappedReturnVariant.contained_ = returnVariant;
+
+        DBusPropertiesEntry<_ValueType> returnEntry(propertyName, wrappedReturnVariant);
+
+        return returnEntry;
+    }
+};
 
 template< class, class >
 class DBusMethodStubDispatcher;
@@ -348,7 +552,7 @@ class DBusMethodWithReplyAdapterDispatcher<_StubClass, _StubAdapterClass, _In<_I
 
 
 template <typename _StubClass, typename _AttributeType>
-class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
+class DBusGetAttributeStubDispatcher: public virtual DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
     typedef const _AttributeType& (_StubClass::*GetStubFunctor)(std::shared_ptr<CommonAPI::ClientId>);
@@ -358,12 +562,13 @@ class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::
         dbusSignature_(dbusSignature) {
     }
 
+    virtual ~DBusGetAttributeStubDispatcher() {};
+
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         return sendAttributeValueReply(dbusMessage, stub, dbusStubAdapterHelper);
     }
-
  protected:
-    inline bool sendAttributeValueReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    virtual bool sendAttributeValueReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(dbusSignature_);
         DBusOutputStream dbusOutputStream(dbusMessageReply);
 
@@ -379,9 +584,53 @@ class DBusGetAttributeStubDispatcher: public DBusStubAdapterHelper<_StubClass>::
     const char* dbusSignature_;
 };
 
+template <typename _StubClass>
+class DBusGetFreedesktopAttributeStubDispatcherBase {
+public:
+    virtual ~DBusGetFreedesktopAttributeStubDispatcherBase() {}
+    virtual void dispatchDBusMessageAndAppendReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusOutputStream& dbusOutputStream, const std::shared_ptr<DBusClientId>& clientId) = 0;
+};
 
 template <typename _StubClass, typename _AttributeType>
-class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_StubClass, _AttributeType> {
+class DBusGetFreedesktopAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>, public virtual DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass> {
+public:
+    typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
+    DBusGetFreedesktopAttributeStubDispatcher(GetStubFunctor getStubFunctor) :
+                    DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor, "v") {
+    }
+
+    virtual ~DBusGetFreedesktopAttributeStubDispatcher() {};
+
+    void dispatchDBusMessageAndAppendReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusOutputStream& dbusOutputStream, const std::shared_ptr<DBusClientId>& clientId) {
+        CommonAPI::Variant<_AttributeType> returnVariant((stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::getStubFunctor_))(clientId));
+
+        DBusLegacyVariantWrapper<CommonAPI::Variant<_AttributeType>> wrappedReturnVariant;
+        wrappedReturnVariant.contained_ = returnVariant;
+
+        dbusOutputStream << wrappedReturnVariant;
+    }
+protected:
+   virtual bool sendAttributeValueReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+       DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::dbusSignature_);
+       DBusOutputStream dbusOutputStream(dbusMessageReply);
+
+       std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
+
+       CommonAPI::Variant<_AttributeType> returnVariant((stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::getStubFunctor_))(clientId));
+
+       DBusLegacyVariantWrapper<CommonAPI::Variant<_AttributeType>> wrappedReturnVariant;
+       wrappedReturnVariant.contained_ = returnVariant;
+       dbusOutputStream << wrappedReturnVariant;
+       dbusOutputStream.flush();
+
+       return dbusStubAdapterHelper.getDBusConnection()->sendDBusMessage(dbusMessageReply);
+   }
+};
+
+
+template <typename _StubClass, typename _AttributeType>
+class DBusSetAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatcher<_StubClass, _AttributeType> {
  public:
     typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
     typedef typename DBusStubAdapterHelperType::RemoteEventHandlerType RemoteEventHandlerType;
@@ -399,6 +648,8 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
                     onRemoteChangedFunctor_(onRemoteChangedFunctor) {
     }
 
+    virtual ~DBusSetAttributeStubDispatcher() {};
+
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         bool attributeValueChanged;
 
@@ -412,15 +663,30 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
     }
 
  protected:
+    virtual _AttributeType retreiveAttributeValue(const DBusMessage& dbusMessage, bool& errorOccured) {
+        errorOccured = false;
+
+        DBusInputStream dbusInputStream(dbusMessage);
+        _AttributeType attributeValue;
+        dbusInputStream >> attributeValue;
+
+        if (dbusInputStream.hasError()) {
+            errorOccured = true;
+        }
+
+        return attributeValue;
+    }
+
     inline bool setAttributeValue(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   bool& attributeValueChanged) {
-        DBusInputStream dbusInputStream(dbusMessage);
-        _AttributeType attributeValue;
-        dbusInputStream >> attributeValue;
-        if (dbusInputStream.hasError())
+        bool errorOccured;
+        _AttributeType attributeValue = retreiveAttributeValue(dbusMessage, errorOccured);
+
+        if(errorOccured) {
             return false;
+        }
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
 
@@ -441,9 +707,54 @@ class DBusSetAttributeStubDispatcher: public DBusGetAttributeStubDispatcher<_Stu
     const OnRemoteChangedFunctor onRemoteChangedFunctor_;
 };
 
+template <typename _StubClass, typename _AttributeType>
+class DBusSetFreedesktopAttributeStubDispatcher: public virtual DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>, public virtual DBusSetAttributeStubDispatcher<_StubClass, _AttributeType> {
+public:
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
+    typedef typename DBusStubAdapterHelperType::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, _AttributeType);
+    typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
+
+    DBusSetFreedesktopAttributeStubDispatcher(GetStubFunctor getStubFunctor,
+                                              OnRemoteSetFunctor onRemoteSetFunctor,
+                                              OnRemoteChangedFunctor onRemoteChangedFunctor) :
+                    DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(
+                                    getStubFunctor,
+                                    "v"),
+                    DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(
+                                    getStubFunctor),
+                    DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>(
+                                    getStubFunctor,
+                                    onRemoteSetFunctor,
+                                    onRemoteChangedFunctor,
+                                    "v") {
+    }
+
+    virtual ~DBusSetFreedesktopAttributeStubDispatcher() {};
+protected:
+    virtual _AttributeType retreiveAttributeValue(const DBusMessage& dbusMessage, bool& errorOccured) {
+        errorOccured = false;
+        std::string interfaceName;
+        std::string attributeName;
+
+        DBusInputStream dbusInputStream(dbusMessage);
+        DBusLegacyVariantWrapper<CommonAPI::Variant<_AttributeType>> variantValue;
+        dbusInputStream >> interfaceName; // skip over interface and attribute name
+        dbusInputStream >> attributeName;
+        dbusInputStream >> variantValue;
+        _AttributeType attributeValue = variantValue.contained_.template get<_AttributeType>() ;
+
+        if (dbusInputStream.hasError()) {
+            errorOccured = true;
+        }
+
+        return attributeValue;
+    }
+};
 
 template <typename _StubClass, typename _AttributeType>
-class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispatcher<_StubClass, _AttributeType> {
+class DBusSetObservableAttributeStubDispatcher: public virtual DBusSetAttributeStubDispatcher<_StubClass, _AttributeType> {
  public:
     typedef typename DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
     typedef typename DBusStubAdapterHelperType::StubAdapterType StubAdapterType;
@@ -458,12 +769,15 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
                                              OnRemoteChangedFunctor onRemoteChangedFunctor,
                                              FireChangedFunctor fireChangedFunctor,
                                              const char* dbusSignature) :
+                    DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor, dbusSignature),
                     DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor,
-                                                                               onRemoteSetFunctor,
-                                                                               onRemoteChangedFunctor,
-                                                                               dbusSignature),
+                                    onRemoteSetFunctor,
+                                    onRemoteChangedFunctor,
+                                    dbusSignature),
                     fireChangedFunctor_(fireChangedFunctor) {
     }
+
+    virtual ~DBusSetObservableAttributeStubDispatcher() {};
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         bool attributeValueChanged;
@@ -477,13 +791,45 @@ class DBusSetObservableAttributeStubDispatcher: public DBusSetAttributeStubDispa
         }
         return true;
     }
-
- private:
-    inline void fireAttributeValueChanged(std::shared_ptr<CommonAPI::ClientId> clientId, DBusStubAdapterHelperType& dbusStubAdapterHelper, const std::shared_ptr<_StubClass> stub) {
+protected:
+    virtual void fireAttributeValueChanged(std::shared_ptr<CommonAPI::ClientId> clientId,
+                                           DBusStubAdapterHelperType& dbusStubAdapterHelper,
+                                           const std::shared_ptr<_StubClass> stub) {
         (stub->StubType::getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(clientId, stub));
     }
 
     const FireChangedFunctor fireChangedFunctor_;
+};
+
+template <typename _StubClass, typename _AttributeType>
+class DBusSetFreedesktopObservableAttributeStubDispatcher: public virtual DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>, public virtual DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType> {
+public:
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
+    typedef typename DBusStubAdapterHelperType::StubAdapterType StubAdapterType;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteSetFunctor OnRemoteSetFunctor;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
+    typedef void (StubAdapterType::*FireChangedFunctor)(const _AttributeType&);
+
+    DBusSetFreedesktopObservableAttributeStubDispatcher(GetStubFunctor getStubFunctor,
+                                             OnRemoteSetFunctor onRemoteSetFunctor,
+                                             OnRemoteChangedFunctor onRemoteChangedFunctor,
+                                             FireChangedFunctor fireChangedFunctor) :
+            DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor, "v"),
+            DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor),
+            DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor,
+                                                                       onRemoteSetFunctor,
+                                                                       onRemoteChangedFunctor,
+                                                                       "v"),
+            DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor,
+                                                                                  onRemoteSetFunctor,
+                                                                                  onRemoteChangedFunctor),
+            DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType>(getStubFunctor,
+                                                                                 onRemoteSetFunctor,
+                                                                                 onRemoteChangedFunctor,
+                                                                                 fireChangedFunctor,
+                                                                                 "v") {
+    }
 };
 
 } // namespace DBus

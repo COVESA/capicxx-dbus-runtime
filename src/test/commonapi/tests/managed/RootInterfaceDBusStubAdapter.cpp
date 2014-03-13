@@ -103,110 +103,113 @@ const RootInterfaceDBusStubAdapterHelper::StubDispatcherTable& RootInterfaceDBus
     return stubDispatcherTable_;
 }
 
-
-bool RootInterfaceDBusStubAdapterInternal::registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub> stub, const std::string& instance) {
-    if (registeredLeafInterfaceInstances.find(instance) == registeredLeafInterfaceInstances.end()) {
-        std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
-
-        std::string interfaceName;
-        std::string connectionName;
-        std::string objectPath;
-
-        CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
-                commonApiAddress,
-                interfaceName,
-                connectionName,
-                objectPath);
-
-        if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
-            auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.LeafInterface",
-                    instance, "commonapi.tests.managed.LeafInterface", "local");
-
-            bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
-            if (success) {
-                bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-                if (isServiceExportSuccessful) {
-                    registeredLeafInterfaceInstances.insert(instance);
-                    return true;
-                } else {
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-                }
-            }
-        }
-    }
-    return false;
+const CommonAPI::DBus::StubAttributeTable& RootInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
 }
 
-bool RootInterfaceDBusStubAdapterInternal::deregisterManagedStubLeafInterface(const std::string& instance) {
-    std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
-    if (registeredLeafInterfaceInstances.find(instance) != registeredLeafInterfaceInstances.end()) {
-        std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
-        if (dbusStubAdapter != nullptr) {
-            dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-            CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-            registeredLeafInterfaceInstances.erase(instance);
-            return true;
-        }
-    }
-    return false;
-}
+  bool RootInterfaceDBusStubAdapterInternal::registerManagedStubLeafInterface(std::shared_ptr<LeafInterfaceStub> stub, const std::string& instance) {
+      if (registeredLeafInterfaceInstances.find(instance) == registeredLeafInterfaceInstances.end()) {
+          std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
 
-std::set<std::string>& RootInterfaceDBusStubAdapterInternal::getLeafInterfaceInstances() {
-    return registeredLeafInterfaceInstances;
-}
+          std::string interfaceName;
+          std::string connectionName;
+          std::string objectPath;
 
-bool RootInterfaceDBusStubAdapterInternal::registerManagedStubBranchInterface(std::shared_ptr<BranchInterfaceStub> stub, const std::string& instance) {
-    if (registeredBranchInterfaceInstances.find(instance) == registeredBranchInterfaceInstances.end()) {
-        std::string commonApiAddress = "local:commonapi.tests.managed.BranchInterface:" + instance;
+          CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
+                  commonApiAddress,
+                  interfaceName,
+                  connectionName,
+                  objectPath);
 
-        std::string interfaceName;
-        std::string connectionName;
-        std::string objectPath;
+          if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
+              auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.LeafInterface",
+                      instance, "commonapi.tests.managed.LeafInterface", "local");
 
-        CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
-                commonApiAddress,
-                interfaceName,
-                connectionName,
-                objectPath);
+              bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
+              if (success) {
+                  bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+                  if (isServiceExportSuccessful) {
+                      registeredLeafInterfaceInstances.insert(instance);
+                      return true;
+                  } else {
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+                  }
+              }
+          }
+      }
+      return false;
+  }
 
-        if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
-            auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.BranchInterface",
-                    instance, "commonapi.tests.managed.BranchInterface", "local");
+  bool RootInterfaceDBusStubAdapterInternal::deregisterManagedStubLeafInterface(const std::string& instance) {
+      std::string commonApiAddress = "local:commonapi.tests.managed.LeafInterface:" + instance;
+      if (registeredLeafInterfaceInstances.find(instance) != registeredLeafInterfaceInstances.end()) {
+          std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
+          if (dbusStubAdapter != nullptr) {
+              dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+              CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+              registeredLeafInterfaceInstances.erase(instance);
+              return true;
+          }
+      }
+      return false;
+  }
 
-            bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
-            if (success) {
-                bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-                if (isServiceExportSuccessful) {
-                    registeredBranchInterfaceInstances.insert(instance);
-                    return true;
-                } else {
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-                }
-            }
-        }
-    }
-    return false;
-}
+  std::set<std::string>& RootInterfaceDBusStubAdapterInternal::getLeafInterfaceInstances() {
+      return registeredLeafInterfaceInstances;
+  }
 
-bool RootInterfaceDBusStubAdapterInternal::deregisterManagedStubBranchInterface(const std::string& instance) {
-    std::string commonApiAddress = "local:commonapi.tests.managed.BranchInterface:" + instance;
-    if (registeredBranchInterfaceInstances.find(instance) != registeredBranchInterfaceInstances.end()) {
-        std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
-                    CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
-        if (dbusStubAdapter != nullptr) {
-            dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
-            CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
-            registeredBranchInterfaceInstances.erase(instance);
-            return true;
-        }
-    }
-    return false;
-}
+  bool RootInterfaceDBusStubAdapterInternal::registerManagedStubBranchInterface(std::shared_ptr<BranchInterfaceStub> stub, const std::string& instance) {
+      if (registeredBranchInterfaceInstances.find(instance) == registeredBranchInterfaceInstances.end()) {
+          std::string commonApiAddress = "local:commonapi.tests.managed.BranchInterface:" + instance;
 
-std::set<std::string>& RootInterfaceDBusStubAdapterInternal::getBranchInterfaceInstances() {
-    return registeredBranchInterfaceInstances;
-}
+          std::string interfaceName;
+          std::string connectionName;
+          std::string objectPath;
+
+          CommonAPI::DBus::DBusAddressTranslator::getInstance().searchForDBusAddress(
+                  commonApiAddress,
+                  interfaceName,
+                  connectionName,
+                  objectPath);
+
+          if (objectPath.compare(0, dbusObjectPath_.length(), dbusObjectPath_) == 0) {
+              auto dbusStubAdapter = factory_->createDBusStubAdapter(stub, "commonapi.tests.managed.BranchInterface",
+                      instance, "commonapi.tests.managed.BranchInterface", "local");
+
+              bool success = CommonAPI::DBus::DBusServicePublisher::getInstance()->registerManagedService(dbusStubAdapter);
+              if (success) {
+                  bool isServiceExportSuccessful = dbusConnection_->getDBusObjectManager()->exportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+                  if (isServiceExportSuccessful) {
+                      registeredBranchInterfaceInstances.insert(instance);
+                      return true;
+                  } else {
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+                  }
+              }
+          }
+      }
+      return false;
+  }
+
+  bool RootInterfaceDBusStubAdapterInternal::deregisterManagedStubBranchInterface(const std::string& instance) {
+      std::string commonApiAddress = "local:commonapi.tests.managed.BranchInterface:" + instance;
+      if (registeredBranchInterfaceInstances.find(instance) != registeredBranchInterfaceInstances.end()) {
+          std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter =
+                      CommonAPI::DBus::DBusServicePublisher::getInstance()->getRegisteredService(commonApiAddress);
+          if (dbusStubAdapter != nullptr) {
+              dbusConnection_->getDBusObjectManager()->unexportManagedDBusStubAdapter(dbusObjectPath_, dbusStubAdapter);
+              CommonAPI::DBus::DBusServicePublisher::getInstance()->unregisterManagedService(commonApiAddress);
+              registeredBranchInterfaceInstances.erase(instance);
+              return true;
+          }
+      }
+      return false;
+  }
+
+  std::set<std::string>& RootInterfaceDBusStubAdapterInternal::getBranchInterfaceInstances() {
+      return registeredBranchInterfaceInstances;
+  }
 
 RootInterfaceDBusStubAdapterInternal::RootInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -235,9 +238,14 @@ RootInterfaceDBusStubAdapterInternal::RootInterfaceDBusStubAdapterInternal(
             true),
         stubDispatcherTable_({
             { { "testRootMethod", "is" }, &commonapi::tests::managed::RootInterfaceDBusStubAdapterInternal::testRootMethodStubDispatcher }
-            }) {
+            }),
+        stubAttributeTable_() {
 
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::RootInterfaceDBusStubAdapterInternal::getRootInterfaceInterfaceVersionStubDispatcher });
+}
+
+const bool RootInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace managed

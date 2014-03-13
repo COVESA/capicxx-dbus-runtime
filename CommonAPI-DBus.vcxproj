@@ -84,6 +84,7 @@
     <ClCompile Include="src\CommonAPI\DBus\DBusDaemonProxy.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusError.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusFactory.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFreedesktopPropertiesStub.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusFunctionalHash.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusInputStream.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusMainLoopContext.cpp" />
@@ -97,6 +98,7 @@
     <ClCompile Include="src\CommonAPI\DBus\DBusRuntime.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusServicePublisher.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusServiceRegistry.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusServiceStatusEvent.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusStubAdapter.cpp" />
     <ClCompile Include="src\murmurhash\MurmurHash3.cpp" />
     <ClCompile Include="src\pugixml\pugixml.cpp" />
@@ -112,6 +114,7 @@
     <ClInclude Include="src\CommonAPI\DBus\DBusError.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusEvent.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusFactory.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusFreedesktopPropertiesStub.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusFunctionalHash.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusHelper.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusInputStream.h" />
@@ -135,6 +138,7 @@
     <ClInclude Include="src\CommonAPI\DBus\DBusSerializableArguments.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusServicePublisher.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusServiceRegistry.h" />
+    <ClInclude Include="src\CommonAPI\DBus\DBusServiceStatusEvent.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapter.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapterHelper.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusUtils.h" />

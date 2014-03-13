@@ -68,9 +68,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > ExtendedInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher(
                 &ExtendedInterfaceStub::getTestPredefinedTypeAttributeAttribute,
                 &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestPredefinedTypeAttributeAttribute,
-                &ExtendedInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged,
-                &ExtendedInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged,
-                "u");
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged
+                ,&ExtendedInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged
+                ,"u"
+                );
 CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         ExtendedInterfaceStub,
         DerivedTypeCollection::TestStructExtended
@@ -81,9 +82,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher(
                 &ExtendedInterfaceStub::getTestDerivedStructAttributeAttribute,
                 &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestDerivedStructAttributeAttribute,
-                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged,
-                &ExtendedInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged,
-                "(sqi)");
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged
+                ,&ExtendedInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged
+                ,"(sqi)"
+                );
 CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         ExtendedInterfaceStub,
         DerivedTypeCollection::TestArrayUInt64
@@ -94,9 +96,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > ExtendedInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher(
                 &ExtendedInterfaceStub::getTestDerivedArrayAttributeAttribute,
                 &ExtendedInterfaceStubRemoteEvent::onRemoteSetTestDerivedArrayAttributeAttribute,
-                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged,
-                &ExtendedInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged,
-                "at");
+                &ExtendedInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged
+                ,&ExtendedInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged
+                ,"at"
+                );
 #endif
 
 CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
@@ -188,6 +191,9 @@ const ExtendedInterfaceDBusStubAdapterHelper::StubDispatcherTable& ExtendedInter
     return stubDispatcherTable_;
 }
 
+const CommonAPI::DBus::StubAttributeTable& ExtendedInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
+}
 
 ExtendedInterfaceDBusStubAdapterInternal::ExtendedInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -250,7 +256,8 @@ ExtendedInterfaceDBusStubAdapterInternal::ExtendedInterfaceDBusStubAdapterIntern
             ,
             { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
             #endif
-            }) {
+            }),
+        stubAttributeTable_() {
 
     #ifdef WIN32
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher });
@@ -264,7 +271,15 @@ ExtendedInterfaceDBusStubAdapterInternal::ExtendedInterfaceDBusStubAdapterIntern
     } else {
         stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::ExtendedInterfaceDBusStubAdapterInternal::getExtendedInterfaceInterfaceVersionStubDispatcher });
     }
+
+    auto parentAttributeTable = TestInterfaceDBusStubAdapterInternal::getStubAttributeTable();
+    stubAttributeTable_.insert(parentAttributeTable.begin(), parentAttributeTable.end());
+
     #endif
+}
+
+const bool ExtendedInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace tests

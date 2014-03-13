@@ -50,6 +50,8 @@ class DBusObjectManager {
                                     std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler);
 
     bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
+    bool onFreedesktopPropertiesDBusMessage(const DBusMessage& callMessage);
+
 
     typedef std::unordered_map<DBusInterfaceHandlerPath, std::shared_ptr<DBusInterfaceHandler>> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;

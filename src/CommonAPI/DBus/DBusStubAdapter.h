@@ -59,7 +59,8 @@ class DBusStubAdapter: virtual public CommonAPI::StubAdapter, public DBusInterfa
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
 
     virtual void deactivateManagedInstances() = 0;
-
+    virtual const bool hasFreedesktopProperties();
+    virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const DBusMessage& dbusMessage) = 0;
  protected:
 
     const std::string commonApiDomain_;

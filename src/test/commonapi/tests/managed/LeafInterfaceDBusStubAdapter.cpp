@@ -79,6 +79,9 @@ const LeafInterfaceDBusStubAdapterHelper::StubDispatcherTable& LeafInterfaceDBus
     return stubDispatcherTable_;
 }
 
+const CommonAPI::DBus::StubAttributeTable& LeafInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
+}
 
 LeafInterfaceDBusStubAdapterInternal::LeafInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -107,9 +110,14 @@ LeafInterfaceDBusStubAdapterInternal::LeafInterfaceDBusStubAdapterInternal(
             false),
         stubDispatcherTable_({
             { { "testLeafMethod", "is" }, &commonapi::tests::managed::LeafInterfaceDBusStubAdapterInternal::testLeafMethodStubDispatcher }
-            }) {
+            }),
+        stubAttributeTable_() {
 
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::LeafInterfaceDBusStubAdapterInternal::getLeafInterfaceInterfaceVersionStubDispatcher });
+}
+
+const bool LeafInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace managed

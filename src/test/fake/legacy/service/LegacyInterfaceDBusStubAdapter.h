@@ -29,7 +29,7 @@ namespace service {
 
 typedef CommonAPI::DBus::DBusStubAdapterHelper<LegacyInterfaceStub> LegacyInterfaceDBusStubAdapterHelper;
 
-class LegacyInterfaceDBusStubAdapterInternal: public LegacyInterfaceStubAdapter, public LegacyInterfaceDBusStubAdapterHelper {
+class LegacyInterfaceDBusStubAdapterInternal: public virtual LegacyInterfaceStubAdapter, public LegacyInterfaceDBusStubAdapterHelper {
  public:
     LegacyInterfaceDBusStubAdapterInternal(
             const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -42,19 +42,49 @@ class LegacyInterfaceDBusStubAdapterInternal: public LegacyInterfaceStubAdapter,
 
     ~LegacyInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
 
     const LegacyInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
 
+static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+        LegacyInterfaceStub,
+        CommonAPI::Version
+        > getLegacyInterfaceInterfaceVersionStubDispatcher;
+
+
+
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    LegacyInterfaceStub,
+    std::tuple<int32_t>,
+    std::tuple<int32_t, int32_t>
+    > testMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    LegacyInterfaceStub,
+    std::tuple<>,
+    std::tuple<std::string, int32_t>
+    > otherTestMethodStubDispatcher;
+static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    LegacyInterfaceStub,
+    std::tuple<>,
+    std::tuple<>
+    > finishStubDispatcher;
+
+
+
+
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     LegacyInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class LegacyInterfaceDBusStubAdapter: public LegacyInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<LegacyInterfaceDBusStubAdapter> {

@@ -50,6 +50,7 @@ libCommonAPI_DBus_la_SOURCES = \
         src/CommonAPI/DBus/DBusConnection.cpp \
         src/CommonAPI/DBus/DBusDaemonProxy.cpp \
         src/CommonAPI/DBus/DBusError.cpp \
+        src/CommonAPI/DBus/DBusFreedesktopPropertiesStub.cpp \
         src/CommonAPI/DBus/DBusFunctionalHash.cpp \
         src/CommonAPI/DBus/DBusInputStream.cpp \
         src/CommonAPI/DBus/DBusMainLoopContext.cpp \
@@ -90,6 +91,7 @@ CommonAPI_DBus_include_HEADERS = \
         src/CommonAPI/DBus/DBusDaemonProxy.h \
         src/CommonAPI/DBus/DBusError.h \
         src/CommonAPI/DBus/DBusEvent.h \
+        src/CommonAPI/DBus/DBusFreedesktopPropertiesStub.h \
         src/CommonAPI/DBus/DBusFunctionalHash.h \
         src/CommonAPI/DBus/DBusHelper.h \
         src/CommonAPI/DBus/DBusInputStream.h \
@@ -148,6 +150,15 @@ TestInterfaceDBusSources = \
         src/test/commonapi/tests/TestInterfaceDBusProxy.cpp \
         src/test/commonapi/tests/TestInterfaceDBusStubAdapter.cpp \
         src/test/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
+
+FreedesktopPropertiesDBusSources = \
+        ${TestInterfaceSources} \
+        src/test/commonapi/tests/TestFreedesktopInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/TestFreedesktopInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp \
+        src/test/commonapi/tests/TestFreedesktopDerivedInterfaceDBusProxy.cpp \
+        src/test/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp \
+        src/test/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp        
 
 ManagedSources = \
         src/test/commonapi/tests/managed/LeafInterfaceStubDefault.cpp \
@@ -218,7 +229,8 @@ check_PROGRAMS = \
         DBusClientIdTest \
         DBusSelectiveBroadcastTest \
         DBusPolymorphicTest \
-        DBusLoadTest
+        DBusLoadTest \
+        DBusFreedesktopPropertiesTest
 
 noinst_PROGRAMS = ${check_PROGRAMS}
 TESTS = ${check_PROGRAMS}
@@ -321,6 +333,13 @@ DBusProxyTest_SOURCES = \
 DBusProxyTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusProxyTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusProxyTest_LDADD = ${LDADD_FOR_GTEST}
+
+DBusFreedesktopPropertiesTest_SOURCES = \
+        src/test/DBusFreedesktopPropertiesTest.cpp \
+        ${FreedesktopPropertiesDBusSources}
+DBusFreedesktopPropertiesTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusFreedesktopPropertiesTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusFreedesktopPropertiesTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusServicePublisherTest_SOURCES = \
         src/test/DBusServicePublisherTest.cpp \

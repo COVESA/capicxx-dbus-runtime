@@ -69,6 +69,10 @@ const std::string& DBusStubAdapter::getInstanceId() const {
     return commonApiParticipantId_;
 }
 
+const bool DBusStubAdapter::hasFreedesktopProperties() {
+    return false;
+}
+
 const bool DBusStubAdapter::isManagingInterface() {
     return isManagingInterface_;
 }

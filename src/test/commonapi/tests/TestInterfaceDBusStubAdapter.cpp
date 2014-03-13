@@ -139,9 +139,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > TestInterfaceDBusStubAdapterInternal::setTestPredefinedTypeAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestPredefinedTypeAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestPredefinedTypeAttributeAttribute,
-                &TestInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged,
-                &TestInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged,
-                "u");
+                &TestInterfaceStubRemoteEvent::onRemoteTestPredefinedTypeAttributeAttributeChanged
+                ,&TestInterfaceStubAdapter::fireTestPredefinedTypeAttributeAttributeChanged
+                ,"u"
+                );
 CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestStructExtended
@@ -152,9 +153,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > TestInterfaceDBusStubAdapterInternal::setTestDerivedStructAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestDerivedStructAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestDerivedStructAttributeAttribute,
-                &TestInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged,
-                &TestInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged,
-                "(sqi)");
+                &TestInterfaceStubRemoteEvent::onRemoteTestDerivedStructAttributeAttributeChanged
+                ,&TestInterfaceStubAdapter::fireTestDerivedStructAttributeAttributeChanged
+                ,"(sqi)"
+                );
 CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         TestInterfaceStub,
         DerivedTypeCollection::TestArrayUInt64
@@ -165,9 +167,10 @@ CommonAPI::DBus::DBusSetObservableAttributeStubDispatcher<
         > TestInterfaceDBusStubAdapterInternal::setTestDerivedArrayAttributeAttributeStubDispatcher(
                 &TestInterfaceStub::getTestDerivedArrayAttributeAttribute,
                 &TestInterfaceStubRemoteEvent::onRemoteSetTestDerivedArrayAttributeAttribute,
-                &TestInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged,
-                &TestInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged,
-                "at");
+                &TestInterfaceStubRemoteEvent::onRemoteTestDerivedArrayAttributeAttributeChanged
+                ,&TestInterfaceStubAdapter::fireTestDerivedArrayAttributeAttributeChanged
+                ,"at"
+                );
 
 
 CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
@@ -397,6 +400,9 @@ const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable& TestInterfaceDBus
     return stubDispatcherTable_;
 }
 
+const CommonAPI::DBus::StubAttributeTable& TestInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
+}
 
 TestInterfaceDBusStubAdapterInternal::TestInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -447,11 +453,16 @@ TestInterfaceDBusStubAdapterInternal::TestInterfaceDBusStubAdapterInternal(
             { { "subscribeForTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::subscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
             ,
             { { "unsubscribeFromTestBroadcastWithOutArgsSelective", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::unsubscribeTestBroadcastWithOutArgsSelectiveStubDispatcher }
-            }) {
+            }),
+        stubAttributeTable_() {
     subscribersForTestSelectiveBroadcastSelective_ = std::make_shared<CommonAPI::ClientIdList>();
     subscribersForTestBroadcastWithOutArgsSelective_ = std::make_shared<CommonAPI::ClientIdList>();
 
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::TestInterfaceDBusStubAdapterInternal::getTestInterfaceInterfaceVersionStubDispatcher });
+}
+
+const bool TestInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace tests

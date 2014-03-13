@@ -41,6 +41,8 @@ class TestInterfaceDBusStubAdapterInternal: public virtual TestInterfaceStubAdap
 
     ~TestInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
     void fireTestPredefinedTypeAttributeAttributeChanged(const uint32_t& value);
     void fireTestDerivedStructAttributeAttributeChanged(const DerivedTypeCollection::TestStructExtended& value);
     void fireTestDerivedArrayAttributeAttributeChanged(const DerivedTypeCollection::TestArrayUInt64& value);
@@ -59,6 +61,7 @@ class TestInterfaceDBusStubAdapterInternal: public virtual TestInterfaceStubAdap
 
 
     const TestInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -171,9 +174,10 @@ static CommonAPI::DBus::DBusMethodWithReplyAdapterDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     TestInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class TestInterfaceDBusStubAdapter: public TestInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<TestInterfaceDBusStubAdapter> {

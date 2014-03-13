@@ -42,10 +42,13 @@ class LeafInterfaceDBusStubAdapterInternal: public virtual LeafInterfaceStubAdap
 
     ~LeafInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
 
     const LeafInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -68,9 +71,10 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     LeafInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class LeafInterfaceDBusStubAdapter: public LeafInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<LeafInterfaceDBusStubAdapter> {

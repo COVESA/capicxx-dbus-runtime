@@ -43,7 +43,11 @@ struct ApplyIndexForStringVisitor<Visitor, Variant, _Type, _Types...> {
         DBusTypeOutputStream typeStream_;
         TypeWriter<_Type>::writeType(typeStream_);
         const std::string sig = typeStream_.retrieveSignature();
+#ifdef WIN32
+        if (visitor.operator()<_Type>(sig)) {
+#else
         if (visitor.template operator()<_Type>(sig)) {
+#endif
             return index;
         } else {
             return ApplyIndexForStringVisitor<Visitor, Variant, _Types...>::visit(visitor,

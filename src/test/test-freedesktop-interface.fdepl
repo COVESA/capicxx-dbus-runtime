@@ -1,0 +1,11 @@
+import "platform:/plugin/org.genivi.commonapi.dbus/deployment/CommonAPI-DBus_deployment.fdepl"
+import "test-freedesktop-interface.fidl"
+
+
+define org.genivi.commonapi.dbus.deployment.deployment for interface commonapi.tests.TestFreedesktopInterface {
+    PropertiesType = freedesktop
+}
+
+define org.genivi.commonapi.dbus.deployment.deployment for interface commonapi.tests.TestFreedesktopDerivedInterface {
+    PropertiesType = freedesktop
+}

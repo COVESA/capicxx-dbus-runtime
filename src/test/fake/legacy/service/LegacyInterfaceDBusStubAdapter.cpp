@@ -25,7 +25,7 @@ std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createLegacyInterfaceDBusStubA
     return std::make_shared<LegacyInterfaceDBusStubAdapter>(factory, commonApiAddress, interfaceName, busName, objectPath, dbusProxyConnection, stubBase);
 }
 
-__attribute__((constructor)) void registerLegacyInterfaceDBusStubAdapter(void) {
+INITIALIZER(registerLegacyInterfaceDBusStubAdapter) {
     CommonAPI::DBus::DBusFactory::registerAdapterFactoryMethod(LegacyInterface::getInterfaceId(),
                                                                &createLegacyInterfaceDBusStubAdapter);
 }
@@ -38,6 +38,7 @@ LegacyInterfaceDBusStubAdapterInternal::~LegacyInterfaceDBusStubAdapterInternal(
 }
 
 void LegacyInterfaceDBusStubAdapterInternal::deactivateManagedInstances() {
+
 }
 
 const char* LegacyInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionXmlData() const {
@@ -61,27 +62,30 @@ const char* LegacyInterfaceDBusStubAdapterInternal::getMethodsDBusIntrospectionX
     return introspectionData.c_str();
 }
 
-static CommonAPI::DBus::DBusGetAttributeStubDispatcher<
+CommonAPI::DBus::DBusGetAttributeStubDispatcher<
         LegacyInterfaceStub,
         CommonAPI::Version
-        > getLegacyInterfaceInterfaceVersionStubDispatcher(&LegacyInterfaceStub::getInterfaceVersion, "uu");
+        > LegacyInterfaceDBusStubAdapterInternal::getLegacyInterfaceInterfaceVersionStubDispatcher(&LegacyInterfaceStub::getInterfaceVersion, "uu");
 
 
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     LegacyInterfaceStub,
     std::tuple<int32_t>,
     std::tuple<int32_t, int32_t>
-    > testMethodStubDispatcher(&LegacyInterfaceStub::TestMethod, "ii");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > LegacyInterfaceDBusStubAdapterInternal::testMethodStubDispatcher(&LegacyInterfaceStub::TestMethod, "ii");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     LegacyInterfaceStub,
     std::tuple<>,
     std::tuple<std::string, int32_t>
-    > otherTestMethodStubDispatcher(&LegacyInterfaceStub::OtherTestMethod, "si");
-static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
+    > LegacyInterfaceDBusStubAdapterInternal::otherTestMethodStubDispatcher(&LegacyInterfaceStub::OtherTestMethod, "si");
+CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
     LegacyInterfaceStub,
     std::tuple<>,
     std::tuple<>
-    > finishStubDispatcher(&LegacyInterfaceStub::finish, "");
+    > LegacyInterfaceDBusStubAdapterInternal::finishStubDispatcher(&LegacyInterfaceStub::finish, "");
+
+
 
 
 
@@ -89,6 +93,9 @@ const LegacyInterfaceDBusStubAdapterHelper::StubDispatcherTable& LegacyInterface
     return stubDispatcherTable_;
 }
 
+const CommonAPI::DBus::StubAttributeTable& LegacyInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
+}
 
 LegacyInterfaceDBusStubAdapterInternal::LegacyInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -116,12 +123,17 @@ LegacyInterfaceDBusStubAdapterInternal::LegacyInterfaceDBusStubAdapterInternal(
             std::dynamic_pointer_cast<LegacyInterfaceStub>(stub),
             false),
         stubDispatcherTable_({
-            { { "TestMethod", "i" }, &fake::legacy::service::testMethodStubDispatcher },
-            { { "OtherTestMethod", "" }, &fake::legacy::service::otherTestMethodStubDispatcher },
-            { { "finish", "" }, &fake::legacy::service::finishStubDispatcher }
-            }) {
+            { { "TestMethod", "i" }, &fake::legacy::service::LegacyInterfaceDBusStubAdapterInternal::testMethodStubDispatcher },
+            { { "OtherTestMethod", "" }, &fake::legacy::service::LegacyInterfaceDBusStubAdapterInternal::otherTestMethodStubDispatcher },
+            { { "finish", "" }, &fake::legacy::service::LegacyInterfaceDBusStubAdapterInternal::finishStubDispatcher }
+            }),
+        stubAttributeTable_() {
 
-    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &fake::legacy::service::getLegacyInterfaceInterfaceVersionStubDispatcher });
+    stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &fake::legacy::service::LegacyInterfaceDBusStubAdapterInternal::getLegacyInterfaceInterfaceVersionStubDispatcher });
+}
+
+const bool LegacyInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace service

@@ -98,8 +98,8 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
     _DBusProxy& dbusProxy_;
     const char* eventName_;
     const char* eventSignature_;
-    const char* interfaceName_;
     const char* objectPath_;
+    const char* interfaceName_;
     DBusProxyConnection::DBusSignalHandlerToken subscription_;
 };
 

@@ -79,6 +79,9 @@ const BranchInterfaceDBusStubAdapterHelper::StubDispatcherTable& BranchInterface
     return stubDispatcherTable_;
 }
 
+const CommonAPI::DBus::StubAttributeTable& BranchInterfaceDBusStubAdapterInternal::getStubAttributeTable() {
+    return stubAttributeTable_;
+}
 
 BranchInterfaceDBusStubAdapterInternal::BranchInterfaceDBusStubAdapterInternal(
         const std::shared_ptr<CommonAPI::DBus::DBusFactory>& factory,
@@ -107,9 +110,14 @@ BranchInterfaceDBusStubAdapterInternal::BranchInterfaceDBusStubAdapterInternal(
             false),
         stubDispatcherTable_({
             { { "testBranchMethod", "is" }, &commonapi::tests::managed::BranchInterfaceDBusStubAdapterInternal::testBranchMethodStubDispatcher }
-            }) {
+            }),
+        stubAttributeTable_() {
 
     stubDispatcherTable_.insert({ { "getInterfaceVersion", "" }, &commonapi::tests::managed::BranchInterfaceDBusStubAdapterInternal::getBranchInterfaceInterfaceVersionStubDispatcher });
+}
+
+const bool BranchInterfaceDBusStubAdapterInternal::hasFreedesktopProperties() {
+    return false;
 }
 
 } // namespace managed

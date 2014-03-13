@@ -42,10 +42,13 @@ class BranchInterfaceDBusStubAdapterInternal: public virtual BranchInterfaceStub
 
     ~BranchInterfaceDBusStubAdapterInternal();
 
+    virtual const bool hasFreedesktopProperties();
+
 
 
 
     const BranchInterfaceDBusStubAdapterHelper::StubDispatcherTable& getStubDispatcherTable();
+    const CommonAPI::DBus::StubAttributeTable& getStubAttributeTable();
 
     void deactivateManagedInstances();
 
@@ -68,9 +71,10 @@ static CommonAPI::DBus::DBusMethodWithReplyStubDispatcher<
 
  protected:
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
-    
-  private:
+
+ private:
     BranchInterfaceDBusStubAdapterHelper::StubDispatcherTable stubDispatcherTable_;
+    CommonAPI::DBus::StubAttributeTable stubAttributeTable_;
 };
 
 class BranchInterfaceDBusStubAdapter: public BranchInterfaceDBusStubAdapterInternal, public std::enable_shared_from_this<BranchInterfaceDBusStubAdapter> {
