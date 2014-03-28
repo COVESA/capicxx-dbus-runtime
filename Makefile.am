@@ -227,7 +227,7 @@ check_PROGRAMS = \
         DBusMultipleConnectionTest \
         DBusServicePublisherTest \
         DBusClientIdTest \
-        DBusSelectiveBroadcastTest \
+        DBusBroadcastTest \
         DBusPolymorphicTest \
         DBusLoadTest \
         DBusFreedesktopPropertiesTest
@@ -399,12 +399,12 @@ DBusClientIdTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
 DBusClientIdTest_CXXFLAGS = ${GTEST_CXXFLAGS}
 DBusClientIdTest_LDADD = ${LDADD_FOR_GTEST}
 
-DBusSelectiveBroadcastTest_SOURCES =  \
+DBusBroadcastTest_SOURCES =  \
         ${TestInterfaceDBusSources} \
-        src/test/DBusSelectiveBroadcastTest.cpp
-DBusSelectiveBroadcastTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
-DBusSelectiveBroadcastTest_CXXFLAGS = ${GTEST_CXXFLAGS}
-DBusSelectiveBroadcastTest_LDADD = ${LDADD_FOR_GTEST}
+        src/test/DBusBroadcastTest.cpp
+DBusBroadcastTest_CPPFLAGS = ${AM_CPPFLAGS} ${GTEST_CPPFLAGS}
+DBusBroadcastTest_CXXFLAGS = ${GTEST_CXXFLAGS}
+DBusBroadcastTest_LDADD = ${LDADD_FOR_GTEST}
 
 DBusPolymorphicTest_SOURCES =  \
         ${TestInterfaceDBusSources} \

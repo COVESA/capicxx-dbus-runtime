@@ -93,7 +93,7 @@ private:
 
 
 
-class DBusSelectiveBroadcastTest: public ::testing::Test {
+class DBusBroadcastTest: public ::testing::Test {
 protected:
    virtual void SetUp() {
        runtime_ = CommonAPI::Runtime::load();
@@ -148,11 +148,210 @@ public:
    }
 };
 
-const std::string DBusSelectiveBroadcastTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
-const std::string DBusSelectiveBroadcastTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
+const std::string DBusBroadcastTest::serviceAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyTestService";
+const std::string DBusBroadcastTest::nonstandardAddress_ = "local:non.standard.ServiceName:non.standard.participand.ID";
+
+TEST_F(DBusBroadcastTest, ProxysCanHandleBroadcast) {
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
 
 
-TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    bool callbackArrived = false;
+
+    broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            callbackArrived = true; return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+}
+
+TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgain) {
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    bool callbackArrived = false;
+
+    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 1);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(1, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent.unsubscribe(broadcastSubscription);
+
+    callbackArrived = false;
+
+    auto broadcastSubscription2 = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 2);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent.unsubscribe(broadcastSubscription2);
+}
+
+TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainWithOtherProxy) {
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    bool callbackArrived = false;
+
+    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 1);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(1, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent.unsubscribe(broadcastSubscription);
+
+    auto proxy2 = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent2 =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    callbackArrived = false;
+
+    auto broadcastSubscription2 = broadcastEvent2.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 2);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent.unsubscribe(broadcastSubscription2);
+}
+
+TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherProxy) {
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    bool callbackArrived = false;
+
+    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 1);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::CANCEL;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(1, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    auto proxy2 = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent2 =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    callbackArrived = false;
+
+    auto broadcastSubscription2 = broadcastEvent2.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            EXPECT_EQ(intParam, 2);
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
+
+    for(unsigned int i=0; i<100 && !callbackArrived; i++) {
+        usleep(10000);
+    }
+
+    ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent.unsubscribe(broadcastSubscription2);
+}
+
+
+
+TEST_F(DBusBroadcastTest, ProxysCanSubscribeForSelectiveBroadcast)
 {
     auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromSameFactory1);
@@ -176,7 +375,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     ASSERT_TRUE(proxyFromSameFactory1->isAvailable());
 
     auto subscriptionResult1 = proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(
-                    std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this));
+                    std::bind(&DBusBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this));
 
     usleep(20000);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
@@ -188,7 +387,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 0);
 
 
-    auto subscriptionResult2 = proxyFromSameFactory2->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory2, this));
+    auto subscriptionResult2 = proxyFromSameFactory2->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory2, this));
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1); // should still be one because these were created by the same factory thus using the same connection
 
     stub->send();
@@ -196,7 +395,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory1, 2);
     EXPECT_EQ(selectiveBroadcastArrivedAtProxyFromSameFactory2, 1);
 
-    proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this));
+    proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(std::bind(&DBusBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this));
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 2); // should still be two because proxyFromSameFactory1_ is still subscribed
 
     proxyFromSameFactory2->getTestSelectiveBroadcastSelectiveEvent().unsubscribe(subscriptionResult2);
@@ -219,7 +418,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanSubscribe)
     EXPECT_EQ(stub->getNumberOfSubscribedClients(), 1);
 }
 
-TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
+TEST_F(DBusBroadcastTest, ProxysCanBeRejectedForSelectiveBroadcast) {
     auto proxyFromSameFactory1 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
     ASSERT_TRUE((bool)proxyFromSameFactory1);
     auto proxyFromOtherFactory = proxyFactory2_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
@@ -243,7 +442,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
     bool subbed = false;
 
     proxyFromSameFactory1->getTestSelectiveBroadcastSelectiveEvent().subscribe(
-                    std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this),
+                    std::bind(&DBusBroadcastTest::selectiveBroadcastCallbackForProxyFromSameFactory1, this),
                     subbed);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
     ASSERT_TRUE(subbed);
@@ -251,7 +450,7 @@ TEST_F(DBusSelectiveBroadcastTest, ProxysCanBeRejected) {
     stub->acceptSubs = false;
 
     proxyFromOtherFactory->getTestSelectiveBroadcastSelectiveEvent().subscribe(
-                    std::bind(&DBusSelectiveBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this),
+                    std::bind(&DBusBroadcastTest::selectiveBroadcastCallbackForProxyFromOtherFactory, this),
                     subbed);
     ASSERT_EQ(stub->getNumberOfSubscribedClients(), 1);
     ASSERT_FALSE(subbed);
