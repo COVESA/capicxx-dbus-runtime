@@ -37,6 +37,7 @@
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceStubDefault.cpp" />
     <ClCompile Include="src\test\DBusAddressTranslatorTest.cpp" />
+    <ClCompile Include="src\test\DBusBroadcastTest.cpp" />
     <ClCompile Include="src\test\DBusClientIdTest.cpp" />
     <ClCompile Include="src\test\DBusCommunicationTest.cpp" />
     <ClCompile Include="src\test\DBusConnectionTest.cpp" />
@@ -52,7 +53,6 @@
     <ClCompile Include="src\test\DBusPolymorphicTest.cpp" />
     <ClCompile Include="src\test\DBusProxyTest.cpp" />
     <ClCompile Include="src\test\DBusRuntimeTest.cpp" />
-    <ClCompile Include="src\test\DBusSelectiveBroadcastTest.cpp" />
     <ClCompile Include="src\test\DBusServicePublisherTest.cpp" />
     <ClCompile Include="src\test\DBusServiceRegistryTest.cpp" />
     <ClCompile Include="src\test\DBusTypeStreamTest.cpp" />
@@ -156,8 +156,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>C:\work\bmw\2.0\dbus\cmake\bin\Debug;C:\work\bmw\2.0\gtest-1.7.0\msvc\gtest\Debug;C:\work\bmw\vs21\Common-API\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
-    <IncludePath>C:\work\bmw\2.0\dbus;$(ProjectDir);$(SolutionDir)\src\test;$(SolutionDir)\src;C:\work\bmw\vs21\Common-API\src;C:\work\bmw\2.0\gtest-1.7.0\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>C:\work\bmw\2.0\dbus\cmake\bin\Debug;$(GTEST)\msvc\gtest\Debug;..\ascgit017.CommonAPI\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(ProjectDir);$(SolutionDir)\src\test;$(SolutionDir)\src;..\ascgit017.CommonAPI\src;$(GTEST)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
