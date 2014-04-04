@@ -86,6 +86,8 @@ Set the environment variable DBUS_DIR to the directory containing your patched D
 Set the environment variable DBUS_BUILD_DIR to the directory containing your built DBus.
 Add the path of CommonAPI.lib to "Additional Library Directories"
 
+To run the tests, you need to add the location of your built dbus-1d.dll to the PATH environment variable
+
 == Linking against CommonAPI-D-Bus
 
 CommonAPI-D-Bus requires successful activation of all static initialization code on library load. Therefore it is necessary to

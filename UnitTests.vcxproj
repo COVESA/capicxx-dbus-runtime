@@ -156,7 +156,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>C:\work\bmw\2.0\dbus\cmake\bin\Debug;$(GTEST)\msvc\gtest\Debug;..\ascgit017.CommonAPI\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <LibraryPath>$(DBUS_BUILD_DIR)\bin\Debug;$(GTEST)\msvc\gtest\Debug;..\ascgit017.CommonAPI\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
     <IncludePath>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(ProjectDir);$(SolutionDir)\src\test;$(SolutionDir)\src;..\ascgit017.CommonAPI\src;$(GTEST)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
