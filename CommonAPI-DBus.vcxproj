@@ -39,8 +39,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)\src;C:\work\bmw\2.0\dbus;C:\work\bmw\vs21\Common-API\src\;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\work\bmw\vs21\Common-API\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)\src;..\ascgit017.CommonAPI\src;$(DBUS_DIR);$(DBUS_BUILD_DIR);$(IncludePath)</IncludePath>
+    <LibraryPath>..\ascgit017.CommonAPI\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -51,6 +51,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <AdditionalOptions>/VERBOSE /VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -98,7 +99,6 @@
     <ClCompile Include="src\CommonAPI\DBus\DBusRuntime.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusServicePublisher.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusServiceRegistry.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusServiceStatusEvent.cpp" />
     <ClCompile Include="src\CommonAPI\DBus\DBusStubAdapter.cpp" />
     <ClCompile Include="src\murmurhash\MurmurHash3.cpp" />
     <ClCompile Include="src\pugixml\pugixml.cpp" />
@@ -138,7 +138,6 @@
     <ClInclude Include="src\CommonAPI\DBus\DBusSerializableArguments.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusServicePublisher.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusServiceRegistry.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusServiceStatusEvent.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapter.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapterHelper.h" />
     <ClInclude Include="src\CommonAPI\DBus\DBusUtils.h" />

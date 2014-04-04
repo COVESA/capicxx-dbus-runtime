@@ -82,6 +82,8 @@ Use autotools to build this package withthe above requirements available through
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
 To build the Windows version with Visual Studio, you can use the solution file CommonAPI-DBus.sln. It is configured to build CommonAPI-DBus as a static library.
+Set the environment variable DBUS_DIR to the directory containing your patched DBus sources.
+Set the environment variable DBUS_BUILD_DIR to the directory containing your built DBus.
 Add the path of CommonAPI.lib to "Additional Library Directories"
 
 == Linking against CommonAPI-D-Bus
