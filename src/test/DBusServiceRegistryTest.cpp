@@ -254,7 +254,7 @@ TEST_F(DBusServiceRegistryTest, SubscribeBeforeConnectWorks) {
     EXPECT_TRUE(waitForAvailabilityStatusChanged(
         testDBusServiceListener,
         CommonAPI::AvailabilityStatus::AVAILABLE));
-    usleep(2000000);
+    usleep(5000000);
     EXPECT_LE(testDBusServiceListener.availabilityStatusCount, 3);
     EXPECT_EQ(testDBusStubAdapter->introspectionCount, 1);
 
