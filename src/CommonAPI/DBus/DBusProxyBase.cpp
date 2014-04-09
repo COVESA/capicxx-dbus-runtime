@@ -59,8 +59,8 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 justAddFilter);
 }
 
-bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken) {
-    return dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerToken);
+bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+    return dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerToken, dbusSignalHandler);
 }
 
 } // namespace DBus

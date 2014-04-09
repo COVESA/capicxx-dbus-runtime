@@ -58,7 +58,7 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
 
     virtual ~DBusEvent() {
         if (this->hasListeners())
-            dbusProxy_.removeSignalMemberHandler(subscription_);
+            dbusProxy_.removeSignalMemberHandler(subscription_, this);
     }
 
     virtual SubscriptionStatus onSignalDBusMessage(const DBusMessage& dbusMessage) {
@@ -74,7 +74,7 @@ class DBusEvent: public _EventType, public DBusProxyConnection::DBusSignalHandle
     }
 
     virtual void onLastListenerRemoved(const CancellableListener&) {
-        dbusProxy_.removeSignalMemberHandler(subscription_);
+        dbusProxy_.removeSignalMemberHandler(subscription_, this);
     }
 
     template<typename ... _Arguments>
