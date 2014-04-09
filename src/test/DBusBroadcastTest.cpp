@@ -469,6 +469,9 @@ TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainWhil
     const bool callbackOnBothSubscriptionsArrivedAgain = callback1Arrived && callback2Arrived;
 
     EXPECT_TRUE(callbackOnBothSubscriptionsArrivedAgain);
+
+    broadcastEvent.unsubscribe(broadcastSubscription);
+    broadcastEvent2.unsubscribe(broadcastSubscription2);
 }
 
 
