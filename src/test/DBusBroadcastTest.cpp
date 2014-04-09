@@ -170,7 +170,8 @@ TEST_F(DBusBroadcastTest, ProxysCanHandleBroadcast) {
     bool callbackArrived = false;
 
     broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
-            callbackArrived = true; return CommonAPI::SubscriptionStatus::RETAIN;
+            callbackArrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
     });
 
     stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
@@ -233,6 +234,43 @@ TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgain) {
     ASSERT_TRUE(callbackArrived);
 
     broadcastEvent.unsubscribe(broadcastSubscription2);
+}
+
+TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainInALoop) {
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    for(unsigned int i=0; i<10; i++) {
+        bool callbackArrived = false;
+
+        auto broadcastSubscription = broadcastEvent.subscribe([&,i](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+                EXPECT_EQ(intParam, i);
+                callbackArrived = true;
+                return CommonAPI::SubscriptionStatus::RETAIN;
+        });
+
+        stub->fireTestPredefinedTypeBroadcastEvent(i, "xyz");
+
+        for(unsigned int j=0; j<100 && !callbackArrived; j++) {
+            usleep(10000);
+        }
+
+        ASSERT_TRUE(callbackArrived);
+
+        broadcastEvent.unsubscribe(broadcastSubscription);
+    }
 }
 
 TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainWithOtherProxy) {
@@ -346,7 +384,8 @@ TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherP
 
     ASSERT_TRUE(callbackArrived);
 
-    broadcastEvent.unsubscribe(broadcastSubscription2);
+    broadcastEvent.unsubscribe(broadcastSubscription);
+    broadcastEvent2.unsubscribe(broadcastSubscription2);
 }
 
 
