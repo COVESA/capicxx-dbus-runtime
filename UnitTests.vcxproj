@@ -156,9 +156,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(DBUS_BUILD_DIR)\bin\Debug;$(GTEST)\msvc\gtest\Debug;..\ascgit017.CommonAPI\Debug;$(SolutionDir)\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
-    <IncludePath>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(ProjectDir);$(SolutionDir)\src\test;$(SolutionDir)\src;..\ascgit017.CommonAPI\src;$(GTEST)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <SourcePath>$(SourcePath)</SourcePath>
+    <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -168,7 +166,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(SolutionDir)\src;$(SolutionDir)\src\test;$(COMMONAPI_DIR)\src;$(GTEST)\include;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>ENABLE_ATTRIBUTE_EXTENSIONS;WIN32;COMMONAPI_INTERNAL_COMPILATION;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <ShowIncludes>true</ShowIncludes>
@@ -177,8 +175,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CommonAPI-DBus.lib;gtestd.lib;gtest_maind.lib;dbus-1d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DBUS_BUILD_DIR)\bin\Debug;$(GTEST)\msvc\gtest-md\Debug;$(COMMONAPI_DIR)\Debug;$(SolutionDir)\Debug;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>CommonAPId.lib;CommonAPI-DBusd.lib;gtestd.lib;gtest_main-mdd.lib;dbus-1d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -188,7 +186,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(SolutionDir)\src;$(SolutionDir)\src\test;$(COMMONAPI_DIR)\src;$(GTEST)\include;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
     </ClCompile>
@@ -197,7 +195,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DBUS_BUILD_DIR)\bin\Release;$(GTEST)\msvc\gtest-md\Release;$(COMMONAPI_DIR)\Release;$(SolutionDir)\Release;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>CommonAPI.lib;CommonAPI-DBus.lib;gtest.lib;gtest_main-md.lib;dbus-1.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

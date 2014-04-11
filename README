@@ -72,6 +72,31 @@ For example, if CommonAPI and patched dbus are available in /usr/local, set the 
 ----
 # export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" 
 ----
+To build the Windows version of the dbus following steps have to be done:
+# Download dbus from http://www.freedesktop.org/wiki/Software/dbus/ e.g. dbus-1.8.0.tar.gz
+  Unpack the archive into a directory
+# For building the dbus cmake is needed. Download cmake from http://cmake.org/cmake/resources/software.html
+  Downloading the zip archive is ok e.g. cmake-2.8.12.2-win32-x86.zip
+  Unpack the archive into a directory
+# For building the dbus expat is needed. Expat can be downloaded from http://expat.sourceforge.net/
+  e.g. Download expat-win32bin-2.1.0.exe from http://sourceforge.net/projects/expat/files/expat_win32/2.1.0/
+  Install expat
+# For patching the dbus patch is needed. Download patch from http://gnuwin32.sourceforge.net/packages/patch.htm e.g. patch-2.5.9-7-setup.exe
+  Install patch
+# Install dbus patch
+  e.g. <patch_to_patch>\patch.exe -p1 < <patch_to_CommonAPI-D-Bus>\dbus-DBusMessage-add-support-for-custom-marshaling.patch
+# Build dbus via the cmake command line tool
+  Open the developer command line for VS2013
+  Change into root directory of the unpacked dbus archive e.g. dbus-1.8.0
+  Create a new directory dbus-build-dir e.g. mkdir dbus-build-dir
+  Change into this new created directory e.g. cd dbus-build-dir
+  Create the Visual Studio files for building the dbus:
+  cmake -DEXPAT_INCLUDE_DIR="<expat-path>\Source\lib" -DEXPAT_LIBRARY="<expat-path>\Bin\libexpat.lib" -G "Visual Studio 12" <DBusSourcenPath>\cmake
+  e.g. C:\Work\cmake-2.8.12.2-win32-x86\bin\cmake.exe -DEXPAT_INCLUDE_DIR="C:\Program Files (x86)\Expat 2.1.0\Source\lib"
+  -DEXPAT_LIBRARY="C:\Program Files (x86)\Expat 2.1.0\Bin\libexpat.lib" -G "Visual Studio 12" C:\Work\dbus-1.8.0\cmake
+  The Visual Studio files are created in the directory dbus-build-dir
+  Open the solution dbus.sln and build all projects
+  Info for dbus-1.8.0: In file printf.c the #include "test-utils.h" must be changed to #include "test/test-utils.h"
 
 === Instructions
 Use autotools to build this package withthe above requirements available through Pkgconfig :
@@ -81,12 +106,16 @@ Use autotools to build this package withthe above requirements available through
 # make
 # sudo make install (or alternative install process, eg. checkinstall on debian-based distributions, such as Ubuntu)
 ----
-To build the Windows version with Visual Studio, you can use the solution file CommonAPI-DBus.sln. It is configured to build CommonAPI-DBus as a static library.
-Set the environment variable DBUS_DIR to the directory containing your patched DBus sources.
-Set the environment variable DBUS_BUILD_DIR to the directory containing your built DBus.
-Add the path of CommonAPI.lib to "Additional Library Directories"
+To build the Windows version with Visual Studio 2013, you can use the solution file CommonAPI-DBus.sln. It is configured to build CommonAPI-DBus as a static library.
+Before opening the solution file CommonAPI-DBus.sln the following environment variables must be set:
+DBUS_DIR: directory containing the patched DBus sources e.g. <path_to_folder>\dbus-1.8.0
+DBUS_BUILD_DIR: directory containing the build DBus e.g. <path_to_folder>\dbus-1.8.0\dbus-build-dir
+COMMONAPI_DIR: directory containing the CommonAPI e.g. <path_to_folder>\ascgit017.CommonAPI
 
-To run the tests, you need to add the location of your built dbus-1d.dll to the PATH environment variable
+To run the tests, you need to add the location of your built dbus-1d.dll to the PATH environment variable.
+Please note:
+For building the tests the environment variable GTEST must be set (see README of CommonAPI).
+Furthermore the files DemoPoll.h and DemoPoll.cpp are needed (part of gnulib).
 
 == Linking against CommonAPI-D-Bus
 
@@ -107,6 +136,15 @@ In case of static linking --whole-archive must be specified:
 Generated proxies and stubs also require successful activation of all static initialization code on load.
 If they are provided in either a static or dynamic library to the application they must also be linked wrapped in the
 flags described above.
+
+For linking the proxies and stubs on Windows notice the following information:
+# In case an error C4996 occurs disable this warning via the project settings
+# Following code must be added to the file containing the call CommonAPI::Runtime::load():
+  #define COMMONAPI_INTERNAL_COMPILATION
+  #include <CommonAPI/DBus/DBusRuntime.h>
+  After loading of the runtime (std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();) following code must be added:
+  // access the middlewareInfo in order to get a call to DBusRuntime. This forces the windows linker not to remove DBusRuntime from resulting binary
+  std::cout << "Middleware Name: " << CommonAPI::DBus::DBusRuntime::middlewareInfo_.middlewareName_ << std::endl;
 
 === Building and executing the Unit Tests
 ----
