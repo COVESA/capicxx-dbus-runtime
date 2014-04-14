@@ -255,10 +255,9 @@ TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainInAL
     for(unsigned int i=0; i<10; i++) {
         bool callbackArrived = false;
 
-        auto broadcastSubscription = broadcastEvent.subscribe([&,i](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+        auto broadcastSubscription = broadcastEvent.subscribe([&,i](uint32_t intParam, std::string stringParam) {
                 EXPECT_EQ(intParam, i);
                 callbackArrived = true;
-                return CommonAPI::SubscriptionStatus::RETAIN;
         });
 
         stub->fireTestPredefinedTypeBroadcastEvent(i, "xyz");
