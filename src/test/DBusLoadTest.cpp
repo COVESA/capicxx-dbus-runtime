@@ -42,6 +42,7 @@ public:
                                   std::string stringInValue,
                                   uint32_t& uint32OutValue,
                                   std::string& stringOutValue) {
+
         uint32OutValue = uint32InValue;
         stringOutValue = stringInValue;
     }
@@ -82,10 +83,10 @@ public:
         EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
         EXPECT_EQ(out1, in1);
         EXPECT_EQ(out2, in2);
-        if (callStatus == CommonAPI::CallStatus::SUCCESS) {
-            ASSERT_FALSE(callSucceeded_[callId]);
-            callSucceeded_[callId] = true;
-        }
+        mutexCallSucceeded_.lock();
+        ASSERT_FALSE(callSucceeded_[callId]);
+        callSucceeded_[callId] = true;
+        mutexCallSucceeded_.unlock();
     }
 
     std::shared_ptr<CommonAPI::Runtime> runtime_;
@@ -93,6 +94,7 @@ public:
     std::shared_ptr<CommonAPI::Factory> stubFactory_;
     std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
     std::vector<bool> callSucceeded_;
+    std::mutex mutexCallSucceeded_;
 
     static const std::string serviceAddress_;
     static const uint32_t numCallsPerProxy_;
