@@ -112,7 +112,7 @@ DBUS_DIR: directory containing the patched DBus sources e.g. <path_to_folder>\db
 DBUS_BUILD_DIR: directory containing the build DBus e.g. <path_to_folder>\dbus-1.8.0\dbus-build-dir
 COMMONAPI_DIR: directory containing the CommonAPI e.g. <path_to_folder>\ascgit017.CommonAPI
 
-To run the tests, you need to add the location of your built dbus-1d.dll to the PATH environment variable.
+To run the tests, you need to add the location of your built dbus-1d.dll or dbus-1.dll (depending on Debug or Release built) to the PATH environment variable.
 Please note:
 For building the tests the environment variable GTEST must be set (see README of CommonAPI).
 Furthermore the files DemoPoll.h and DemoPoll.cpp are needed (part of gnulib).
