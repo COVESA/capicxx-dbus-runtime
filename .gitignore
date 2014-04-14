@@ -26,6 +26,9 @@
 /m4/libtool.m4
 /m4/lt*.m4
 
+/DBusBroadcastTest
+/DBusFreedesktopPropertiesTest
+/DBusLoadTest
 /DBusBenchmarkingTest
 /DBusCommunicationTest
 /DBusDaemonProxyTest
@@ -39,7 +42,6 @@
 /DBusVariantOutputStreamTest
 /DBusVariantTest
 /DBusAddressTranslatorTest
-/.pydevproject
 /DBusServiceRegistryTest
 /DBusClientIdTest
 /DBusConnectionTest
