@@ -58,3 +58,6 @@
 /DBusSelectiveBroadcastTest
 /DBusManagedTest
 /DBusPolymorphicTest
+/DBusBroadcastTest
+/DBusFreedesktopPropertiesTest
+/DBusLoadTest
