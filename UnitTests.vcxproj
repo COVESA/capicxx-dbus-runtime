@@ -37,7 +37,6 @@
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceStubDefault.cpp" />
     <ClCompile Include="src\test\DBusAddressTranslatorTest.cpp" />
-    <ClCompile Include="src\test\DBusBroadcastTest.cpp" />
     <ClCompile Include="src\test\DBusClientIdTest.cpp" />
     <ClCompile Include="src\test\DBusCommunicationTest.cpp" />
     <ClCompile Include="src\test\DBusConnectionTest.cpp" />
