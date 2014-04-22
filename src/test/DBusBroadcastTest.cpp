@@ -348,7 +348,7 @@ TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherP
 
     bool callbackArrived = false;
 
-    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+    broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
             EXPECT_EQ(intParam, 1);
             callbackArrived = true;
             return CommonAPI::SubscriptionStatus::CANCEL;
@@ -383,7 +383,6 @@ TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherP
 
     ASSERT_TRUE(callbackArrived);
 
-    broadcastEvent.unsubscribe(broadcastSubscription);
     broadcastEvent2.unsubscribe(broadcastSubscription2);
 }
 
