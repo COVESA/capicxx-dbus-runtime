@@ -304,60 +304,60 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
     dispatchThread.join();
 }
 
-std::promise<bool> promise2;
-std::future<bool> future2 = promise2.get_future();
-std::promise<bool> promise3;
-std::future<bool> future3 = promise3.get_future();
-
-void noPartnerCallback(DBusPendingCall*, void* data) {
-    ::DBusConnection* libdbusConnection = reinterpret_cast<DBusConnection*>(data);
-    dbus_connection_close(libdbusConnection);
-    dbus_connection_unref(libdbusConnection);
-    promise2.set_value(true);
-}
-
-void noPartnerCleanup(void* data) {
-    promise3.set_value(true);
-}
+//std::promise<bool> promise2;
+//std::future<bool> future2 = promise2.get_future();
+//std::promise<bool> promise3;
+//std::future<bool> future3 = promise3.get_future();
+//
+//void noPartnerCallback(DBusPendingCall*, void* data) {
+//    ::DBusConnection* libdbusConnection = reinterpret_cast<DBusConnection*>(data);
+//    dbus_connection_close(libdbusConnection);
+//    dbus_connection_unref(libdbusConnection);
+//    promise2.set_value(true);
+//}
+//
+//void noPartnerCleanup(void* data) {
+//    promise3.set_value(true);
+//}
 
 // libdbus bug
-TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
-    const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
-    ::DBusError libdbusError;
-    dbus_error_init(&libdbusError);
-    ::DBusConnection* libdbusConnection = dbus_bus_get_private(libdbusType, &libdbusError);
-
-    assert(libdbusConnection);
-    dbus_connection_set_exit_on_disconnect(libdbusConnection, false);
-
-    auto dispatchThread = std::thread(&dispatch, libdbusConnection);
-
-    ::DBusMessage* libdbusMessageCall = dbus_message_new_method_call(
-                    "some.connection.somewhere",
-                    "/some/non/existing/object",
-                    "some.interface.somewhere.but.same.place",
-                    "NoReasonableMethod");
-
-    dbus_message_set_signature(libdbusMessageCall, "");
-
-
-    DBusPendingCall* libdbusPendingCall;
-
-    dbus_connection_send_with_reply(
-                    libdbusConnection,
-                    libdbusMessageCall,
-                    &libdbusPendingCall,
-                    5000);
-
-    dbus_pending_call_set_notify(
-                    libdbusPendingCall,
-                    noPartnerCallback,
-                    libdbusConnection,
-                    noPartnerCleanup);
-
-    ASSERT_EQ(true, future2.get());
-    dispatchThread.join();
-}
+//TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
+//    const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
+//    ::DBusError libdbusError;
+//    dbus_error_init(&libdbusError);
+//    ::DBusConnection* libdbusConnection = dbus_bus_get_private(libdbusType, &libdbusError);
+//
+//    assert(libdbusConnection);
+//    dbus_connection_set_exit_on_disconnect(libdbusConnection, false);
+//
+//    auto dispatchThread = std::thread(&dispatch, libdbusConnection);
+//
+//    ::DBusMessage* libdbusMessageCall = dbus_message_new_method_call(
+//                    "some.connection.somewhere",
+//                    "/some/non/existing/object",
+//                    "some.interface.somewhere.but.same.place",
+//                    "NoReasonableMethod");
+//
+//    dbus_message_set_signature(libdbusMessageCall, "");
+//
+//
+//    DBusPendingCall* libdbusPendingCall;
+//
+//    dbus_connection_send_with_reply(
+//                    libdbusConnection,
+//                    libdbusMessageCall,
+//                    &libdbusPendingCall,
+//                    5000);
+//
+//    dbus_pending_call_set_notify(
+//                    libdbusPendingCall,
+//                    noPartnerCallback,
+//                    libdbusConnection,
+//                    noPartnerCleanup);
+//
+//    ASSERT_EQ(true, future2.get());
+//    dispatchThread.join();
+//}
 
 #ifndef WIN32
 int main(int argc, char** argv) {
