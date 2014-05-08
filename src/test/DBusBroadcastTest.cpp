@@ -348,7 +348,7 @@ TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherP
 
     bool callbackArrived = false;
 
-    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+    broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
             EXPECT_EQ(intParam, 1);
             callbackArrived = true;
             return CommonAPI::SubscriptionStatus::CANCEL;
@@ -382,6 +382,92 @@ TEST_F(DBusBroadcastTest, ProxysCanCancelSubscriptionAndSubscribeAgainWithOtherP
     }
 
     ASSERT_TRUE(callbackArrived);
+
+    broadcastEvent2.unsubscribe(broadcastSubscription2);
+}
+
+TEST_F(DBusBroadcastTest, ProxysCanUnsubscribeFromBroadcastAndSubscribeAgainWhileOtherProxyIsStillSubscribed) {
+    // register service
+    auto stub = std::make_shared<SelectiveBroadcastSender>();
+
+    bool serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+    for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
+        serviceRegistered = servicePublisher_->registerService(stub, serviceAddress_, stubFactory_);
+        usleep(10000);
+    }
+    ASSERT_TRUE(serviceRegistered);
+
+    // build 2 proxies from same factory
+    auto proxy = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+    auto proxy2 = proxyFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress_);
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent =
+                    proxy->getTestPredefinedTypeBroadcastEvent();
+
+    commonapi::tests::TestInterfaceProxyDefault::TestPredefinedTypeBroadcastEvent& broadcastEvent2 =
+                    proxy2->getTestPredefinedTypeBroadcastEvent();
+
+    bool callback1Arrived = false;
+    bool callback2Arrived = false;
+
+    // subscribe for each proxy's broadcast event
+    auto broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            callback1Arrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    auto broadcastSubscription2 = broadcastEvent2.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            callback2Arrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    // fire broadcast and wait for results
+    stub->fireTestPredefinedTypeBroadcastEvent(1, "xyz");
+
+    for(unsigned int i=0; i<100 && !(callback1Arrived && callback2Arrived); i++) {
+        usleep(10000);
+    }
+
+    const bool callbackOnBothSubscriptionsArrived = callback1Arrived && callback2Arrived;
+
+    EXPECT_TRUE(callbackOnBothSubscriptionsArrived);
+
+    // unsubscribe from one proxy's broadcast
+    broadcastEvent.unsubscribe(broadcastSubscription);
+
+    // fire broadcast again
+    callback1Arrived = false;
+    callback2Arrived = false;
+
+    stub->fireTestPredefinedTypeBroadcastEvent(2, "xyz");
+
+    for(unsigned int i=0; i<100; i++) {
+        usleep(10000);
+    }
+
+    const bool onlyCallback2Arrived = !callback1Arrived && callback2Arrived;
+
+    EXPECT_TRUE(onlyCallback2Arrived);
+
+    // subscribe first proxy again
+    broadcastSubscription = broadcastEvent.subscribeCancellableListener([&](uint32_t intParam, std::string stringParam) -> CommonAPI::SubscriptionStatus {
+            callback1Arrived = true;
+            return CommonAPI::SubscriptionStatus::RETAIN;
+    });
+
+    // fire broadcast another time
+    callback1Arrived = false;
+    callback2Arrived = false;
+
+    stub->fireTestPredefinedTypeBroadcastEvent(1, "xyz");
+
+    for(unsigned int i=0; i<100 && !(callback1Arrived && callback2Arrived); i++) {
+        usleep(10000);
+    }
+
+    const bool callbackOnBothSubscriptionsArrivedAgain = callback1Arrived && callback2Arrived;
+
+    EXPECT_TRUE(callbackOnBothSubscriptionsArrivedAgain);
 
     broadcastEvent.unsubscribe(broadcastSubscription);
     broadcastEvent2.unsubscribe(broadcastSubscription2);

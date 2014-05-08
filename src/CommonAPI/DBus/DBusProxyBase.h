@@ -55,7 +55,7 @@ class DBusProxyBase: public virtual CommonAPI::Proxy {
                 DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
                 const bool justAddFilter = false);
 
-    bool removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken);
+    bool removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler = NULL);
 
     virtual void init() = 0;
 
