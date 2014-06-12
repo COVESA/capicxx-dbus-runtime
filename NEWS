@@ -1,0 +1,25 @@
+
+This is CommonAPI-D-Bus 2.1.6
+
+Changes since 2.1.5
+
+- enhanced Windows Support
+- fixed compile warnings
+- fixed asciidoc errors
+- fixed unsubscribe mechanism in DBusEvent and added additional tests for Broadcasts
+- removed compile warnings in DBusBraodcastTest
+- Bugfix: DBusEvent does only remove its own subscriptions on unsubscribe / destroy and not all subscriptions for that signal anymore
+- fixed compilation problem in DBusBroadcastTest.cpp on Windows
+- improved DBusBroadcastTest and DBusLoadTest
+- pushed wait time in DBusServiceRegistryTest.SubscribeBeforeConnectWorks to 5 seconds, to avoid timing issues on windows
+- removing VERBOSE command line flags
+- making Unittests.vcxproj compile and adapting README to tell developer how he is able to run UnitTests.exe
+- modified vcxproj file of UnitTests to now use environment variables and relative paths, adapted build execution order in .sln
+- modified vcxproj file of CommonAPI-DBus to now use environment variables and relative paths, adapted README accordingly
+- added unit tests for broadcast subscriptions. renamed unit test DBusSelectiveBroadcastTest to DBusBroadcastTest
+- Implemented stub support for org.freedesktop.DBus.Properties
+- Removed fulfilling of purely internal promises in ServiceRegistry.
+- fix for GENIVI bug 164 "Interface names starting with org.freedesktop.* are ignored"
+- All public inline functions arn't anymore inline  - methods with templates excluded
+- Timeout for introspection call in DBusServiceRegistry set to default value
+- Windows support, fixed attribute handling with inherited interfaces
