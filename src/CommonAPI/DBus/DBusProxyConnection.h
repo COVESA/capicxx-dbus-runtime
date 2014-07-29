@@ -27,6 +27,7 @@
 #include <memory>
 #include <tuple>
 #include <unordered_map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -59,7 +60,7 @@ class DBusProxyConnection {
 
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
     typedef std::tuple<std::string, std::string, std::string, std::string> DBusSignalHandlerPath;
-    typedef std::unordered_multimap<DBusSignalHandlerPath, DBusSignalHandler*> DBusSignalHandlerTable;
+    typedef std::unordered_map<DBusSignalHandlerPath, std::pair<std::shared_ptr<std::mutex>, std::set<DBusSignalHandler* >>> DBusSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
     typedef Event<AvailabilityStatus> ConnectionStatusEvent;
