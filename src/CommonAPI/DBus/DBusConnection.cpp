@@ -556,25 +556,17 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
     dbus_bool_t libdbusSuccess;
 
     suspendDispatching();
-    libdbusSuccess = dbus_connection_send_with_reply(libdbusConnection_,
-                                                     dbusMessage.libdbusMessage_,
-                                                     &libdbusPendingCall,
-                                                     timeoutMilliseconds);
+
+    libdbusSuccess = dbus_connection_send_with_reply_set_notify(libdbusConnection_,
+                                                         dbusMessage.libdbusMessage_,
+                                                         &libdbusPendingCall,
+                                                         onLibdbusPendingCallNotifyThunk,
+                                                         dbusMessageReplyAsyncHandler.get(),
+                                                         onLibdbusDataCleanup,
+                                                         timeoutMilliseconds);
 
     if (!libdbusSuccess || !libdbusPendingCall) {
         dbusMessageReplyAsyncHandler->onDBusMessageReply(CallStatus::CONNECTION_FAILED, dbusMessage.createMethodError(DBUS_ERROR_DISCONNECTED));
-        resumeDispatching();
-        return dbusMessageReplyAsyncHandler->getFuture();
-    }
-
-    libdbusSuccess = dbus_pending_call_set_notify(
-                    libdbusPendingCall,
-                    onLibdbusPendingCallNotifyThunk,
-                    dbusMessageReplyAsyncHandler.get(),
-                    onLibdbusDataCleanup);
-
-    if (!libdbusSuccess) {
-        dbusMessageReplyAsyncHandler->onDBusMessageReply(CallStatus::OUT_OF_MEMORY, dbusMessage);
         dbus_pending_call_unref(libdbusPendingCall);
         resumeDispatching();
         return dbusMessageReplyAsyncHandler->getFuture();
