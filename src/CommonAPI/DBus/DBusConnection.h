@@ -150,6 +150,7 @@ class DBusConnection: public DBusProxyConnection, public std::enable_shared_from
     DispatchSource* dispatchSource_;
     WatchContext* watchContext_;
 
+    mutable std::recursive_mutex sendLock_;
     mutable bool pauseDispatching_;
     mutable std::mutex dispatchSuspendLock_;
 
