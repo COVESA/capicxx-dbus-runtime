@@ -314,10 +314,10 @@ bool DBusConnection::connect(DBusError& dbusError, bool startDispatchThread) {
 
     initLibdbusSignalFilterAfterConnect();
 
+    stopDispatching_ = !startDispatchThread;
     if (startDispatchThread) {
         dispatchThread_ = new std::thread(std::bind(&DBusConnection::dispatch, this->shared_from_this()));
     }
-    stopDispatching_ = !startDispatchThread;
 
     dbusConnectionStatusEvent_.notifyListeners(AvailabilityStatus::AVAILABLE);
 
