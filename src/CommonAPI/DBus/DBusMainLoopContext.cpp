@@ -83,7 +83,13 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
 }
 
 void DBusWatch::dispatch(unsigned int eventFlags) {
-    dbus_watch_handle(libdbusWatch_, eventFlags);
+
+    // Pollflags do not correspond directly to DBus watch flags
+    unsigned int dbusWatchFlags = (eventFlags & POLLIN) |
+                            ((eventFlags & POLLOUT) >> 1) |
+                            ((eventFlags & POLLERR) >> 1) |
+                            ((eventFlags & POLLHUP) >> 1);
+    dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
 }
 
 const std::vector<DispatchSource*>& DBusWatch::getDependentDispatchSources() {
