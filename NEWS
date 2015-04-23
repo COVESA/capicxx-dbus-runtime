@@ -1,3 +1,11 @@
+This is CommonAPI-D-Bus 2.1.6-p6
+
+This version contains a patch for a race condition in CommonAPI-D-Bus. The cause for this bug seems to be the order of the calls dbus_connection_send_with_reply and dbus_pending_call_set_notify. It should be possible to call the notification for the reply first and then the function. The standard libdbus API however does not provide this functionality. Therefore a patch for libdbus is provided (capi-dbus-add-send-with-reply-set-notify.patch). The patch can be applied by calling:
+
+git am < capi-dbus-add-send-with-reply-set-notify.patch
+
+in the directory with the DBus source code. The patch adds the new function dbus_connection_send_with_reply_set_notify to the libdbus API.
+
 
 This is CommonAPI-D-Bus 2.1.6
 
