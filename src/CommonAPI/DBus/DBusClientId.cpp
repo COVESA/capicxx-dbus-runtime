@@ -1,13 +1,12 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "DBusClientId.h"
-#include "DBusMessage.h"
 #include <typeinfo>
+
+#include <CommonAPI/DBus/DBusClientId.hpp>
+#include <CommonAPI/DBus/DBusMessage.hpp>
 
 namespace std {
 
@@ -33,7 +32,7 @@ bool DBusClientId::operator==(CommonAPI::ClientId& clientIdToCompare) {
         DBusClientId clientIdToCompareDBus = DBusClientId(dynamic_cast<DBusClientId&>(clientIdToCompare));
         return (clientIdToCompareDBus == *this);
     }
-    catch (const std::bad_cast& e) {
+    catch (...) {
         return false;
     }
 }
@@ -59,7 +58,5 @@ DBusMessage DBusClientId::createMessage(const std::string objectPath, const std:
     return(returnMessage);
 }
 
-} /* namespace DBus */
-} /* namespace CommonAPI */
-
-
+} // namespace DBus
+} // namespace CommonAPI

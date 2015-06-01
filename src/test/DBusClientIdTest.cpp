@@ -1,14 +1,16 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <gtest/gtest.h>
 
-#include "CommonAPI/DBus/DBusClientId.h"
-#include "CommonAPI/types.h"
+#ifndef COMMONAPI_INTERNAL_COMPILATION
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
+
+#include "CommonAPI/DBus/DBusClientId.hpp"
+#include "CommonAPI/Types.hpp"
 
 using namespace CommonAPI::DBus;
 
@@ -49,7 +51,9 @@ TEST_F(DBusClientIdTest, TestClientIdImplementation) {
     ASSERT_FALSE(dbusId1 == testId);
 }
 
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+#endif

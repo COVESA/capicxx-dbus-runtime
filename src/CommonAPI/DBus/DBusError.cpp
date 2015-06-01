@@ -1,17 +1,15 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusError.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <cstring>
 
+#include <CommonAPI/DBus/DBusError.hpp>
+
 namespace CommonAPI {
 namespace DBus {
-
 
 DBusError::DBusError() {
 	dbus_error_init(&libdbusError_);
@@ -22,7 +20,7 @@ DBusError::~DBusError() {
 }
 
 DBusError::operator bool() const {
-	return dbus_error_is_set(&libdbusError_);
+	return 0 != dbus_error_is_set(&libdbusError_);
 }
 
 void DBusError::clear() {

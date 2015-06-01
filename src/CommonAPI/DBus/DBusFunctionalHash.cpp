@@ -1,15 +1,14 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusFunctionalHash.h"
-
-#include <murmurhash/MurmurHash3.h>
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <cstring>
+
+#include <murmurhash/MurmurHash3.h>
+
+#include <CommonAPI/DBus/DBusFunctionalHash.hpp>
 
 /*
  * @see http://code.google.com/p/smhasher/

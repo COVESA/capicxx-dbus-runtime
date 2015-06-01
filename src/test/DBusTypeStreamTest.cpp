@@ -1,38 +1,40 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <gtest/gtest.h>
 
 #include <unordered_map>
 #include <vector>
 
-#include <CommonAPI/SerializableStruct.h>
-#include <CommonAPI/SerializableVariant.h>
-#include <CommonAPI/types.h>
-#include <CommonAPI/ByteBuffer.h>
+#include <CommonAPI/Struct.hpp>
+#include <CommonAPI/Variant.hpp>
+#include <CommonAPI/Types.hpp>
+#include <CommonAPI/ByteBuffer.hpp>
 
-#include <CommonAPI/DBus/DBusOutputStream.h>
+#include <CommonAPI/DBus/DBusInputStream.hpp>
+#include <CommonAPI/DBus/DBusOutputStream.hpp>
 
-#include "commonapi/tests/DerivedTypeCollection.h"
+#include "commonapi/tests/DerivedTypeCollection.hpp"
 
 #include <type_traits>
 
 
-struct TestStructWithVariant: public CommonAPI::SerializableStruct {
+struct TestStructWithVariant: public CommonAPI::Struct<uint16_t, std::string, CommonAPI::Variant<uint32_t, double, std::vector<std::string>>> {
     TestStructWithVariant(): uint16Val_(42), stringVal_("Hai!"), variantVal_(13.37) {
 
     }
 
     virtual ~TestStructWithVariant() {}
 
-    virtual void readFromInputStream(CommonAPI::InputStream& inputStream) {
+    virtual void readFromInputStream(CommonAPI::InputStream<CommonAPI::DBus::DBusInputStream>& inputStream) {
     }
 
-    virtual void writeToOutputStream(CommonAPI::OutputStream& outputStream) const {
+	virtual void writeToOutputStream(CommonAPI::OutputStream<CommonAPI::DBus::DBusOutputStream>& outputStream) const {
     }
 
-    static void writeToTypeOutputStream(CommonAPI::TypeOutputStream& typeOutputStream) {
+	static void writeToTypeOutputStream(CommonAPI::TypeOutputStream<CommonAPI::DBus::DBusTypeOutputStream>& typeOutputStream) {
         CommonAPI::TypeWriter<uint16_t>::writeType(typeOutputStream);
         CommonAPI::TypeWriter<std::string>::writeType(typeOutputStream);
         CommonAPI::TypeWriter<CommonAPI::Variant<uint32_t, double, std::vector<std::string>>>::writeType(typeOutputStream);
@@ -45,7 +47,7 @@ struct TestStructWithVariant: public CommonAPI::SerializableStruct {
 };
 
 
-typedef std::vector<commonapi::tests::DerivedTypeCollection::TestEnum> TestEnumList;
+typedef std::vector<::commonapi::tests::DerivedTypeCollection::TestEnum> TestEnumList;
 
 
 class TypeOutputStreamTest: public ::testing::Test {
@@ -140,7 +142,7 @@ TEST_F(TypeOutputStreamTest, CreatesVersionSignature) {
 }
 
 TEST_F(TypeOutputStreamTest, CreatesInt32EnumSignature) {
-    CommonAPI::TypeWriter<commonapi::tests::DerivedTypeCollection::TestEnum>::writeType(typeStream_);
+    CommonAPI::TypeWriter<::commonapi::tests::DerivedTypeCollection::TestEnum>::writeType(typeStream_);
     std::string signature = typeStream_.retrieveSignature();
     ASSERT_TRUE(signature.compare("i") == 0);
 }
@@ -268,8 +270,8 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericUInt32TypeVariantsCorrectly
 }
 
 TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericInt32EnumTypeVariantsCorrectly) {
-    commonapi::tests::DerivedTypeCollection::TestEnum fromInt32Enum = commonapi::tests::DerivedTypeCollection::TestEnum::E_OK;
-    CommonAPI::Variant<uint32_t, double, commonapi::tests::DerivedTypeCollection::TestEnum> myVariant(fromInt32Enum);
+    ::commonapi::tests::DerivedTypeCollection::TestEnum fromInt32Enum = ::commonapi::tests::DerivedTypeCollection::TestEnum::E_OK;
+    CommonAPI::Variant<uint32_t, double, ::commonapi::tests::DerivedTypeCollection::TestEnum> myVariant(fromInt32Enum);
     CommonAPI::SerializableVariant* genericVariant = &myVariant;
 
     genericVariant->writeToTypeOutputStream(typeStream_);
@@ -325,7 +327,7 @@ TEST_F(TypeOutputStreamTest, ParsesSignatureOfGenericTestStructTypeVariantsCorre
     ASSERT_TRUE(signature.compare("(qs(yv))") == 0);
 }
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

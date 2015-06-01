@@ -1,25 +1,22 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusObjectManager.h"
-#include "DBusDaemonProxy.h"
-#include "DBusStubAdapter.h"
-#include "DBusOutputStream.h"
-#include "DBusUtils.h"
-
-#include "DBusFreedesktopPropertiesStub.h"
-
-#include <CommonAPI/utils.h>
-
-#include <dbus/dbus-protocol.h>
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <sstream>
-
 #include <unordered_set>
+
+#include <dbus/dbus-protocol.h>
+
+#include <CommonAPI/Utils.hpp>
+#include <CommonAPI/DBus/DBusAddress.hpp>
+#include <CommonAPI/DBus/DBusDaemonProxy.hpp>
+#include <CommonAPI/DBus/DBusFreedesktopPropertiesStub.hpp>
+#include <CommonAPI/DBus/DBusObjectManager.hpp>
+#include <CommonAPI/DBus/DBusOutputStream.hpp>
+#include <CommonAPI/DBus/DBusStubAdapter.hpp>
+#include <CommonAPI/DBus/DBusUtils.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -48,34 +45,36 @@ DBusObjectManager::~DBusObjectManager() {
 }
 
 bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
-    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
     bool isRegistrationSuccessful = false;
 
     objectPathLock_.lock();
     isRegistrationSuccessful = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
-    if(isRegistrationSuccessful && dbusStubAdapter->hasFreedesktopProperties()) {
+    if (isRegistrationSuccessful && dbusStubAdapter->hasFreedesktopProperties()) {
         const std::shared_ptr<DBusFreedesktopPropertiesStub> dbusFreedesktopPropertiesStub =
-                        std::make_shared<DBusFreedesktopPropertiesStub>(dbusStubAdapterObjectPath,
-                                                                        dbusStubAdapterInterfaceName,
-                                                                        dbusStubAdapter->getDBusConnection(),
-                                                                        dbusStubAdapter);
+        		std::make_shared<DBusFreedesktopPropertiesStub>(dbusStubAdapterObjectPath,
+                                                                dbusStubAdapterInterfaceName,
+                                                                dbusStubAdapter->getDBusConnection(),
+                                                                dbusStubAdapter);
         isRegistrationSuccessful = isRegistrationSuccessful
-                        && addDBusInterfaceHandler(
-                                        {dbusFreedesktopPropertiesStub->getDBusObjectPath(),
-                                         dbusFreedesktopPropertiesStub->getInterfaceName()
-                                        },
-                                        dbusFreedesktopPropertiesStub);
+        	&& addDBusInterfaceHandler({ dbusFreedesktopPropertiesStub->getObjectPath(),
+                                         dbusFreedesktopPropertiesStub->getInterface() },
+                                       dbusFreedesktopPropertiesStub);
     }
 
-    if (isRegistrationSuccessful && dbusStubAdapter->isManagingInterface()) {
+    if (isRegistrationSuccessful && dbusStubAdapter->isManaging()) {
         auto managerStubIterator = managerStubs_.find(dbusStubAdapterObjectPath);
         const bool managerStubExists = managerStubIterator != managerStubs_.end();
 
         if (!managerStubExists) {
-            const std::shared_ptr<DBusObjectManagerStub> newManagerStub = std::make_shared<DBusObjectManagerStub>(dbusStubAdapterObjectPath, dbusStubAdapter->getDBusConnection());
+            const std::shared_ptr<DBusObjectManagerStub> newManagerStub
+            	= std::make_shared<DBusObjectManagerStub>(
+            			dbusStubAdapterObjectPath,
+            			dbusStubAdapter->getDBusConnection()
+            	  );
             auto insertResult = managerStubs_.insert( {dbusStubAdapterObjectPath, {newManagerStub, 1} });
             assert(insertResult.second);
             managerStubIterator = insertResult.first;
@@ -109,15 +108,15 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
 
 
 bool DBusObjectManager::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
-    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusStubAdapterObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusStubAdapterInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
     bool isDeregistrationSuccessful = false;
 
     objectPathLock_.lock();
     isDeregistrationSuccessful = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
-    if (isDeregistrationSuccessful && dbusStubAdapter->isManagingInterface()) {
+    if (isDeregistrationSuccessful && dbusStubAdapter->isManaging()) {
         auto managerStubIterator = managerStubs_.find(dbusStubAdapterObjectPath);
         assert(managerStubIterator != managerStubs_.end());
 
@@ -155,7 +154,7 @@ bool DBusObjectManager::exportManagedDBusStubAdapter(const std::string& parentOb
     assert(foundManagerStubIterator != managerStubs_.end());
 
     if (std::get<0>(foundManagerStubIterator->second)->exportManagedDBusStubAdapter(dbusStubAdapter)) {
-        //XXX Other handling necessary?
+        // TODO Check if other handling is necessary?
         return true;
     }
     return false;
@@ -168,7 +167,7 @@ bool DBusObjectManager::unexportManagedDBusStubAdapter(const std::string& parent
     assert(foundManagerStubIterator != managerStubs_.end());
 
     if (std::get<0>(foundManagerStubIterator->second)->unexportManagedDBusStubAdapter(dbusStubAdapter)) {
-        //XXX Other handling necessary?
+        // Check if other handling is necessary?
         return true;
     }
     return false;
@@ -177,7 +176,7 @@ bool DBusObjectManager::unexportManagedDBusStubAdapter(const std::string& parent
 
 bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
     const char* objectPath = dbusMessage.getObjectPath();
-    const char* interfaceName = dbusMessage.getInterfaceName();
+    const char* interfaceName = dbusMessage.getInterface();
 
     assert(objectPath);
     assert(interfaceName);
@@ -321,7 +320,6 @@ bool DBusObjectManager::onIntrospectableInterfaceDBusMessage(const DBusMessage& 
 
     return false;
 }
-
 
 std::shared_ptr<DBusObjectManagerStub> DBusObjectManager::getRootDBusObjectManagerStub() {
     return rootDBusObjectManagerStub_;

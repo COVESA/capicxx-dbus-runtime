@@ -1,12 +1,15 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <CommonAPI/DBus/DBusConnection.h>
-#include <CommonAPI/DBus/DBusDaemonProxy.h>
-#include <CommonAPI/DBus/DBusUtils.h>
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#ifndef COMMONAPI_INTERNAL_COMPILATION
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
+
+#include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusDaemonProxy.hpp>
+#include <CommonAPI/DBus/DBusUtils.hpp>
 
 #include <gtest/gtest.h>
 
@@ -18,7 +21,7 @@ namespace {
 class DBusDaemonProxyTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-        dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+		dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
         ASSERT_TRUE(dbusConnection_->connect());
         dbusDaemonProxy_ = std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusConnection_);
     }
@@ -44,7 +47,7 @@ TEST_F(DBusDaemonProxyTest, ListNames) {
     }
 }
 
-TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
+TEST_F(DBusDaemonProxyTest, DISABLED_ListNamesAsync) {
     std::promise<std::tuple<CommonAPI::CallStatus, std::vector<std::string>>>promise;
     auto future = promise.get_future();
 
@@ -72,7 +75,7 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
     }
 }
 
-TEST_F(DBusDaemonProxyTest, NameHasOwner) {
+TEST_F(DBusDaemonProxyTest, DISABLED_NameHasOwner) {
     bool nameHasOwner;
     CommonAPI::CallStatus callStatus;
 
@@ -109,7 +112,7 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
     ASSERT_TRUE(nameHasOwner);
 }
 
-TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
+TEST_F(DBusDaemonProxyTest, DISABLED_NameOwnerChangedEvent) {
     std::promise<bool> promise;
     auto future = promise.get_future();
 
@@ -123,7 +126,7 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
                     });
 
     // Trigger NameOwnerChanged using a new DBusConnection
-    ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getSessionBus()->connect());
+	ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION)->connect());
 
     ASSERT_TRUE(future.get());
 
@@ -132,7 +135,7 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
 
 } // namespace
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

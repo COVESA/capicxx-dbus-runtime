@@ -1,4 +1,4 @@
-# Copyright (C) 2013 BMW Group
+# Copyright (C) 2013 - 2015 BMW Group
 # Author: Manfred Bathelt (manfred.bathelt@bmw.de)
 # Author: Juergen Gehring (juergen.gehring@bmw.de)
 # This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,7 +15,7 @@ import dbus.service
 def finish():
 	try:
 		bus = dbus.SessionBus()
-		remote_object = bus.get_object('fake.legacy.service.connection','/some/legacy/path/6259504')
+		remote_object = bus.get_object('fake.legacy.service.LegacyInterface_fake.legacy.service','/fake/legacy/service')
 		iface = dbus.Interface(remote_object, 'fake.legacy.service.LegacyInterface')
 		iface.finish()
 		return 0

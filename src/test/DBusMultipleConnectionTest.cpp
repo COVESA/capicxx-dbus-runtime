@@ -1,9 +1,8 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 #include <gtest/gtest.h>
 
 #include <cassert>
@@ -17,35 +16,34 @@
 #include <tuple>
 #include <type_traits>
 
-#include <CommonAPI/CommonAPI.h>
+#include <CommonAPI/CommonAPI.hpp>
 
+#ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
-#include "commonapi/tests/TestInterfaceProxy.h"
-#include "commonapi/tests/TestInterfaceStubDefault.h"
+#define VERSION v1_0
 
+#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
 
-const std::string serviceAddress = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
+const std::string domain = "local";
+const std::string serviceAddress = "commonapi.tests.TestInterface";
 
 class DBusMultipleConnectionTest: public ::testing::Test {
  protected:
-    virtual void SetUp() {
-        proxyFactory = CommonAPI::Runtime::load()->createFactory();
-        stubFactory = CommonAPI::Runtime::load()->createFactory();
-        servicePublisher = CommonAPI::Runtime::load()->getServicePublisher();
-        ASSERT_TRUE((bool)proxyFactory);
-        ASSERT_TRUE((bool)stubFactory);
-
-        stub = std::make_shared<commonapi::tests::TestInterfaceStubDefault>();
-        bool serviceNameAcquired = servicePublisher->registerService(stub, serviceAddress, stubFactory);
+	 virtual void SetUp() {
+		runtime = CommonAPI::Runtime::get();
+		stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+		bool serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
 
         for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
             usleep(10000);
-            serviceNameAcquired = servicePublisher->registerService(stub, serviceAddress, stubFactory);
+			serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
         }
         ASSERT_TRUE(serviceNameAcquired);
 
-        proxy = proxyFactory->buildProxy<commonapi::tests::TestInterfaceProxy>(serviceAddress);
+		proxy = runtime->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, serviceAddress);
         ASSERT_TRUE((bool)proxy);
 
         for(unsigned int i = 0; !proxy->isAvailable() && i < 100; ++i) {
@@ -54,15 +52,13 @@ class DBusMultipleConnectionTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
-        servicePublisher->unregisterService(serviceAddress);
+		runtime->unregisterService(domain, stub->getStubAdapter()->getInterface(), serviceAddress);
         usleep(30000);
     }
 
-    std::shared_ptr<CommonAPI::Factory> proxyFactory;
-    std::shared_ptr<CommonAPI::Factory> stubFactory;
-    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher;
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub;
-    std::shared_ptr<commonapi::tests::TestInterfaceProxyDefault> proxy;
+    std::shared_ptr<CommonAPI::Runtime> runtime;
+	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub;
+	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxy<>> proxy;
 };
 
 
@@ -138,7 +134,7 @@ TEST_F(DBusMultipleConnectionTest, GetAttribute) {
     ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
 }
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

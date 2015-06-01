@@ -7,7 +7,7 @@
 #ifndef COMMONAPI_FAKE_FAKE_RUNTIME_H_
 #define COMMONAPI_FAKE_FAKE_RUNTIME_H_
 
-#include <CommonAPI/CommonAPI.h>
+#include <CommonAPI/CommonAPI.hpp>
 
 
 namespace CommonAPI {

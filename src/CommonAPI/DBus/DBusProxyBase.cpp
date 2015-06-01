@@ -1,32 +1,38 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusProxyBase.h"
-#include "DBusMessage.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#include <CommonAPI/DBus/DBusAddress.hpp>
+#include <CommonAPI/DBus/DBusAddressTranslator.hpp>
+#include <CommonAPI/DBus/DBusProxyBase.hpp>
+#include <CommonAPI/DBus/DBusMessage.hpp>
 
 namespace CommonAPI {
 namespace DBus {
 
-DBusProxyBase::DBusProxyBase(const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
-                        commonApiDomain_("local"),
-                        dbusConnection_(dbusConnection){
+DBusProxyBase::DBusProxyBase(
+	const DBusAddress &_dbusAddress,
+	const std::shared_ptr<DBusProxyConnection> &_connection)
+	: dbusAddress_(_dbusAddress),
+	  connection_(_connection) {
+	DBusAddressTranslator::get()->translate(dbusAddress_, address_);
 }
 
-DBusMessage DBusProxyBase::createMethodCall(const char* methodName,
-                                        const char* methodSignature) const {
-    return DBusMessage::createMethodCall(
-                    getDBusBusName().c_str(),
-                    getDBusObjectPath().c_str(),
-                    getInterfaceName().c_str(),
-                    methodName,
-                    methodSignature);
+DBusMessage
+DBusProxyBase::createMethodCall(const std::string &_method, const std::string &_signature) const {
+    return DBusMessage::createMethodCall(getDBusAddress(), _method, _signature);
 }
 
-const std::shared_ptr<DBusProxyConnection>& DBusProxyBase::getDBusConnection() const {
-    return dbusConnection_;
+
+const DBusAddress &
+DBusProxyBase::getDBusAddress() const {
+	return dbusAddress_;
+}
+
+const std::shared_ptr<DBusProxyConnection> &
+DBusProxyBase::getDBusConnection() const {
+    return connection_;
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
@@ -35,8 +41,8 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
         DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
         const bool justAddFilter) {
     return addSignalMemberHandler(
-            getDBusObjectPath(),
-            getInterfaceName(),
+    		getDBusAddress().getObjectPath(),
+    		getDBusAddress().getInterface(),
             signalName,
             signalSignature,
             dbusSignalHandler,
@@ -50,7 +56,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 const std::string& signalSignature,
                 DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
                 const bool justAddFilter) {
-    return dbusConnection_->addSignalMemberHandler(
+    return connection_->addSignalMemberHandler(
                 objectPath,
                 interfaceName,
                 signalName,
@@ -60,7 +66,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
 }
 
 bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
-    return dbusConnection_->removeSignalMemberHandler(dbusSignalHandlerToken, dbusSignalHandler);
+    return connection_->removeSignalMemberHandler(dbusSignalHandlerToken, dbusSignalHandler);
 }
 
 } // namespace DBus

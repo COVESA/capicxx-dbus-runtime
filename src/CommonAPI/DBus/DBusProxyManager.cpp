@@ -1,152 +1,177 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusProxyManager.h"
-#include "DBusAddressTranslator.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#include <CommonAPI/Runtime.hpp>
+#include <CommonAPI/DBus/DBusAddressTranslator.hpp>
+#include <CommonAPI/DBus/DBusProxyManager.hpp>
 
 namespace CommonAPI {
 namespace DBus {
 
+DBusProxyManager::DBusProxyManager(
+		DBusProxy &_proxy,
+        const std::string &_interfaceId)
+	: proxy_(_proxy),
+      instanceAvailabilityStatusEvent_(_proxy, _interfaceId),
+      interfaceId_(_interfaceId),
+      registry_(DBusServiceRegistry::get(_proxy.getDBusConnection()))
+{
+}
 
-DBusProxyManager::DBusProxyManager(DBusProxy& dbusProxy,
-                                   const std::string& interfaceId,
-                                   const std::shared_ptr<DBusFactory> factory) :
-                dbusProxy_(dbusProxy),
-                dbusInstanceAvailabilityStatusEvent_(dbusProxy, interfaceId),
-                factory_(factory),
-                registry_(dbusProxy.getDBusConnection()->getDBusServiceRegistry()),
-                interfaceId_(interfaceId)
+const std::string &
+DBusProxyManager::getDomain() const {
+	static std::string domain("local");
+	return domain;
+}
 
-{ }
+const std::string &
+DBusProxyManager::getInterface() const {
+	return interfaceId_;
+}
 
-void DBusProxyManager::instancesAsyncCallback(const CommonAPI::CallStatus& status,
-                                              const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dict,
-                                              GetAvailableInstancesCallback& call) {
-    std::vector<std::string> returnVec;
-    if (status == CommonAPI::CallStatus::SUCCESS) {
-        translateCommonApiAddresses(dict, returnVec);
+const ConnectionId_t &
+DBusProxyManager::getConnectionId() const {
+	return connectionId_;
+}
+
+void
+DBusProxyManager::instancesAsyncCallback(
+		const CommonAPI::CallStatus &_status,
+        const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict &_dict,
+        GetAvailableInstancesCallback &_call) {
+    std::vector<std::string> result;
+    if (_status == CommonAPI::CallStatus::SUCCESS) {
+        translateCommonApiAddresses(_dict, result);
     }
-    call(status, returnVec);
+    _call(_status, result);
 }
 
-void DBusProxyManager::getAvailableInstances(CommonAPI::CallStatus& callStatus, std::vector<std::string>& availableInstances) {
-    DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
+void
+DBusProxyManager::getAvailableInstances(
+		CommonAPI::CallStatus &_status,
+		std::vector<std::string> &_availableInstances) {
+    DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dict;
 
-    DBusProxyHelper<DBusSerializableArguments<>,
-                    DBusSerializableArguments<DBusObjectManagerStub::DBusObjectPathAndInterfacesDict> >::callMethodWithReply(
-                                    dbusProxy_,
-                                    DBusObjectManagerStub::getInterfaceName(),
-                                    "GetManagedObjects",
-                                    "",
-                                    callStatus,
-                                    dbusObjectPathAndInterfacesDict);
+    DBusProxyHelper<
+		DBusSerializableArguments<>,
+        DBusSerializableArguments<
+			DBusObjectManagerStub::DBusObjectPathAndInterfacesDict
+		>
+    >::callMethodWithReply(proxy_,
+                           DBusObjectManagerStub::getInterfaceName(),
+                           "GetManagedObjects",
+                           "",
+						   &defaultCallInfo,
+                           _status,
+                           dict);
 
-    if (callStatus == CallStatus::SUCCESS) {
-        translateCommonApiAddresses(dbusObjectPathAndInterfacesDict, availableInstances);
+    if (_status == CallStatus::SUCCESS) {
+        translateCommonApiAddresses(dict, _availableInstances);
     }
 }
 
-std::future<CallStatus> DBusProxyManager::getAvailableInstancesAsync(GetAvailableInstancesCallback callback) {
-    return CommonAPI::DBus::DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
-           CommonAPI::DBus::DBusSerializableArguments<
-                   DBusObjectManagerStub::DBusObjectPathAndInterfacesDict> >::callMethodAsync(
-        dbusProxy_,
-        DBusObjectManagerStub::getInterfaceName(),
-        "GetManagedObjects",
-        "a{oa{sa{sv}}}",
-                    std::move(
-                                    std::bind(
-                                                    &DBusProxyManager::instancesAsyncCallback,
-                                                    this,
-                                                    std::placeholders::_1,
-                                                    std::placeholders::_2,
-                                                    callback)));
-
+std::future<CallStatus>
+DBusProxyManager::getAvailableInstancesAsync(
+		GetAvailableInstancesCallback _callback) {
+    return CommonAPI::DBus::DBusProxyHelper<
+    			CommonAPI::DBus::DBusSerializableArguments<>,
+				CommonAPI::DBus::DBusSerializableArguments<
+					DBusObjectManagerStub::DBusObjectPathAndInterfacesDict
+				>
+    	   >::callMethodAsync(
+    			   proxy_,
+				   DBusObjectManagerStub::getInterfaceName(),
+				   "GetManagedObjects",
+				   "a{oa{sa{sv}}}",
+				   &defaultCallInfo,
+				   std::move(
+						   std::bind(
+								   &DBusProxyManager::instancesAsyncCallback,
+								   this,
+								   std::placeholders::_1, std::placeholders::_2,
+								   _callback
+						   )
+				   ),
+    	   	   	   std::tuple<DBusObjectManagerStub::DBusObjectPathAndInterfacesDict>());
 }
 
-void DBusProxyManager::getInstanceAvailabilityStatus(const std::string& instanceAddress,
-                                                     CallStatus& callStatus,
-                                                     AvailabilityStatus& availabilityStatus) {
+void
+DBusProxyManager::getInstanceAvailabilityStatus(
+		const std::string &_address,
+		CallStatus &_callStatus,
+		AvailabilityStatus &_availabilityStatus) {
 
-    std::stringstream ss;
-    ss << "local:" << interfaceId_ << ":" << instanceAddress;
+	CommonAPI::Address itsAddress("local", interfaceId_, _address);
+	DBusAddress itsDBusAddress;
+	DBusAddressTranslator::get()->translate(itsAddress, itsDBusAddress);
 
-    std::string interfaceName;
-    std::string connectionName;
-    std::string objectPath;
-    DBusAddressTranslator::getInstance().searchForDBusAddress(
-                    ss.str(),
-                    interfaceName,
-                    connectionName,
-                    objectPath);
-    availabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
-    if (registry_->isServiceInstanceAlive(interfaceName, connectionName, objectPath)) {
-        availabilityStatus = AvailabilityStatus::AVAILABLE;
+	_availabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
+    if (registry_->isServiceInstanceAlive(
+    		itsDBusAddress.getInterface(),
+			itsDBusAddress.getService(),
+			itsDBusAddress.getObjectPath())) {
+        _availabilityStatus = AvailabilityStatus::AVAILABLE;
     }
-    callStatus = CallStatus::SUCCESS;
+    _callStatus = CallStatus::SUCCESS;
 }
 
-SubscriptionStatus DBusProxyManager::instanceAliveAsyncCallback(const AvailabilityStatus& alive, GetInstanceAvailabilityStatusCallback& call, std::shared_ptr<std::promise<CallStatus> >& callStatus) {
-    call(CallStatus::SUCCESS, alive);
-    callStatus->set_value(CallStatus::SUCCESS);
-    return SubscriptionStatus::CANCEL;
+void
+DBusProxyManager::instanceAliveAsyncCallback(
+		const AvailabilityStatus &_alive,
+		GetInstanceAvailabilityStatusCallback &_call,
+		std::shared_ptr<std::promise<CallStatus> > &_status) {
+    _call(CallStatus::SUCCESS, _alive);
+    _status->set_value(CallStatus::SUCCESS);
 }
 
-std::future<CallStatus> DBusProxyManager::getInstanceAvailabilityStatusAsync(const std::string& instanceAddress,
-                                                                             GetInstanceAvailabilityStatusCallback callback) {
-    std::stringstream ss;
-    ss << "local:" << interfaceId_ << ":" << instanceAddress;
+std::future<CallStatus>
+DBusProxyManager::getInstanceAvailabilityStatusAsync(
+		const std::string &_instance,
+        GetInstanceAvailabilityStatusCallback _callback) {
 
+	CommonAPI::Address itsAddress("local", interfaceId_, _instance);
 
     std::shared_ptr<std::promise<CallStatus> > promise = std::make_shared<std::promise<CallStatus>>();
     registry_->subscribeAvailabilityListener(
-                    ss.str(),
+                    itsAddress.getAddress(),
                     std::bind(&DBusProxyManager::instanceAliveAsyncCallback,
                               this,
                               std::placeholders::_1,
-                              callback,
+                              _callback,
                               promise)
     );
 
     return promise->get_future();
 }
 
-DBusProxyManager::InstanceAvailabilityStatusChangedEvent& DBusProxyManager::getInstanceAvailabilityStatusChangedEvent() {
-    return dbusInstanceAvailabilityStatusEvent_;
+DBusProxyManager::InstanceAvailabilityStatusChangedEvent &
+DBusProxyManager::getInstanceAvailabilityStatusChangedEvent() {
+    return instanceAvailabilityStatusEvent_;
 }
 
-void DBusProxyManager::translateCommonApiAddresses(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dbusObjectPathAndInterfacesDict,
-                                                   std::vector<std::string>& instanceIds) {
-    for (const auto& dbusObjectPathIter : dbusObjectPathAndInterfacesDict) {
-        const std::string& dbusObjectPath = dbusObjectPathIter.first;
-        const auto& dbusInterfacesDict = dbusObjectPathIter.second;
+void
+DBusProxyManager::translateCommonApiAddresses(
+		const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict &_dict,
+		std::vector<std::string> &_instances) {
 
-        for (const auto& dbusInterfaceIter : dbusInterfacesDict) {
-            const std::string dbusInterfaceName = dbusInterfaceIter.first;
-            std::string instanceId;
+	CommonAPI::Address itsAddress;
+	DBusAddress itsDBusAddress;
 
-            DBusAddressTranslator::getInstance().searchForCommonAddress(
-                            dbusInterfaceName,
-                            dbusProxy_.getDBusBusName(),
-                            dbusObjectPath,
-                            instanceId);
+    for (const auto &objectPathIter : _dict) {
+        itsDBusAddress.setObjectPath(objectPathIter.first);
 
-            auto pos = instanceId.find_last_of(':');
-            instanceId = instanceId.substr(pos + 1, instanceId.size());
+        const auto &interfacesDict = objectPathIter.second;
+        for (const auto &interfaceIter : interfacesDict) {
+        	itsDBusAddress.setInterface(interfaceIter.first);
 
-            instanceIds.push_back(instanceId);
+            DBusAddressTranslator::get()->translate(itsDBusAddress, itsAddress);
+
+            _instances.push_back(itsAddress.getInstance());
         }
     }
 }
-
-std::shared_ptr<Proxy> DBusProxyManager::createProxy(const std::string& instanceId) {
-    return factory_->createProxy(interfaceId_.c_str(), instanceId, interfaceId_, "local");
-}
-
 
 } // namespace DBus
 }// namespace CommonAPI

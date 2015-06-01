@@ -1,13 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.21005.1
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommonAPI-DBus", "CommonAPI-DBus.vcxproj", "{D3B0744D-2A3E-4C36-9AA0-534D6BD5A44C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTests", "UnitTests.vcxproj", "{A437B05C-A664-493D-B60A-822A3A7A1CED}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3B0744D-2A3E-4C36-9AA0-534D6BD5A44C} = {D3B0744D-2A3E-4C36-9AA0-534D6BD5A44C}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Temp", "Temp", "{04DC3156-3D34-4F00-9A14-77D360BA3384}"
+	ProjectSection(SolutionItems) = preProject
+		src\test\DBusInputStreamTest.cpp = src\test\DBusInputStreamTest.cpp
+		src\test\DBusMainLoopIntegrationTest.cpp = src\test\DBusMainLoopIntegrationTest.cpp
+		src\test\DBusManagedTest.cpp = src\test\DBusManagedTest.cpp
+		src\test\DBusObjectManagerStubTest.cpp = src\test\DBusObjectManagerStubTest.cpp
+		src\test\DBusRuntimeTest.cpp = src\test\DBusRuntimeTest.cpp
+		src\test\DBusServiceRegistryTest.cpp = src\test\DBusServiceRegistryTest.cpp
+		src\test\DBusStubAdapterTest.cpp = src\test\DBusStubAdapterTest.cpp
+		src\test\DBusTypeStreamTest.cpp = src\test\DBusTypeStreamTest.cpp
+		src\test\DBusVariantOutputStreamTest.cpp = src\test\DBusVariantOutputStreamTest.cpp
 	EndProjectSection
 EndProject
 Global

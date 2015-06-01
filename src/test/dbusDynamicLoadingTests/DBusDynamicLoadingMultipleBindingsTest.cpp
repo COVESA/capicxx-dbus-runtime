@@ -136,8 +136,10 @@ TEST_F(DBusDynamicLoadingMultipleBindingsTest, RuntimesLoadBothServicePublishers
     EXPECT_NE(dbusServicePublisher, fakeServicePublisher);
 }
 
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
+#endif

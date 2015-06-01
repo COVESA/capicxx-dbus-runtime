@@ -1,9 +1,7 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <gtest/gtest.h>
 
@@ -20,34 +18,38 @@
 #ifndef WIN32
 #include <glib.h>
 #endif
-#include <CommonAPI/CommonAPI.h>
 
+#include <CommonAPI/CommonAPI.hpp>
+
+#ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
+#endif
 
-#include <CommonAPI/DBus/DBusConnection.h>
-#include <CommonAPI/DBus/DBusProxy.h>
-#include <CommonAPI/DBus/DBusRuntime.h>
+#include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusProxy.hpp>
 
-#include "DBusTestUtils.h"
-#include "DemoMainLoop.h"
+#include "DBusTestUtils.hpp"
+#include "DemoMainLoop.hpp"
 
-#include "commonapi/tests/PredefinedTypeCollection.h"
-#include "commonapi/tests/DerivedTypeCollection.h"
-#include "commonapi/tests/TestInterfaceProxy.h"
-#include "commonapi/tests/TestInterfaceStubDefault.h"
-#include "commonapi/tests/TestInterfaceDBusStubAdapter.h"
+#include "commonapi/tests/PredefinedTypeCollection.hpp"
+#include "commonapi/tests/DerivedTypeCollection.hpp"
+#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
-#include "commonapi/tests/TestInterfaceDBusProxy.h"
+#include "v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp"
 
+const std::string domain = "local";
+const std::string testAddress1 = "commonapi.address.one";
+const std::string testAddress2 = "commonapi.address.two";
+const std::string testAddress3 = "commonapi.address.three";
+const std::string testAddress4 = "commonapi.address.four";
+const std::string testAddress5 = "commonapi.address.five";
+const std::string testAddress6 = "commonapi.address.six";
+const std::string testAddress7 = "commonapi.address.seven";
+const std::string testAddress8 = "commonapi.address.eight";
 
-const std::string testAddress1 = "local:my.first.test:commonapi.address.one";
-const std::string testAddress2 = "local:my.second.test:commonapi.address.two";
-const std::string testAddress3 = "local:my.third.test:commonapi.address.three";
-const std::string testAddress4 = "local:my.fourth.test:commonapi.address.four";
-const std::string testAddress5 = "local:my.fifth.test:commonapi.address.five";
-const std::string testAddress6 = "local:my.sixth.test:commonapi.address.six";
-const std::string testAddress7 = "local:my.seventh.test:commonapi.address.seven";
-const std::string testAddress8 = "local:my.eigth.test:commonapi.address.eight";
+#define VERSION v1_0
 
 //####################################################################################################################
 
@@ -59,44 +61,6 @@ protected:
     virtual void TearDown() {
     }
 };
-
-
-TEST_F(DBusBasicMainLoopTest, MainloopContextCanBeCreated) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
-    ASSERT_TRUE((bool) runtime);
-
-    std::shared_ptr<CommonAPI::MainLoopContext> context = runtime->getNewMainLoopContext();
-    ASSERT_TRUE((bool) context);
-}
-
-
-TEST_F(DBusBasicMainLoopTest, NoFactoryWillBeCreatedIfContextIsUninitialized) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
-    ASSERT_TRUE((bool) runtime);
-
-    std::shared_ptr<CommonAPI::MainLoopContext> context = runtime->getNewMainLoopContext();
-    ASSERT_TRUE((bool) context);
-
-    std::shared_ptr<CommonAPI::Factory> factory = runtime->createFactory(context);
-    ASSERT_FALSE((bool) factory);
-}
-
-
-TEST_F(DBusBasicMainLoopTest, SeveralMainloopContextsCanBeCreated) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
-    ASSERT_TRUE((bool)runtime);
-
-    std::shared_ptr<CommonAPI::MainLoopContext> context1 = runtime->getNewMainLoopContext();
-    ASSERT_TRUE((bool) context1);
-    std::shared_ptr<CommonAPI::MainLoopContext> context2 = runtime->getNewMainLoopContext();
-    ASSERT_TRUE((bool) context2);
-    std::shared_ptr<CommonAPI::MainLoopContext> context3 = runtime->getNewMainLoopContext();
-    ASSERT_TRUE((bool) context3);
-
-    ASSERT_NE(context1, context2);
-    ASSERT_NE(context1, context3);
-    ASSERT_NE(context2, context3);
-}
 
 struct TestSource: public CommonAPI::DispatchSource {
     TestSource(const std::string value, std::string& result): value_(value), result_(result) {}
@@ -118,10 +82,10 @@ struct TestSource: public CommonAPI::DispatchSource {
 };
 
 TEST_F(DBusBasicMainLoopTest, PrioritiesAreHandledCorrectlyInDemoMainloop) {
-    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::get();
     ASSERT_TRUE((bool) runtime);
 
-    std::shared_ptr<CommonAPI::MainLoopContext> context = runtime->getNewMainLoopContext();
+	std::shared_ptr<CommonAPI::MainLoopContext> context = std::make_shared<CommonAPI::MainLoopContext>();
     ASSERT_TRUE((bool) context);
 
     auto mainLoop = new CommonAPI::MainLoop(context);
@@ -153,20 +117,12 @@ TEST_F(DBusBasicMainLoopTest, PrioritiesAreHandledCorrectlyInDemoMainloop) {
 class DBusMainLoopTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-        runtime_ = CommonAPI::Runtime::load();
+        runtime_ = CommonAPI::Runtime::get();
         ASSERT_TRUE((bool) runtime_);
 
-        context_ = runtime_->getNewMainLoopContext();
+		context_ = std::make_shared<CommonAPI::MainLoopContext>();
         ASSERT_TRUE((bool) context_);
         mainLoop_ = new CommonAPI::MainLoop(context_);
-
-        mainloopFactory_ = runtime_->createFactory(context_);
-        ASSERT_TRUE((bool) mainloopFactory_);
-        standardFactory_ = runtime_->createFactory();
-        ASSERT_TRUE((bool) standardFactory_);
-
-        servicePublisher_ = runtime_->getServicePublisher();
-        ASSERT_TRUE((bool) servicePublisher_);
     }
 
     virtual void TearDown() {
@@ -175,19 +131,16 @@ protected:
 
     std::shared_ptr<CommonAPI::Runtime> runtime_;
     std::shared_ptr<CommonAPI::MainLoopContext> context_;
-    std::shared_ptr<CommonAPI::Factory> mainloopFactory_;
-    std::shared_ptr<CommonAPI::Factory> standardFactory_;
-    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
     CommonAPI::MainLoop* mainLoop_;
 };
 
 
 TEST_F(DBusMainLoopTest, ServiceInDemoMainloopCanBeAddressed) {
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress1, mainloopFactory_));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+	ASSERT_TRUE(runtime_->registerService(domain, testAddress1, stub, context_));
 
-    auto proxy = standardFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress1);
+	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress1, "connection");
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -210,18 +163,18 @@ TEST_F(DBusMainLoopTest, ServiceInDemoMainloopCanBeAddressed) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress1);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress1);
 }
 
 
 TEST_F(DBusMainLoopTest, ProxyInDemoMainloopCanCallMethods) {
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress2, standardFactory_));
+	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+	ASSERT_TRUE(runtime_->registerService(domain, testAddress2, stub, "connection"));
 
     usleep(500000);
 
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress2);
+	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress2, context_);
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -245,15 +198,15 @@ TEST_F(DBusMainLoopTest, ProxyInDemoMainloopCanCallMethods) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress2);
+	runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress2);
 }
 
 TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanCommunicate) {
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress4, mainloopFactory_));
+	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+	ASSERT_TRUE(runtime_->registerService(domain, testAddress4, stub, context_));
 
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress4);
+	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress4, context_);
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -277,23 +230,23 @@ TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanCommunicate) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress4);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress4);
 }
 
 
-class BigDataTestStub: public commonapi::tests::TestInterfaceStubDefault {
+class BigDataTestStub : public VERSION::commonapi::tests::TestInterfaceStubDefault {
     void testDerivedTypeMethod(
-            commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue,
-            commonapi::tests::DerivedTypeCollection::TestMap testMapInValue,
-            commonapi::tests::DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue,
-            commonapi::tests::DerivedTypeCollection::TestMap& testMapOutValue) {
+            ::commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testEnumExtended2InValue,
+            ::commonapi::tests::DerivedTypeCollection::TestMap testMapInValue,
+            ::commonapi::tests::DerivedTypeCollection::TestEnumExtended2& testEnumExtended2OutValue,
+            ::commonapi::tests::DerivedTypeCollection::TestMap& testMapOutValue) {
         testEnumExtended2OutValue = testEnumExtended2InValue;
         testMapOutValue = testMapInValue;
     }
 };
 
 TEST_F(DBusMainLoopTest, DemoMainloopClientsHandleNonavailableServices) {
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress3);
+	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress3, context_);
     ASSERT_TRUE((bool) proxy);
 
     uint32_t uint32Value = 42;
@@ -357,21 +310,13 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
     virtual void SetUp() {
         running_ = true;
 
-        std::shared_ptr<CommonAPI::Runtime> runtime_ = CommonAPI::Runtime::load();
+        runtime_ = CommonAPI::Runtime::get();
         ASSERT_TRUE((bool) runtime_);
 
-        context_ = runtime_->getNewMainLoopContext();
+        context_ = std::make_shared<CommonAPI::MainLoopContext>();
         ASSERT_TRUE((bool) context_);
 
         doSubscriptions();
-
-        mainloopFactory_ = runtime_->createFactory(context_);
-        ASSERT_TRUE((bool) mainloopFactory_);
-        standardFactory_ = runtime_->createFactory();
-        ASSERT_TRUE((bool) standardFactory_);
-
-        servicePublisher_ = runtime_->getServicePublisher();
-        ASSERT_TRUE((bool) servicePublisher_);
     }
 
     virtual void TearDown() {
@@ -396,9 +341,7 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
 
  public:
     std::shared_ptr<CommonAPI::MainLoopContext> context_;
-    std::shared_ptr<CommonAPI::Factory> mainloopFactory_;
-    std::shared_ptr<CommonAPI::Factory> standardFactory_;
-    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
+    std::shared_ptr<CommonAPI::Runtime> runtime_;
     bool running_;
     static constexpr bool mayBlock_ = true;
 
@@ -463,12 +406,12 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
 
 
 TEST_F(DBusInGLibMainLoopTest, ProxyInGLibMainloopCanCallMethods) {
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress5);
+	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress5, context_);
     ASSERT_TRUE((bool) proxy);
 
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress5, standardFactory_));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress5, stub, "connection"));
 
     while(!proxy->isAvailable()) {
         g_main_context_iteration(NULL, mayBlock_);
@@ -494,17 +437,17 @@ TEST_F(DBusInGLibMainLoopTest, ProxyInGLibMainloopCanCallMethods) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress5);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress5);
 }
 
 
 TEST_F(DBusInGLibMainLoopTest, ServiceInGLibMainloopCanBeAddressed) {
-    auto proxy = standardFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress6);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress6, "connection");
     ASSERT_TRUE((bool) proxy);
 
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress6, mainloopFactory_));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress6, stub, context_));
 
     uint32_t uint32Value = 42;
     std::string stringValue = "Ciao (:";
@@ -533,17 +476,17 @@ TEST_F(DBusInGLibMainLoopTest, ServiceInGLibMainloopCanBeAddressed) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress6);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress6);
 }
 
 
 TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) {
-    auto proxy = mainloopFactory_->buildProxy<commonapi::tests::TestInterfaceProxy>(testAddress7);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress7, context_);
     ASSERT_TRUE((bool) proxy);
 
-    std::shared_ptr<commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-                    commonapi::tests::TestInterfaceStubDefault>();
-    ASSERT_TRUE(servicePublisher_->registerService(stub, testAddress7, mainloopFactory_));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress7, stub, context_));
 
     uint32_t uint32Value = 42;
     std::string stringValue = "Ciao (:";
@@ -572,11 +515,11 @@ TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) 
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-    servicePublisher_->unregisterService(testAddress7);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress7);
 }
 #endif
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

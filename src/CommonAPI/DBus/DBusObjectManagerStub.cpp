@@ -1,16 +1,15 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusObjectManagerStub.h"
-#include "DBusStubAdapter.h"
-#include "DBusServicePublisher.h"
-#include "DBusOutputStream.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <vector>
+
+#include <CommonAPI/DBus/DBusObjectManagerStub.hpp>
+#include <CommonAPI/DBus/DBusOutputStream.hpp>
+#include <CommonAPI/DBus/DBusStubAdapter.hpp>
+#include <CommonAPI/DBus/DBusTypes.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -30,11 +29,12 @@ DBusObjectManagerStub::~DBusObjectManagerStub() {
 
         for (auto& dbusInterfaceIterator : registeredDBusInterfacesMap) {
             auto managedDBusStubAdapter = dbusInterfaceIterator.second;
-            auto managedDBusStubAdapterServiceAddress = managedDBusStubAdapter->getAddress();
-
+            auto managedDBusStubAdapterServiceAddress = managedDBusStubAdapter->getDBusAddress();
+#ifdef LB_TODO
             const bool isServiceUnregistered = DBusServicePublisher::getInstance()->unregisterManagedService(
                             managedDBusStubAdapterServiceAddress);
             assert(isServiceUnregistered);
+#endif
         }
     }
 }
@@ -88,8 +88,8 @@ bool DBusObjectManagerStub::unexportManagedDBusStubAdapter(std::shared_ptr<DBusS
 bool DBusObjectManagerStub::isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
     assert(dbusStubAdapter);
 
-    const auto& dbusObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
 
     std::lock_guard<std::mutex> dbusObjectManagerStubLock(dbusObjectManagerStubLock_);
 
@@ -113,8 +113,8 @@ bool DBusObjectManagerStub::isDBusStubAdapterExported(std::shared_ptr<DBusStubAd
 }
 
 bool DBusObjectManagerStub::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
-    const auto& dbusObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     const auto& registeredDBusObjectPathIterator = registeredDBusObjectPathsMap_.find(dbusObjectPath);
     const bool isKnownDBusObjectPath = (registeredDBusObjectPathIterator != registeredDBusObjectPathsMap_.end());
     bool isRegisterationSuccessful = false;
@@ -139,8 +139,8 @@ bool DBusObjectManagerStub::registerDBusStubAdapter(std::shared_ptr<DBusStubAdap
 }
 
 bool DBusObjectManagerStub::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
-    const auto& dbusObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     const auto& registeredDBusObjectPathIterator = registeredDBusObjectPathsMap_.find(dbusObjectPath);
     const bool isKnownDBusObjectPath = (registeredDBusObjectPathIterator != registeredDBusObjectPathsMap_.end());
 
@@ -174,15 +174,15 @@ bool DBusObjectManagerStub::emitInterfacesAddedSignal(std::shared_ptr<DBusStubAd
     assert(dbusConnection);
     assert(dbusConnection->isConnected());
 
-    const auto& dbusStubObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusStubInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusStubObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusStubInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     DBusMessage dbusSignal = DBusMessage::createSignal(dbusObjectPath_, getInterfaceName(), "InterfacesAdded", "oa{sa{sv}}");
     DBusOutputStream dbusOutputStream(dbusSignal);
     DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict({
         { dbusStubInterfaceName, DBusPropertiesChangedDict() }
     });
 
-    if (dbusStubAdapter->isManagingInterface()) {
+    if (dbusStubAdapter->isManaging()) {
         dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
     }
 
@@ -203,13 +203,13 @@ bool DBusObjectManagerStub::emitInterfacesRemovedSignal(std::shared_ptr<DBusStub
     assert(dbusConnection);
     assert(dbusConnection->isConnected());
 
-    const auto& dbusStubObjectPath = dbusStubAdapter->getObjectPath();
-    const auto& dbusStubInterfaceName = dbusStubAdapter->getInterfaceName();
+    const auto& dbusStubObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
+    const auto& dbusStubInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
     DBusMessage dbusSignal = DBusMessage::createSignal(dbusObjectPath_, getInterfaceName(), "InterfacesRemoved", "oas");
     DBusOutputStream dbusOutputStream(dbusSignal);
     std::vector<std::string> removedInterfaces({ { dbusStubInterfaceName } });
 
-    if (dbusStubAdapter->isManagingInterface()) {
+    if (dbusStubAdapter->isManaging()) {
         removedInterfaces.push_back(getInterfaceName());
     }
 
@@ -265,7 +265,7 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
 
             dbusInterfacesAndPropertiesDict.insert({ registeredDBusInterfaceName, DBusPropertiesChangedDict() });
 
-            if (registeredDBusStubAdapter->isManagingInterface()) {
+            if (registeredDBusStubAdapter->isManaging()) {
                 dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
             }
         }

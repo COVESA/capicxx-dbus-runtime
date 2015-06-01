@@ -1,109 +1,105 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusFreedesktopPropertiesStub.h"
-#include "DBusStubAdapter.h"
-#include "DBusServicePublisher.h"
-#include "DBusOutputStream.h"
-#include "DBusInputStream.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <vector>
 
+#include <CommonAPI/DBus/DBusFreedesktopPropertiesStub.hpp>
+#include <CommonAPI/DBus/DBusStubAdapter.hpp>
+#include <CommonAPI/DBus/DBusOutputStream.hpp>
+#include <CommonAPI/DBus/DBusInputStream.hpp>
+
 namespace CommonAPI {
 namespace DBus {
 
-DBusFreedesktopPropertiesStub::DBusFreedesktopPropertiesStub(const std::string& dbusObjectPath,
-                                                             const std::string& dbusInterfaceName,
-                                                             const std::shared_ptr<DBusProxyConnection>& dbusConnection,
-                                                             const std::shared_ptr<DBusStubAdapter>& dbusStubAdapter) :
-                        dbusObjectPath_(dbusObjectPath),
-                        dbusConnection_(dbusConnection),
-                        dbusStubAdapter_(dbusStubAdapter) {
-    assert(!dbusObjectPath.empty());
-    assert(dbusObjectPath[0] == '/');
-    assert(dbusConnection);
+DBusFreedesktopPropertiesStub::DBusFreedesktopPropertiesStub(
+	const std::string &_path, const std::string &_interface,
+	const std::shared_ptr<DBusProxyConnection> &_connection,
+	const std::shared_ptr<DBusStubAdapter> &_adapter)
+	: path_(_path),
+	  connection_(_connection),
+	  adapter_(_adapter) {
+    assert(!path_.empty());
+    assert(path_[0] == '/');
+    assert(_connection);
 
     dbusInterfacesLock_.lock();
-    if(managedInterfaces_.find(dbusInterfaceName) == managedInterfaces_.end()) {
-        managedInterfaces_.insert({dbusInterfaceName, dbusStubAdapter});
+    if(managedInterfaces_.find(_interface) == managedInterfaces_.end()) {
+        managedInterfaces_.insert({ _interface, _adapter });
     }
     dbusInterfacesLock_.unlock();
-
 }
 
 DBusFreedesktopPropertiesStub::~DBusFreedesktopPropertiesStub() {
-    // TODO: maybee some deregistration etc.
+    // TODO: Check if there is some deregistration etc. necessary
 }
 
 const char* DBusFreedesktopPropertiesStub::getMethodsDBusIntrospectionXmlData() const {
-    return "<interface name=\"org.freedesktop.DBus.Properties\">\n"
-             "<method name=\"Get\">\n"
-               "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
-               "<arg type=\"s\" name=\"property_name\" direction=\"in\"/>\n"
-               "<arg type=\"v\" name=\"value\" direction=\"out\"/>\n"
-             "</method>\n"
-             "<method name=\"GetAll\">\n"
-               "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
-               "<arg type=\"a{sv}\" name=\"properties\" direction=\"out\"/>\n"
-             "</method>\n"
-             "<method name=\"Set\">\n"
-               "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
-               "<arg type=\"s\" name=\"property_name\" direction=\"in\"/>\n"
-               "<arg type=\"v\" name=\"value\" direction=\"in\"/>\n"
-             "</method>\n"
-             "<signal name=\"PropertiesChanged\">\n"
-               "<arg type=\"s\" name=\"interface_name\"/>\n"
-               "<arg type=\"a{sv}\" name=\"changed_properties\"/>\n"
-               "<arg type=\"as\" name=\"invalidated_properties\"/>\n"
-             "</signal>\n"
-           "</interface>\n";
+    return "<method name=\"Get\">\n"
+             "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
+             "<arg type=\"s\" name=\"property_name\" direction=\"in\"/>\n"
+             "<arg type=\"v\" name=\"value\" direction=\"out\"/>\n"
+           "</method>\n"
+           "<method name=\"GetAll\">\n"
+             "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
+             "<arg type=\"a{sv}\" name=\"properties\" direction=\"out\"/>\n"
+           "</method>\n"
+           "<method name=\"Set\">\n"
+             "<arg type=\"s\" name=\"interface_name\" direction=\"in\"/>\n"
+             "<arg type=\"s\" name=\"property_name\" direction=\"in\"/>\n"
+             "<arg type=\"v\" name=\"value\" direction=\"in\"/>\n"
+           "</method>\n"
+           "<signal name=\"PropertiesChanged\">\n"
+             "<arg type=\"s\" name=\"interface_name\"/>\n"
+             "<arg type=\"a{sv}\" name=\"changed_properties\"/>\n"
+             "<arg type=\"as\" name=\"invalidated_properties\"/>\n"
+           "</signal>\n";
 }
 
-bool DBusFreedesktopPropertiesStub::onInterfaceDBusMessage(const DBusMessage& dbusMessage) {
-    auto dbusConnection = dbusConnection_.lock();
-
-    if (!dbusConnection || !dbusConnection->isConnected()) {
+bool
+DBusFreedesktopPropertiesStub::onInterfaceDBusMessage(const DBusMessage &_message) {
+    auto connection = connection_.lock();
+    if (!connection || !connection->isConnected()) {
         return false;
     }
 
-    if (!dbusMessage.isMethodCallType() || !(dbusMessage.hasMemberName("Get") || dbusMessage.hasMemberName("GetAll") || dbusMessage.hasMemberName("Set"))) {
+    if (!_message.isMethodCallType() ||
+    	!(_message.hasMemberName("Get") ||
+    	_message.hasMemberName("GetAll") ||
+    	_message.hasMemberName("Set"))) {
         return false;
     }
 
-    DBusInputStream dbusInputStream(dbusMessage);
-    std::string interfaceName;
-
-    dbusInputStream >> interfaceName;
-
-    if(dbusInputStream.hasError()) {
+    std::string interface;
+    DBusInputStream input(_message);
+    input >> interface;
+    if(input.hasError()) {
         return false;
     }
 
-    std::lock_guard<std::mutex> dbusInterfacesLock(dbusInterfacesLock_);
+    std::lock_guard<std::mutex> itsLock(dbusInterfacesLock_);
 
-    auto managedInterfacesIterator = managedInterfaces_.find(interfaceName);
-
-    if(managedInterfacesIterator == managedInterfaces_.end()) {
+    auto it = managedInterfaces_.find(interface);
+    if(it == managedInterfaces_.end()) {
         return false;
     }
 
-    return managedInterfacesIterator->second->onInterfaceDBusFreedesktopPropertiesMessage(dbusMessage);
+    return it->second->onInterfaceDBusFreedesktopPropertiesMessage(_message);
 }
 
 const bool DBusFreedesktopPropertiesStub::hasFreedesktopProperties() {
     return false;
 }
 
-const std::string& DBusFreedesktopPropertiesStub::getDBusObjectPath() const {
-    return dbusObjectPath_;
+const std::string &DBusFreedesktopPropertiesStub::getObjectPath() const {
+    return path_;
 }
 
-const char* DBusFreedesktopPropertiesStub::getInterfaceName() {
-    return "org.freedesktop.DBus.Properties";
+const std::string &DBusFreedesktopPropertiesStub::getInterface() {
+	static std::string theInterface("org.freedesktop.DBus.Properties");
+    return theInterface;
 }
 
 } // namespace DBus

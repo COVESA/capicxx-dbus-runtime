@@ -1,45 +1,34 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 #include <gtest/gtest.h>
-#include <commonapi/tests/DerivedTypeCollection.h>
-#include <commonapi/tests/TestFreedesktopInterfaceProxy.h>
-#include <commonapi/tests/TestFreedesktopInterfaceStub.h>
-#include <commonapi/tests/TestFreedesktopInterfaceStubDefault.h>
-#include <commonapi/tests/TestFreedesktopDerivedInterfaceProxy.h>
-#include <commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.h>
 
-
-#ifndef COMMONAPI_INTERNAL_COMPILATION
-#define COMMONAPI_INTERNAL_COMPILATION
-#endif
-#include <CommonAPI/DBus/DBusRuntime.h>
+#include <CommonAPI/CommonAPI.hpp>
 
 #ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
 #endif
 
-static const std::string commonApiAddress =
-                "local:CommonAPI.DBus.tests.DBusProxyTestFreedesktopPropertiesInterface:CommonAPI.DBus.tests.DBusProxyTestFreedesktopPropertiesInterface";
+#include <commonapi/tests/DerivedTypeCollection.hpp>
+#include <v1_0/commonapi/tests/TestFreedesktopInterfaceProxy.hpp>
+#include <v1_0/commonapi/tests/TestFreedesktopInterfaceStub.hpp>
+#include <v1_0/commonapi/tests/TestFreedesktopInterfaceStubDefault.hpp>
+#include <v1_0/commonapi/tests/TestFreedesktopDerivedInterfaceProxy.hpp>
+#include <v1_0/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.hpp>
+
+#define VERSION v1_0
+
+static const std::string domain = "local";
+static const std::string commonApiAddress = "CommonAPI.DBus.tests.DBusProxyTestFreedesktopPropertiesInterface";
 
 class FreedesktopPropertiesTest: public ::testing::Test {
 protected:
     void SetUp() {
-        std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
-        servicePublisher_ = runtime->getServicePublisher();
+        runtime = CommonAPI::Runtime::get();
 
-        ASSERT_TRUE(servicePublisher_ != NULL);
-
-        serviceFactory_ = runtime->createFactory();
-        proxyFactory_ = runtime->createFactory();
-
-        ASSERT_TRUE(serviceFactory_ != NULL);
-        ASSERT_TRUE(proxyFactory_ != NULL);
-
-        proxy_ = proxyFactory_->buildProxy<commonapi::tests::TestFreedesktopInterfaceProxy>(commonApiAddress);
+		proxy_ = runtime->buildProxy<VERSION::commonapi::tests::TestFreedesktopInterfaceProxy>(domain, commonApiAddress);
 
         registerTestStub();
 
@@ -55,22 +44,21 @@ protected:
     }
 
     void registerTestStub() {
-        testStub_ = std::make_shared<commonapi::tests::TestFreedesktopInterfaceStubDefault>();
-        const bool isServiceRegistered = servicePublisher_->registerService(testStub_, commonApiAddress, serviceFactory_);
+		testStub_ = std::make_shared<VERSION::commonapi::tests::TestFreedesktopInterfaceStubDefault>();
+		const bool isServiceRegistered = runtime->registerService(domain, commonApiAddress, testStub_, "connection");
 
         ASSERT_TRUE(isServiceRegistered);
     }
 
 
-    void deregisterTestStub() {
-        const bool isStubAdapterUnregistered = servicePublisher_->unregisterService(commonApiAddress);
+	void deregisterTestStub() {
+		const bool isStubAdapterUnregistered = runtime->unregisterService(domain, testStub_->getStubAdapter()->getInterface(), commonApiAddress);
         ASSERT_TRUE(isStubAdapterUnregistered);
     }
 
-    std::shared_ptr<CommonAPI::Factory> serviceFactory_, proxyFactory_;
-    std::shared_ptr<commonapi::tests::TestFreedesktopInterfaceProxyDefault> proxy_;
-    std::shared_ptr<commonapi::tests::TestFreedesktopInterfaceStubDefault> testStub_;
-    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
+	std::shared_ptr<CommonAPI::Runtime> runtime;
+	std::shared_ptr<VERSION::commonapi::tests::TestFreedesktopInterfaceProxy<>> proxy_;
+	std::shared_ptr<VERSION::commonapi::tests::TestFreedesktopInterfaceStubDefault> testStub_;
 };
 
 TEST_F(FreedesktopPropertiesTest, GetBasicTypeAttribute) {
@@ -143,18 +131,9 @@ TEST_F(FreedesktopPropertiesTest, CanSendAndReceiveNotificationForSingleProperty
 class FreedesktopPropertiesOnInheritedInterfacesTest: public ::testing::Test {
 protected:
     void SetUp() {
-        std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::load();
-        servicePublisher_ = runtime->getServicePublisher();
+        runtime = CommonAPI::Runtime::get();
 
-        ASSERT_TRUE(servicePublisher_ != NULL);
-
-        serviceFactory_ = runtime->createFactory();
-        proxyFactory_ = runtime->createFactory();
-
-        ASSERT_TRUE(serviceFactory_ != NULL);
-        ASSERT_TRUE(proxyFactory_ != NULL);
-
-        proxy_ = proxyFactory_->buildProxy<commonapi::tests::TestFreedesktopDerivedInterfaceProxy>(commonApiAddress);
+		proxy_ = runtime->buildProxy<VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceProxy>(domain, commonApiAddress);
 
         registerTestStub();
 
@@ -170,22 +149,21 @@ protected:
     }
 
     void registerTestStub() {
-        testStub_ = std::make_shared<commonapi::tests::TestFreedesktopDerivedInterfaceStubDefault>();
-        const bool isServiceRegistered = servicePublisher_->registerService(testStub_, commonApiAddress, serviceFactory_);
+		testStub_ = std::make_shared<VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceStubDefault>();
+		const bool isServiceRegistered = runtime->registerService(domain, commonApiAddress, testStub_, "connection");
 
         ASSERT_TRUE(isServiceRegistered);
     }
 
     void deregisterTestStub() {
-        const bool isStubAdapterUnregistered = servicePublisher_->unregisterService(commonApiAddress);
+		const bool isStubAdapterUnregistered = runtime->unregisterService(domain, testStub_->CommonAPI::Stub<VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceStubAdapter, VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceStubRemoteEvent>::getStubAdapter()->VERSION::commonapi::tests::TestFreedesktopDerivedInterface::getInterface(), commonApiAddress);
         ASSERT_TRUE(isStubAdapterUnregistered);
     }
 
 
-    std::shared_ptr<CommonAPI::Factory> serviceFactory_, proxyFactory_;
-    std::shared_ptr<commonapi::tests::TestFreedesktopDerivedInterfaceProxyDefault> proxy_;
-    std::shared_ptr<commonapi::tests::TestFreedesktopDerivedInterfaceStubDefault> testStub_;
-    std::shared_ptr<CommonAPI::ServicePublisher> servicePublisher_;
+	std::shared_ptr<CommonAPI::Runtime> runtime;
+	std::shared_ptr<VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceProxy<>> proxy_;
+	std::shared_ptr<VERSION::commonapi::tests::TestFreedesktopDerivedInterfaceStubDefault> testStub_;
 };
 
 TEST_F(FreedesktopPropertiesOnInheritedInterfacesTest, CanGetAndSetRemoteAttributeFromDerivedInterface) {
@@ -234,7 +212,7 @@ TEST_F(FreedesktopPropertiesOnInheritedInterfacesTest, CanGetAndSetRemoteAttribu
     ASSERT_EQ(value, 7);
 }
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

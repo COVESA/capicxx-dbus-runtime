@@ -10,6 +10,76 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\CommonAPI\DBus\DBusAddress.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusAddressTranslator.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusAttribute.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusClientId.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusConfig.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusConnection.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusDaemonProxy.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusDeployment.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusError.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusEvent.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFactory.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFreedesktopAttribute.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFreedesktopPropertiesStub.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFreedesktopStubAdapterHelper.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFreedesktopVariant.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusFunctionalHash.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusHelper.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusInputStream.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusInstanceAvailabilityStatusChangedEvent.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusInterfaceHandler.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusMainLoopContext.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusMessage.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusMultiEvent.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusObjectManager.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusObjectManagerStub.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusOutputStream.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxy.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxyAsyncCallbackHandler.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxyBase.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxyConnection.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxyHelper.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusProxyManager.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusSelectiveEvent.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusSerializableArguments.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusServiceRegistry.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusStubAdapter.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusStubAdapterHelper.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusTypeOutputStream.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusTypes.hpp" />
+    <ClInclude Include="include\CommonAPI\DBus\DBusUtils.hpp" />
+    <ClInclude Include="include\murmurhash\MurmurHash3.h" />
+    <ClInclude Include="include\pugixml\pugiconfig.hpp" />
+    <ClInclude Include="include\pugixml\pugixml.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\CommonAPI\DBus\DBusAddress.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusAddressTranslator.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusClientId.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusConnection.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusDaemonProxy.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusDeployment.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusError.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFactory.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFreedesktopPropertiesStub.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusFunctionalHash.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusInputStream.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusMainLoopContext.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusMessage.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusObjectManager.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusObjectManagerStub.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusOutputStream.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusProxy.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusProxyBase.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusProxyManager.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusServiceRegistry.cpp" />
+    <ClCompile Include="src\CommonAPI\DBus\DBusStubAdapter.cpp" />
+    <ClCompile Include="src\murmurhash\MurmurHash3.cpp" />
+    <ClCompile Include="src\pugixml\pugixml.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D3B0744D-2A3E-4C36-9AA0-534D6BD5A44C}</ProjectGuid>
     <RootNamespace>CommonAPIDBus</RootNamespace>
@@ -50,7 +120,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <DisableSpecificWarnings>4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(COMMONAPI_DIR)\src;$(DBUS_BUILD_DIR);$(DBUS_DIR);$(SolutionDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;$(DBUS_BUILD_DIR);$(DBUS_DIR);$(COMMONAPI_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
@@ -78,74 +148,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="src\CommonAPI\DBus\DBusAddressTranslator.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusClientId.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusConfiguration.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusConnection.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusDaemonProxy.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusError.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusFactory.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusFreedesktopPropertiesStub.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusFunctionalHash.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusInputStream.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusMainLoopContext.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusMessage.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusObjectManager.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusObjectManagerStub.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusOutputStream.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusProxy.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusProxyBase.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusProxyManager.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusRuntime.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusServicePublisher.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusServiceRegistry.cpp" />
-    <ClCompile Include="src\CommonAPI\DBus\DBusStubAdapter.cpp" />
-    <ClCompile Include="src\murmurhash\MurmurHash3.cpp" />
-    <ClCompile Include="src\pugixml\pugixml.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\CommonAPI\DBus\DBusAddressTranslator.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusAttribute.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusClientId.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusConfiguration.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusConnection.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusConnectionBusType.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusDaemonProxy.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusError.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusEvent.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusFactory.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusFreedesktopPropertiesStub.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusFunctionalHash.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusHelper.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusInputStream.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusInstanceAvailabilityStatusChangedEvent.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusInterfaceHandler.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusLegacyVariant.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusMainLoopContext.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusMessage.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusMultiEvent.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusObjectManager.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusObjectManagerStub.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusOutputStream.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxy.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxyAsyncCallbackHandler.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxyBase.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxyConnection.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxyHelper.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusProxyManager.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusRuntime.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusSelectiveEvent.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusSerializableArguments.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusServicePublisher.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusServiceRegistry.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapter.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusStubAdapterHelper.h" />
-    <ClInclude Include="src\CommonAPI\DBus\DBusUtils.h" />
-    <ClInclude Include="src\murmurhash\MurmurHash3.h" />
-    <ClInclude Include="src\pugixml\pugiconfig.hpp" />
-    <ClInclude Include="src\pugixml\pugixml.hpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

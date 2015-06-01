@@ -1,23 +1,20 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 #ifndef _GLIBCXX_USE_NANOSLEEP
 #define _GLIBCXX_USE_NANOSLEEP
 #endif
 
-#include <CommonAPI/CommonAPI.h>
+#include <CommonAPI/CommonAPI.hpp>
 
 #define COMMONAPI_INTERNAL_COMPILATION
-#include <CommonAPI/DBus/DBusObjectManagerStub.h>
-#include <CommonAPI/DBus/DBusConnection.h>
-#include <CommonAPI/DBus/DBusInputStream.h>
-#include <CommonAPI/DBus/DBusFactory.h>
-#include <CommonAPI/DBus/DBusRuntime.h>
-#include <CommonAPI/DBus/DBusStubAdapter.h>
-#include <CommonAPI/DBus/DBusServicePublisher.h>
+#include <CommonAPI/DBus/DBusObjectManagerStub.hpp>
+#include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusInputStream.hpp>
+#include <CommonAPI/DBus/DBusFactory.hpp>
+#include <CommonAPI/DBus/DBusStubAdapter.hpp>
 
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -30,16 +27,10 @@ static const std::string& managedDBusObjectPathPrefix = "/commonapi/dbus/test/DB
 
 class TestDBusStubAdapter: public CommonAPI::DBus::DBusStubAdapter {
 public:
-    TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
-                        const std::string& dbusObjectPath,
+    TestDBusStubAdapter(const std::string& dbusObjectPath,
                         const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
                         const bool isManagingInterface) :
-                    DBusStubAdapter(
-                                    factory,
-                                    "local:" + dbusServiceName + ":commonapi.dbus.tests.TestDBusStubAdapter-" + dbusObjectPath,
-                                    "commonapi.dbus.tests.TestDBusStubAdapter",
-                                    dbusServiceName,
-                                    dbusObjectPath,
+						DBusStubAdapter(CommonAPI::DBus::DBusAddress(dbusServiceName, dbusObjectPath, "commonapi.dbus.tests.TestDBusStubAdapter"),
                                     dbusConnection,
                                     isManagingInterface) {
     }
@@ -61,30 +52,22 @@ public:
     }
 
 protected:
-    TestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
-                        const std::string& dbusObjectPath,
+    TestDBusStubAdapter(const std::string& dbusObjectPath,
                         const std::string& dbusInterfaceName,
                         const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection,
                         const bool isManagingInterface) :
-                    DBusStubAdapter(
-                                    factory,
-                                    "local:" + dbusServiceName + ":" + dbusInterfaceName + "-" + dbusObjectPath,
-                                    dbusInterfaceName,
-                                    dbusServiceName,
-                                    dbusObjectPath,
-                                    dbusConnection,
-                                    isManagingInterface) {
+						DBusStubAdapter(CommonAPI::DBus::DBusAddress(dbusServiceName, dbusObjectPath, dbusInterfaceName),
+									dbusConnection,
+									isManagingInterface) {
     }
 
 };
 
 class ManagerTestDBusStubAdapter: public TestDBusStubAdapter {
 public:
-    ManagerTestDBusStubAdapter(const std::shared_ptr<CommonAPI::DBus::DBusFactory> factory,
-                               const std::string& dbusObjectPath,
+    ManagerTestDBusStubAdapter(const std::string& dbusObjectPath,
                                const std::shared_ptr<CommonAPI::DBus::DBusProxyConnection>& dbusConnection) :
-                    TestDBusStubAdapter(
-                                    factory,
+                    TestDBusStubAdapter( 
                                     dbusObjectPath,
                                     "commonapi.dbus.tests.ManagerTestDBusStubAdapter",
                                     dbusConnection,
@@ -175,10 +158,9 @@ private:
 class DBusObjectManagerStubTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-        auto runtime = std::dynamic_pointer_cast<CommonAPI::DBus::DBusRuntime>(CommonAPI::Runtime::load());
-        serviceFactory = std::dynamic_pointer_cast<CommonAPI::DBus::DBusFactory>(runtime->createFactory());
+        runtime = CommonAPI::Runtime::get();
 
-        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
         ASSERT_TRUE(proxyDBusConnection_->connect());
 
         stubDBusConnection_ = serviceFactory->getDbusConnection();
@@ -197,7 +179,7 @@ protected:
         proxyDBusConnection_.reset();
     }
 
-    std::shared_ptr<CommonAPI::DBus::DBusFactory> serviceFactory;
+    std::shared_ptr<CommonAPI::Runtime> runtime;
 
     void getManagedObjects(const std::string& dbusObjectPath,
                            CommonAPI::DBus::DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dbusObjectPathAndInterfacesDict) {
@@ -498,7 +480,7 @@ TEST_F(DBusObjectManagerStubTest, DestructorUnpublishingWorks) {
     ASSERT_TRUE(wasServiceDeregistrationSuccessful);
 }
 
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

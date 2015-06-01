@@ -1,280 +1,242 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "DBusMessage.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <cassert>
 #include <cstring>
 
+#include <CommonAPI/DBus/DBusAddress.hpp>
+#include <CommonAPI/DBus/DBusMessage.hpp>
+
 namespace CommonAPI {
 namespace DBus {
 
-DBusMessage::DBusMessage():
-        libdbusMessage_(NULL) {
+DBusMessage::DBusMessage()
+	: message_(NULL) {
 }
 
-DBusMessage::DBusMessage(::DBusMessage* libdbusMessage) {
-    libdbusMessage_ = libdbusMessage != NULL ? dbus_message_ref(libdbusMessage) : NULL;
+DBusMessage::DBusMessage(::DBusMessage *_message) {
+    message_ = (_message != nullptr ? dbus_message_ref(_message) : nullptr);
 }
 
-DBusMessage::DBusMessage(::DBusMessage* libdbusMessage, bool increaseReferenceCount) {
-    assert(libdbusMessage);
-
-    libdbusMessage_ = increaseReferenceCount ? dbus_message_ref(libdbusMessage) : libdbusMessage;
+DBusMessage::DBusMessage(::DBusMessage *_message, bool reference) {
+    assert(_message);
+    message_ = (reference ? dbus_message_ref(message_) : _message);
 }
 
-DBusMessage::DBusMessage(const DBusMessage& src) {
-    libdbusMessage_ = src.libdbusMessage_ != NULL ? dbus_message_ref(src.libdbusMessage_) : NULL;
+DBusMessage::DBusMessage(const DBusMessage &_source) {
+    message_ = (_source.message_ != nullptr ?
+    				dbus_message_ref(_source.message_) : nullptr);
 }
 
-DBusMessage::DBusMessage(DBusMessage&& rsrc) {
-    libdbusMessage_ = rsrc.libdbusMessage_;
-    rsrc.libdbusMessage_ = NULL;
+DBusMessage::DBusMessage(DBusMessage &&_source) {
+    message_ = _source.message_;
+    _source.message_ = nullptr;
 }
 
 DBusMessage::~DBusMessage() {
-    if (libdbusMessage_)
-        dbus_message_unref(libdbusMessage_);
+    if (message_)
+        dbus_message_unref(message_);
 }
 
-DBusMessage& DBusMessage::operator=(const DBusMessage& src) {
-    if (this != &src) {
-        if (libdbusMessage_)
-            dbus_message_unref(libdbusMessage_);
+DBusMessage &
+DBusMessage::operator=(const DBusMessage &_source) {
+    if (this != &_source) {
+        if (message_)
+            dbus_message_unref(message_);
 
-        libdbusMessage_ = src.libdbusMessage_ != NULL ? dbus_message_ref(src.libdbusMessage_) : NULL;
+        message_ = (_source.message_ != nullptr ?
+        				dbus_message_ref(_source.message_) : nullptr);
     }
-
-    return *this;
+    return (*this);
 }
 
-DBusMessage& DBusMessage::operator=(DBusMessage&& rsrc) {
-    if (this != &rsrc) {
-        if (libdbusMessage_)
-            dbus_message_unref(libdbusMessage_);
+DBusMessage &
+DBusMessage::operator=(DBusMessage &&_source) {
+    if (this != &_source) {
+        if (message_)
+            dbus_message_unref(message_);
 
-        libdbusMessage_ = rsrc.libdbusMessage_;
-        rsrc.libdbusMessage_ = NULL;
+        message_ = _source.message_;
+        _source.message_ = NULL;
     }
-
-    return *this;
+    return (*this);
 }
 
 DBusMessage::operator bool() const {
-    const bool isNotNullDBusMessage = (libdbusMessage_ != NULL);
-    return isNotNullDBusMessage;
+    return (nullptr != message_);
 }
 
-DBusMessage DBusMessage::createOrgFreedesktopOrgMethodCall(const char* methodName, const char* signature) {
-    return DBusMessage::createMethodCall("org.freedesktop.DBus",
-                                         "/",
-                                         "org.freedesktop.DBus",
-                                         methodName,
-                                         signature);
+DBusMessage
+DBusMessage::createOrgFreedesktopOrgMethodCall(
+	const std::string &_method, const std::string &_signature) {
+
+	static DBusAddress address("org.freedesktop.DBus", "/", "org.freedesktop.DBus");
+    return DBusMessage::createMethodCall(address, _method, _signature);
 }
 
-DBusMessage DBusMessage::createOrgFreedesktopOrgMethodCall(const std::string& methodName,
-                                                           const std::string& signature) {
-    assert(!methodName.empty());
+DBusMessage
+DBusMessage::createMethodCall(
+	const DBusAddress &_address,
+    const std::string &_method, const std::string &_signature) {
 
-    return createOrgFreedesktopOrgMethodCall(methodName.c_str(),
-                                             signature.empty() ? NULL : signature.c_str());
+	std::string service = _address.getService();
+	std::string path = _address.getObjectPath();
+	std::string interface = _address.getInterface();
+
+    ::DBusMessage *methodCall = dbus_message_new_method_call(
+    								service.c_str(), path.c_str(),
+    								interface.c_str(), _method.c_str());
+    assert(methodCall);
+
+    if ("" != _signature)
+        dbus_message_set_signature(methodCall, _signature.c_str());
+
+    return DBusMessage(methodCall, false);
 }
 
-DBusMessage DBusMessage::createMethodCall(const char* busName,
-                                          const char* objectPath,
-                                          const char* interfaceName,
-                                          const char* methodName,
-                                          const char* signature) {
-    assert(busName);
-    assert(objectPath);
-    assert(interfaceName);
-    assert(methodName);
+DBusMessage
+DBusMessage::createMethodReturn(const std::string &_signature) const {
+    ::DBusMessage *methodReturn = dbus_message_new_method_return(message_);
+    assert(methodReturn);
 
-    ::DBusMessage* libdbusMessageCall = dbus_message_new_method_call(busName,
-                                                                     objectPath,
-                                                                     interfaceName,
-                                                                     methodName);
-    assert(libdbusMessageCall);
+    if ("" != _signature)
+       dbus_message_set_signature(methodReturn, _signature.c_str());
 
-    if (signature)
-        dbus_message_set_signature(libdbusMessageCall, signature);
-
-    const bool increaseLibdbusMessageReferenceCount = false;
-    return DBusMessage(libdbusMessageCall, increaseLibdbusMessageReferenceCount);
+    return DBusMessage(methodReturn, false);
 }
 
-DBusMessage DBusMessage::createMethodCall(const std::string& busName,
-                                          const std::string& objectPath,
-                                          const std::string& interfaceName,
-                                          const std::string& methodName,
-                                          const std::string& signature) {
-    assert(!busName.empty());
-    assert(!objectPath.empty());
-    assert(!interfaceName.empty());
-    assert(!methodName.empty());
+DBusMessage
+DBusMessage::createMethodError(
+	const std::string &_code, const std::string &_info) const {
 
-    return createMethodCall(busName.c_str(),
-                            objectPath.c_str(),
-                            interfaceName.c_str(),
-                            methodName.c_str(),
-                            signature.empty() ? NULL : signature.c_str());
+	::DBusMessage *methodError
+	 	 = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
+    assert(methodError);
+
+    return DBusMessage(methodError, false);
 }
 
-DBusMessage DBusMessage::createMethodReturn(const char* signature) const {
-    ::DBusMessage* libdbusMessageReturn = dbus_message_new_method_return(libdbusMessage_);
-    assert(libdbusMessageReturn);
+DBusMessage
+DBusMessage::createSignal(
+	const std::string &_path, const std::string &_interface,
+    const std::string &_signal, const std::string &_signature) {
 
-    if (signature)
-        dbus_message_set_signature(libdbusMessageReturn, signature);
+    ::DBusMessage *messageSignal
+     	 = dbus_message_new_signal(_path.c_str(), _interface.c_str(), _signal.c_str());
+    assert(messageSignal);
 
-    const bool increaseLibdbusMessageReferenceCount = false;
-    return DBusMessage(libdbusMessageReturn, increaseLibdbusMessageReferenceCount);
+    if ("" != _signature)
+        dbus_message_set_signature(messageSignal, _signature.c_str());
+
+    return DBusMessage(messageSignal, false);
 }
 
-DBusMessage DBusMessage::createMethodReturn(const std::string& signature) const {
-    return createMethodReturn(signature.empty() ? NULL : signature.c_str());
+const char *
+DBusMessage::getObjectPath() const {
+    return dbus_message_get_path(message_);
 }
 
-DBusMessage DBusMessage::createMethodError(const std::string& name, const std::string& reason) const {
-    ::DBusMessage* libdbusMessageError = dbus_message_new_error(libdbusMessage_, name.c_str(), reason.c_str());
-    assert(libdbusMessageError);
-
-    const bool increaseLibdbusMessageReferenceCount = false;
-    return DBusMessage(libdbusMessageError, increaseLibdbusMessageReferenceCount);
+const char *
+DBusMessage::getSender() const {
+    return dbus_message_get_sender(message_);
 }
 
-DBusMessage DBusMessage::createSignal(const char* objectPath,
-                                      const char* interfaceName,
-                                      const char* signalName,
-                                      const char* signature) {
-    assert(objectPath);
-    assert(interfaceName);
-    assert(signalName);
-
-    ::DBusMessage* libdbusMessageSignal = dbus_message_new_signal(objectPath,
-                                                                  interfaceName,
-                                                                  signalName);
-    assert(libdbusMessageSignal);
-
-    if (signature)
-        dbus_message_set_signature(libdbusMessageSignal, signature);
-
-    const bool increaseLibdbusMessageReferenceCount = false;
-    return DBusMessage(libdbusMessageSignal, increaseLibdbusMessageReferenceCount);
+const char *
+DBusMessage::getInterface() const {
+    return dbus_message_get_interface(message_);
 }
 
-DBusMessage DBusMessage::createSignal(const std::string& objectPath,
-                                      const std::string& interfaceName,
-                                      const std::string& signalName,
-                                      const std::string& signature) {
-    assert(!objectPath.empty());
-    assert(!interfaceName.empty());
-    assert(!signalName.empty());
-
-    return createSignal(objectPath.c_str(),
-                        interfaceName.c_str(),
-                        signalName.c_str(),
-                        signature.empty() ? NULL : signature.c_str());
+const char *
+DBusMessage::getMember() const {
+    return dbus_message_get_member(message_);
 }
 
-const char* DBusMessage::getObjectPath() const {
-    return dbus_message_get_path(libdbusMessage_);
+const char *
+DBusMessage::getSignature() const {
+    return dbus_message_get_signature(message_);
 }
 
-const char* DBusMessage::getSenderName() const {
-    return dbus_message_get_sender(libdbusMessage_);
-}
-
-const char* DBusMessage::getInterfaceName() const {
-    return dbus_message_get_interface(libdbusMessage_);
-}
-
-const char* DBusMessage::getMemberName() const {
-    return dbus_message_get_member(libdbusMessage_);
-}
-
-const char* DBusMessage::getSignatureString() const {
-    return dbus_message_get_signature(libdbusMessage_);
-}
-
-const char* DBusMessage::getErrorName() const {
+const char *
+DBusMessage::getError() const {
     assert(isErrorType());
-
-    return dbus_message_get_error_name(libdbusMessage_);
+    return dbus_message_get_error_name(message_);
 }
 
-const char* DBusMessage::getDestination() const {
-    return dbus_message_get_destination(libdbusMessage_);
+const char *
+DBusMessage::getDestination() const {
+    return dbus_message_get_destination(message_);
 }
 
-bool DBusMessage::hasObjectPath(const char* objectPath) const {
-    const char* dbusMessageObjectPath = getObjectPath();
-
-    assert(objectPath);
-    assert(dbusMessageObjectPath);
-
-    return !strcmp(dbusMessageObjectPath, objectPath);
+const uint32_t DBusMessage::getSerial() const {
+	return dbus_message_get_serial(message_);
 }
 
-bool DBusMessage::hasInterfaceName(const char* interfaceName) const {
-    const char* dbusMessageInterfaceName = getInterfaceName();
+bool
+DBusMessage::hasObjectPath(const char *_path) const {
+    const char *path = getObjectPath();
 
-    assert(interfaceName);
-    assert(dbusMessageInterfaceName);
+    assert(_path);
+    assert(path);
 
-    return !strcmp(dbusMessageInterfaceName, interfaceName);
+    return (!strcmp(path, _path));
 }
 
-bool DBusMessage::hasMemberName(const char* memberName) const {
-    const char* dbusMessageMemberName = getMemberName();
+bool DBusMessage::hasInterfaceName(const char *_interface) const {
+    const char *interface = getInterface();
 
-    assert(memberName);
-    assert(dbusMessageMemberName);
+    assert(_interface);
+    assert(interface);
 
-    return !strcmp(dbusMessageMemberName, memberName);
+    return (!strcmp(interface, _interface));
 }
 
-bool DBusMessage::hasSignature(const char* signature) const {
-    const char* dbusMessageSignature = getSignatureString();
+bool DBusMessage::hasMemberName(const char *_member) const {
+    const char *member = getMember();
 
+    assert(_member);
+    assert(member);
+
+    return (!strcmp(member, _member));
+}
+
+bool DBusMessage::hasSignature(const char *_signature) const {
+    const char *signature = getSignature();
+
+    assert(_signature);
     assert(signature);
-    assert(dbusMessageSignature);
 
-    return !strcmp(dbusMessageSignature, signature);
+    return (!strcmp(signature, _signature));
 }
 
 const DBusMessage::Type DBusMessage::getType() const {
-    const int libdbusType = dbus_message_get_type(libdbusMessage_);
-    return static_cast<Type>(libdbusType);
+    return static_cast<Type>(dbus_message_get_type(message_));
 }
 
-char* DBusMessage::getBodyData() const {
-    return dbus_message_get_body(libdbusMessage_);
+char * DBusMessage::getBodyData() const {
+    return dbus_message_get_body(message_);
 }
 
 int DBusMessage::getBodyLength() const {
-    return dbus_message_get_body_length(libdbusMessage_);
+    return dbus_message_get_body_length(message_);
 }
 
 int DBusMessage::getBodySize() const {
-    return dbus_message_get_body_allocated(libdbusMessage_);
+    return dbus_message_get_body_allocated(message_);
 }
 
-bool DBusMessage::setBodyLength(const int bodyLength) {
-    return dbus_message_set_body_length(libdbusMessage_, bodyLength);
+bool DBusMessage::setBodyLength(const int _length) {
+	return 0 != dbus_message_set_body_length(message_, _length);
 }
 
-bool DBusMessage::setDestination(const char* destination)
+bool DBusMessage::setDestination(const char *_destination)
 {
-    return dbus_message_set_destination(libdbusMessage_, destination);
+	return 0 != dbus_message_set_destination(message_, _destination);
 }
 
-bool DBusMessage::hasObjectPath(const std::string& objectPath) const {
-    return hasObjectPath(objectPath.c_str());
+bool DBusMessage::hasObjectPath(const std::string &_path) const {
+    return hasObjectPath(_path.c_str());
 }
 
 bool DBusMessage::isInvalidType() const {

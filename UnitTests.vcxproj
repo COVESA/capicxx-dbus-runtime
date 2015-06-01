@@ -11,16 +11,82 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\test\commonapi\tests\DerivedTypeCollection.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRoot.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\PredefinedTypeCollection.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterface.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxy.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxyBase.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStub.hpp" />
+    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStubDefault.hpp" />
+    <ClInclude Include="src\test\DBusTestUtils.hpp" />
+    <ClInclude Include="src\test\DemoMainLoop.hpp" />
+    <ClInclude Include="src\test\DemoPoll.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="src\test\commonapi\tests\DerivedTypeCollection.cpp" />
     <ClCompile Include="src\test\commonapi\tests\ExtendedInterfaceDBusProxy.cpp" />
     <ClCompile Include="src\test\commonapi\tests\ExtendedInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\ExtendedInterfaceStubDefault.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\managed\BranchInterface.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\BranchInterfaceDBusProxy.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\BranchInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\BranchInterfaceStubDefault.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\managed\LeafInterface.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\LeafInterfaceDBusProxy.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\LeafInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\LeafInterfaceStubDefault.cpp" />
+    <ClCompile Include="src\test\commonapi\tests\managed\RootInterface.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\RootInterfaceDBusProxy.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\RootInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\managed\RootInterfaceStubDefault.cpp" />
@@ -37,89 +103,20 @@
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.cpp" />
     <ClCompile Include="src\test\commonapi\tests\TestInterfaceStubDefault.cpp" />
     <ClCompile Include="src\test\DBusAddressTranslatorTest.cpp" />
+    <ClCompile Include="src\test\DBusBroadcastTest.cpp" />
     <ClCompile Include="src\test\DBusClientIdTest.cpp" />
     <ClCompile Include="src\test\DBusCommunicationTest.cpp" />
     <ClCompile Include="src\test\DBusConnectionTest.cpp" />
     <ClCompile Include="src\test\DBusDaemonProxyTest.cpp" />
     <ClCompile Include="src\test\DBusFactoryTest.cpp" />
     <ClCompile Include="src\test\DBusFreedesktopPropertiesTest.cpp" />
-    <ClCompile Include="src\test\DBusInputStreamTest.cpp" />
-    <ClCompile Include="src\test\DBusMainLoopIntegrationTest.cpp" />
-    <ClCompile Include="src\test\DBusManagedTest.cpp" />
+    <ClCompile Include="src\test\DBusLoadTest.cpp" />
     <ClCompile Include="src\test\DBusMultipleConnectionTest.cpp" />
-    <ClCompile Include="src\test\DBusObjectManagerStubTest.cpp" />
     <ClCompile Include="src\test\DBusOutputStreamTest.cpp" />
     <ClCompile Include="src\test\DBusPolymorphicTest.cpp" />
     <ClCompile Include="src\test\DBusProxyTest.cpp" />
-    <ClCompile Include="src\test\DBusRuntimeTest.cpp" />
     <ClCompile Include="src\test\DBusServicePublisherTest.cpp" />
-    <ClCompile Include="src\test\DBusServiceRegistryTest.cpp" />
-    <ClCompile Include="src\test\DBusTypeStreamTest.cpp" />
-    <ClCompile Include="src\test\DBusVariantOutputStreamTest.cpp" />
     <ClCompile Include="src\test\DBusVariantTest.cpp" />
-    <ClCompile Include="src\test\DemoPoll.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\test\commonapi\tests\DerivedTypeCollection.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\ExtendedInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\BranchInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\LeafInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\RootInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRoot.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\managed\SecondRootStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\PredefinedTypeCollection.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopDerivedInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestFreedesktopInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterface.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceDBusStubAdapter.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxy.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceProxyBase.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStub.h" />
-    <ClInclude Include="src\test\commonapi\tests\TestInterfaceStubDefault.h" />
-    <ClInclude Include="src\test\DBusTestUtils.h" />
-    <ClInclude Include="src\test\DemoPoll.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A437B05C-A664-493D-B60A-822A3A7A1CED}</ProjectGuid>
@@ -163,17 +160,18 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(SolutionDir)\src;$(SolutionDir)\src\test;$(COMMONAPI_DIR)\src;$(GTEST)\include;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ENABLE_ATTRIBUTE_EXTENSIONS;WIN32;COMMONAPI_INTERNAL_COMPILATION;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(DBUS_DIR);$(DBUS_BUILD_DIR);$(SolutionDir)\include;$(SolutionDir)\src\test;$(COMMONAPI_DIR)\include;$(GTEST)\include;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ENABLE_ATTRIBUTE_EXTENSIONS;WIN32;COMMONAPI_INTERNAL_COMPILATION;_DEBUG;__EXCEPTIONS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
-      <ShowIncludes>true</ShowIncludes>
+      <ShowIncludes>false</ShowIncludes>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DBUS_BUILD_DIR)\bin\Debug;$(GTEST)\msvc\gtest-md\Debug;$(COMMONAPI_DIR)\Debug;$(SolutionDir)\Debug;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DBUS_BUILD_DIR)\bin\Debug;$(GTEST)\msvc\gtest-md\Debug;C:\CommonAPI\CommonAPI\Debug;$(SolutionDir)\Debug;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>CommonAPId.lib;CommonAPI-DBusd.lib;gtestd.lib;gtest_main-mdd.lib;dbus-1d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

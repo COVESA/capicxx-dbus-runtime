@@ -1,11 +1,11 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <CommonAPI/DBus/DBusFunctionalHash.h>
-#include <CommonAPI/DBus/DBusStubAdapterHelper.h>
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusFunctionalHash.hpp>
+#include <CommonAPI/DBus/DBusStubAdapterHelper.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -104,12 +104,10 @@ class TestDBusStubAdapter: public TestStubAdapter,  public TestStubAdapterHelper
                         const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection,
                         const std::shared_ptr<TestStub>& testStub) :
                     TestStubAdapterHelper(
-                                    commonApiAddress,
-                                    dbusBusName,
-                                    dbusObjectPath,
-                                    "org.genivi.CommonAPI.DBus.TestInterface",
+									CommonAPI::DBus::DBusAddress(dbusBusName, dbusObjectPath, "org.genivi.CommonAPI.DBus.TestInterface"),
                                     dbusConnection,
-                                    testStub) {
+                                    testStub,
+									false) {
     }
 
     virtual void fireTestAttributeChanged(const int32_t& testValue) {
@@ -186,7 +184,7 @@ const TestStubAdapterHelper::StubDispatcherTable TestStubAdapterHelper::stubDisp
 };
 
 int main(void) {
-    auto dbusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+    auto dbusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
 
     if (!dbusConnection->isConnected())
         dbusConnection->connect();
@@ -204,13 +202,9 @@ int main(void) {
                     "/common/api/dbus/TestDBusInterfaceAdapter",
                     dbusConnection,
                     testStub);
-    testStubAdapter->init();
+	testStubAdapter->init(testStubAdapter);
 
-    auto dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
-                    "org.genivi.CommonAPI.DBus.TestDBusInterfaceAdapter",
-                    testStubAdapter->getObjectPath().c_str(),
-                    testStubAdapter->getServiceId().c_str(),
-                    "GetEmptyResponse");
+    auto dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress("org.genivi.CommonAPI.DBus.TestDBusInterfaceAdapter", testStubAdapter->getDBusAddress().getObjectPath().c_str(), testStubAdapter->getDBusAddress().getService().c_str()), "GetEmptyResponse");
 
     const bool messageSent = dbusConnection->sendDBusMessage(dbusMessageCall);
     assert(messageSent);

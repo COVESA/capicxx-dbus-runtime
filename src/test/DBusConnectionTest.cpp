@@ -1,17 +1,19 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <CommonAPI/DBus/DBusConnection.h>
-#include <CommonAPI/DBus/DBusProxyAsyncCallbackHandler.h>
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#ifndef COMMONAPI_INTERNAL_COMPILATION
+#define COMMONAPI_INTERNAL_COMPILATION
+#endif
+
+#include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp>
 
 #include <gtest/gtest.h>
 #include <dbus/dbus.h>
 
 #include <cstring>
-
 
 bool replyArrived;
 
@@ -24,102 +26,11 @@ class LibdbusTest: public ::testing::Test {
     }
 };
 
-
-::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
-                                                    ::DBusMessage* libdbusMessage,
-                                                    void* userData) {
-   return ::DBusHandlerResult::DBUS_HANDLER_RESULT_HANDLED;
-}
-
-DBusObjectPathVTable libdbusObjectPathVTable = {
-               NULL,
-               &onLibdbusObjectPathMessageThunk
-};
-
-::DBusConnection* createConnection() {
-   const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
-   ::DBusConnection* libdbusConnection = dbus_bus_get_private(libdbusType, NULL);
-   dbus_connection_ref(libdbusConnection);
-   dbus_connection_set_exit_on_disconnect(libdbusConnection, false);
-
-   return libdbusConnection;
-}
-
-static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void *userData) {
-    replyArrived = true;
-    ::DBusMessage* libdbusMessage = dbus_pending_call_steal_reply(libdbusPendingCall);
-    ASSERT_TRUE(libdbusMessage);
-    dbus_pending_call_unref(libdbusPendingCall);
-}
-
-TEST_F(LibdbusTest, DISABLED_NonreplyingLibdbusConnectionsAreHandled) {
-    const char problemServiceName[] = "problem.service";
-    replyArrived = false;
-    bool running = true;
-
-    dbus_threads_init_default();
-
-   ::DBusConnection* serviceConnection = createConnection();
-   ::DBusConnection* clientConnection = createConnection();
-
-
-   dbus_bus_request_name(serviceConnection,
-                   problemServiceName,
-                   DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                   NULL);
-
-   dbus_connection_try_register_object_path(serviceConnection,
-                   "/",
-                   &libdbusObjectPathVTable,
-                   NULL,
-                   NULL);
-
-   std::thread([&, this] {
-       while(running) {
-           dbus_connection_read_write_dispatch(serviceConnection, 10);
-       }
-   }).detach();
-
-   usleep(100000);
-
-   ::DBusMessage* message = dbus_message_new_method_call(problemServiceName, "/", NULL, "someMethod");
-
-   ::DBusPendingCall* libdbusPendingCall;
-
-   dbus_connection_send_with_reply(
-                   clientConnection,
-                   message,
-                   &libdbusPendingCall,
-                   3000);
-
-   dbus_pending_call_set_notify(
-                   libdbusPendingCall,
-                   onLibdbusPendingCallNotifyThunk,
-                   NULL,
-                   NULL);
-
-   //100*50 = 5000 (ms) ==> 3 seconds timeout pending call *should* have arrived by now.
-   for (unsigned int i = 0; i < 100 && (!replyArrived); i++) {
-       dbus_connection_read_write_dispatch(clientConnection, 50);
-   }
-
-   EXPECT_TRUE(replyArrived);
-
-   running = false;
-
-   usleep(100000);
-
-   dbus_connection_close(serviceConnection);
-   dbus_connection_unref(serviceConnection);
-   dbus_connection_close(clientConnection);
-   dbus_connection_unref(clientConnection);
-}
-
-
 class DBusConnectionTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-        dbusConnection_ = CommonAPI::DBus::DBusConnection::getSessionBus();
+
+		dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
     }
 
     virtual void TearDown() {
@@ -182,15 +93,15 @@ TEST_F(DBusConnectionTest, ConnectionStatusEventWorks) {
 }
 
 TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
-    const char busName[] = "commonapi.dbus.test.TestInterfaceHandler";
-    const char objectPath[] = "/common/api/dbus/test/TestObject";
-    const char interfaceName[] = "commonapi.dbus.test.TestInterface";
+    const char service[] = "commonapi.dbus.test.TestInterface_commonapi.dbus.test.TestObject";
+    const char objectPath[] = "/commonapi/dbus/test/TestObject";
+    const char interface[] = "commonapi.dbus.test.TestInterface";
     const char methodName[] = "TestMethod";
 
-    auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getSessionBus();
+	auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
 
     ASSERT_TRUE(interfaceHandlerDBusConnection->connect());
-    ASSERT_TRUE(interfaceHandlerDBusConnection->requestServiceNameAndBlock(busName));
+    ASSERT_TRUE(interfaceHandlerDBusConnection->requestServiceNameAndBlock(service));
 
     uint32_t serviceHandlerDBusMessageCount = 0;
     uint32_t clientReplyHandlerDBusMessageCount = 0;
@@ -208,26 +119,83 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
 
     ASSERT_TRUE(dbusConnection_->connect());
 
-    CommonAPI::DBus::DBusMessage dbusReplyMessage;
-
     for (uint32_t expectedDBusMessageCount = 1; expectedDBusMessageCount <= 10; expectedDBusMessageCount++) {
         CommonAPI::DBus::DBusMessage dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
-                        busName,
-                        objectPath,
-                        interfaceName,
+                        CommonAPI::DBus::DBusAddress(service, objectPath, interface),
                         methodName,
                         "");
 
         CommonAPI::DBus::DBusOutputStream dbusOutputStream(dbusMessageCall);
 
-        interfaceHandlerDBusConnection->sendDBusMessageWithReplyAsync(
+        dbusConnection_->sendDBusMessageWithReplyAsync(
                         dbusMessageCall,
                         CommonAPI::DBus::DBusProxyAsyncCallbackHandler<>::create(
                                         [&clientReplyHandlerDBusMessageCount](CommonAPI::CallStatus status) {
                                             ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
                                             ++clientReplyHandlerDBusMessageCount;
-                                        })
-                                        );
+                                        }, std::tuple<>()),
+                                        &CommonAPI::DBus::defaultCallInfo);
+
+        for (int i = 0; i < 100; i++) {
+        	usleep(10);
+        }
+
+        ASSERT_EQ(serviceHandlerDBusMessageCount, expectedDBusMessageCount);
+
+        ASSERT_EQ(clientReplyHandlerDBusMessageCount, expectedDBusMessageCount);
+    }
+
+    dbusConnection_->disconnect();
+
+    interfaceHandlerDBusConnection->unregisterObjectPath(objectPath);
+
+    ASSERT_TRUE(interfaceHandlerDBusConnection->releaseServiceName(service));
+    interfaceHandlerDBusConnection->disconnect();
+}
+
+TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorksManualDispatch) {
+    const char service[] = "commonapi.dbus.test.TestInterface_commonapi.dbus.test.TestObject";
+    const char objectPath[] = "/commonapi/dbus/test/TestObject";
+    const char interface[] = "commonapi.dbus.test.TestInterface";
+    const char methodName[] = "TestMethod";
+
+	auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+
+    ASSERT_TRUE(interfaceHandlerDBusConnection->connect(false));
+    ASSERT_TRUE(interfaceHandlerDBusConnection->requestServiceNameAndBlock(service));
+
+    uint32_t serviceHandlerDBusMessageCount = 0;
+    uint32_t clientReplyHandlerDBusMessageCount = 0;
+
+    interfaceHandlerDBusConnection->setObjectPathMessageHandler(
+                    [&serviceHandlerDBusMessageCount, &interfaceHandlerDBusConnection] (CommonAPI::DBus::DBusMessage dbusMessage) -> bool {
+                        ++serviceHandlerDBusMessageCount;
+                        CommonAPI::DBus::DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("");
+                        interfaceHandlerDBusConnection->sendDBusMessage(dbusMessageReply);
+                        return true;
+                    }
+                    );
+
+    interfaceHandlerDBusConnection->registerObjectPath(objectPath);
+
+    ASSERT_TRUE(dbusConnection_->connect(false));
+
+    for (uint32_t expectedDBusMessageCount = 1; expectedDBusMessageCount <= 10; expectedDBusMessageCount++) {
+        CommonAPI::DBus::DBusMessage dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
+                        CommonAPI::DBus::DBusAddress(service, objectPath, interface),
+                        methodName,
+                        "");
+
+        CommonAPI::DBus::DBusOutputStream dbusOutputStream(dbusMessageCall);
+
+        dbusConnection_->sendDBusMessageWithReplyAsync(
+                        dbusMessageCall,
+                        CommonAPI::DBus::DBusProxyAsyncCallbackHandler<>::create(
+                                        [&clientReplyHandlerDBusMessageCount](CommonAPI::CallStatus status) {
+                                            ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+                                            ++clientReplyHandlerDBusMessageCount;
+                                        }, std::tuple<>()),
+                                        &CommonAPI::DBus::defaultCallInfo);
 
         for (int i = 0; i < 10 && serviceHandlerDBusMessageCount < expectedDBusMessageCount; i++) {
             interfaceHandlerDBusConnection->readWriteDispatch(100);
@@ -246,9 +214,10 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
 
     interfaceHandlerDBusConnection->unregisterObjectPath(objectPath);
 
-    ASSERT_TRUE(interfaceHandlerDBusConnection->releaseServiceName(busName));
+    ASSERT_TRUE(interfaceHandlerDBusConnection->releaseServiceName(service));
     interfaceHandlerDBusConnection->disconnect();
 }
+
 
 void dispatch(::DBusConnection* libdbusConnection) {
     dbus_bool_t success = TRUE;
@@ -304,62 +273,7 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
     dispatchThread.join();
 }
 
-//std::promise<bool> promise2;
-//std::future<bool> future2 = promise2.get_future();
-//std::promise<bool> promise3;
-//std::future<bool> future3 = promise3.get_future();
-//
-//void noPartnerCallback(DBusPendingCall*, void* data) {
-//    ::DBusConnection* libdbusConnection = reinterpret_cast<DBusConnection*>(data);
-//    dbus_connection_close(libdbusConnection);
-//    dbus_connection_unref(libdbusConnection);
-//    promise2.set_value(true);
-//}
-//
-//void noPartnerCleanup(void* data) {
-//    promise3.set_value(true);
-//}
-
-// libdbus bug
-//TEST_F(DBusConnectionTest, DISABLED_TimeoutForNonexistingServices) {
-//    const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
-//    ::DBusError libdbusError;
-//    dbus_error_init(&libdbusError);
-//    ::DBusConnection* libdbusConnection = dbus_bus_get_private(libdbusType, &libdbusError);
-//
-//    assert(libdbusConnection);
-//    dbus_connection_set_exit_on_disconnect(libdbusConnection, false);
-//
-//    auto dispatchThread = std::thread(&dispatch, libdbusConnection);
-//
-//    ::DBusMessage* libdbusMessageCall = dbus_message_new_method_call(
-//                    "some.connection.somewhere",
-//                    "/some/non/existing/object",
-//                    "some.interface.somewhere.but.same.place",
-//                    "NoReasonableMethod");
-//
-//    dbus_message_set_signature(libdbusMessageCall, "");
-//
-//
-//    DBusPendingCall* libdbusPendingCall;
-//
-//    dbus_connection_send_with_reply(
-//                    libdbusConnection,
-//                    libdbusMessageCall,
-//                    &libdbusPendingCall,
-//                    5000);
-//
-//    dbus_pending_call_set_notify(
-//                    libdbusPendingCall,
-//                    noPartnerCallback,
-//                    libdbusConnection,
-//                    noPartnerCleanup);
-//
-//    ASSERT_EQ(true, future2.get());
-//    dispatchThread.join();
-//}
-
-#ifndef WIN32
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

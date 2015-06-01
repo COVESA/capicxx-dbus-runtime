@@ -1,25 +1,21 @@
-/* Copyright (C) 2013 BMW Group
- * Author: Manfred Bathelt (manfred.bathelt@bmw.de)
- * Author: Juergen Gehring (juergen.gehring@bmw.de)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-#include "DBusMainLoopContext.h"
-#include "DBusConnection.h"
+// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifdef WIN32
 #include <WinSock2.h>
 #else
 #include <poll.h>
 #endif
+
 #include <chrono>
 
+#include <CommonAPI/DBus/DBusMainLoopContext.hpp>
+#include <CommonAPI/DBus/DBusConnection.hpp>
 
 namespace CommonAPI {
 namespace DBus {
-
 
 DBusDispatchSource::DBusDispatchSource(DBusConnection* dbusConnection):
     dbusConnection_(dbusConnection) {
@@ -48,14 +44,18 @@ DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& 
 }
 
 bool DBusWatch::isReadyToBeWatched() {
-    return dbus_watch_get_enabled(libdbusWatch_);
+	return 0 != dbus_watch_get_enabled(libdbusWatch_);
 }
 
 void DBusWatch::startWatching() {
     if(!dbus_watch_get_enabled(libdbusWatch_)) stopWatching();
 
     unsigned int channelFlags_ = dbus_watch_get_flags(libdbusWatch_);
-    short int pollFlags = POLLERR | POLLHUP;
+#ifdef WIN32
+    short int pollFlags = 0;
+#else
+	short int pollFlags = POLLERR | POLLHUP;
+#endif
     if(channelFlags_ & DBUS_WATCH_READABLE) {
         pollFlags |= POLLIN;
     }
@@ -63,7 +63,12 @@ void DBusWatch::startWatching() {
         pollFlags |= POLLOUT;
     }
 
-    pollFileDescriptor_.fd = dbus_watch_get_unix_fd(libdbusWatch_);
+#ifdef WIN32
+	pollFileDescriptor_.fd = dbus_watch_get_socket(libdbusWatch_);
+#else
+	pollFileDescriptor_.fd = dbus_watch_get_unix_fd(libdbusWatch_);
+#endif
+
     pollFileDescriptor_.events = pollFlags;
     pollFileDescriptor_.revents = 0;
 
@@ -74,8 +79,9 @@ void DBusWatch::startWatching() {
 
 void DBusWatch::stopWatching() {
     auto lockedContext = mainLoopContext_.lock();
-    assert(lockedContext);
-    lockedContext->deregisterWatch(this);
+    if (lockedContext) {
+    	lockedContext->deregisterWatch(this);
+    }
 }
 
 const pollfd& DBusWatch::getAssociatedFileDescriptor() {
@@ -83,7 +89,13 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
 }
 
 void DBusWatch::dispatch(unsigned int eventFlags) {
-    dbus_watch_handle(libdbusWatch_, eventFlags);
+    // Pollflags do not correspond directly to DBus watch flags
+    unsigned int dbusWatchFlags = (eventFlags & POLLIN) |
+                            ((eventFlags & POLLOUT) >> 1) |
+                            ((eventFlags & POLLERR) >> 1) |
+                            ((eventFlags & POLLHUP) >> 1);
+
+    dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
 }
 
 const std::vector<DispatchSource*>& DBusWatch::getDependentDispatchSources() {
@@ -102,7 +114,7 @@ DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopCo
 }
 
 bool DBusTimeout::isReadyToBeMonitored() {
-    return dbus_timeout_get_enabled(libdbusTimeout_);
+	return 0 != dbus_timeout_get_enabled(libdbusTimeout_);
 }
 
 void DBusTimeout::startMonitoring() {
@@ -115,8 +127,9 @@ void DBusTimeout::startMonitoring() {
 void DBusTimeout::stopMonitoring() {
     dueTimeInMs_ = TIMEOUT_INFINITE;
     auto lockedContext = mainLoopContext_.lock();
-    assert(lockedContext);
-    lockedContext->deregisterTimeoutSource(this);
+    if (lockedContext) {
+    	lockedContext->deregisterTimeoutSource(this);
+    }
 }
 
 bool DBusTimeout::dispatch() {
@@ -141,7 +154,6 @@ void DBusTimeout::recalculateDueTime() {
         dueTimeInMs_ = TIMEOUT_INFINITE;
     }
 }
-
 
 } // namespace DBus
 } // namespace CommonAPI

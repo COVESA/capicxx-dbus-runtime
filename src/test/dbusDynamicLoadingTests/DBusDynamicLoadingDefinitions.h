@@ -10,24 +10,32 @@
 #include <cstring>
 #include <string>
 
-#include <CommonAPI/CommonAPI.h>
+#include <CommonAPI/CommonAPI.hpp>
 
 #ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
 #endif
 
-#include <CommonAPI/utils.h>
+#include <CommonAPI/utils.hpp>
 
-#include <commonapi/tests/TestInterfaceProxy.h>
-#include <commonapi/tests/TestInterfaceStubDefault.h>
+#include <v1_0/commonapi/tests/TestInterfaceProxy.hpp>
+#include <v1_0/commonapi/tests/TestInterfaceStubDefault.hpp>
 
 
-const char testServiceAddress[] = "local:commonapi.tests.TestInterface:commonapi.tests.TestInterface";
+const char testServiceAddressDomain[] = "local";
+const char testServiceAddressInstance[] = "commonapi.tests.TestInterface";
 
 const std::string COMMONAPI_CONFIG_SUFFIX = ".conf";
 const std::string COMMONAPI_ENVIRONMENT_BINDING_PATH = "COMMONAPI_BINDING_PATH";
 
-const std::string currentBinaryFileFQN = CommonAPI::getCurrentBinaryFileFQN();
+#ifdef WIN32
+const std::string currentBinaryFileFQN = _pgmptr;
+#else
+char cCurrentPath[FILENAME_MAX];
+getcwd(cCurrentPath, sizeof(cCurrentPath);
+const std::string currentBinaryFileFQN = cCurrentPath;
+#endif
+
 const std::string currentWorkingDirectory = currentBinaryFileFQN.substr(0, currentBinaryFileFQN.find_last_of("/") + 1);
 
 const std::string firstAliasDefinition = "alias=MyFirstAlias\n";

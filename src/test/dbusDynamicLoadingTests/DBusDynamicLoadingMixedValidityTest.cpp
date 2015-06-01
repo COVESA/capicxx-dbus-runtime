@@ -14,7 +14,7 @@
 #ifndef COMMONAPI_INTERNAL_COMPILATION
 #define COMMONAPI_INTERNAL_COMPILATION
 #endif
-#include <CommonAPI/DBus/DBusRuntime.h>
+#include <CommonAPI/DBus/DBusRuntime.hpp>
 
 
 class Environment: public ::testing::Environment {
@@ -28,7 +28,14 @@ public:
         char* environment = (char*) (environmentString_.c_str());
         putenv(environment);
 
-        configFileName_ = CommonAPI::getCurrentBinaryFileFQN();
+#ifdef WIN32
+		configFileName_ = _pgmptr;
+#else
+		char cCurrentPath[FILENAME_MAX];
+		getcwd(cCurrentPath, sizeof(cCurrentPath);
+		configFileName_ = cCurrentPath;
+#endif
+
         configFileName_ += COMMONAPI_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
         ASSERT_TRUE(configFile.is_open());
@@ -186,8 +193,10 @@ TEST_F(DBusDynamicLoadingPartiallyInvalidConfigTest, ErrorOnLoadingRuntimeForBro
     ASSERT_EQ(CommonAPI::Runtime::LoadState::CONFIGURATION_ERROR, loadState);
 }
 
+#ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
+#endif

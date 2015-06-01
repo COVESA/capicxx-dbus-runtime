@@ -1,4 +1,4 @@
-# Copyright (C) 2013 BMW Group
+# Copyright (C) 2013 - 2015 BMW Group
 # Author: Manfred Bathelt (manfred.bathelt@bmw.de)
 # Author: Juergen Gehring (juergen.gehring@bmw.de)
 # This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,8 +18,8 @@ dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 class FakeLegacyService(dbus.service.Object):
   def __init__(self, loop):
-    busName = dbus.service.BusName('fake.legacy.service.connection', bus = dbus.SessionBus())
-    dbus.service.Object.__init__(self, busName, '/some/legacy/path/6259504')
+    busName = dbus.service.BusName('fake.legacy.service.LegacyInterface_fake.legacy.service', bus = dbus.SessionBus())
+    dbus.service.Object.__init__(self, busName, '/fake/legacy/service')
     #self.properties = {'RestartReason': 1, 'ShutdownReason': 2, 'WakeUpReason' :3, 'BootMode' :4}
     self.ABus=""
     self.APath=""
