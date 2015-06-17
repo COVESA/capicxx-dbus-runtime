@@ -95,7 +95,7 @@ TEST_F(DBusConnectionTest, ConnectionStatusEventWorks) {
 TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
     const char service[] = "commonapi.dbus.test.TestInterface_commonapi.dbus.test.TestObject";
     const char objectPath[] = "/commonapi/dbus/test/TestObject";
-    const char interface[] = "commonapi.dbus.test.TestInterface";
+    const char interfaceName[] = "commonapi.dbus.test.TestInterface";
     const char methodName[] = "TestMethod";
 
 	auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
@@ -121,7 +121,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
 
     for (uint32_t expectedDBusMessageCount = 1; expectedDBusMessageCount <= 10; expectedDBusMessageCount++) {
         CommonAPI::DBus::DBusMessage dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
-                        CommonAPI::DBus::DBusAddress(service, objectPath, interface),
+						CommonAPI::DBus::DBusAddress(service, objectPath, interfaceName),
                         methodName,
                         "");
 
@@ -156,7 +156,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
 TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorksManualDispatch) {
     const char service[] = "commonapi.dbus.test.TestInterface_commonapi.dbus.test.TestObject";
     const char objectPath[] = "/commonapi/dbus/test/TestObject";
-    const char interface[] = "commonapi.dbus.test.TestInterface";
+	const char interfaceName[] = "commonapi.dbus.test.TestInterface";
     const char methodName[] = "TestMethod";
 
 	auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
@@ -182,7 +182,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorksManualDispatch) {
 
     for (uint32_t expectedDBusMessageCount = 1; expectedDBusMessageCount <= 10; expectedDBusMessageCount++) {
         CommonAPI::DBus::DBusMessage dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(
-                        CommonAPI::DBus::DBusAddress(service, objectPath, interface),
+						CommonAPI::DBus::DBusAddress(service, objectPath, interfaceName),
                         methodName,
                         "");
 

@@ -24,16 +24,15 @@ namespace DBus {
 const char *COMMONAPI_DBUS_DEFAULT_CONFIG_FILE = "commonapi-dbus.ini";
 const char *COMMONAPI_DBUS_DEFAULT_CONFIG_FOLDER = "/etc/";
 
-const std::size_t DBUS_MAXIMUM_NAME_LENGTH = 255;
-
-static std::shared_ptr<DBusAddressTranslator> theTranslator = std::make_shared<DBusAddressTranslator>();
 
 std::shared_ptr<DBusAddressTranslator> DBusAddressTranslator::get() {
+	static std::shared_ptr<DBusAddressTranslator> theTranslator = std::make_shared<DBusAddressTranslator>();
 	return theTranslator;
 }
 
 DBusAddressTranslator::DBusAddressTranslator()
-	: defaultDomain_("local") {
+	: defaultDomain_("local"),
+	  dBusBusType_(DBusType_t::SESSION) {
 	init();
 
 	isDefault_ = ("dbus" == Runtime::get()->getDefaultBinding());
@@ -190,6 +189,21 @@ DBusAddressTranslator::readConfiguration() {
 		return false;
 
 	for (auto itsMapping : reader.getSections()) {
+		if(itsMapping.first == "dbus") {
+			// TODO this is kind of misplaced in the AddressTranslator...
+			std::string bus_type_str_ = itsMapping.second->getValue("dbus_bus_type");
+			if(bus_type_str_ == "SESSION") {
+				dBusBusType_ = DBusType_t::SESSION;
+			} else if (bus_type_str_ == "SYSTEM") {
+				dBusBusType_ = DBusType_t::SYSTEM;
+			} else {
+				COMMONAPI_FATAL("Invalid dbus_bus_type specified in .ini file, "
+								"choose one of {SYSTEM, SESSION}");
+				continue;
+			}
+			COMMONAPI_INFO("D-Bus bus type set to: " + bus_type_str_ + " via ini file");
+			continue;
+		}
 		CommonAPI::Address itsAddress(itsMapping.first);
 
 		std::string service = itsMapping.second->getValue("service");
@@ -289,6 +303,11 @@ DBusAddressTranslator::isValid(
 	}
 
 	return true;
+}
+
+DBusType_t
+DBusAddressTranslator::getDBusBusType() const {
+	return dBusBusType_;
 }
 
 } // namespace DBus

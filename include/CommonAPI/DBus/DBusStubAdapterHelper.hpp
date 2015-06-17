@@ -32,6 +32,9 @@ public:
    virtual ~StubDispatcherBase() { }
 };
 
+
+
+
 struct DBusAttributeDispatcherStruct {
     StubDispatcherBase* getter;
     StubDispatcherBase* setter;
@@ -56,6 +59,10 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         virtual bool dispatchDBusMessage(const DBusMessage& dbusMessage,
                                          const std::shared_ptr<_StubClass>& stub,
                                          DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper) = 0;
+        virtual void appendGetAllReply(const DBusMessage& dbusMessage,
+                                       const std::shared_ptr<_StubClass>& stub,
+                                       DBusStubAdapterHelper<_StubClass>& dbusStubAdapterHelper,
+                                       DBusOutputStream &_output) {}
     };
     // interfaceMemberName, interfaceMemberSignature
     typedef std::pair<const char*, const char*> DBusInterfaceMemberPath;
@@ -185,28 +192,24 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
 
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{sv}");
         DBusOutputStream dbusOutputStream(dbusMessageReply);
-        /*
-        dbusOutputStream.beginWriteVectorOfSerializableStructs(getStubAttributeTable().size());
 
-        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSenderName()));
+        dbusOutputStream.beginWriteVectorOfSerializableStructs();
 
+        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
         for(auto attributeDispatcherIterator = getStubAttributeTable().begin(); attributeDispatcherIterator != getStubAttributeTable().end(); attributeDispatcherIterator++) {
+
             //To prevent the destruction of the stub whilst still handling a message
             if (stub_) {
-                DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass>* const getterDispatcher = dynamic_cast<DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass>*>(attributeDispatcherIterator->second.getter);
-
-                if(getterDispatcher == NULL) { // readonly attributes do not have a setter
-                    return false;
-                }
-
+                StubDispatcher* getterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.getter);
+                assert(getterDispatcher != NULL); // all attributes have at least a getter
                 dbusOutputStream << attributeDispatcherIterator->first;
-                getterDispatcher->dispatchDBusMessageAndAppendReply(dbusMessage, stub_, dbusOutputStream, clientId);
+                getterDispatcher->appendGetAllReply(dbusMessage, stub_, *this, dbusOutputStream);
             }
         }
 
         dbusOutputStream.endWriteVector();
-        */
         dbusOutputStream.flush();
+
         return getDBusConnection()->sendDBusMessage(dbusMessageReply);
     }
 };
@@ -521,6 +524,14 @@ class DBusGetAttributeStubDispatcher: public virtual DBusStubAdapterHelper<_Stub
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         return sendAttributeValueReply(dbusMessage, stub, dbusStubAdapterHelper);
     }
+
+    void appendGetAllReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper, DBusOutputStream &_output) {
+        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
+        auto varDepl = CommonAPI::DBus::VariantDeployment<_AttributeDepl>(true, depl_); // presuming FreeDesktop variant deployment, as support for "legacy" service only
+        _output << CommonAPI::Deployable<CommonAPI::Variant<_AttributeType>, CommonAPI::DBus::VariantDeployment<_AttributeDepl>>((stub.get()->*getStubFunctor_)(clientId), &varDepl);
+        _output.flush();
+    }
+
  protected:
     virtual bool sendAttributeValueReply(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn(signature_);

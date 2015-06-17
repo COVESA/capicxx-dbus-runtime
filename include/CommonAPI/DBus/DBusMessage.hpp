@@ -14,6 +14,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef WIN32
+#include <stdint.h>
+#endif
+
 #include <CommonAPI/Export.hpp>
 
 namespace CommonAPI {

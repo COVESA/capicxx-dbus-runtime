@@ -225,8 +225,22 @@ public:
 
     mutable std::unordered_map<std::string, uint16_t> connectionNameCount_;
 
-    typedef std::pair<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage> > TimeoutMapElement;
-    mutable std::map<DBusPendingCall*, std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage>> timeoutMap_;
+    typedef std::pair<
+    		DBusPendingCall*,
+    		std::tuple<
+    			std::chrono::time_point<std::chrono::high_resolution_clock>,
+    			DBusMessageReplyAsyncHandler*,
+    			DBusMessage
+    		>
+    	> TimeoutMapElement;
+    mutable std::map<
+    		DBusPendingCall*,
+    		std::tuple<
+    			std::chrono::time_point<std::chrono::high_resolution_clock>,
+    			DBusMessageReplyAsyncHandler*,
+    			DBusMessage
+    		>
+    	> timeoutMap_;
 
     typedef std::pair<DBusMessageReplyAsyncHandler *, DBusMessage> MainloopTimeout_t;
     mutable std::list<MainloopTimeout_t> mainloopTimeouts_;

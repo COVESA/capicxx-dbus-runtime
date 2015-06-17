@@ -47,6 +47,21 @@ public:
      */
 	COMMONAPI_EXPORT DBusOutputStream(DBusMessage dbusMessage);
 
+	COMMONAPI_EXPORT void beginWriteVectorOfSerializableStructs() {
+		align(sizeof(uint32_t));
+		pushPosition();
+		_writeValue(static_cast<uint32_t>(0)); // Placeholder
+
+		align(8);
+		pushPosition();	// Start of map data
+	}
+
+	COMMONAPI_EXPORT void endWriteVector() {
+		// Write number of written bytes to placeholder position
+		const uint32_t length = getPosition() - popPosition();
+		_writeValueAt(popPosition(), length);
+	}
+
 	COMMONAPI_EXPORT OutputStream &writeValue(const bool &_value, const EmptyDeployment *_depl) {
     	uint32_t tmp = (_value ? 1 : 0);
         return _writeValue(tmp);

@@ -80,6 +80,11 @@ public:
         return (*this);
     }
 
+    TypeOutputStream &writeType(const Version &) {
+        signature_.append("(uu)");
+        return (*this);
+    }
+
     TypeOutputStream &writeVersionType() {
         signature_.append("(uu)");
         return (*this);
@@ -87,7 +92,7 @@ public:
 
     template<typename... _Types>
     TypeOutputStream &writeType(const Struct<_Types...> &_value) {
-    	signature_.append("(");
+        signature_.append("(");
         const auto itsSize(std::tuple_size<std::tuple<_Types...>>::value);
         StructTypeWriter<itsSize-1, DBusTypeOutputStream, Struct<_Types...>>{}
         	(*this, _value);
@@ -97,28 +102,28 @@ public:
 
     template<class _PolymorphicStruct>
     TypeOutputStream &writeType(const std::shared_ptr<_PolymorphicStruct> &_value) {
-    	signature_.append("(");
-    	_value->writeType(*this);
+        signature_.append("(");
+        _value->template writeType<>((*this));
         signature_.append(")");
         return (*this);
     }
 
     template<typename... _Types>
     TypeOutputStream &writeType(const Variant<_Types...> &_value) {
-    	signature_.append("(yv)");
-    	return (*this);
+        signature_.append("(yv)");
+        return (*this);
     }
 
     template<typename _Deployment, typename... _Types>
     TypeOutputStream &writeType(const Variant<_Types...> &_value, const _Deployment *_depl) {
-    	if (_depl != nullptr && _depl->isFreeDesktop_) {
-    		signature_.append("v");
-    	} else {
-    		signature_.append("(yv)");
-    	}
-		TypeOutputStreamWriteVisitor<DBusTypeOutputStream> typeVisitor(*this);
-		ApplyVoidVisitor<TypeOutputStreamWriteVisitor<DBusTypeOutputStream>,
-				Variant<_Types...>, _Types...>::visit(typeVisitor, _value);
+        if (_depl != nullptr && _depl->isFreeDesktop_) {
+            signature_.append("v");
+        } else {
+            signature_.append("(yv)");
+        }
+        TypeOutputStreamWriteVisitor<DBusTypeOutputStream> typeVisitor(*this);
+        ApplyVoidVisitor<TypeOutputStreamWriteVisitor<DBusTypeOutputStream>,
+            Variant<_Types...>, _Types...>::visit(typeVisitor, _value);
         return (*this);
     }
 

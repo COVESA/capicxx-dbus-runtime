@@ -8,7 +8,8 @@ cmake_minimum_required (VERSION 2.8.1)
 pkg_check_modules(GLIB glib-2.0)
 
 include_directories(.
-       ./src-gen
+       ./src-gen/core
+       ./src-gen/dbus
        ${COMMONAPI_INCLUDE_DIRS}
        ${DBus_INCLUDE_DIRS}
        ${gtest_SOURCE_DIR}/include
@@ -17,41 +18,41 @@ include_directories(.
 
 set(VERSION "v1_0")
 
-set(TestInterfaceSources src-gen/commonapi/tests/DerivedTypeCollection.cpp
-                         src-gen/${VERSION}/commonapi/tests/TestInterfaceStubDefault.cpp)
+set(TestInterfaceSources src-gen/core/commonapi/tests/DerivedTypeCollection.cpp
+                         src-gen/core/${VERSION}/commonapi/tests/TestInterfaceStubDefault.cpp)
 
 set(TestInterfaceDBusSources ${TestInterfaceSources}
-                             src-gen/${VERSION}/commonapi/tests/TestInterfaceDBusProxy.cpp
-                             src-gen/${VERSION}/commonapi/tests/TestInterfaceDBusStubAdapter.cpp
-                             src-gen/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp)
+                             src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusProxy.cpp
+                             src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusStubAdapter.cpp
+                             src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp)
 
 
 set(FreedesktopPropertiesDBusSources ${TestInterfaceSources}
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusProxy.cpp
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusStubAdapter.cpp
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusProxy.cpp
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp
-                                     src-gen/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp)
+                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusProxy.cpp
+                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusStubAdapter.cpp
+                                     src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp
+                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusProxy.cpp
+                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp
+                                     src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp)
 
-set(ManagedSources src-gen/${VERSION}/commonapi/tests/managed/LeafInterfaceStubDefault.cpp
-                   src-gen/${VERSION}/commonapi/tests/managed/BranchInterfaceStubDefault.cpp
-                   src-gen/${VERSION}/commonapi/tests/managed/RootInterfaceStubDefault.cpp
-                   src-gen/${VERSION}/commonapi/tests/managed/SecondRootStubDefault.cpp)
+set(ManagedSources src-gen/core/${VERSION}/commonapi/tests/managed/LeafInterfaceStubDefault.cpp
+                   src-gen/core/${VERSION}/commonapi/tests/managed/BranchInterfaceStubDefault.cpp
+                   src-gen/core/${VERSION}/commonapi/tests/managed/RootInterfaceStubDefault.cpp
+                   src-gen/core/${VERSION}/commonapi/tests/managed/SecondRootStubDefault.cpp)
 
 set(ManagedDBusSources ${ManagedSources}
-                       src-gen/${VERSION}/commonapi/tests/managed/RootInterfaceDBusProxy.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusProxy.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusStubAdapter.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/SecondRootDBusProxy.cpp
-                       src-gen/${VERSION}/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp)
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/RootInterfaceDBusProxy.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusProxy.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusStubAdapter.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusProxy.cpp
+                       src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp)
 
-set(ExtendedInterfaceSources src-gen/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
-                             src-gen/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp
-                             src-gen/${VERSION}/commonapi/tests/ExtendedInterfaceStubDefault.cpp)
+set(ExtendedInterfaceSources src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
+                             src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp
+                             src-gen/core/${VERSION}/commonapi/tests/ExtendedInterfaceStubDefault.cpp)
 
 set(LIB_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI)
 
@@ -95,7 +96,11 @@ target_link_libraries(SomeOtherNameForGeneratedDBus ${LIB_LINK_LIBRARIES})
 
 add_executable(DBusMainLoopIntegrationTest DBusMainLoopIntegrationTest.cpp
                                         ${TestInterfaceDBusSources})
+if (MSVC)
+target_link_libraries(DBusMainLoopIntegrationTest ${TEST_LINK_LIBRARIES} ws2_32)
+else()
 target_link_libraries(DBusMainLoopIntegrationTest ${TEST_LINK_LIBRARIES} ${GLIB_LDFLAGS})
+endif()
 
 ##############################################################################
 # DBusServiceRegistryTest

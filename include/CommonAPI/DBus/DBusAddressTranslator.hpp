@@ -3,10 +3,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#if !defined (COMMONAPI_INTERNAL_COMPILATION)
-#error "Only <CommonAPI/CommonAPI.hpp> can be included directly, this file may disappear or change contents."
-#endif
-
 #ifndef COMMONAPI_DBUS_ADDRESSTRANSLATOR_HPP_
 #define COMMONAPI_DBUS_ADDRESSTRANSLATOR_HPP_
 
@@ -16,6 +12,7 @@
 
 #include <CommonAPI/Address.hpp>
 #include <CommonAPI/DBus/DBusAddress.hpp>
+#include <CommonAPI/DBus/DBusTypes.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -37,6 +34,8 @@ public:
 	COMMONAPI_EXPORT void insert(const std::string &_address,
 		const std::string &_service, const std::string &_path, const std::string &_interface);
 
+	COMMONAPI_EXPORT DBusType_t getDBusBusType() const;
+
 private:
 	COMMONAPI_EXPORT bool readConfiguration();
 
@@ -53,6 +52,8 @@ private:
 	std::map<DBusAddress, CommonAPI::Address> backwards_;
 
 	std::mutex mutex_;
+
+	DBusType_t dBusBusType_;
 };
 
 } // namespace DBus

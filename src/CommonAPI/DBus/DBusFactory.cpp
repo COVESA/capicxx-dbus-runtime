@@ -28,7 +28,7 @@ Factory::get() {
 }
 
 Factory::Factory()
-	: defaultBusType_(DBusType_t::SESSION) {
+	: dBusBusType_(DBusAddressTranslator::get()->getDBusBusType()) {
 }
 
 Factory::~Factory() {
@@ -225,7 +225,7 @@ Factory::getConnection(const ConnectionId_t &_connectionId) {
 
 	// No connection found, lets create and initialize one
 	std::shared_ptr<DBusConnection> itsConnection
-		= std::make_shared<DBusConnection>(defaultBusType_);
+		= std::make_shared<DBusConnection>(dBusBusType_);
 	connections_.insert({ _connectionId, itsConnection });
 
 	itsConnection->connect(true);
@@ -244,7 +244,7 @@ Factory::getConnection(std::shared_ptr<MainLoopContext> _context) {
 
 	// No connection found, lets create and initialize one
 	std::shared_ptr<DBusConnection> itsConnection
-		= std::make_shared<DBusConnection>(defaultBusType_);
+		= std::make_shared<DBusConnection>(dBusBusType_);
 	contextConnections_.insert({ _context.get(), itsConnection } );
 
 	itsConnection->connect(false);

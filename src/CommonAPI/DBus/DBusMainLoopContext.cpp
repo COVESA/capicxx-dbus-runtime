@@ -89,12 +89,28 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
 }
 
 void DBusWatch::dispatch(unsigned int eventFlags) {
+#ifdef WIN32
+    unsigned int dbusWatchFlags = 0;
+
+    if (eventFlags & (POLLRDBAND | POLLRDNORM)) {
+        dbusWatchFlags |= DBUS_WATCH_READABLE;
+    }
+    if (eventFlags & POLLWRNORM) {
+        dbusWatchFlags |= DBUS_WATCH_WRITABLE;
+    }
+    if (eventFlags & (POLLERR | POLLNVAL)) {
+        dbusWatchFlags |= DBUS_WATCH_ERROR;
+    }
+    if (eventFlags & POLLHUP) {
+        dbusWatchFlags |= DBUS_WATCH_HANGUP;
+    }
+#else
     // Pollflags do not correspond directly to DBus watch flags
     unsigned int dbusWatchFlags = (eventFlags & POLLIN) |
                             ((eventFlags & POLLOUT) >> 1) |
                             ((eventFlags & POLLERR) >> 1) |
                             ((eventFlags & POLLHUP) >> 1);
-
+#endif
     dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
 }
 

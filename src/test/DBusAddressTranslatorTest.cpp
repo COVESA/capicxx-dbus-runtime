@@ -220,6 +220,23 @@ TEST_F(AddressTranslatorTest, InsertAddressPossible) {
 	ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 }
 
+TEST_F(AddressTranslatorTest, InsertUniqueBusNameTranslate) {
+	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+
+	translator->insert("local:my.Interface:busname.legacy.service_1_133",
+						":1.133",		/* unique bus name */
+						"/org/busname/legacy/service",
+						"busname.legacy.service");
+
+	CommonAPI::DBus::DBusAddress dbusAddress;
+
+	translator->translate("local:my.Interface:busname.legacy.service_1_133", dbusAddress);
+
+	ASSERT_EQ(":1.133", dbusAddress.getService());
+    ASSERT_EQ("busname.legacy.service", dbusAddress.getInterface());
+    ASSERT_EQ("/org/busname/legacy/service", dbusAddress.getObjectPath());
+}
+
 TEST_F(AddressTranslatorTest, InsertAddressNotPossibleConflictTranslate) {
 	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
@@ -451,7 +468,7 @@ void callPythonService(std::string _pythonFileNameAndCommand) {
 	const char *pathToFolderForFakeLegacyService =
 			getenv("TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER");
 
-	ASSERT_NE(pathToFolderForFakeLegacyService, NULL) << "Environment variable "
+	ASSERT_NE(pathToFolderForFakeLegacyService, nullptr) << "Environment variable "
 			"TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER "
 			"is not set!";
 

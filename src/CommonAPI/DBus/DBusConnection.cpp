@@ -14,6 +14,7 @@
 #include <CommonAPI/DBus/DBusConnection.hpp>
 #include <CommonAPI/DBus/DBusInputStream.hpp>
 #include <CommonAPI/DBus/DBusProxy.hpp>
+#include <CommonAPI/DBus/DBusAddressTranslator.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -75,7 +76,7 @@ DBusConnection::DBusConnection(DBusType_t busType) :
                 watchContext_(NULL),
                 pauseDispatching_(false),
                 connection_(NULL),
-                busType_(busType),
+                busType_(DBusAddressTranslator::get()->getDBusBusType()),
                 dbusConnectionStatusEvent_(this),
                 libdbusSignalMatchRulesCount_(0),
                 dbusObjectMessageHandler_(),
@@ -288,6 +289,15 @@ bool DBusConnection::connect(DBusError &dbusError, bool startDispatchThread) {
 
     connection_ = dbus_bus_get_private(libdbusType, &dbusError.libdbusError_);
     if (dbusError) {
+		#ifdef _MSC_VER
+				COMMONAPI_ERROR(std::string(__FUNCTION__) +
+					": Name: " + dbusError.getName() +
+					" Message: " + dbusError.getMessage())
+		#else
+				COMMONAPI_ERROR(std::string(__PRETTY_FUNCTION__) +
+					": Name: " + dbusError.getName() +
+					" Message: " + dbusError.getMessage())
+		#endif
         return false;
     }
 
@@ -390,6 +400,17 @@ bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) 
         isServiceNameAcquired = (libdbusStatus == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER);
         if (isServiceNameAcquired) {
             connectionNameCount_.insert( { serviceName, (uint16_t)1 } );
+		}
+		else {
+			#ifdef _MSC_VER // Visual Studio
+			COMMONAPI_ERROR(std::string(__FUNCTION__) +
+				": Name: " + dbusError.getName() +
+				" Message: " + dbusError.getMessage())
+			#else
+            COMMONAPI_ERROR(std::string(__PRETTY_FUNCTION__) +
+                            ": Name: " + dbusError.getName() +
+                            " Message: " + dbusError.getMessage())
+			#endif
         }
     } else {
         conIter->second = conIter->second + 1;
@@ -466,30 +487,32 @@ void DBusConnection::enforceAsynchronousTimeouts() const {
 	while (!enforcerThreadCancelled_) {
         enforceTimeoutMutex_.lock();
 
-        int minTimeout = std::numeric_limits<int>::max(); // not really, but nearly "forever"
+        int timeout = std::numeric_limits<int>::max(); // not really, but nearly "forever"
         if (timeoutMap_.size() > 0) {
         	auto minTimeoutElement = std::min_element(timeoutMap_.begin(), timeoutMap_.end(),
         			[] (const TimeoutMapElement& lhs, const TimeoutMapElement& rhs) {
                     	return std::get<0>(lhs.second) < std::get<0>(rhs.second);
         	});
 
-        	minTimeout = std::get<0>(minTimeoutElement->second);
+        	auto minTimeout = std::get<0>(minTimeoutElement->second);
+
+        	std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+
+        	timeout = (int)std::chrono::duration_cast<std::chrono::milliseconds>(minTimeout - now).count();
         }
 
         enforceTimeoutMutex_.unlock();
 
-        auto startTime = std::chrono::high_resolution_clock::now();
         if (std::cv_status::timeout ==
-        	enforceTimeoutCondition_.wait_for(itsLock, std::chrono::milliseconds(minTimeout))) {
+        	enforceTimeoutCondition_.wait_for(itsLock, std::chrono::milliseconds(timeout))) {
 
 			//Do not access members if the DBusConnection was destroyed during the unlocked phase.
 			enforceTimeoutMutex_.lock();
 			auto it = timeoutMap_.begin();
 			while (it != timeoutMap_.end()) {
-				int& currentTimeout = std::get<0>(it->second);
+				std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
 
-				currentTimeout -= minTimeout;
-				if (currentTimeout <= 0) {
+				if (now > std::get<0>(it->second)) {
 					DBusPendingCall* libdbusPendingCall = it->first;
 
 					if (!dbus_pending_call_get_completed(libdbusPendingCall)) {
@@ -516,11 +539,6 @@ void DBusConnection::enforceAsynchronousTimeouts() const {
 				}
 			}
 			enforceTimeoutMutex_.unlock();
-		} else {
-			auto notifyTime = std::chrono::high_resolution_clock::now();
-			int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(notifyTime - startTime).count();
-			for (auto &i : timeoutMap_)
-				std::get<0>(i.second) -= elapsed;
 		}
     }
 }
@@ -578,7 +596,15 @@ std::future<CallStatus> DBusConnection::sendDBusMessageWithReplyAsync(
 
     if (_info->timeout_ != DBUS_TIMEOUT_INFINITE) {
         dbus_pending_call_ref(libdbusPendingCall);
-        std::tuple<int, DBusMessageReplyAsyncHandler*, DBusMessage> toInsert { _info->timeout_, replyAsyncHandler, dbusMessage };
+        auto timeoutPoint = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(_info->timeout_);
+        std::tuple<
+        	std::chrono::time_point<std::chrono::high_resolution_clock>,
+        	DBusMessageReplyAsyncHandler*,
+        	DBusMessage> toInsert {
+        		timeoutPoint,
+        		replyAsyncHandler,
+        		dbusMessage
+        	};
 
         enforceTimeoutMutex_.lock();
         timeoutMap_.insert( { libdbusPendingCall, toInsert } );

@@ -105,7 +105,7 @@ private:
 
     ServicesMap services_;
 
-    DBusType_t defaultBusType_;
+    DBusType_t dBusBusType_;
 };
 
 } // namespace DBus

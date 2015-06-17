@@ -49,16 +49,13 @@ bool DBusProxy::isAvailable() const {
 }
 
 bool DBusProxy::isAvailableBlocking() const {
-    if (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
-        std::chrono::milliseconds singleWaitDuration(2);
+	std::unique_lock<std::mutex> lock(availabilityMutex_);
 
-        // Wait for the service registry
-        while (availabilityStatus_ == AvailabilityStatus::UNKNOWN) {
-            std::this_thread::sleep_for(singleWaitDuration);
-        }
-    }
+    while (availabilityStatus_ != AvailabilityStatus::AVAILABLE) {
+		availabilityCondition_.wait(lock);
+	}
 
-    return isAvailable();
+    return true;
 }
 
 ProxyStatusEvent& DBusProxy::getProxyStatusEvent() {
@@ -72,6 +69,7 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     availabilityStatus_ = availabilityStatus;
     dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+    availabilityCondition_.notify_one();
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroadcastOnConnection(

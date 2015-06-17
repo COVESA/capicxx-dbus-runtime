@@ -240,7 +240,7 @@ class MainLoop {
                 watchIterator != watchesToDispatch_.end();
                 watchIterator++) {
             Watch* watch = watchIterator->second;
-            const unsigned int flags = 7;
+            const unsigned int flags = watch->getAssociatedFileDescriptor().events;
             watch->dispatch(flags);
         }
 

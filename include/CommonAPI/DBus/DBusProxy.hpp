@@ -74,6 +74,9 @@ private:
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
 
     std::shared_ptr<DBusServiceRegistry> dbusServiceRegistry_;
+
+    mutable std::mutex availabilityMutex_;
+    mutable std::condition_variable availabilityCondition_;
 };
 
 
