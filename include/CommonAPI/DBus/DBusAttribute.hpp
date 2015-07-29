@@ -138,7 +138,7 @@ public:
     						const char *_changedEventName,
     						_AttributeTypeArguments... arguments)
     	 : _AttributeType(_proxy, arguments...),
-    	   changedEvent_(_proxy, _changedEventName, this->setMethodSignature_,
+    	   changedEvent_(_proxy, _changedEventName, this->setMethodSignature_, this->getMethodName_,
     			   	   	 std::make_tuple(CommonAPI::Deployable<ValueType, ValueTypeDepl>(this->depl_))) {
     }
 

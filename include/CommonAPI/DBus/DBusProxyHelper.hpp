@@ -43,11 +43,11 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
 						   const _InArgs&... _in,
 						   CommonAPI::CallStatus &_status) {
 
-		if (_proxy.isAvailableBlocking()) {
+		if (_proxy.isAvailable()) {
 			DBusMessage message = _proxy.createMethodCall(_method, _signature);
 			if (sizeof...(_InArgs) > 0) {
 				DBusOutputStream output(message);
-				if (DBusSerializableArguments<_InArgs...>::serialize(output, _in...)) {
+				if (!DBusSerializableArguments<_InArgs...>::serialize(output, _in...)) {
 					_status = CallStatus::OUT_OF_MEMORY;
 					return;
 				}
@@ -106,7 +106,7 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
                 const _InArgs&... _in,
                 CommonAPI::CallStatus &_status,
                 _OutArgs&... _out) {
-        if (_proxy.isAvailableBlocking()) {
+        if (_proxy.isAvailable()) {
             DBusMessage message = DBusMessage::createMethodCall(_address, _method, _signature);
             callMethodWithReply(_proxy, message, _info, _in..., _status, _out...);
         } else {
@@ -142,7 +142,7 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
                     const _InArgs&... _in,
                     CommonAPI::CallStatus &_status,
                     _OutArgs&... _out) {
-        if (_proxy.isAvailableBlocking()) {
+        if (_proxy.isAvailable()) {
             DBusMessage message = _proxy.createMethodCall(_method, _signature);
             callMethodWithReply(_proxy, message, _info, _in..., _status, _out...);
         } else {

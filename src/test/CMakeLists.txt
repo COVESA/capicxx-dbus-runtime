@@ -77,10 +77,9 @@ target_link_libraries(SomeOtherNameForGeneratedDBus ${LIB_LINK_LIBRARIES})
 # DBusManagedTest
 ##############################################################################
 
-##### FIXME: serviceFactory not part of CommonAPI 3.0
-##### add_executable(DBusManagedTest DBusManagedTest.cpp
-#####                               ${ManagedDBusSources})
-##### target_link_libraries(DBusManagedTest ${TEST_LINK_LIBRARIES})
+add_executable(DBusManagedTest DBusManagedTest.cpp
+                              ${ManagedDBusSources})
+target_link_libraries(DBusManagedTest ${TEST_LINK_LIBRARIES})
 
 ##############################################################################
 # DBusObjectManagerStubTest
@@ -337,7 +336,7 @@ target_link_libraries(DBusLoadTest ${TEST_LINK_LIBRARIES})
 # Add for every test a dependency to gtest
 ##############################################################################
 
-##### add_dependencies(DBusManagedTest gtest)
+add_dependencies(DBusManagedTest gtest)
 ##### add_dependencies(DBusObjectManagerStubTest gtest)
 add_dependencies(DBusMainLoopIntegrationTest gtest)
 ##### add_dependencies(DBusServiceRegistryTest gtest)
@@ -373,7 +372,7 @@ add_dependencies(DBusLoadTest gtest)
 ##### add_dependencies(build_tests CommonAPI-Fake)
 add_dependencies(build_tests DBusGen-TestInterface)
 add_dependencies(build_tests SomeOtherNameForGeneratedDBus)
-##### add_dependencies(build_tests DBusManagedTest)
+add_dependencies(build_tests DBusManagedTest)
 ##### add_dependencies(build_tests DBusObjectManagerStubTest)
 add_dependencies(build_tests DBusMainLoopIntegrationTest)
 ##### add_dependencies(build_tests DBusServiceRegistryTest)
@@ -406,7 +405,7 @@ add_dependencies(build_tests DBusLoadTest)
 # Add tests
 ##############################################################################
 
-##### add_test(NAME DBusManagedTest COMMAND DBusManagedTest)
+add_test(NAME DBusManagedTest COMMAND DBusManagedTest)
 ##### add_test(NAME DBusObjectManagerStubTest COMMAND DBusObjectManagerStubTest)
 add_test(NAME DBusMainLoopIntegrationTest COMMAND DBusMainLoopIntegrationTest)
 ##### add_test(NAME DBusServiceRegistryTest COMMAND DBusServiceRegistryTest)

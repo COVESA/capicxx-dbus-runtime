@@ -116,20 +116,22 @@ public:
 
     template<typename _Deployment, typename... _Types>
     TypeOutputStream &writeType(const Variant<_Types...> &_value, const _Deployment *_depl) {
-        if (_depl != nullptr && _depl->isFreeDesktop_) {
-            signature_.append("v");
-        } else {
-            signature_.append("(yv)");
-        }
-        TypeOutputStreamWriteVisitor<DBusTypeOutputStream> typeVisitor(*this);
-        ApplyVoidVisitor<TypeOutputStreamWriteVisitor<DBusTypeOutputStream>,
-            Variant<_Types...>, _Types...>::visit(typeVisitor, _value);
+    	if (_depl != nullptr && _depl->isDBus_) {
+    		signature_.append("v");
+    	} else {
+    		signature_.append("(yv)");
+    	}
+		TypeOutputStreamWriteVisitor<DBusTypeOutputStream> typeVisitor(*this);
+		ApplyVoidVisitor<TypeOutputStreamWriteVisitor<DBusTypeOutputStream>,
+				Variant<_Types...>, _Types...>::visit(typeVisitor, _value);
         return (*this);
     }
 
 	template<typename _ElementType>
 	TypeOutputStream &writeType(const std::vector<_ElementType> &_value) {
 		signature_.append("a");
+		_ElementType dummyElement;
+		writeType(dummyElement);
 		return (*this);
 	}
 

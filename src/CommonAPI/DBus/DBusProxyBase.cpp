@@ -36,20 +36,6 @@ DBusProxyBase::getDBusConnection() const {
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
-        const std::string& signalName,
-        const std::string& signalSignature,
-        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-        const bool justAddFilter) {
-    return addSignalMemberHandler(
-    		getDBusAddress().getObjectPath(),
-    		getDBusAddress().getInterface(),
-            signalName,
-            signalSignature,
-            dbusSignalHandler,
-            justAddFilter);
-}
-
-DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
                 const std::string& objectPath,
                 const std::string& interfaceName,
                 const std::string& signalName,
@@ -65,8 +51,25 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 justAddFilter);
 }
 
-bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
-    return connection_->removeSignalMemberHandler(dbusSignalHandlerToken, dbusSignalHandler);
+DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
+				const std::string &objectPath,
+				const std::string &interfaceName,
+				const std::string &signalName,
+				const std::string &signalSignature,
+				const std::string &getMethodName,
+				DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+				const bool justAddFilter) {
+    return addSignalMemberHandler(
+    			objectPath,
+				interfaceName,
+				signalName,
+				signalSignature,
+				dbusSignalHandler,
+				justAddFilter);
+}
+
+bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& _dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler) {
+    return connection_->removeSignalMemberHandler(_dbusSignalHandlerToken, _dbusSignalHandler);
 }
 
 } // namespace DBus

@@ -65,7 +65,37 @@ public:
 
 	COMMONAPI_EXPORT InputStream &readValue(std::string &_value, const EmptyDeployment *_depl);
 
+        COMMONAPI_EXPORT InputStream &readValue(std::string &_value, const CommonAPI::DBus::StringDeployment* _depl) {
+            return readValue(_value, static_cast<EmptyDeployment *>(nullptr));
+        }
+
 	COMMONAPI_EXPORT InputStream &readValue(Version &_value, const EmptyDeployment *_depl);
+
+	COMMONAPI_EXPORT void beginReadMapOfSerializableStructs() {
+		uint32_t itsSize;
+		_readValue(itsSize);
+		pushSize(itsSize);
+		align(8); /* correct alignment for first DICT_ENTRY */
+		pushPosition();
+	}
+
+	COMMONAPI_EXPORT bool readMapCompleted() {
+		return (sizes_.top() <= (current_ - positions_.top()));
+	}
+
+	COMMONAPI_EXPORT void endReadMapOfSerializableStructs() {
+		(void)popSize();
+		(void)popPosition();
+	}
+
+	COMMONAPI_EXPORT InputStream &skipMap() {
+		uint32_t itsSize;
+		_readValue(itsSize);
+		align(8); /* skip padding (if any) */
+		assert(itsSize <= (sizes_.top() + positions_.top() - current_));
+		_readRaw(itsSize);
+		return (*this);
+	}
 
     template<class _Deployment, typename _Base>
 	COMMONAPI_EXPORT InputStream &readValue(Enumeration<_Base> &_value, const _Deployment *_depl) {
@@ -127,7 +157,7 @@ public:
     			Variant<_Types...>, _Types... >::visit(visitor, _value);
     	}
 
-    	if (_depl != nullptr && _depl->isFreeDesktop_) {
+    	if (_depl != nullptr && _depl->isDBus_) {
 			// Read signature
 			uint8_t signatureLength;
 			readValue(signatureLength, static_cast<EmptyDeployment *>(nullptr));
@@ -195,7 +225,7 @@ public:
     	_value.clear();
     	while (sizes_.top() > current_ - positions_.top()) {
     		_ElementType itsElement;
-    		readValue(itsElement, _depl->elementDepl_);
+    		readValue(itsElement, (_depl ? _depl->elementDepl_ : nullptr));
 
     		if (hasError()) {
     			break;
@@ -264,8 +294,8 @@ public:
     		_ValueType itsValue;
 
     		align(8);
-    		readValue(itsKey, _depl->key_);
-    		readValue(itsValue, _depl->value_);
+    		readValue(itsKey, (_depl ? _depl->key_ : nullptr));
+    		readValue(itsValue, (_depl ? _depl->value_ : nullptr));
 
     		if (hasError()) {
     			break;

@@ -33,7 +33,7 @@ public:
     virtual ~DBusConnectionStatusEvent() {}
 
  protected:
-    virtual void onListenerAdded(const Listener& listener);
+    virtual void onListenerAdded(const Listener& listener, const Subscription subscription);
 
     // TODO: change to std::weak_ptr<DBusConnection> connection_;
     DBusConnection* dbusConnection_;
@@ -130,6 +130,8 @@ public:
 	COMMONAPI_EXPORT bool isDispatchReady();
 	COMMONAPI_EXPORT bool singleDispatch();
 
+	COMMONAPI_EXPORT virtual bool hasDispatchThread();
+
 	typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
 	typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
 	typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
@@ -164,6 +166,8 @@ public:
 	COMMONAPI_EXPORT void initLibdbusObjectPathHandlerAfterConnect();
     ::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage);
 
+    COMMONAPI_EXPORT static DBusMessage convertToDBusMessage(::DBusPendingCall* _libdbusPendingCall,
+    		CallStatus& _callStatus);
 	COMMONAPI_EXPORT static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
 	COMMONAPI_EXPORT static void onLibdbusDataCleanup(void* userData);
 
@@ -242,12 +246,17 @@ public:
     		>
     	> timeoutMap_;
 
-    typedef std::pair<DBusMessageReplyAsyncHandler *, DBusMessage> MainloopTimeout_t;
+    typedef std::tuple<
+    			DBusMessageReplyAsyncHandler *,
+				DBusMessage,
+				CommonAPI::CallStatus,
+				::DBusPendingCall*
+			> MainloopTimeout_t;
     mutable std::list<MainloopTimeout_t> mainloopTimeouts_;
 
     mutable std::mutex enforceTimeoutMutex_;
     mutable std::condition_variable enforceTimeoutCondition_;
-    
+
     mutable std::shared_ptr<std::thread> enforcerThread_;
     mutable std::mutex enforcerThreadMutex_;
     bool enforcerThreadCancelled_;

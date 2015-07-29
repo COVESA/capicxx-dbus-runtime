@@ -55,14 +55,16 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                         DBusObjectManagerStub::getInterfaceName(),
                         "InterfacesAdded",
                         "oa{sa{sv}}",
-                        this);
+                        this,
+                        false);
 
         interfacesRemovedSubscription_ = proxy_.addSignalMemberHandler(
         				proxy_.getDBusAddress().getObjectPath(),
                         DBusObjectManagerStub::getInterfaceName(),
                         "InterfacesRemoved",
                         "oas",
-                        this);
+                        this,
+                        false);
     }
 
     virtual void onLastListenerRemoved(const Listener&) {
@@ -74,21 +76,23 @@ class DBusInstanceAvailabilityStatusChangedEvent:
     inline void onInterfacesAddedSignal(const DBusMessage &_message) {
         DBusInputStream dbusInputStream(_message);
         std::string dbusObjectPath;
+        std::string dbusInterfaceName;
         DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict;
 
         dbusInputStream >> dbusObjectPath;
         assert(!dbusInputStream.hasError());
 
-        dbusInputStream >> dbusInterfacesAndPropertiesDict;
-        assert(!dbusInputStream.hasError());
-
-        for (const auto& dbusInterfaceIterator : dbusInterfacesAndPropertiesDict) {
-            const std::string& dbusInterfaceName = dbusInterfaceIterator.first;
-
+        dbusInputStream.beginReadMapOfSerializableStructs();
+        while (!dbusInputStream.readMapCompleted()) {
+            dbusInputStream.align(8);
+            dbusInputStream >> dbusInterfaceName;
+            dbusInputStream.skipMap();
+            assert(!dbusInputStream.hasError());
             if(dbusInterfaceName == observedInterfaceName_) {
                 notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::AVAILABLE);
             }
         }
+        dbusInputStream.endReadMapOfSerializableStructs();
     }
 
     inline void onInterfacesRemovedSignal(const DBusMessage &_message) {

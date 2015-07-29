@@ -139,14 +139,16 @@ private:
                         CommonAPI::DBus::DBusObjectManagerStub::getInterfaceName(),
                         "InterfacesAdded",
                         "oa{sa{sv}}",
-                        this);
+                        this,
+                        false);
 
         dbusSignalHandlerRemovedToken_ = dbusConnection_->addSignalMemberHandler(
                         dbusObjectPath_,
                         CommonAPI::DBus::DBusObjectManagerStub::getInterfaceName(),
                         "InterfacesRemoved",
                         "oas",
-                        this);
+                        this,
+                        false);
     }
 
     std::string dbusObjectPath_;

@@ -65,6 +65,8 @@ void DBusWatch::startWatching() {
 
 #ifdef WIN32
 	pollFileDescriptor_.fd = dbus_watch_get_socket(libdbusWatch_);
+	wsaEvent_ = WSACreateEvent();
+	WSAEventSelect(pollFileDescriptor_.fd, wsaEvent_, FD_READ);
 #else
 	pollFileDescriptor_.fd = dbus_watch_get_unix_fd(libdbusWatch_);
 #endif
@@ -87,6 +89,12 @@ void DBusWatch::stopWatching() {
 const pollfd& DBusWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
+
+#ifdef WIN32
+const HANDLE& DBusWatch::getAssociatedEvent() {
+	return wsaEvent_;
+}
+#endif
 
 void DBusWatch::dispatch(unsigned int eventFlags) {
 #ifdef WIN32
@@ -111,7 +119,11 @@ void DBusWatch::dispatch(unsigned int eventFlags) {
                             ((eventFlags & POLLERR) >> 1) |
                             ((eventFlags & POLLHUP) >> 1);
 #endif
-    dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
+    dbus_bool_t response = dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
+
+    if (!response) {
+        printf("dbus_watch_handle returned FALSE!");
+    }
 }
 
 const std::vector<DispatchSource*>& DBusWatch::getDependentDispatchSources() {

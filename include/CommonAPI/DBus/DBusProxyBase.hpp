@@ -39,27 +39,35 @@ public:
 	COMMONAPI_EXPORT DBusMessage createMethodCall(const std::string &_method,
                                  const std::string &_signature = "") const;
 
-	COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
-            const std::string& signalName,
-            const std::string& signalSignature,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-            const bool justAddFilter = false);
-
-	COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,
             const std::string &interfaceName,
             const std::string &signalName,
             const std::string &signalSignature,
             DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-            const bool justAddFilter = false);
+            const bool justAddFilter);
 
-	COMMONAPI_EXPORT bool removeSignalMemberHandler(
-    		const DBusProxyConnection::DBusSignalHandlerToken &_token,
-    		const DBusProxyConnection::DBusSignalHandler *_handler = NULL);
+	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+            const std::string &objectPath,
+            const std::string &interfaceName,
+            const std::string &signalName,
+            const std::string &signalSignature,
+            const std::string &getMethodName,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const bool justAddFilter);
+
+	COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
+    		const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
+    		const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+
+	COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
+            const std::string &getMethodName,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const uint32_t subscription) {}
 
 	COMMONAPI_EXPORT virtual void init() = 0;
 
- private:
+ protected:
 	COMMONAPI_EXPORT DBusProxyBase(const DBusProxyBase &) = delete;
 
     DBusAddress dbusAddress_;

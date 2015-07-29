@@ -111,6 +111,10 @@ public:
         return writeString(_value.c_str(), _value.length());
     }
 
+	COMMONAPI_EXPORT OutputStream &writeValue(const std::string &_value, const CommonAPI::DBus::StringDeployment* _depl) {
+        return writeString(_value.c_str(), _value.length());
+    }
+
 	COMMONAPI_EXPORT OutputStream &writeValue(const Version &_value, const EmptyDeployment *_depl = nullptr) {
     	align(8);
     	writeValue(_value.Major, _depl);
@@ -168,7 +172,7 @@ public:
 
     template<typename _Deployment, typename... _Types>
 	COMMONAPI_EXPORT OutputStream &writeValue(const Variant<_Types...> &_value, const _Deployment *_depl = nullptr) {
-    	if (_depl != nullptr && _depl->isFreeDesktop_) {
+    	if (_depl != nullptr && _depl->isDBus_) {
     		align(1);
     	} else {
     		align(8);
@@ -223,7 +227,7 @@ public:
     	pushPosition(); // Start of vector data
 
     	for (auto i : _value) {
-    		writeValue(i, _depl->elementDepl_);
+    		writeValue(i, (_depl ? _depl->elementDepl_ : nullptr));
     		if (hasError()) {
     			break;
     		}
@@ -274,8 +278,8 @@ public:
 
     	for (auto v : _value) {
     		align(8);
-    		writeValue(v.first, _depl->key_);
-    		writeValue(v.second, _depl->value_);
+    		writeValue(v.first, (_depl ? _depl->key_ : nullptr));
+    		writeValue(v.second, (_depl ? _depl->value_ : nullptr));
 
     		if (hasError()) {
     			return (*this);
@@ -289,6 +293,15 @@ public:
     }
 
     /**
+     * Fills the stream with 0-bytes to make the next value be aligned to the boundary given.
+     * This means that as many 0-bytes are written to the buffer as are necessary
+     * to make the next value start with the given alignment.
+     *
+     * @param alignBoundary The byte-boundary to which the next value should be aligned.
+     */
+    COMMONAPI_EXPORT void align(const size_t _boundary);
+
+    /**
      * Writes the data that was buffered within this #DBusOutputMessageStream to the #DBusMessage that was given to the constructor. Each call to flush()
      * will completely override the data that currently is contained in the #DBusMessage. The data that is buffered in this #DBusOutputMessageStream is
      * not deleted by calling flush().
@@ -296,6 +309,22 @@ public:
 	COMMONAPI_EXPORT void flush();
 
 	COMMONAPI_EXPORT bool hasError() const;
+
+	// Helper for serializing Freedesktop properties
+    COMMONAPI_EXPORT void beginWriteMap() {
+        align(sizeof(uint32_t));
+        pushPosition();
+        _writeValue(static_cast<uint32_t>(0)); // Placeholder
+
+        align(8);
+        pushPosition(); // Start of map data
+    }
+
+    COMMONAPI_EXPORT void endWriteMap() {
+        // Write number of written bytes to placeholder position
+        const uint32_t length = getPosition() - popPosition();
+        _writeValueAt(popPosition(), length);
+    }
 
 private:
 	COMMONAPI_EXPORT size_t getPosition();
@@ -359,15 +388,6 @@ private:
     }
 
 	COMMONAPI_EXPORT DBusOutputStream &writeString(const char *_data, const uint32_t &_length);
-
-    /**
-     * Fills the stream with 0-bytes to make the next value be aligned to the boundary given.
-     * This means that as many 0-bytes are written to the buffer as are necessary
-     * to make the next value start with the given alignment.
-     *
-     * @param alignBoundary The byte-boundary to which the next value should be aligned.
-     */
-	COMMONAPI_EXPORT void align(const size_t _boundary);
 
     /**
      * Takes sizeInByte characters, starting from the character which val points to, and stores them for later writing.

@@ -193,7 +193,7 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{sv}");
         DBusOutputStream dbusOutputStream(dbusMessageReply);
 
-        dbusOutputStream.beginWriteVectorOfSerializableStructs();
+        dbusOutputStream.beginWriteMap();
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
         for(auto attributeDispatcherIterator = getStubAttributeTable().begin(); attributeDispatcherIterator != getStubAttributeTable().end(); attributeDispatcherIterator++) {
@@ -202,12 +202,13 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
             if (stub_) {
                 StubDispatcher* getterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.getter);
                 assert(getterDispatcher != NULL); // all attributes have at least a getter
+                dbusOutputStream.align(8);
                 dbusOutputStream << attributeDispatcherIterator->first;
                 getterDispatcher->appendGetAllReply(dbusMessage, stub_, *this, dbusOutputStream);
             }
         }
 
-        dbusOutputStream.endWriteVector();
+        dbusOutputStream.endWriteMap();
         dbusOutputStream.flush();
 
         return getDBusConnection()->sendDBusMessage(dbusMessageReply);
@@ -287,59 +288,75 @@ struct DBusStubSignalHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>> 
        }
 };
 
-template< class, class >
+template< class, class, class >
 class DBusMethodStubDispatcher;
 
 template <
     typename _StubClass,
-    template <class...> class _In, class... _InArgs>
-class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...> >: public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
+    template <class...> class _In, class... _InArgs,
+    template <class...> class _DeplIn, class... _DeplInArgs>
+
+class DBusMethodStubDispatcher<_StubClass, _In<_InArgs...>, _DeplIn<_DeplInArgs...> >: public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
     typedef void (_StubClass::*_StubFunctor)(std::shared_ptr<CommonAPI::ClientId>, _InArgs...);
 
-    DBusMethodStubDispatcher(_StubFunctor stubFunctor):
+    DBusMethodStubDispatcher(_StubFunctor stubFunctor, std::tuple<_DeplInArgs*...> _in):
             stubFunctor_(stubFunctor) {
+            initialize(typename make_sequence_range<sizeof...(_DeplInArgs), 0>::type(), _in);
     }
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
-        return handleDBusMessage(dbusMessage, stub, dbusStubAdapterHelper, typename make_sequence<sizeof...(_InArgs)>::type());
+		return handleDBusMessage(dbusMessage, stub, dbusStubAdapterHelper, typename make_sequence_range<sizeof...(_InArgs), 0>::type());
     }
 
  private:
+    template <int... _DeplInArgIndices>
+    inline void initialize(index_sequence<_DeplInArgIndices...>, std::tuple<_DeplInArgs*...> &_in) {
+	in_ = std::make_tuple(std::get<_DeplInArgIndices>(_in)...);
+    }
+
     template <int... _InArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
-                                  index_sequence<_InArgIndices...>) const {
-        std::tuple<_InArgs...> argTuple;
+                                  index_sequence<_InArgIndices...>) {
 
         if (sizeof...(_InArgs) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);
-            const bool success = DBusSerializableArguments<_InArgs...>::deserialize(dbusInputStream, std::get<_InArgIndices>(argTuple)...);
+            const bool success = DBusSerializableArguments<CommonAPI::Deployable<_InArgs, _DeplInArgs>...>::deserialize(dbusInputStream, std::get<_InArgIndices>(in_)...);
             if (!success)
                 return false;
         }
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
 
-        (stub.get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(argTuple))...);
+        (stub.get()->*stubFunctor_)(clientId, std::move(std::get<_InArgIndices>(in_).getValue())...);
 
         return true;
     }
 
     _StubFunctor stubFunctor_;
+    std::tuple<CommonAPI::Deployable<_InArgs, _DeplInArgs>...> in_;
 };
 
 
-template< class, class, class>
+template< class, class, class, class, class>
 class DBusMethodWithReplyStubDispatcher;
 
 template <
     typename _StubClass,
     template <class...> class _In, class... _InArgs,
-    template <class...> class _Out, class... _OutArgs>
-class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutArgs...> >:
+    template <class...> class _Out, class... _OutArgs,
+    template <class...> class _DeplIn, class... _DeplInArgs,
+    template <class...> class _DeplOut, class... _DeplOutArgs>
+
+class DBusMethodWithReplyStubDispatcher<
+       _StubClass, 
+       _In<_InArgs...>,
+       _Out<_OutArgs...>,
+       _DeplIn<_DeplInArgs...>,
+       _DeplOut<_DeplOutArgs...> >:
             public DBusStubAdapterHelper<_StubClass>::StubDispatcher {
  public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
@@ -347,38 +364,53 @@ class DBusMethodWithReplyStubDispatcher<_StubClass, _In<_InArgs...>, _Out<_OutAr
     typedef void (_StubClass::*_StubFunctor)(
         		std::shared_ptr<CommonAPI::ClientId>, _InArgs..., ReplyType_t);
 
-    DBusMethodWithReplyStubDispatcher(_StubFunctor stubFunctor, const char* dbusReplySignature, std::tuple<_InArgs..., _OutArgs...> _args):
+    DBusMethodWithReplyStubDispatcher(_StubFunctor stubFunctor,
+        const char* dbusReplySignature, 
+        std::tuple<_DeplInArgs*...> _inDepArgs,
+        std::tuple<_DeplOutArgs*...> _outDepArgs):
             stubFunctor_(stubFunctor),
             dbusReplySignature_(dbusReplySignature),
-            args_(_args),
-			currentCall_(0) {
+            out_(_outDepArgs),
+            currentCall_(0) {
+
+    	initialize(typename make_sequence_range<sizeof...(_DeplInArgs), 0>::type(), _inDepArgs);
+
     }
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<_StubClass>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+    bool dispatchDBusMessage(const DBusMessage& dbusMessage, 
+                             const std::shared_ptr<_StubClass>& stub, 
+                             DBusStubAdapterHelperType& dbusStubAdapterHelper) {
     	connection_ = dbusStubAdapterHelper.getDBusConnection();
         return handleDBusMessage(
                         dbusMessage,
                         stub,
                         dbusStubAdapterHelper,
                         typename make_sequence_range<sizeof...(_InArgs), 0>::type(),
-                        typename make_sequence_range<sizeof...(_OutArgs), sizeof...(_InArgs)>::type(), args_);
+                        typename make_sequence_range<sizeof...(_OutArgs), 0>::type());
     }
 
-	bool sendReply(CommonAPI::CallId_t _call, std::tuple<_OutArgs...> args = std::make_tuple()) {
+	bool sendReply(CommonAPI::CallId_t _call, 
+                       std::tuple<CommonAPI::Deployable<_OutArgs, _DeplOutArgs>...> args = std::make_tuple()) {
 		return sendReplyInternal(_call, typename make_sequence_range<sizeof...(_OutArgs), 0>::type(), args);
 	}
 
 private:
+
+	template <int... _DeplInArgIndices>
+	inline void initialize(index_sequence<_DeplInArgIndices...>, std::tuple<_DeplInArgs*...> &_in) {
+		in_ = std::make_tuple(std::get<_DeplInArgIndices>(_in)...);
+	}
+
+
     template <int... _InArgIndices, int... _OutArgIndices>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<_StubClass>& stub,
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<_InArgIndices...>,
-                                  index_sequence<_OutArgIndices...>,
-                                  std::tuple<_InArgs..., _OutArgs...> argTuple) {
-        if (sizeof...(_InArgs) > 0) {
+                                  index_sequence<_OutArgIndices...>) {
+        if (sizeof...(_DeplInArgs) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);
-            const bool success = DBusSerializableArguments<_InArgs...>::deserialize(dbusInputStream, std::get<_InArgIndices>(argTuple)...);
+            const bool success = DBusSerializableArguments<CommonAPI::Deployable<_InArgs, _DeplInArgs>...>::deserialize(dbusInputStream, std::get<_InArgIndices>(in_)...);
             if (!success)
                 return false;
         }
@@ -396,9 +428,11 @@ private:
 
         (stub.get()->*stubFunctor_)(
         	clientId,
-        	std::move(std::get<_InArgIndices>(argTuple))...,
+        	std::move(std::get<_InArgIndices>(in_).getValue())...,
         	[call, this](_OutArgs... _args){
-        		this->sendReply(call, std::make_tuple(_args...));
+        		this->sendReply(call, std::make_tuple(CommonAPI::Deployable<_OutArgs, _DeplOutArgs>(
+        					_args, std::get<_OutArgIndices>(out_)
+						)...));
         	}
         );
 
@@ -408,13 +442,13 @@ private:
     template<int... _OutArgIndices>
     bool sendReplyInternal(CommonAPI::CallId_t _call,
     					   index_sequence<_OutArgIndices...>,
-    					   std::tuple<_OutArgs...> args) {
+    					   std::tuple<CommonAPI::Deployable<_OutArgs, _DeplOutArgs>...> args) {
 		std::lock_guard<std::mutex> lock(mutex_);
 		auto reply = pending_.find(_call);
 		if (reply != pending_.end()) {
-			if (sizeof...(_OutArgs) > 0) {
+			if (sizeof...(_DeplOutArgs) > 0) {
 				DBusOutputStream output(reply->second);
-				if (!DBusSerializableArguments<_OutArgs...>::serialize(
+				if (!DBusSerializableArguments<CommonAPI::Deployable<_OutArgs, _DeplOutArgs>...>::serialize(
 						output, std::get<_OutArgIndices>(args)...)) {
 					pending_.erase(_call);
 					return false;
@@ -430,8 +464,9 @@ private:
 
     _StubFunctor stubFunctor_;
     const char* dbusReplySignature_;
-    std::tuple<_InArgs..., _OutArgs...> args_;
 
+    std::tuple<CommonAPI::Deployable<_InArgs, _DeplInArgs>...> in_;
+    std::tuple<_DeplOutArgs*...> out_;
 	CommonAPI::CallId_t currentCall_;
 	std::map<CommonAPI::CallId_t, DBusMessage> pending_;
 	std::mutex mutex_; // protects pending_
@@ -683,3 +718,4 @@ protected:
 } // namespace CommonAPI
 
 #endif // COMMONAPI_DBUS_DBUSSTUBADAPTERHELPER_HPP_
+

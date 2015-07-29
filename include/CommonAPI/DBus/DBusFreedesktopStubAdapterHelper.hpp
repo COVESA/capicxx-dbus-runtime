@@ -26,16 +26,16 @@ public:
 												   const std::shared_ptr<DBusClientId> &_clientId) = 0;
 };
 
-template <typename _StubClass, typename _AttributeType>
+template <typename _StubClass, typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
 class DBusGetFreedesktopAttributeStubDispatcher
-		: public virtual DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>,
+		: public virtual DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>,
 		  public virtual DBusGetFreedesktopAttributeStubDispatcherBase<_StubClass> {
 public:
     typedef DBusStubAdapterHelper<_StubClass> DBusStubAdapterHelperType;
-    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::GetStubFunctor GetStubFunctor;
 
-    DBusGetFreedesktopAttributeStubDispatcher(GetStubFunctor _getStubFunctor)
-    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, "v") {
+    DBusGetFreedesktopAttributeStubDispatcher(GetStubFunctor _getStubFunctor, _AttributeDepl *_depl = nullptr)
+    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, "v", _depl) {
     }
 
     virtual ~DBusGetFreedesktopAttributeStubDispatcher() {};
@@ -45,18 +45,19 @@ public:
 										   DBusOutputStream &_output,
 										   const std::shared_ptr<DBusClientId> &_clientId) {
     	CommonAPI::Deployable<CommonAPI::Variant<_AttributeType>, VariantDeployment<>> deployedVariant(
-        		(_stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::getStubFunctor_))(_clientId), &freedesktopVariant);
+        		(_stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::getStubFunctor_))(_clientId), &freedesktopVariant);
 
         _output << deployedVariant;
     }
 
 protected:
    virtual bool sendAttributeValueReply(const DBusMessage &_message, const std::shared_ptr<_StubClass> &_stub, DBusStubAdapterHelperType &_helper) {
-       DBusMessage reply = _message.createMethodReturn(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::signature_);
+       DBusMessage reply = _message.createMethodReturn(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::signature_);
 
+       VariantDeployment<_AttributeDepl> actualDepl(true, DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::depl_);
        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(_message.getSender()));
-       CommonAPI::Deployable<CommonAPI::Variant<_AttributeType>, VariantDeployment<>> deployedVariant(
-    		   (_stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::getStubFunctor_))(clientId), &freedesktopVariant);
+       CommonAPI::Deployable<CommonAPI::Variant<_AttributeType>, VariantDeployment<_AttributeDepl>> deployedVariant(
+                (_stub.get()->*(DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::getStubFunctor_))(clientId), &actualDepl);
 
        DBusOutputStream output(reply);
        output << deployedVariant;
@@ -66,13 +67,13 @@ protected:
    }
 };
 
-template <typename _StubClass, typename _AttributeType>
+template <typename _StubClass, typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
 class DBusSetFreedesktopAttributeStubDispatcher
-		: public virtual DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>,
-		  public virtual DBusSetAttributeStubDispatcher<_StubClass, _AttributeType> {
+		: public virtual DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>,
+		  public virtual DBusSetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl> {
 public:
-    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
-    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::GetStubFunctor GetStubFunctor;
+    typedef typename DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
     typedef typename DBusStubAdapterHelperType::RemoteEventHandlerType RemoteEventHandlerType;
     typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, _AttributeType);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
@@ -80,16 +81,17 @@ public:
     DBusSetFreedesktopAttributeStubDispatcher(
     		GetStubFunctor _getStubFunctor,
 			OnRemoteSetFunctor _onRemoteSetFunctor,
-            OnRemoteChangedFunctor _onRemoteChangedFunctor)
-    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, "v"),
-          DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor),
-          DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v") {
+            OnRemoteChangedFunctor _onRemoteChangedFunctor,
+            _AttributeDepl * _depl = nullptr)
+    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, "v", _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _depl),
+          DBusSetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl) {
     }
 
     virtual ~DBusSetFreedesktopAttributeStubDispatcher() {};
 
 protected:
-    virtual _AttributeType retreiveAttributeValue(const DBusMessage &_message, bool &_error) {
+    virtual _AttributeType retrieveAttributeValue(const DBusMessage &_message, bool &_error) {
         std::string interfaceName, attributeName;
         DBusInputStream input(_message);
         CommonAPI::Deployable<CommonAPI::Variant<_AttributeType>, VariantDeployment<>> deployedVariant(&freedesktopVariant);
@@ -102,28 +104,29 @@ protected:
     }
 };
 
-template <typename _StubClass, typename _AttributeType>
+template <typename _StubClass, typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
 class DBusSetFreedesktopObservableAttributeStubDispatcher
-		: public virtual DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>,
-		  public virtual DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType> {
+		: public virtual DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>,
+		  public virtual DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl> {
 public:
-    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::DBusStubAdapterHelperType DBusStubAdapterHelperType;
     typedef typename DBusStubAdapterHelperType::StubAdapterType StubAdapterType;
-    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::GetStubFunctor GetStubFunctor;
-    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteSetFunctor OnRemoteSetFunctor;
-    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::GetStubFunctor GetStubFunctor;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::OnRemoteSetFunctor OnRemoteSetFunctor;
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
     typedef void (StubAdapterType::*FireChangedFunctor)(const _AttributeType&);
 
     DBusSetFreedesktopObservableAttributeStubDispatcher(
     		GetStubFunctor _getStubFunctor,
             OnRemoteSetFunctor _onRemoteSetFunctor,
             OnRemoteChangedFunctor _onRemoteChangedFunctor,
-            FireChangedFunctor _fireChangedFunctor)
-    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, "v"),
-          DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor),
-          DBusSetAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v"),
-          DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor),
-          DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v") {
+            FireChangedFunctor _fireChangedFunctor,
+            _AttributeDepl *_depl = nullptr)
+    	: DBusGetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, "v", _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _depl),
+          DBusSetAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl),
+          DBusSetFreedesktopAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _depl),
+          DBusSetObservableAttributeStubDispatcher<_StubClass, _AttributeType, _AttributeDepl>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v", _depl) {
     }
 };
 

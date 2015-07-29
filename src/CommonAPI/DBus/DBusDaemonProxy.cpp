@@ -36,7 +36,7 @@ static const char *DAEMON_DBUS_INTERFACE = DBusDaemonProxy::getInterfaceId();
 static const char *DAEMON_DBUS_OBJECT_PATH = "/org/freedesktop/DBus";
 static const char *DAEMON_DBUS_BUS = "org.freedesktop.DBus";
 static DBusAddress dbusProxyAddress(DAEMON_DBUS_INTERFACE, DAEMON_DBUS_OBJECT_PATH, DAEMON_DBUS_BUS);
-static CommonAPI::CallInfo daemonProxyInfo(2000);
+static CommonAPI::CallInfo daemonProxyInfo(30000);
 
 DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
                 DBusProxyBase(dbusProxyAddress, dbusConnection),

@@ -15,16 +15,19 @@
 namespace CommonAPI {
 namespace DBus {
 
-template <typename _AttributeType>
+template <typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
 class DBusFreedesktopReadonlyAttribute: public _AttributeType {
 public:
     typedef typename _AttributeType::ValueType ValueType;
+    typedef _AttributeDepl ValueTypeDepl;
     typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
 
-    DBusFreedesktopReadonlyAttribute(DBusProxy &_proxy, const std::string &_interfaceName, const std::string &_propertyName)
+    DBusFreedesktopReadonlyAttribute(DBusProxy &_proxy, const std::string &_interfaceName, const std::string &_propertyName,
+        _AttributeDepl *_depl = nullptr)
     	: proxy_(_proxy),
           interfaceName_(_interfaceName),
-          propertyName_(_propertyName) {
+          propertyName_(_propertyName),
+          depl_(_depl) {
     }
 
     void getValue(CommonAPI::CallStatus &_status, ValueType &_value, const CommonAPI::CallInfo *_info) const {
@@ -78,6 +81,7 @@ protected:
     DBusProxy &proxy_;
     std::string interfaceName_;
     std::string propertyName_;
+    _AttributeDepl *depl_;
 };
 
 template <typename _AttributeType>
@@ -145,16 +149,15 @@ protected:
     std::string propertyName_;
 };
 
-template <typename _AttributeType>
+template <typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
 class DBusFreedesktopAttribute
-		: public DBusFreedesktopReadonlyAttribute<_AttributeType> {
+		: public DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl> {
  public:
     typedef typename _AttributeType::ValueType ValueType;
     typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
-    typedef typename _AttributeType::ChangedEvent ChangedEvent;
 
-    DBusFreedesktopAttribute(DBusProxy &_proxy, const std::string &_interfaceName, const std::string &_propertyName)
-    	: DBusFreedesktopReadonlyAttribute<_AttributeType>(_proxy, _interfaceName, _propertyName) {
+    DBusFreedesktopAttribute(DBusProxy &_proxy, const std::string &_interfaceName, const std::string &_propertyName, _AttributeDepl *_depl = nullptr)
+        : DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>(_proxy, _interfaceName, _propertyName, _depl) {
     }
 
     void setValue(const ValueType &_request, CommonAPI::CallStatus &_status, ValueType &_response, const CommonAPI::CallInfo *_info) {
@@ -166,13 +169,13 @@ class DBusFreedesktopAttribute
             DBusSerializableArguments<
 			>
         >::callMethodWithReply(
-				DBusFreedesktopReadonlyAttribute<_AttributeType>::proxy_,
+				DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::proxy_,
 				"org.freedesktop.DBus.Properties",
 				"Set",
 				"ssv",
 				(_info ? _info : &defaultCallInfo),
-				DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_,
-				DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_,
+				DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::interfaceName_,
+				DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::propertyName_,
 				deployedVariant,
 				_status);
         _response = _request;
@@ -187,13 +190,13 @@ class DBusFreedesktopAttribute
                     DBusSerializableArguments<
 					>
         	   >::callMethodAsync(
-					DBusFreedesktopReadonlyAttribute<_AttributeType>::proxy_,
+					DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::proxy_,
 					"org.freedesktop.DBus.Properties",
 					"Set",
 					"ssv",
 					(_info ? _info : &defaultCallInfo),
-					DBusFreedesktopReadonlyAttribute<_AttributeType>::interfaceName_,
-					DBusFreedesktopReadonlyAttribute<_AttributeType>::propertyName_,
+					DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::interfaceName_,
+					DBusFreedesktopReadonlyAttribute<_AttributeType, _AttributeDepl>::propertyName_,
 					deployedVariant,
 					[_callback, deployedVariant](CommonAPI::CallStatus _status) {
         				_callback(_status, deployedVariant.getValue().template get<ValueType>());

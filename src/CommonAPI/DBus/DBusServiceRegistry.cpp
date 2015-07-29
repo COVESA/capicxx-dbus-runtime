@@ -453,15 +453,18 @@ void DBusServiceRegistry::onSignalDBusMessage(const DBusMessage &_dbusMessage) {
     dbusInputStream >> dbusObjectPath;
 
     if (_dbusMessage.hasMemberName("InterfacesAdded")) {
+        std::string dbusInterfaceName;
         dbusInterfaceNameState = DBusRecordState::AVAILABLE;
 
-        DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
-        dbusInputStream >> dbusObjectPathAndInterfacesDict;
-
-        for (auto& dbusInterfaceIterator : dbusObjectPathAndInterfacesDict) {
-            const auto& dbusInterfaceName = dbusInterfaceIterator.first;
+        dbusInputStream.beginReadMapOfSerializableStructs();
+        while (!dbusInputStream.readMapCompleted()) {
+            dbusInputStream.align(8);
+            dbusInputStream >> dbusInterfaceName;
+            dbusInputStream.skipMap();
+            assert(!dbusInputStream.hasError());
             dbusInterfaceNames.insert(dbusInterfaceName);
         }
+        dbusInputStream.endReadMapOfSerializableStructs();
     } else {
         std::vector<std::string> removedDBusInterfaceNames;
 
@@ -748,7 +751,7 @@ void DBusServiceRegistry::onIntrospectCallback(const CallStatus& callStatus,
     dbusObjectPathRecord.state = DBusRecordState::RESOLVED;
     dbusObjectPathRecord.promiseOnResolve.set_value(dbusObjectPathRecord.state);
     mutexObjectPathsResolveCount.lock();
-    objectPathsToResolve++;
+    objectPathsToResolve--;
     mutexObjectPathsResolveCount.unlock();
     monitorResolveAllObjectPaths_.notify_all();
 
@@ -801,11 +804,12 @@ void DBusServiceRegistry::processIntrospectionObjectPath(const pugi::xml_node& n
 
 void DBusServiceRegistry::processIntrospectionInterface(const pugi::xml_node& node, const std::string& rootObjectPath, const std::string& fullObjectPath, const std::string& dbusServiceUniqueName) {
     std::string interfaceName = node.attribute("name").as_string();
-
     DBusUniqueNameRecord& dbusUniqueNameRecord = dbusUniqueNamesMap_[dbusServiceUniqueName];
     DBusObjectPathCache& dbusObjectPathCache = dbusUniqueNameRecord.dbusObjectPathsCache[fullObjectPath];
 
     if(!isOrgFreedesktopDBusInterface(interfaceName)) {
+        dbusObjectPathCache.dbusInterfaceNamesCache.insert(interfaceName);
+    } else if (translator_->isOrgFreedesktopDBusPeerMapped() && (interfaceName == "org.freedesktop.DBus.Peer")) {
         dbusObjectPathCache.dbusInterfaceNamesCache.insert(interfaceName);
     }
 

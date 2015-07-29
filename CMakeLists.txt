@@ -10,7 +10,7 @@ PROJECT(libcommonapi-dbus)
 # version of CommonAPI-DBus
 SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
 SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 1 )
-SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 2 )
+SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 3 )
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 
@@ -42,6 +42,9 @@ message(STATUS "BUILD_SHARED_LIBS is set to value: ${BUILD_SHARED_LIBS}")
 OPTION(USE_INSTALLED_COMMONAPI "Set to OFF to use the local (build tree) version of CommonAPI" ON)
 message(STATUS "USE_INSTALLED_COMMONAPI is set to value: ${USE_INSTALLED_COMMONAPI}")
 
+OPTION(USE_INSTALLED_DBUS "Set to OFF to use the local (build tree) version of DBUS" ON)
+message(STATUS "USE_INSTALLED_DBUS is set to value: ${USE_INSTALLED_DBUS}")
+
 SET(RPM_PACKAGE_VERSION "r0" CACHE STRING "rpm packet version") # used in e.g. commonapi-dbus.spec.in
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -68,7 +71,7 @@ set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation director
 foreach(p LIB INCLUDE CMAKE)
   set(var INSTALL_${p}_DIR)
   if(NOT IS_ABSOLUTE "${${var}}")
-    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+    set(ABSOLUTE_${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
   endif()
 endforeach()
 
@@ -97,9 +100,9 @@ message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
 FIND_PACKAGE(PkgConfig)
 FIND_PACKAGE(Threads REQUIRED)
 if ("${USE_INSTALLED_COMMONAPI}" STREQUAL "ON")
-    FIND_PACKAGE(CommonAPI 3.1.2 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    FIND_PACKAGE(CommonAPI 3.1.3 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    FIND_PACKAGE(CommonAPI 3.1.2 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    FIND_PACKAGE(CommonAPI 3.1.3 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
@@ -145,6 +148,12 @@ include_directories(
     ${DBus_INCLUDE_DIRS}
 )
 
+if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
+	link_directories(
+		${DBus_INCLUDE_DIRS}/dbus/.libs
+	)
+endif()
+
 # DBus source files
 file(GLOB CAPIDB_SRCS "src/CommonAPI/DBus/*.cpp")
 
@@ -158,8 +167,8 @@ file(GLOB MMHASH_SRCS "src/murmurhash/*.cpp")
 add_library(CommonAPI-DBus ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
 
 if(MSVC)
-#workaround since pkg-config on windows doesn't work easily
-target_link_libraries(CommonAPI-DBus CommonAPI debug ${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib optimized ${DBus_BUILD_DIR}/bin/Release/dbus-1.lib)
+#workaround since pkg-config on windows doesn't work easily and windows needs ws2_32 for the mainloop
+target_link_libraries(CommonAPI-DBus CommonAPI ws2_32 debug ${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib optimized ${DBus_BUILD_DIR}/bin/Release/dbus-1.lib)
 else()
 target_link_libraries(CommonAPI-DBus CommonAPI dbus-1)
 endif()
@@ -203,7 +212,7 @@ export(TARGETS CommonAPI-DBus
 export(PACKAGE CommonAPI-DBus)
 
 # Create the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion files ...
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
+file(RELATIVE_PATH REL_INCLUDE_DIR "${ABSOLUTE_INSTALL_CMAKE_DIR}" "${ABSOLUTE_INSTALL_INCLUDE_DIR}")
 
 # ... for the build tree
 set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")

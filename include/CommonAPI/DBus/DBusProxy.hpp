@@ -30,7 +30,7 @@ class DBusProxyStatusEvent
     virtual ~DBusProxyStatusEvent() {}
 
  protected:
-    virtual void onListenerAdded(const Listener& listener);
+    virtual void onListenerAdded(const Listener& listener, const Subscription subscription);
 
     DBusProxy* dbusProxy_;
 };
@@ -62,14 +62,61 @@ public:
 
 	COMMONAPI_EXPORT void init();
 
+	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+            const std::string &objectPath,
+            const std::string &interfaceName,
+            const std::string &signalName,
+            const std::string &signalSignature,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const bool justAddFilter);
+
+	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+            const std::string &objectPath,
+            const std::string &interfaceName,
+            const std::string &signalName,
+            const std::string &signalSignature,
+			const std::string &getMethodName,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const bool justAddFilter);
+
+	COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
+    		const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
+    		const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+
+	COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
+            const std::string &getMethodName,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+			const uint32_t subscription);
+
 private:
+    typedef std::tuple<
+		const std::string,
+		const std::string,
+		const std::string,
+		const std::string,
+		const std::string,
+		DBusProxyConnection::DBusSignalHandler*,
+		const bool,
+		bool
+		> SignalMemberHandlerTuple;
+
 	COMMONAPI_EXPORT DBusProxy(const DBusProxy &) = delete;
 
 	COMMONAPI_EXPORT void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
+	COMMONAPI_EXPORT void signalMemberCallback(const CallStatus dbusMessageCallStatus,
+			const DBusMessage& dbusMessage,
+			DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+			const uint32_t tag);
+	COMMONAPI_EXPORT void signalInitialValueCallback(const CallStatus dbusMessageCallStatus,
+			const DBusMessage& dbusMessage,
+			DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+			const uint32_t tag);
+	COMMONAPI_EXPORT void addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
     DBusServiceRegistry::DBusServiceSubscription dbusServiceRegistrySubscription_;
     AvailabilityStatus availabilityStatus_;
+    mutable std::mutex availabilityStatusMutex_;
 
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
 
@@ -77,6 +124,10 @@ private:
 
     mutable std::mutex availabilityMutex_;
     mutable std::condition_variable availabilityCondition_;
+
+    std::list<SignalMemberHandlerTuple> signalMemberHandlerQueue_;
+    CallInfo signalMemberHandlerInfo_;
+    mutable std::mutex signalMemberHandlerQueueMutex_;
 };
 
 

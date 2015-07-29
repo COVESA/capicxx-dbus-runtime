@@ -31,8 +31,7 @@ std::shared_ptr<DBusAddressTranslator> DBusAddressTranslator::get() {
 }
 
 DBusAddressTranslator::DBusAddressTranslator()
-	: defaultDomain_("local"),
-	  dBusBusType_(DBusType_t::SESSION) {
+	: defaultDomain_("local"), orgFreedesktopDBusPeerMapped_(false) {
 	init();
 
 	isDefault_ = ("dbus" == Runtime::get()->getDefaultBinding());
@@ -133,13 +132,13 @@ DBusAddressTranslator::translate(const DBusAddress &_key, CommonAPI::Address &_v
 void
 DBusAddressTranslator::insert(
 		const std::string &_address,
-		const std::string &_service, const std::string &_path, const std::string &_interface) {
+		const std::string &_service, const std::string &_path, const std::string &_interface, const bool _objPathStartWithDigits) {
 
 	if (isValid(_service, '.',
 			(_service.length() > 0 && _service[0] == ':'),
 			(_service.length() > 0 && _service[0] == ':'),
 			true)
-	  && isValid(_path, '/', true)
+	  && isValid(_path, '/', true, _objPathStartWithDigits)
 	  && isValid(_interface, '.')) {
 		CommonAPI::Address address(_address);
 		DBusAddress dbusAddress(_service, _path, _interface);
@@ -152,6 +151,12 @@ DBusAddressTranslator::insert(
 			backwards_[dbusAddress] = address;
 			COMMONAPI_DEBUG(
 				"Added address mapping: ", address, " <--> ", dbusAddress);
+			if (!orgFreedesktopDBusPeerMapped_) {
+				orgFreedesktopDBusPeerMapped_ = (_interface == "org.freedesktop.DBus.Peer");
+				if (orgFreedesktopDBusPeerMapped_) {
+					COMMONAPI_DEBUG("org.freedesktop.DBus.Peer mapped");
+				}
+			}
 		} else if(bw != backwards_.end() && bw->second != address) {
 			COMMONAPI_ERROR("Trying to overwrite existing DBus address "
 					"which is already mapped to a CommonAPI address: ",
@@ -189,21 +194,28 @@ DBusAddressTranslator::readConfiguration() {
 		return false;
 
 	for (auto itsMapping : reader.getSections()) {
-		if(itsMapping.first == "dbus") {
-			// TODO this is kind of misplaced in the AddressTranslator...
-			std::string bus_type_str_ = itsMapping.second->getValue("dbus_bus_type");
-			if(bus_type_str_ == "SESSION") {
-				dBusBusType_ = DBusType_t::SESSION;
-			} else if (bus_type_str_ == "SYSTEM") {
-				dBusBusType_ = DBusType_t::SYSTEM;
-			} else {
-				COMMONAPI_FATAL("Invalid dbus_bus_type specified in .ini file, "
-								"choose one of {SYSTEM, SESSION}");
-				continue;
-			}
-			COMMONAPI_INFO("D-Bus bus type set to: " + bus_type_str_ + " via ini file");
-			continue;
+		if(itsMapping.first == "segments") {
+		    std::map<std::string, std::string> mappings = itsMapping.second->getMappings();
+		    ConnectionId_t connectionId;
+		    std::string busType;
+		    for(auto const &it : mappings) {
+		        connectionId = it.first;
+		        busType = it.second;
+		        if(busType == "SESSION") {
+		            dbusTypes_.insert({ connectionId, DBusType_t::SESSION });
+		        } else if (busType == "SYSTEM") {
+		            dbusTypes_.insert({ connectionId, DBusType_t::SYSTEM });
+		        } else {
+		            COMMONAPI_FATAL("Invalid bus type specified in .ini file, "
+		                    "choose one of {SYSTEM, SESSION}");
+		            continue;
+		        }
+		        COMMONAPI_INFO("D-Bus bus type for connection: " + connectionId +
+		                " is set to: " + busType + " via ini file");
+		    }
+		    continue;
 		}
+
 		CommonAPI::Address itsAddress(itsMapping.first);
 
 		std::string service = itsMapping.second->getValue("service");
@@ -234,8 +246,13 @@ DBusAddressTranslator::isValid(
 
 	if (_ignoreFirst) {
 		start = 1;
-		if (separatorPos == 0)
+		if (separatorPos == 0) {
+			// accept "root-only" i.e. '/' object path
+			if (1 == _name.length()) {
+				return true;
+			}
 			separatorPos = _name.find(_separator, separatorPos+1);
+		}
 	}
 
 	while (start != std::string::npos) {
@@ -306,8 +323,17 @@ DBusAddressTranslator::isValid(
 }
 
 DBusType_t
-DBusAddressTranslator::getDBusBusType() const {
-	return dBusBusType_;
+DBusAddressTranslator::getDBusBusType(const ConnectionId_t &_connectionId) const {
+	auto itsDbusTypesIterator = dbusTypes_.find(_connectionId);
+	if(itsDbusTypesIterator != dbusTypes_.end()) {
+	    return itsDbusTypesIterator->second;
+	} else {
+	    return DBusType_t::SESSION;
+	}
+}
+
+bool DBusAddressTranslator::isOrgFreedesktopDBusPeerMapped() const {
+	return orgFreedesktopDBusPeerMapped_;
 }
 
 } // namespace DBus

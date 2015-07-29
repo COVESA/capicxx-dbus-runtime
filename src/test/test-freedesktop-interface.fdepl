@@ -3,14 +3,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import "platform:/plugin/org.genivi.commonapi.dbus/deployment/CommonAPI-DBus_deployment.fdepl"
+import "platform:/plugin/org.genivi.commonapi.dbus/deployment/CommonAPI-DBus_deployment_spec.fdepl"
 import "test-freedesktop-interface.fidl"
 
 
 define org.genivi.commonapi.dbus.deployment for interface commonapi.tests.TestFreedesktopInterface {
-    PropertiesType = freedesktop
+	DBusDefaultAttributeType = freedesktop
 }
 
 define org.genivi.commonapi.dbus.deployment for interface commonapi.tests.TestFreedesktopDerivedInterface {
-    PropertiesType = freedesktop
+    DBusDefaultAttributeType = freedesktop
 }
