@@ -20,9 +20,9 @@ namespace DBus {
 
 typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;
 typedef std::unordered_map<std::string,
-			DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
+            DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
 typedef std::unordered_map<std::string,
-			DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
+            DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
 
 enum class DBusType_t {
     SESSION = DBUS_BUS_SESSION,

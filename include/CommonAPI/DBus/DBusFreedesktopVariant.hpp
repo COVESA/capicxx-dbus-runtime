@@ -14,58 +14,65 @@
 
 namespace CommonAPI {
 namespace DBus {
-
-template<class Visitor, class Variant, typename ... _Types>
+template<class Visitor_, class Variant_, class Deployment_, typename ... Types_>
 struct ApplyTypeCompareVisitor;
 
-template<class Visitor, class Variant>
-struct ApplyTypeCompareVisitor<Visitor, Variant> {
+template<class Visitor_, class Variant_, class Deployment_>
+struct ApplyTypeCompareVisitor<Visitor_, Variant_, Deployment_> {
     static const uint8_t index = 0;
 
-    static uint8_t visit(Visitor&, const Variant&) {
-        // won't be called if the variant contains the requested type
-        assert(false);
-        return 0;
+    static bool visit(Visitor_&, const Variant_&, const Deployment_ *_depl, uint8_t &typeindex) {
+        (void)_depl;
+        // will be called only if the variant does not contain the requested type
+        typeindex = index;
+        return false;
     }
 };
 
-template<class Visitor, class Variant, typename _Type, typename ... _Types>
-struct ApplyTypeCompareVisitor<Visitor, Variant, _Type, _Types...> {
+template<class Visitor_, class Variant_, class Deployment_, typename Type_, typename ... Types_>
+struct ApplyTypeCompareVisitor<Visitor_, Variant_, Deployment_, Type_, Types_...> {
     static const uint8_t index
-		= ApplyTypeCompareVisitor<Visitor, Variant, _Types...>::index + 1;
+        = ApplyTypeCompareVisitor<Visitor_, Variant_, Deployment_, Types_...>::index + 1;
 
-    static uint8_t visit(Visitor &_visitor, const Variant &_variant) {
+    static bool visit(Visitor_ &_visitor, const Variant_ &_variant, const Deployment_ *_depl, uint8_t &typeindex) {
         DBusTypeOutputStream output;
-        _Type current;
-        output.writeType(current);
+        Type_ current;
+
+        if ((0 < Deployment_::size_) && (_depl)) {
+            output.writeType(current, std::get<Deployment_::size_-index>(_depl->values_));
+           }
+           else {
+            output.writeType(current, static_cast<CommonAPI::EmptyDeployment*>(nullptr));
+        }
+
 #ifdef WIN32
-        if (_visitor.operator()<_Type>(output.getSignature())) {
+        if (_visitor.operator()<Type_>(output.getSignature())) {
 #else
-        if (_visitor.template operator()<_Type>(output.getSignature())) {
+        if (_visitor.template operator()<Type_>(output.getSignature())) {
 #endif
-            return index;
+            typeindex = index;
+            return true;
         } else {
             return ApplyTypeCompareVisitor<
-            			Visitor, Variant, _Types...
-				   >::visit(_visitor, _variant);
+                        Visitor_, Variant_, Deployment_, Types_...
+                   >::visit(_visitor, _variant, _depl, typeindex);
         }
     }
 };
-
-template<typename ... _Types>
+template<typename ... Types_>
 struct TypeCompareVisitor {
 public:
-	TypeCompareVisitor(const std::string &_type)
-		: type_(_type) {
-	}
+    TypeCompareVisitor(const std::string &_type)
+        : type_(_type) {
+    }
 
-	template<typename _Type>
-	bool operator()(const std::string &_type) const {
-		return (_type == type_);
-	}
+    template<typename Type_>
+    bool operator()(const std::string &_type) const {
+        return (_type == type_);
+    }
 
 private:
-	const std::string type_;
+    const std::string type_;
 };
 
 } // namespace DBus

@@ -29,11 +29,11 @@
 
 #include "commonapi/tests/PredefinedTypeCollection.hpp"
 #include "commonapi/tests/DerivedTypeCollection.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
-#include "v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusProxy.hpp"
 
 #define VERSION v1_0
 
@@ -47,6 +47,18 @@ static const std::string fileString =
 "dbus_bustype=system\n"
 "";
 
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
+};
 
 class DBusProxyFactoryTest: public ::testing::Test {
  protected:
@@ -55,14 +67,16 @@ class DBusProxyFactoryTest: public ::testing::Test {
         ASSERT_TRUE((bool)runtime_);
 
 #ifdef WIN32
-		configFileName_ = _pgmptr;
+        configFileName_ = _pgmptr;
 #else
-		char cCurrentPath[FILENAME_MAX];
-		getcwd(cCurrentPath, sizeof(cCurrentPath));
-		configFileName_ = cCurrentPath;
+        char cCurrentPath[FILENAME_MAX];
+        if(getcwd(cCurrentPath, sizeof(cCurrentPath)) == NULL) {
+            std::perror("DBusProxyFactoryTest::SetUp");
+        }
+        configFileName_ = cCurrentPath;
 #endif
 
-		configFileName_ += DBUS_CONFIG_SUFFIX;
+        configFileName_ += DBUS_CONFIG_SUFFIX;
         std::ofstream configFile(configFileName_);
         ASSERT_TRUE(configFile.is_open());
         configFile << fileString;
@@ -108,12 +122,12 @@ TEST_F(DBusProxyFactoryTest, DBusFactoryCanBeCreated) {
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesDefaultTestProxy) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>("local", "commonapi.tests.TestInterface");
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>("local", "commonapi.tests.TestInterface");
     ASSERT_TRUE((bool)defaultTestProxy);
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
-	auto defaultTestProxy = runtime_->buildProxyWithDefaultAttributeExtension<VERSION::commonapi::tests::TestInterfaceProxy, myExtensions::AttributeTestExtension>("local", "commonapi.tests.TestInterface");
+    auto defaultTestProxy = runtime_->buildProxyWithDefaultAttributeExtension<VERSION::commonapi::tests::TestInterfaceProxy, myExtensions::AttributeTestExtension>("local", "commonapi.tests.TestInterface");
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto attributeExtension = defaultTestProxy->getTestDerivedArrayAttributeAttributeExtension();
@@ -121,9 +135,9 @@ TEST_F(DBusProxyFactoryTest, CreatesDefaultExtendedTestProxy) {
 }
 
 TEST_F(DBusProxyFactoryTest, CreatesIndividuallyExtendedTestProxy) {
-	auto specificAttributeExtendedTestProxy = runtime_->buildProxy<
-		VERSION::commonapi::tests::TestInterfaceProxy,
-		VERSION::commonapi::tests::TestInterfaceExtensions::TestDerivedArrayAttributeAttributeExtension<myExtensions::AttributeTestExtension> >
+    auto specificAttributeExtendedTestProxy = runtime_->buildProxy<
+        VERSION::commonapi::tests::TestInterfaceProxy,
+        VERSION::commonapi::tests::TestInterfaceExtensions::TestDerivedArrayAttributeAttributeExtension<myExtensions::AttributeTestExtension> >
             ("local", "commonapi.tests.TestInterface");
 
     ASSERT_TRUE((bool)specificAttributeExtendedTestProxy);
@@ -138,6 +152,7 @@ TEST_F(DBusProxyFactoryTest, CreateNamedFactory) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

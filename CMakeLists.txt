@@ -10,7 +10,7 @@ PROJECT(libcommonapi-dbus)
 # version of CommonAPI-DBus
 SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
 SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 1 )
-SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 3 )
+SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 4 )
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 
@@ -24,7 +24,7 @@ set(GTEST_ROOT "n/a" CACHE STRING "Path to root folder of googletest. Must be se
 # OS
 set(DL_LIBRARY "")
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	set(DL_LIBRARY "dl")
+    set(DL_LIBRARY "dl")
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 ##############################################################################
@@ -100,9 +100,9 @@ message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
 FIND_PACKAGE(PkgConfig)
 FIND_PACKAGE(Threads REQUIRED)
 if ("${USE_INSTALLED_COMMONAPI}" STREQUAL "ON")
-    FIND_PACKAGE(CommonAPI 3.1.3 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    FIND_PACKAGE(CommonAPI 3.1.4 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    FIND_PACKAGE(CommonAPI 3.1.3 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    FIND_PACKAGE(CommonAPI 3.1.4 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
@@ -112,18 +112,18 @@ message(STATUS "CommonAPI Version: ${CommonAPI_VERSION}")
 ###############################################################################
 # find DBus by using the 'pkg-config' tool
 if (MSVC)
-	#Not beautiful, but it works
-	if (DBus_DIR)
-		if (DBus_BUILD_DIR)
-			set(DBus_INCLUDE_DIRS "${DBus_DIR};${DBus_BUILD_DIR};")
-		else ()
-			message (FATAL_ERROR "DBus_BUILD_DIR not set! Cannot continue.")
-		endif ()
-	else()
-		message (FATAL_ERROR "DBus_DIR not set! Cannot continue.")
-	endif ()
+    #Not beautiful, but it works
+    if (DBus_DIR)
+        if (DBus_BUILD_DIR)
+            set(DBus_INCLUDE_DIRS "${DBus_DIR};${DBus_BUILD_DIR};")
+        else ()
+            message (FATAL_ERROR "DBus_BUILD_DIR not set! Cannot continue.")
+        endif ()
+    else()
+        message (FATAL_ERROR "DBus_DIR not set! Cannot continue.")
+    endif ()
 else()
-	pkg_check_modules(DBus REQUIRED dbus-1>=1.4)
+    pkg_check_modules(DBus REQUIRED dbus-1>=1.4)
 endif()
 
 ##############################################################################
@@ -135,7 +135,7 @@ if (MSVC)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /EHsc /wd\\\"4503\\\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /wd\\\"4503\\\"")
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wformat -Wformat-security -Wconversion -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")
@@ -149,9 +149,9 @@ include_directories(
 )
 
 if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
-	link_directories(
-		${DBus_INCLUDE_DIRS}/dbus/.libs
-	)
+    link_directories(
+        ${DBus_INCLUDE_DIRS}/dbus/.libs
+    )
 endif()
 
 # DBus source files
@@ -293,6 +293,13 @@ else()
 endif()
 
 ##############################################################################
+# create pkg-config file
+if(NOT WIN32 AND PKG_CONFIG_FOUND)
+        configure_file(CommonAPI-DBus.pc.in ${PROJECT_BINARY_DIR}/CommonAPI-DBus.pc @ONLY)
+        install(FILES ${PROJECT_BINARY_DIR}/CommonAPI-DBus.pc DESTINATION lib/pkconfig)
+endif()
+
+##############################################################################
 # Test section
 ##############################################################################
 
@@ -337,3 +344,4 @@ add_dependencies(check build_tests)
 # add test directory
 
 add_subdirectory( src/test EXCLUDE_FROM_ALL )
+

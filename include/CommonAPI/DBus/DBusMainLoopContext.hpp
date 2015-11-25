@@ -48,7 +48,7 @@ class DBusWatch: public Watch {
     const pollfd& getAssociatedFileDescriptor();
 
 #ifdef WIN32
-	const HANDLE& getAssociatedEvent();
+    const HANDLE& getAssociatedEvent();
 #endif
 
     const std::vector<DispatchSource*>& getDependentDispatchSources();
@@ -63,7 +63,7 @@ class DBusWatch: public Watch {
     std::weak_ptr<MainLoopContext> mainLoopContext_;
 
 #ifdef WIN32
-	HANDLE wsaEvent_;
+    HANDLE wsaEvent_;
 #endif
 };
 

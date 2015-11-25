@@ -70,7 +70,7 @@ public:
     const char* getSignature() const;
     const char* getError() const;
     const char* getDestination() const;
-    const uint32_t getSerial() const;
+    uint32_t getSerial() const;
 
     bool hasObjectPath(const std::string& objectPath) const;
 
@@ -79,7 +79,7 @@ public:
     bool hasMemberName(const char* memberName) const;
     bool hasSignature(const char* signature) const;
 
-    const Type getType() const;
+    Type getType() const;
     bool isInvalidType() const;
     bool isMethodCallType() const;
     bool isMethodReturnType() const;

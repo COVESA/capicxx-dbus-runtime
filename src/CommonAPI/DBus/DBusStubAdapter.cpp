@@ -12,8 +12,8 @@ namespace DBus {
 DBusStubAdapter::DBusStubAdapter(const DBusAddress &_dbusAddress,
                                  const std::shared_ptr<DBusProxyConnection> &_connection,
                                  const bool _isManaging)
-	: dbusAddress_(_dbusAddress),
-	  connection_(_connection),
+    : dbusAddress_(_dbusAddress),
+      connection_(_connection),
       isManaging_(_isManaging) {
 }
 
@@ -22,7 +22,8 @@ DBusStubAdapter::~DBusStubAdapter() {
 }
 
 void DBusStubAdapter::init(std::shared_ptr<DBusStubAdapter> _instance) {
-	DBusAddressTranslator::get()->translate(dbusAddress_, address_);
+    (void)_instance;
+    DBusAddressTranslator::get()->translate(dbusAddress_, address_);
 }
 
 void DBusStubAdapter::deinit() {
@@ -36,11 +37,11 @@ const std::shared_ptr<DBusProxyConnection> &DBusStubAdapter::getDBusConnection()
     return connection_;
 }
 
-const bool DBusStubAdapter::isManaging() const {
+bool DBusStubAdapter::isManaging() const {
     return isManaging_;
 }
 
-const bool DBusStubAdapter::hasFreedesktopProperties() {
+bool DBusStubAdapter::hasFreedesktopProperties() {
     return false;
 }
 

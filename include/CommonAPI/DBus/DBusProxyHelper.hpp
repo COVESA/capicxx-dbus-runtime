@@ -30,29 +30,41 @@ class DBusProxy;
 template< class, class >
 struct DBusProxyHelper;
 
+#ifdef WIN32
+// Visual Studio 2013 does not support 'magic statics' yet.
+// Change back when switched to Visual Studio 2015 or higher.
+static std::mutex callMethod_mutex_;
+static std::mutex callMethodWithReply_mutex_;
+static std::mutex callMethodAsync_mutex_;
+#endif
+
 template<
-    template<class ...> class _In, class... _InArgs,
-    template <class...> class _Out, class... _OutArgs>
-struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
-    					   _Out<DBusInputStream, DBusOutputStream, _OutArgs...>> {
+    template<class ...> class In_, class... InArgs_,
+    template <class...> class Out_, class... OutArgs_>
+struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
+                           Out_<DBusInputStream, DBusOutputStream, OutArgs_...>> {
 
-	template <typename _DBusProxy = DBusProxy>
-	static void callMethod(const _DBusProxy &_proxy,
-						   const std::string &_method,
-						   const std::string &_signature,
-						   const _InArgs&... _in,
-						   CommonAPI::CallStatus &_status) {
+    template <typename DBusProxy_ = DBusProxy>
+    static void callMethod(const DBusProxy_ &_proxy,
+                           const std::string &_method,
+                           const std::string &_signature,
+                           const InArgs_&... _in,
+                           CommonAPI::CallStatus &_status) {
+#ifndef WIN32
+        static std::mutex callMethod_mutex_;
+#endif
+        std::lock_guard<std::mutex> lock(callMethod_mutex_);
 
-		if (_proxy.isAvailable()) {
-			DBusMessage message = _proxy.createMethodCall(_method, _signature);
-			if (sizeof...(_InArgs) > 0) {
-				DBusOutputStream output(message);
-				if (!DBusSerializableArguments<_InArgs...>::serialize(output, _in...)) {
-					_status = CallStatus::OUT_OF_MEMORY;
-					return;
-				}
-				output.flush();
-			}
+        if (_proxy.isAvailable()) {
+            DBusMessage message = _proxy.createMethodCall(_method, _signature);
+            if (sizeof...(InArgs_) > 0) {
+                DBusOutputStream output(message);
+                if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
+                    _status = CallStatus::OUT_OF_MEMORY;
+                    return;
+                }
+                output.flush();
+            }
 
             const bool isSent = _proxy.getDBusConnection()->sendDBusMessage(message);
             _status = (isSent ? CallStatus::SUCCESS : CallStatus::OUT_OF_MEMORY);
@@ -61,18 +73,18 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         }
     }
 
-    template <typename _DBusProxy = DBusProxy>
+    template <typename DBusProxy_ = DBusProxy>
     static void callMethodWithReply(
-                    const _DBusProxy &_proxy,
+                    const DBusProxy_ &_proxy,
                     DBusMessage &_message,
-					const CommonAPI::CallInfo *_info,
-                    const _InArgs&... _in,
+                    const CommonAPI::CallInfo *_info,
+                    const InArgs_&... _in,
                     CommonAPI::CallStatus &_status,
-                    _OutArgs&... _out) {
+                    OutArgs_&... _out) {
 
-        if (sizeof...(_InArgs) > 0) {
+        if (sizeof...(InArgs_) > 0) {
             DBusOutputStream output(_message);
-            if (!DBusSerializableArguments<_InArgs...>::serialize(output, _in...)) {
+            if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
                 _status = CallStatus::OUT_OF_MEMORY;
                 return;
             }
@@ -86,9 +98,9 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
             return;
         }
 
-        if (sizeof...(_OutArgs) > 0) {
+        if (sizeof...(OutArgs_) > 0) {
             DBusInputStream input(reply);
-            if (!DBusSerializableArguments<_OutArgs...>::deserialize(input, _out...)) {
+            if (!DBusSerializableArguments<OutArgs_...>::deserialize(input, _out...)) {
                 _status = CallStatus::REMOTE_ERROR;
                 return;
             }
@@ -96,16 +108,21 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         _status = CallStatus::SUCCESS;
     }
 
-    template <typename _DBusProxy = DBusProxy>
+    template <typename DBusProxy_ = DBusProxy>
     static void callMethodWithReply(
-                const _DBusProxy &_proxy,
+                const DBusProxy_ &_proxy,
                 const DBusAddress &_address,
                 const char *_method,
                 const char *_signature,
-				const CommonAPI::CallInfo *_info,
-                const _InArgs&... _in,
+                const CommonAPI::CallInfo *_info,
+                const InArgs_&... _in,
                 CommonAPI::CallStatus &_status,
-                _OutArgs&... _out) {
+                OutArgs_&... _out) {
+#ifndef WIN32
+        static std::mutex callMethodWithReply_mutex_;
+#endif
+        std::lock_guard<std::mutex> lock(callMethodWithReply_mutex_);
+
         if (_proxy.isAvailable()) {
             DBusMessage message = DBusMessage::createMethodCall(_address, _method, _signature);
             callMethodWithReply(_proxy, message, _info, _in..., _status, _out...);
@@ -114,34 +131,39 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         }
     }
 
-    template <typename _DBusProxy = DBusProxy>
+    template <typename DBusProxy_ = DBusProxy>
     static void callMethodWithReply(
-                const _DBusProxy &_proxy,
+                const DBusProxy_ &_proxy,
                 const std::string &_interface,
                 const std::string &_method,
                 const std::string &_signature,
-				const CommonAPI::CallInfo *_info,
-                const _InArgs&... _in,
+                const CommonAPI::CallInfo *_info,
+                const InArgs_&... _in,
                 CommonAPI::CallStatus &_status,
-                _OutArgs&... _out) {
-    	DBusAddress itsAddress(_proxy.getDBusAddress());
-    	itsAddress.setInterface(_interface);
+                OutArgs_&... _out) {
+        DBusAddress itsAddress(_proxy.getDBusAddress());
+        itsAddress.setInterface(_interface);
         callMethodWithReply(
-        		_proxy, itsAddress,
-				_method.c_str(), _signature.c_str(),
-				_info,
-				_in..., _status, _out...);
+                _proxy, itsAddress,
+                _method.c_str(), _signature.c_str(),
+                _info,
+                _in..., _status, _out...);
     }
 
-    template <typename _DBusProxy = DBusProxy>
+    template <typename DBusProxy_ = DBusProxy>
     static void callMethodWithReply(
-                    const _DBusProxy &_proxy,
+                    const DBusProxy_ &_proxy,
                     const std::string &_method,
                     const std::string &_signature,
-					const CommonAPI::CallInfo *_info,
-                    const _InArgs&... _in,
+                    const CommonAPI::CallInfo *_info,
+                    const InArgs_&... _in,
                     CommonAPI::CallStatus &_status,
-                    _OutArgs&... _out) {
+                    OutArgs_&... _out) {
+#ifndef WIN32
+        static std::mutex callMethodWithReply_mutex_;
+#endif
+        std::lock_guard<std::mutex> lock(callMethodWithReply_mutex_);
+
         if (_proxy.isAvailable()) {
             DBusMessage message = _proxy.createMethodCall(_method, _signature);
             callMethodWithReply(_proxy, message, _info, _in..., _status, _out...);
@@ -150,19 +172,19 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         }
     }
 
-    template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
     static std::future<CallStatus> callMethodAsync(
-                    const _DBusProxy &_proxy,
+                    const DBusProxy_ &_proxy,
                     DBusMessage &_message,
-					const CommonAPI::CallInfo *_info,
-                    const _InArgs&... _in,
-                    _AsyncCallback _callback,
-                    std::tuple<_OutArgs...> _out) {
-        if (sizeof...(_InArgs) > 0) {
+                    const CommonAPI::CallInfo *_info,
+                    const InArgs_&... _in,
+                    AsyncCallback_ _callback,
+                    std::tuple<OutArgs_...> _out) {
+        if (sizeof...(InArgs_) > 0) {
             DBusOutputStream output(_message);
             const bool success = DBusSerializableArguments<
-            						_InArgs...
-            					 >::serialize(output, _in...);
+                                    InArgs_...
+                                 >::serialize(output, _in...);
             if (!success) {
                 std::promise<CallStatus> promise;
                 promise.set_value(CallStatus::OUT_OF_MEMORY);
@@ -174,27 +196,32 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         return _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
                         _message,
                         DBusProxyAsyncCallbackHandler<
-                        	_OutArgs...
+                            OutArgs_...
                         >::create(std::move(_callback), _out),
-						_info);
+                        _info);
     }
 
-    template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
     static std::future<CallStatus> callMethodAsync(
-                        const _DBusProxy &_proxy,
+                        const DBusProxy_ &_proxy,
                         const DBusAddress &_address,
                         const std::string &_method,
                         const std::string &_signature,
-						const CommonAPI::CallInfo *_info,
-                        const _InArgs&... _in,
-                        _AsyncCallback _callback,
-                        std::tuple<_OutArgs...> _out) {
+                        const CommonAPI::CallInfo *_info,
+                        const InArgs_&... _in,
+                        AsyncCallback_ _callback,
+                        std::tuple<OutArgs_...> _out) {
+#ifndef WIN32
+        static std::mutex callMethodAsync_mutex_;
+#endif
+        std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
+
         if (_proxy.isAvailable()) {
             DBusMessage message = DBusMessage::createMethodCall(_address, _method, _signature);
             return callMethodAsync(_proxy, message, _info, _in..., _callback, _out);
         } else {
             CallStatus status = CallStatus::NOT_AVAILABLE;
-            callCallbackOnNotAvailable(_callback, typename make_sequence<sizeof...(_OutArgs)>::type(), _out);
+            callCallbackOnNotAvailable(_callback, typename make_sequence<sizeof...(OutArgs_)>::type(), _out);
 
             std::promise<CallStatus> promise;
             promise.set_value(status);
@@ -202,53 +229,59 @@ struct DBusProxyHelper<_In<DBusInputStream, DBusOutputStream, _InArgs...>,
         }
     }
 
-    template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
     static std::future<CallStatus> callMethodAsync(
-                const _DBusProxy &_proxy,
+                const DBusProxy_ &_proxy,
                 const std::string &_interface,
                 const std::string &_method,
                 const std::string &_signature,
-				const CommonAPI::CallInfo *_info,
-                const _InArgs&... _in,
-                _AsyncCallback _callback,
-                std::tuple<_OutArgs...> _out) {
-    	DBusAddress itsAddress(_proxy.getDBusAddress());
-    	itsAddress.setInterface(_interface);
-    	return callMethodAsync(
-					_proxy, itsAddress,
-					_method, _signature,
-					_info,
-					_in...,	_callback, _out);
+                const CommonAPI::CallInfo *_info,
+                const InArgs_&... _in,
+                AsyncCallback_ _callback,
+                std::tuple<OutArgs_...> _out) {
+        DBusAddress itsAddress(_proxy.getDBusAddress());
+        itsAddress.setInterface(_interface);
+        return callMethodAsync(
+                    _proxy, itsAddress,
+                    _method, _signature,
+                    _info,
+                    _in...,    _callback, _out);
     }
 
-    template <typename _DBusProxy = DBusProxy, typename _AsyncCallback>
+    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
     static std::future<CallStatus> callMethodAsync(
-                    const _DBusProxy &_proxy,
+                    const DBusProxy_ &_proxy,
                     const std::string &_method,
                     const std::string &_signature,
-					const CommonAPI::CallInfo *_info,
-                    const _InArgs&... _in,
-                    _AsyncCallback _callback,
-                    std::tuple<_OutArgs...> _out) {
+                    const CommonAPI::CallInfo *_info,
+                    const InArgs_&... _in,
+                    AsyncCallback_ _callback,
+                    std::tuple<OutArgs_...> _out) {
+#ifndef WIN32
+        static std::mutex callMethodAsync_mutex_;
+#endif
+        std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
+
         if (_proxy.isAvailable()) {
             DBusMessage message = _proxy.createMethodCall(_method, _signature);
             return callMethodAsync(_proxy, message, _info, _in..., _callback, _out);
         } else {
             callCallbackOnNotAvailable(
-            	_callback, typename make_sequence<sizeof...(_OutArgs)>::type(), _out);
+                _callback, typename make_sequence<sizeof...(OutArgs_)>::type(), _out);
 
             CallStatus status = CallStatus::NOT_AVAILABLE;
             std::promise<CallStatus> promise;
             promise.set_value(status);
             return promise.get_future();
-    	}
+        }
     }
 
-    template <int... _ArgIndices>
-    static void callCallbackOnNotAvailable(std::function<void(CallStatus, _OutArgs&...)> _callback,
-                                           index_sequence<_ArgIndices...>, std::tuple<_OutArgs...> _out) {
+    template <int... ArgIndices_>
+    static void callCallbackOnNotAvailable(std::function<void(CallStatus, OutArgs_&...)> _callback,
+                                           index_sequence<ArgIndices_...>, std::tuple<OutArgs_...> _out) {
         const CallStatus status(CallStatus::NOT_AVAILABLE);
-        _callback(status, std::get<_ArgIndices>(_out)...);
+        _callback(status, std::get<ArgIndices_>(_out)...);
+        (void)_out;
     }
 };
 

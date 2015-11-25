@@ -24,7 +24,8 @@ DBusDispatchSource::DBusDispatchSource(DBusConnection* dbusConnection):
 DBusDispatchSource::~DBusDispatchSource() {
 }
 
-bool DBusDispatchSource::prepare(int64_t& timeout) {
+bool DBusDispatchSource::prepare(int64_t &_timeout) {
+    (void)_timeout;
     return dbusConnection_->isDispatchReady();
 }
 
@@ -44,7 +45,7 @@ DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& 
 }
 
 bool DBusWatch::isReadyToBeWatched() {
-	return 0 != dbus_watch_get_enabled(libdbusWatch_);
+    return 0 != dbus_watch_get_enabled(libdbusWatch_);
 }
 
 void DBusWatch::startWatching() {
@@ -54,7 +55,7 @@ void DBusWatch::startWatching() {
 #ifdef WIN32
     short int pollFlags = 0;
 #else
-	short int pollFlags = POLLERR | POLLHUP;
+    short int pollFlags = POLLERR | POLLHUP;
 #endif
     if(channelFlags_ & DBUS_WATCH_READABLE) {
         pollFlags |= POLLIN;
@@ -64,11 +65,11 @@ void DBusWatch::startWatching() {
     }
 
 #ifdef WIN32
-	pollFileDescriptor_.fd = dbus_watch_get_socket(libdbusWatch_);
-	wsaEvent_ = WSACreateEvent();
-	WSAEventSelect(pollFileDescriptor_.fd, wsaEvent_, FD_READ);
+    pollFileDescriptor_.fd = dbus_watch_get_socket(libdbusWatch_);
+    wsaEvent_ = WSACreateEvent();
+    WSAEventSelect(pollFileDescriptor_.fd, wsaEvent_, FD_READ);
 #else
-	pollFileDescriptor_.fd = dbus_watch_get_unix_fd(libdbusWatch_);
+    pollFileDescriptor_.fd = dbus_watch_get_unix_fd(libdbusWatch_);
 #endif
 
     pollFileDescriptor_.events = pollFlags;
@@ -82,7 +83,7 @@ void DBusWatch::startWatching() {
 void DBusWatch::stopWatching() {
     auto lockedContext = mainLoopContext_.lock();
     if (lockedContext) {
-    	lockedContext->deregisterWatch(this);
+        lockedContext->deregisterWatch(this);
     }
 }
 
@@ -92,7 +93,7 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
 
 #ifdef WIN32
 const HANDLE& DBusWatch::getAssociatedEvent() {
-	return wsaEvent_;
+    return wsaEvent_;
 }
 #endif
 
@@ -142,7 +143,7 @@ DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopCo
 }
 
 bool DBusTimeout::isReadyToBeMonitored() {
-	return 0 != dbus_timeout_get_enabled(libdbusTimeout_);
+    return 0 != dbus_timeout_get_enabled(libdbusTimeout_);
 }
 
 void DBusTimeout::startMonitoring() {
@@ -156,7 +157,7 @@ void DBusTimeout::stopMonitoring() {
     dueTimeInMs_ = TIMEOUT_INFINITE;
     auto lockedContext = mainLoopContext_.lock();
     if (lockedContext) {
-    	lockedContext->deregisterTimeoutSource(this);
+        lockedContext->deregisterTimeoutSource(this);
     }
 }
 

@@ -40,7 +40,7 @@ public:
 
     virtual const char* getMethodsDBusIntrospectionXmlData() const;
     virtual bool onInterfaceDBusMessage(const DBusMessage &_message);
-    virtual const bool hasFreedesktopProperties();
+    virtual bool hasFreedesktopProperties();
 
 private:
     std::string path_;

@@ -27,19 +27,19 @@ namespace DBus {
 class DBusAddress;
 
 class DBusProxyBase
-		: public virtual CommonAPI::Proxy {
+        : public virtual CommonAPI::Proxy {
 public:
-	COMMONAPI_EXPORT DBusProxyBase(const DBusAddress &_address,
-    			  const std::shared_ptr<DBusProxyConnection> &_connection);
-	COMMONAPI_EXPORT virtual ~DBusProxyBase() {}
+    COMMONAPI_EXPORT DBusProxyBase(const DBusAddress &_address,
+                  const std::shared_ptr<DBusProxyConnection> &_connection);
+    COMMONAPI_EXPORT virtual ~DBusProxyBase() {}
 
-	COMMONAPI_EXPORT const DBusAddress &getDBusAddress() const;
-	COMMONAPI_EXPORT const std::shared_ptr<DBusProxyConnection> &getDBusConnection() const;
+    COMMONAPI_EXPORT const DBusAddress &getDBusAddress() const;
+    COMMONAPI_EXPORT const std::shared_ptr<DBusProxyConnection> &getDBusConnection() const;
 
-	COMMONAPI_EXPORT DBusMessage createMethodCall(const std::string &_method,
+    COMMONAPI_EXPORT DBusMessage createMethodCall(const std::string &_method,
                                  const std::string &_signature = "") const;
 
-	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+    COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,
             const std::string &interfaceName,
             const std::string &signalName,
@@ -47,7 +47,7 @@ public:
             DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
             const bool justAddFilter);
 
-	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+    COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,
             const std::string &interfaceName,
             const std::string &signalName,
@@ -56,19 +56,23 @@ public:
             DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
             const bool justAddFilter);
 
-	COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
-    		const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-    		const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+    COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
+            const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
+            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
 
-	COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
-            const std::string &getMethodName,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-            const uint32_t subscription) {}
+    COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
+            const std::string &_getMethodName,
+            DBusProxyConnection::DBusSignalHandler *_handler,
+            const uint32_t _subscription) {
+        (void)_getMethodName;
+        (void)_handler;
+        (void)_subscription;
+    }
 
-	COMMONAPI_EXPORT virtual void init() = 0;
+    COMMONAPI_EXPORT virtual void init() = 0;
 
  protected:
-	COMMONAPI_EXPORT DBusProxyBase(const DBusProxyBase &) = delete;
+    COMMONAPI_EXPORT DBusProxyBase(const DBusProxyBase &) = delete;
 
     DBusAddress dbusAddress_;
     std::shared_ptr<DBusProxyConnection> connection_;

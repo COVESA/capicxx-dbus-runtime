@@ -44,17 +44,17 @@ typedef Variant<int,bool> InnerVar;
 struct MyStruct: CommonAPI::Struct<uint32_t, InnerVar, bool, std::string, double> {
     ~MyStruct();
 
-	virtual uint32_t	getA()				{ return std::get<0>(values_); }
-	virtual InnerVar	getB()				{ return std::get<1>(values_); }
-	virtual bool		getC()				{ return std::get<2>(values_); }
-	virtual std::string getD()				{ return std::get<3>(values_); }
-	virtual double		getE()				{ return std::get<4>(values_); }
+    virtual uint32_t    getA()                { return std::get<0>(values_); }
+    virtual InnerVar    getB()                { return std::get<1>(values_); }
+    virtual bool        getC()                { return std::get<2>(values_); }
+    virtual std::string getD()                { return std::get<3>(values_); }
+    virtual double      getE()                { return std::get<4>(values_); }
 
-	virtual void		setA(uint32_t a)	{ std::get<0>(values_) = a; }
-	virtual void		setB(InnerVar b)	{ std::get<1>(values_) = b; }
-	virtual void		setC(bool c)		{ std::get<2>(values_) = c; }
-	virtual void		setD(std::string d)	{ std::get<3>(values_) = d; }
-	virtual void		setE(double e)		{ std::get<4>(values_) = e; }
+    virtual void        setA(uint32_t a)      { std::get<0>(values_) = a; }
+    virtual void        setB(InnerVar b)      { std::get<1>(values_) = b; }
+    virtual void        setC(bool c)          { std::get<2>(values_) = c; }
+    virtual void        setD(std::string d)   { std::get<3>(values_) = d; }
+    virtual void        setE(double e)        { std::get<4>(values_) = e; }
 };
 
 MyStruct::~MyStruct() {
@@ -64,11 +64,11 @@ bool operator==(const MyStruct& lhs, const MyStruct& rhs) {
     if (&lhs == &rhs)
         return true;
 
-	return (std::get<0>(lhs.values_) == std::get<0>(rhs.values_))
-		&& (std::get<1>(lhs.values_) == std::get<1>(rhs.values_))
-		&& (std::get<2>(lhs.values_) == std::get<2>(rhs.values_))
-		&& (std::get<3>(lhs.values_) == std::get<3>(rhs.values_))
-		&& (std::get<4>(lhs.values_) == std::get<4>(rhs.values_));
+    return (std::get<0>(lhs.values_) == std::get<0>(rhs.values_))
+        && (std::get<1>(lhs.values_) == std::get<1>(rhs.values_))
+        && (std::get<2>(lhs.values_) == std::get<2>(rhs.values_))
+        && (std::get<3>(lhs.values_) == std::get<3>(rhs.values_))
+        && (std::get<4>(lhs.values_) == std::get<4>(rhs.values_));
     ;
 }
 
@@ -78,19 +78,18 @@ TEST_F(VariantOutputStreamTest, CanBeCalled) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     int fromInt = 14132;
     Variant<int, bool> inVariant(fromInt);
     Variant<int, bool> outVariant;
-
-	outputStream.writeValue(inVariant, static_cast<CommonAPI::DBus::VariantDeployment<int, bool>*>(nullptr));
+    outputStream.writeValue(inVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>*>(nullptr));
     outputStream.flush();
 
     DBus::DBusInputStream inputStream(message);
 
-	inputStream.readValue(outVariant, static_cast<CommonAPI::DBus::VariantDeployment<int, bool>*>(nullptr));
+    inputStream.readValue(outVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>*>(nullptr));
 
     EXPECT_TRUE(outVariant.isType<int>());
     EXPECT_EQ(inVariant.get<int>(), outVariant.get<int>());
@@ -98,7 +97,7 @@ TEST_F(VariantOutputStreamTest, CanWriteVariant) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariantInVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     int fromInt = 14132;
@@ -108,12 +107,12 @@ TEST_F(VariantOutputStreamTest, CanWriteVariantInVariant) {
 
     Variant<InnerVar, std::string, float> outVariant;
 
-	outputStream.writeValue(inVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::DBus::VariantDeployment<EmptyDeployment, EmptyDeployment>, EmptyDeployment, EmptyDeployment>*>(nullptr));
+    outputStream.writeValue(inVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::DBus::VariantDeployment<EmptyDeployment, EmptyDeployment>, EmptyDeployment, EmptyDeployment>*>(nullptr));
     outputStream.flush();
 
     DBus::DBusInputStream inputStream(message);
-	
-	inputStream.readValue(outVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::DBus::VariantDeployment<EmptyDeployment, EmptyDeployment>, EmptyDeployment, EmptyDeployment>*>(nullptr));
+    
+    inputStream.readValue(outVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::DBus::VariantDeployment<EmptyDeployment, EmptyDeployment>, EmptyDeployment, EmptyDeployment>*>(nullptr));
 
     EXPECT_TRUE(outVariant.isType<InnerVar>());
     EXPECT_EQ(inVariant.get<InnerVar>(), outVariant.get<InnerVar>());
@@ -121,7 +120,7 @@ TEST_F(VariantOutputStreamTest, CanWriteVariantInVariant) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariantInStruct) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     int fromInt = 14132;
@@ -145,7 +144,7 @@ TEST_F(VariantOutputStreamTest, CanWriteVariantInStruct) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariantInArray) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     int fromInt = 14132;
@@ -170,7 +169,7 @@ TEST_F(VariantOutputStreamTest, CanWriteVariantInArray) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteArrayInVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     typedef std::vector<int> IntVector;
@@ -199,7 +198,7 @@ TEST_F(VariantOutputStreamTest, CanWriteArrayInVariant) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteStructInVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     typedef Variant<MyStruct, std::string> StructVariant;
@@ -226,7 +225,7 @@ TEST_F(VariantOutputStreamTest, CanWriteStructInVariant) {
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariantInStructInVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     typedef Variant<MyStruct, std::string> StructVariant;
@@ -247,13 +246,13 @@ TEST_F(VariantOutputStreamTest, CanWriteVariantInStructInVariant) {
 
     EXPECT_TRUE(outVariant.isType<MyStruct>());
     EXPECT_EQ(inVariant.get<MyStruct>(), outVariant.get<MyStruct>());
-	EXPECT_TRUE(std::get<1>(inVariant.get<MyStruct>().values_) == std::get<1>(outVariant.get<MyStruct>().values_));
-	EXPECT_TRUE(std::get<1>(inVariant.get<MyStruct>().values_).get<int>() == std::get<1>(outVariant.get<MyStruct>().values_).get<int>());
+    EXPECT_TRUE(std::get<1>(inVariant.get<MyStruct>().values_) == std::get<1>(outVariant.get<MyStruct>().values_));
+    EXPECT_TRUE(std::get<1>(inVariant.get<MyStruct>().values_).get<int>() == std::get<1>(outVariant.get<MyStruct>().values_).get<int>());
     EXPECT_TRUE(inVariant == outVariant);
 }
 
 TEST_F(VariantOutputStreamTest, CanWriteVariantInArrayInVariant) {
-	message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
+    message = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), methodName, signature);
     DBus::DBusOutputStream outputStream(message);
 
     typedef std::vector<InnerVar> VarVector;

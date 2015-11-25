@@ -82,6 +82,10 @@ inline std::string toString(CommonAPI::CallStatus state) {
             return "REMOTE_ERROR";
         case CommonAPI::CallStatus::SUCCESS:
             return "SUCCESS";
+        case CommonAPI::CallStatus::UNKNOWN:
+            return "UNKNOWN";
+    default:
+        return "";
     }
     return "";
 }

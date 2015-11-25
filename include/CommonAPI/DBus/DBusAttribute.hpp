@@ -21,67 +21,67 @@
 namespace CommonAPI {
 namespace DBus {
 
-template <typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
-class DBusReadonlyAttribute: public _AttributeType {
+template <typename AttributeType_, typename AttributeDepl_ = EmptyDeployment>
+class DBusReadonlyAttribute: public AttributeType_ {
 public:
-    typedef typename _AttributeType::ValueType ValueType;
-    typedef _AttributeDepl ValueTypeDepl;
-    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename AttributeType_::ValueType ValueType;
+    typedef AttributeDepl_ ValueTypeDepl;
+    typedef typename AttributeType_::AttributeAsyncCallback AttributeAsyncCallback;
 
     DBusReadonlyAttribute(DBusProxy &_proxy,
-    					  const char *setMethodSignature, const char *getMethodName,
-    					  _AttributeDepl *_depl = nullptr)
-    	: proxy_(_proxy),
+                          const char *setMethodSignature, const char *getMethodName,
+                          AttributeDepl_ *_depl = nullptr)
+        : proxy_(_proxy),
           getMethodName_(getMethodName),
           setMethodSignature_(setMethodSignature),
-          depl_(_depl)	{
+          depl_(_depl)    {
         assert(getMethodName);
     }
 
     void getValue(CommonAPI::CallStatus &_status, ValueType &_value, const CommonAPI::CallInfo *_info) const {
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedValue(depl_);
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedValue(depl_);
         DBusProxyHelper<
-        	DBusSerializableArguments<
-			>,
             DBusSerializableArguments<
-				CommonAPI::Deployable<
-					ValueType,
-					_AttributeDepl
-				>
-        	>
+            >,
+            DBusSerializableArguments<
+                CommonAPI::Deployable<
+                    ValueType,
+                    AttributeDepl_
+                >
+            >
         >::callMethodWithReply(proxy_, getMethodName_, "", (_info ? _info : &defaultCallInfo), _status, deployedValue);
         _value = deployedValue.getValue();
     }
 
     std::future<CallStatus> getValueAsync(AttributeAsyncCallback _callback, const CommonAPI::CallInfo *_info) {
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedValue(depl_);
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedValue(depl_);
         return DBusProxyHelper<
-        			DBusSerializableArguments<>,
-                    DBusSerializableArguments<CommonAPI::Deployable<ValueType, _AttributeDepl>>
-        	   >::callMethodAsync(proxy_, getMethodName_, "", (_info ? _info : &defaultCallInfo),
-        			[_callback](CommonAPI::CallStatus _status, CommonAPI::Deployable<ValueType, _AttributeDepl> _response) {
-        				_callback(_status, _response.getValue());
-        			},
-        			std::make_tuple(deployedValue));
+                    DBusSerializableArguments<>,
+                    DBusSerializableArguments<CommonAPI::Deployable<ValueType, AttributeDepl_>>
+               >::callMethodAsync(proxy_, getMethodName_, "", (_info ? _info : &defaultCallInfo),
+                    [_callback](CommonAPI::CallStatus _status, CommonAPI::Deployable<ValueType, AttributeDepl_> _response) {
+                        _callback(_status, _response.getValue());
+                    },
+                    std::make_tuple(deployedValue));
     }
 
  protected:
     DBusProxy &proxy_;
     const char *getMethodName_;
     const char *setMethodSignature_;
-    _AttributeDepl *depl_;
+    AttributeDepl_ *depl_;
 };
 
-template <typename _AttributeType, typename _AttributeDepl = EmptyDeployment>
-class DBusAttribute: public DBusReadonlyAttribute<_AttributeType, _AttributeDepl> {
+template <typename AttributeType_, typename AttributeDepl_ = EmptyDeployment>
+class DBusAttribute: public DBusReadonlyAttribute<AttributeType_, AttributeDepl_> {
 public:
-    typedef typename _AttributeType::ValueType ValueType;
-    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename AttributeType_::ValueType ValueType;
+    typedef typename AttributeType_::AttributeAsyncCallback AttributeAsyncCallback;
 
     DBusAttribute(DBusProxy &_proxy,
-    			  const char *_setMethodName, const char *_setMethodSignature, const char *_getMethodName,
-    			  _AttributeDepl *_depl = nullptr)
-    	: DBusReadonlyAttribute<_AttributeType, _AttributeDepl>(_proxy, _setMethodSignature, _getMethodName, _depl),
+                  const char *_setMethodName, const char *_setMethodSignature, const char *_getMethodName,
+                  AttributeDepl_ *_depl = nullptr)
+        : DBusReadonlyAttribute<AttributeType_, AttributeDepl_>(_proxy, _setMethodSignature, _getMethodName, _depl),
             setMethodName_(_setMethodName),
             setMethodSignature_(_setMethodSignature) {
         assert(_setMethodName);
@@ -89,34 +89,34 @@ public:
     }
 
     void setValue(const ValueType &_request, CommonAPI::CallStatus &_status, ValueType &_response, const CommonAPI::CallInfo *_info) {
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedRequest(_request, this->depl_);
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedResponse(this->depl_);
-    	DBusProxyHelper<DBusSerializableArguments<CommonAPI::Deployable<ValueType, _AttributeDepl>>,
-                        DBusSerializableArguments<CommonAPI::Deployable<ValueType, _AttributeDepl>> >::callMethodWithReply(
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedRequest(_request, this->depl_);
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedResponse(this->depl_);
+        DBusProxyHelper<DBusSerializableArguments<CommonAPI::Deployable<ValueType, AttributeDepl_>>,
+                        DBusSerializableArguments<CommonAPI::Deployable<ValueType, AttributeDepl_>> >::callMethodWithReply(
                                 this->proxy_,
                                 setMethodName_,
                                 setMethodSignature_,
-								(_info ? _info : &defaultCallInfo),
+                                (_info ? _info : &defaultCallInfo),
                                 deployedRequest,
-								_status,
+                                _status,
                                 deployedResponse);
-    	_response = deployedResponse.getValue();
+        _response = deployedResponse.getValue();
     }
 
 
     std::future<CallStatus> setValueAsync(const ValueType &_request, AttributeAsyncCallback _callback, const CommonAPI::CallInfo *_info) {
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedRequest(_request, this->depl_);
-    	CommonAPI::Deployable<ValueType, _AttributeDepl> deployedResponse(this->depl_);
-    	return DBusProxyHelper<DBusSerializableArguments<CommonAPI::Deployable<ValueType, _AttributeDepl>>,
-                               DBusSerializableArguments<CommonAPI::Deployable<ValueType, _AttributeDepl>> >::callMethodAsync(
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedRequest(_request, this->depl_);
+        CommonAPI::Deployable<ValueType, AttributeDepl_> deployedResponse(this->depl_);
+        return DBusProxyHelper<DBusSerializableArguments<CommonAPI::Deployable<ValueType, AttributeDepl_>>,
+                               DBusSerializableArguments<CommonAPI::Deployable<ValueType, AttributeDepl_>> >::callMethodAsync(
                                        this->proxy_,
                                        setMethodName_,
                                        setMethodSignature_,
-									   (_info ? _info : &defaultCallInfo),
+                                       (_info ? _info : &defaultCallInfo),
                                        deployedRequest,
-                                       [_callback](CommonAPI::CallStatus _status, CommonAPI::Deployable<ValueType, _AttributeDepl> _response) {
-    										_callback(_status, _response.getValue());
-    								   },
+                                       [_callback](CommonAPI::CallStatus _status, CommonAPI::Deployable<ValueType, AttributeDepl_> _response) {
+                                            _callback(_status, _response.getValue());
+                                       },
                                        std::make_tuple(deployedResponse));
     }
 
@@ -125,21 +125,21 @@ public:
     const char* setMethodSignature_;
 };
 
-template <typename _AttributeType>
-class DBusObservableAttribute: public _AttributeType {
+template <typename AttributeType_>
+class DBusObservableAttribute: public AttributeType_ {
 public:
-    typedef typename _AttributeType::ValueType ValueType;
-    typedef typename _AttributeType::ValueTypeDepl ValueTypeDepl;
-    typedef typename _AttributeType::AttributeAsyncCallback AttributeAsyncCallback;
-    typedef typename _AttributeType::ChangedEvent ChangedEvent;
+    typedef typename AttributeType_::ValueType ValueType;
+    typedef typename AttributeType_::ValueTypeDepl ValueTypeDepl;
+    typedef typename AttributeType_::AttributeAsyncCallback AttributeAsyncCallback;
+    typedef typename AttributeType_::ChangedEvent ChangedEvent;
 
-    template <typename... _AttributeTypeArguments>
+    template <typename... AttributeType_Arguments>
     DBusObservableAttribute(DBusProxy &_proxy,
-    						const char *_changedEventName,
-    						_AttributeTypeArguments... arguments)
-    	 : _AttributeType(_proxy, arguments...),
-    	   changedEvent_(_proxy, _changedEventName, this->setMethodSignature_, this->getMethodName_,
-    			   	   	 std::make_tuple(CommonAPI::Deployable<ValueType, ValueTypeDepl>(this->depl_))) {
+                            const char *_changedEventName,
+                            AttributeType_Arguments... arguments)
+         : AttributeType_(_proxy, arguments...),
+           changedEvent_(_proxy, _changedEventName, this->setMethodSignature_, this->getMethodName_,
+                               std::make_tuple(CommonAPI::Deployable<ValueType, ValueTypeDepl>(this->depl_))) {
     }
 
     ChangedEvent &getChangedEvent() {

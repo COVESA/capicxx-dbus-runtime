@@ -15,62 +15,71 @@ class DBusTypeOutputStream: public TypeOutputStream<DBusTypeOutputStream> {
 public:
     DBusTypeOutputStream() : signature_("") {}
 
-    TypeOutputStream &writeType(const bool &_type) {
+    TypeOutputStream &writeType(const bool &, const EmptyDeployment *) {
         signature_.append("b");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const int8_t &) {
+    TypeOutputStream &writeType(const int8_t &, const EmptyDeployment *) {
         signature_.append("y");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const int16_t &) {
+    TypeOutputStream &writeType(const int16_t &, const EmptyDeployment *) {
         signature_.append("n");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const int32_t &) {
+    TypeOutputStream &writeType(const int32_t &, const EmptyDeployment *) {
         signature_.append("i");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const  int64_t &) {
+    TypeOutputStream &writeType(const  int64_t &, const EmptyDeployment *) {
         signature_.append("x");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const uint8_t &) {
+    TypeOutputStream &writeType(const uint8_t &, const EmptyDeployment *) {
         signature_.append("y");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const uint16_t &) {
+    TypeOutputStream &writeType(const uint16_t &, const EmptyDeployment *) {
         signature_.append("q");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const uint32_t &) {
+    TypeOutputStream &writeType(const uint32_t &, const EmptyDeployment *) {
         signature_.append("u");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const uint64_t &) {
+    TypeOutputStream &writeType(const uint64_t &, const EmptyDeployment *) {
         signature_.append("t");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const float &) {
+    TypeOutputStream &writeType(const float &, const EmptyDeployment *) {
         signature_.append("d");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const double &) {
+    TypeOutputStream &writeType(const double &, const EmptyDeployment *) {
         signature_.append("d");
         return (*this);
     }
 
-    TypeOutputStream &writeType(const std::string &) {
+    TypeOutputStream &writeType(const std::string &, const StringDeployment *_depl) {
+        if ((_depl != nullptr) && _depl->isObjectPath_) {
+            signature_.append("o");
+        } else {
+            signature_.append("s");
+        }
+        return (*this);
+    }
+
+    TypeOutputStream &writeType(const std::string &, const CommonAPI::EmptyDeployment * = nullptr) {
         signature_.append("s");
         return (*this);
     }
@@ -80,7 +89,7 @@ public:
         return (*this);
     }
 
-    TypeOutputStream &writeType(const Version &) {
+    TypeOutputStream &writeType(const Version &, const EmptyDeployment *) {
         signature_.append("(uu)");
         return (*this);
     }
@@ -90,61 +99,88 @@ public:
         return (*this);
     }
 
-    template<typename... _Types>
-    TypeOutputStream &writeType(const Struct<_Types...> &_value) {
+    template<typename Deployment_, typename... Types_>
+    TypeOutputStream &writeType(const Struct<Types_...> &_value, const Deployment_ * _depl = nullptr) {
+        (void)_value;
         signature_.append("(");
-        const auto itsSize(std::tuple_size<std::tuple<_Types...>>::value);
-        StructTypeWriter<itsSize-1, DBusTypeOutputStream, Struct<_Types...>>{}
-        	(*this, _value);
+        const auto itsSize(std::tuple_size<std::tuple<Types_...>>::value);
+        StructTypeWriter<Deployment_, itsSize-1, DBusTypeOutputStream, Struct<Types_...>>{}
+            (*this, _value, _depl);
+
         signature_.append(")");
         return (*this);
     }
 
-    template<class _PolymorphicStruct>
-    TypeOutputStream &writeType(const std::shared_ptr<_PolymorphicStruct> &_value) {
+    template<typename Deployment_, class PolymorphicStruct_>
+    TypeOutputStream &writeType(const std::shared_ptr<PolymorphicStruct_> &_value, const Deployment_ * _depl = nullptr) {
+        (void)_value;
         signature_.append("(");
-        _value->template writeType<>((*this));
+        _value->template writeType<>((*this), _depl);
         signature_.append(")");
         return (*this);
     }
 
-    template<typename... _Types>
-    TypeOutputStream &writeType(const Variant<_Types...> &_value) {
+    template<typename... Types_>
+    TypeOutputStream &writeType(const Variant<Types_...> &_value, const EmptyDeployment *_depl) {
+        (void)_value;
+        (void)_depl;
         signature_.append("(yv)");
         return (*this);
     }
 
-    template<typename _Deployment, typename... _Types>
-    TypeOutputStream &writeType(const Variant<_Types...> &_value, const _Deployment *_depl) {
-    	if (_depl != nullptr && _depl->isDBus_) {
-    		signature_.append("v");
-    	} else {
-    		signature_.append("(yv)");
-    	}
-		TypeOutputStreamWriteVisitor<DBusTypeOutputStream> typeVisitor(*this);
-		ApplyVoidVisitor<TypeOutputStreamWriteVisitor<DBusTypeOutputStream>,
-				Variant<_Types...>, _Types...>::visit(typeVisitor, _value);
+    template<typename Deployment_, typename... Types_>
+    TypeOutputStream &writeType(const Variant<Types_...> &_value, const Deployment_ *_depl) {
+        (void)_value;
+        if (_depl != nullptr && _depl->isDBus_) {
+            signature_.append("v");
+        } else {
+            signature_.append("(yv)");
+        }
+
         return (*this);
     }
 
-	template<typename _ElementType>
-	TypeOutputStream &writeType(const std::vector<_ElementType> &_value) {
-		signature_.append("a");
-		_ElementType dummyElement;
-		writeType(dummyElement);
-		return (*this);
-	}
+    template<typename ElementType_>
+    TypeOutputStream &writeType(const std::vector<ElementType_> &_value, const EmptyDeployment * _depl = nullptr) {
+        (void)_value;
+        signature_.append("a");
+        ElementType_ dummyElement;
+        writeType(dummyElement, _depl);
+        return (*this);
+    }
 
-	template<typename _KeyType, typename _ValueType, typename _HasherType>
-	TypeOutputStream &writeType(const std::unordered_map<_KeyType, _ValueType, _HasherType> &_value) {
-		signature_.append("a{");
-		_KeyType dummyKey;
-		writeType(dummyKey);
-		_ValueType dummyValue;
-		writeType(dummyValue);
-		signature_.append("}");
-		return (*this);
-	}
+    template<typename Deployment_, typename ElementType_>
+    TypeOutputStream &writeType(const std::vector<ElementType_> &_value, const Deployment_ * _depl = nullptr) {
+        (void)_value;
+        signature_.append("a");
+        ElementType_ dummyElement;
+        writeType(dummyElement, (_depl ? _depl->elementDepl_ : nullptr)); 
+        return (*this);
+    }
+
+    template<typename KeyType_, typename ValueType_, typename HasherType_>
+    TypeOutputStream &writeType(const std::unordered_map<KeyType_, ValueType_, HasherType_> &_value, const EmptyDeployment *_depl = nullptr) {
+        (void)_value;
+        signature_.append("a{");
+        KeyType_ dummyKey;
+        writeType(dummyKey, _depl);
+        ValueType_ dummyValue;
+        writeType(dummyValue, _depl);
+        signature_.append("}");
+        return (*this);
+    }
+
+    template<typename Deployment_, typename KeyType_, typename ValueType_, typename HasherType_>
+    TypeOutputStream &writeType(const std::unordered_map<KeyType_, ValueType_, HasherType_> &_value, const Deployment_ *_depl = nullptr) {
+        (void)_value;
+        signature_.append("a{");
+        KeyType_ dummyKey;
+        writeType(dummyKey, (_depl ? _depl->key_ : nullptr)); 
+        ValueType_ dummyValue;
+        writeType(dummyValue, (_depl ? _depl->value_ : nullptr));
+        signature_.append("}");
+        return (*this);
+    }
 
     inline std::string getSignature() {
         return std::move(signature_);
@@ -158,3 +194,4 @@ private:
 } // namespace CommonAPI
 
 #endif // COMMONAPI_DBUS_DBUSTYPEOUTPUTSTREAM_HPP_
+

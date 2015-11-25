@@ -13,7 +13,7 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusMessage::DBusMessage()
-	: message_(NULL) {
+    : message_(NULL) {
 }
 
 DBusMessage::DBusMessage(::DBusMessage *_message) {
@@ -27,7 +27,7 @@ DBusMessage::DBusMessage(::DBusMessage *_message, bool reference) {
 
 DBusMessage::DBusMessage(const DBusMessage &_source) {
     message_ = (_source.message_ != nullptr ?
-    				dbus_message_ref(_source.message_) : nullptr);
+                    dbus_message_ref(_source.message_) : nullptr);
 }
 
 DBusMessage::DBusMessage(DBusMessage &&_source) {
@@ -47,7 +47,7 @@ DBusMessage::operator=(const DBusMessage &_source) {
             dbus_message_unref(message_);
 
         message_ = (_source.message_ != nullptr ?
-        				dbus_message_ref(_source.message_) : nullptr);
+                        dbus_message_ref(_source.message_) : nullptr);
     }
     return (*this);
 }
@@ -70,24 +70,24 @@ DBusMessage::operator bool() const {
 
 DBusMessage
 DBusMessage::createOrgFreedesktopOrgMethodCall(
-	const std::string &_method, const std::string &_signature) {
+    const std::string &_method, const std::string &_signature) {
 
-	static DBusAddress address("org.freedesktop.DBus", "/", "org.freedesktop.DBus");
+    static DBusAddress address("org.freedesktop.DBus", "/", "org.freedesktop.DBus");
     return DBusMessage::createMethodCall(address, _method, _signature);
 }
 
 DBusMessage
 DBusMessage::createMethodCall(
-	const DBusAddress &_address,
+    const DBusAddress &_address,
     const std::string &_method, const std::string &_signature) {
 
-	std::string service = _address.getService();
-	std::string path = _address.getObjectPath();
-	std::string interface = _address.getInterface();
+    std::string service = _address.getService();
+    std::string path = _address.getObjectPath();
+    std::string interface = _address.getInterface();
 
     ::DBusMessage *methodCall = dbus_message_new_method_call(
-    								service.c_str(), path.c_str(),
-    								interface.c_str(), _method.c_str());
+                                    service.c_str(), path.c_str(),
+                                    interface.c_str(), _method.c_str());
     assert(methodCall);
 
     if ("" != _signature)
@@ -109,10 +109,10 @@ DBusMessage::createMethodReturn(const std::string &_signature) const {
 
 DBusMessage
 DBusMessage::createMethodError(
-	const std::string &_code, const std::string &_info) const {
+    const std::string &_code, const std::string &_info) const {
 
-	::DBusMessage *methodError
-	 	 = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
+    ::DBusMessage *methodError
+          = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
     assert(methodError);
 
     return DBusMessage(methodError, false);
@@ -120,11 +120,11 @@ DBusMessage::createMethodError(
 
 DBusMessage
 DBusMessage::createSignal(
-	const std::string &_path, const std::string &_interface,
+    const std::string &_path, const std::string &_interface,
     const std::string &_signal, const std::string &_signature) {
 
     ::DBusMessage *messageSignal
-     	 = dbus_message_new_signal(_path.c_str(), _interface.c_str(), _signal.c_str());
+          = dbus_message_new_signal(_path.c_str(), _interface.c_str(), _signal.c_str());
     assert(messageSignal);
 
     if ("" != _signature)
@@ -169,8 +169,8 @@ DBusMessage::getDestination() const {
     return dbus_message_get_destination(message_);
 }
 
-const uint32_t DBusMessage::getSerial() const {
-	return dbus_message_get_serial(message_);
+uint32_t DBusMessage::getSerial() const {
+    return dbus_message_get_serial(message_);
 }
 
 bool
@@ -210,7 +210,7 @@ bool DBusMessage::hasSignature(const char *_signature) const {
     return (!strcmp(signature, _signature));
 }
 
-const DBusMessage::Type DBusMessage::getType() const {
+DBusMessage::Type DBusMessage::getType() const {
     return static_cast<Type>(dbus_message_get_type(message_));
 }
 
@@ -227,12 +227,12 @@ int DBusMessage::getBodySize() const {
 }
 
 bool DBusMessage::setBodyLength(const int _length) {
-	return 0 != dbus_message_set_body_length(message_, _length);
+    return 0 != dbus_message_set_body_length(message_, _length);
 }
 
 bool DBusMessage::setDestination(const char *_destination)
 {
-	return 0 != dbus_message_set_destination(message_, _destination);
+    return 0 != dbus_message_set_destination(message_, _destination);
 }
 
 bool DBusMessage::hasObjectPath(const std::string &_path) const {

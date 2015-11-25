@@ -17,12 +17,12 @@
 namespace CommonAPI {
 namespace DBus {
 
-template<typename... _Arguments>
+template<typename... Arguments_>
 using DBusSerializableArguments = CommonAPI::SerializableArguments<
-										DBusInputStream,
-										DBusOutputStream,
-										_Arguments...
-								  >;
+                                        DBusInputStream,
+                                        DBusOutputStream,
+                                        Arguments_...
+                                  >;
 
 } // namespace DBus
 } // namespace CommonAPI

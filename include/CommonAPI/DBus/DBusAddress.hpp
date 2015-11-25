@@ -20,29 +20,29 @@ namespace DBus {
 
 class DBusAddress {
 public:
-	COMMONAPI_EXPORT DBusAddress(const std::string &_service = "",
-				const std::string &_objectPath = "",
-				const std::string &_interface = "");
-	COMMONAPI_EXPORT DBusAddress(const DBusAddress &_source);
-	COMMONAPI_EXPORT virtual ~DBusAddress();
+    COMMONAPI_EXPORT DBusAddress(const std::string &_service = "",
+                const std::string &_objectPath = "",
+                const std::string &_interface = "");
+    COMMONAPI_EXPORT DBusAddress(const DBusAddress &_source);
+    COMMONAPI_EXPORT virtual ~DBusAddress();
 
-	COMMONAPI_EXPORT bool operator==(const DBusAddress &_other) const;
-	COMMONAPI_EXPORT bool operator!=(const DBusAddress &_other) const;
-	COMMONAPI_EXPORT bool operator<(const DBusAddress &_other) const;
+    COMMONAPI_EXPORT bool operator==(const DBusAddress &_other) const;
+    COMMONAPI_EXPORT bool operator!=(const DBusAddress &_other) const;
+    COMMONAPI_EXPORT bool operator<(const DBusAddress &_other) const;
 
-	COMMONAPI_EXPORT const std::string &getInterface() const;
-	COMMONAPI_EXPORT void setInterface(const std::string &_interface);
+    COMMONAPI_EXPORT const std::string &getInterface() const;
+    COMMONAPI_EXPORT void setInterface(const std::string &_interface);
 
-	COMMONAPI_EXPORT const std::string &getObjectPath() const;
-	COMMONAPI_EXPORT void setObjectPath(const std::string &_objectPath);
+    COMMONAPI_EXPORT const std::string &getObjectPath() const;
+    COMMONAPI_EXPORT void setObjectPath(const std::string &_objectPath);
 
-	COMMONAPI_EXPORT const std::string &getService() const;
-	COMMONAPI_EXPORT void setService(const std::string &_service);
+    COMMONAPI_EXPORT const std::string &getService() const;
+    COMMONAPI_EXPORT void setService(const std::string &_service);
 
 private:
-	std::string service_;
-	std::string objectPath_;
-	std::string interface_;
+    std::string service_;
+    std::string objectPath_;
+    std::string interface_;
 
 friend std::ostream &operator<<(std::ostream &_out, const DBusAddress &_dbusAddress);
 };

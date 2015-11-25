@@ -55,12 +55,12 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
 
     if (isRegistrationSuccessful && dbusStubAdapter->hasFreedesktopProperties()) {
         const std::shared_ptr<DBusFreedesktopPropertiesStub> dbusFreedesktopPropertiesStub =
-        		std::make_shared<DBusFreedesktopPropertiesStub>(dbusStubAdapterObjectPath,
+                std::make_shared<DBusFreedesktopPropertiesStub>(dbusStubAdapterObjectPath,
                                                                 dbusStubAdapterInterfaceName,
                                                                 dbusStubAdapter->getDBusConnection(),
                                                                 dbusStubAdapter);
         isRegistrationSuccessful = isRegistrationSuccessful
-        	&& addDBusInterfaceHandler({ dbusFreedesktopPropertiesStub->getObjectPath(),
+            && addDBusInterfaceHandler({ dbusFreedesktopPropertiesStub->getObjectPath(),
                                          dbusFreedesktopPropertiesStub->getInterface() },
                                        dbusFreedesktopPropertiesStub);
     }
@@ -71,10 +71,10 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
 
         if (!managerStubExists) {
             const std::shared_ptr<DBusObjectManagerStub> newManagerStub
-            	= std::make_shared<DBusObjectManagerStub>(
-            			dbusStubAdapterObjectPath,
-            			dbusStubAdapter->getDBusConnection()
-            	  );
+                = std::make_shared<DBusObjectManagerStub>(
+                        dbusStubAdapterObjectPath,
+                        dbusStubAdapter->getDBusConnection()
+                  );
             auto insertResult = managerStubs_.insert( {dbusStubAdapterObjectPath, {newManagerStub, 1} });
             assert(insertResult.second);
             managerStubIterator = insertResult.first;
@@ -92,6 +92,7 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
         if (!isRegistrationSuccessful) {
             const bool isDBusStubAdapterRemoved = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
             assert(isDBusStubAdapterRemoved);
+            (void)isDBusStubAdapterRemoved;
         }
     }
 
@@ -164,11 +165,12 @@ bool DBusObjectManager::exportManagedDBusStubAdapter(const std::string& parentOb
 bool DBusObjectManager::unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
     auto foundManagerStubIterator = managerStubs_.find(parentObjectPath);
 
-    assert(foundManagerStubIterator != managerStubs_.end());
-
-    if (std::get<0>(foundManagerStubIterator->second)->unexportManagedDBusStubAdapter(dbusStubAdapter)) {
-        // Check if other handling is necessary?
-        return true;
+    if (foundManagerStubIterator != managerStubs_.end()) {
+        if (std::get<0>(foundManagerStubIterator->second)->unexportManagedDBusStubAdapter(
+                dbusStubAdapter)) {
+            // Check if other handling is necessary?
+            return true;
+        }
     }
     return false;
 }
@@ -205,8 +207,10 @@ bool DBusObjectManager::addDBusInterfaceHandler(const DBusInterfaceHandlerPath& 
     const bool isDBusInterfaceHandlerAlreadyAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
 
     if (isDBusInterfaceHandlerAlreadyAdded) {
-        //If another ObjectManager is to be registered, you can go on and just use the first one.
-        if (dbusInterfaceHandlerPath.second == "org.freedesktop.DBus.ObjectManager") {
+        //If another ObjectManager or a freedesktop properties stub is to be registered,
+        //you can go on and just use the first one.
+        if (dbusInterfaceHandlerPath.second == "org.freedesktop.DBus.ObjectManager" ||
+                dbusInterfaceHandlerPath.second == "org.freedesktop.DBus.Properties") {
             return true;
         }
         return false;
@@ -226,7 +230,7 @@ bool DBusObjectManager::removeDBusInterfaceHandler(const DBusInterfaceHandlerPat
     if (isDBusInterfaceHandlerAdded) {
         auto registeredDBusStubAdapter = dbusRegisteredObjectsTableIter->second;
         assert(registeredDBusStubAdapter == dbusInterfaceHandler);
-
+        (void)dbusInterfaceHandler;
         dbusRegisteredObjectsTable_.erase(dbusRegisteredObjectsTableIter);
     }
 

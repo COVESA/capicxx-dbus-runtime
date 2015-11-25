@@ -37,40 +37,40 @@ class StaticInterfaceVersionAttribute: public InterfaceVersionAttribute {
 
 class DBusDaemonProxy : public DBusProxyBase {
  public:
-	typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
+    typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
 
-	typedef std::unordered_map<std::string, int> PropertyDictStub;
-	typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
-	typedef std::unordered_map<std::string, InterfaceToPropertyDict> DBusObjectToInterfaceDict;
+    typedef std::unordered_map<std::string, int> PropertyDictStub;
+    typedef std::unordered_map<std::string, PropertyDictStub> InterfaceToPropertyDict;
+    typedef std::unordered_map<std::string, InterfaceToPropertyDict> DBusObjectToInterfaceDict;
 
-	typedef std::function<void(const CommonAPI::CallStatus&, std::vector<std::string>)> ListNamesAsyncCallback;
-	typedef std::function<void(const CommonAPI::CallStatus&, bool)> NameHasOwnerAsyncCallback;
-	typedef std::function<void(const CommonAPI::CallStatus&, DBusObjectToInterfaceDict)> GetManagedObjectsAsyncCallback;
-	typedef std::function<void(const CommonAPI::CallStatus&, std::string)> GetNameOwnerAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&, std::vector<std::string>)> ListNamesAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&, bool)> NameHasOwnerAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&, DBusObjectToInterfaceDict)> GetManagedObjectsAsyncCallback;
+    typedef std::function<void(const CommonAPI::CallStatus&, std::string)> GetNameOwnerAsyncCallback;
 
-	COMMONAPI_EXPORT DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection);
-	COMMONAPI_EXPORT virtual ~DBusDaemonProxy() {}
+    COMMONAPI_EXPORT DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection);
+    COMMONAPI_EXPORT virtual ~DBusDaemonProxy() {}
 
-	COMMONAPI_EXPORT virtual bool isAvailable() const;
-	COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
-	COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
+    COMMONAPI_EXPORT virtual bool isAvailable() const;
+    COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
+    COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
 
-	COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
+    COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
 
-	COMMONAPI_EXPORT void init();
+    COMMONAPI_EXPORT void init();
 
-	COMMONAPI_EXPORT static const char* getInterfaceId();
+    COMMONAPI_EXPORT static const char* getInterfaceId();
 
-	COMMONAPI_EXPORT NameOwnerChangedEvent& getNameOwnerChangedEvent();
+    COMMONAPI_EXPORT NameOwnerChangedEvent& getNameOwnerChangedEvent();
 
-	COMMONAPI_EXPORT void listNames(CommonAPI::CallStatus& callStatus, std::vector<std::string>& busNames) const;
-	COMMONAPI_EXPORT std::future<CallStatus> listNamesAsync(ListNamesAsyncCallback listNamesAsyncCallback) const;
+    COMMONAPI_EXPORT void listNames(CommonAPI::CallStatus& callStatus, std::vector<std::string>& busNames) const;
+    COMMONAPI_EXPORT std::future<CallStatus> listNamesAsync(ListNamesAsyncCallback listNamesAsyncCallback) const;
 
-	COMMONAPI_EXPORT void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
-	COMMONAPI_EXPORT std::future<CallStatus> nameHasOwnerAsync(const std::string& busName,
+    COMMONAPI_EXPORT void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
+    COMMONAPI_EXPORT std::future<CallStatus> nameHasOwnerAsync(const std::string& busName,
                                               NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const;
 
-	COMMONAPI_EXPORT std::future<CallStatus> getManagedObjectsAsync(const std::string& forDBusServiceName,
+    COMMONAPI_EXPORT std::future<CallStatus> getManagedObjectsAsync(const std::string& forDBusServiceName,
                                                    GetManagedObjectsAsyncCallback) const;
 
     /**

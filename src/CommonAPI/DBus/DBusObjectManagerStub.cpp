@@ -30,7 +30,7 @@ DBusObjectManagerStub::~DBusObjectManagerStub() {
         for (auto& dbusInterfaceIterator : registeredDBusInterfacesMap) {
             auto managedDBusStubAdapter = dbusInterfaceIterator.second;
             auto managedDBusStubAdapterServiceAddress = managedDBusStubAdapter->getDBusAddress();
-#ifdef LB_TODO
+#ifdef COMMONAPI_TODO
             const bool isServiceUnregistered = DBusServicePublisher::getInstance()->unregisterManagedService(
                             managedDBusStubAdapterServiceAddress);
             assert(isServiceUnregistered);
@@ -284,7 +284,7 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
 }
 
 
-const bool DBusObjectManagerStub::hasFreedesktopProperties() {
+bool DBusObjectManagerStub::hasFreedesktopProperties() {
     return false;
 }
 

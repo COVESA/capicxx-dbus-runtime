@@ -25,19 +25,19 @@ class DBusMessage;
  * It internally uses a string to identify clients. This string is the unique sender id used by dbus.
  */
 class DBusClientId
-		: public CommonAPI::ClientId {
+        : public CommonAPI::ClientId {
     friend struct std::hash<DBusClientId>;
 
 public:
-	COMMONAPI_EXPORT DBusClientId(std::string dbusId);
+    COMMONAPI_EXPORT DBusClientId(std::string dbusId);
 
-	COMMONAPI_EXPORT bool operator==(CommonAPI::ClientId& clientIdToCompare);
-	COMMONAPI_EXPORT bool operator==(DBusClientId& clientIdToCompare);
-	COMMONAPI_EXPORT size_t hashCode();
+    COMMONAPI_EXPORT bool operator==(CommonAPI::ClientId& clientIdToCompare);
+    COMMONAPI_EXPORT bool operator==(DBusClientId& clientIdToCompare);
+    COMMONAPI_EXPORT size_t hashCode();
 
-	COMMONAPI_EXPORT const char * getDBusId();
+    COMMONAPI_EXPORT const char * getDBusId();
 
-	COMMONAPI_EXPORT DBusMessage createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const;
+    COMMONAPI_EXPORT DBusMessage createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const;
 protected:
     std::string dbusId_;
 };

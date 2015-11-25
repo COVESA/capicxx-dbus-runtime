@@ -22,7 +22,7 @@ class DBusInterfaceHandler {
 
     virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage) = 0;
 
-    virtual const bool hasFreedesktopProperties() = 0;
+    virtual bool hasFreedesktopProperties() = 0;
 };
 
 } // namespace dbus

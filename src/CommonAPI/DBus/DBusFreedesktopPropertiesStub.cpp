@@ -15,12 +15,12 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusFreedesktopPropertiesStub::DBusFreedesktopPropertiesStub(
-	const std::string &_path, const std::string &_interface,
-	const std::shared_ptr<DBusProxyConnection> &_connection,
-	const std::shared_ptr<DBusStubAdapter> &_adapter)
-	: path_(_path),
-	  connection_(_connection),
-	  adapter_(_adapter) {
+    const std::string &_path, const std::string &_interface,
+    const std::shared_ptr<DBusProxyConnection> &_connection,
+    const std::shared_ptr<DBusStubAdapter> &_adapter)
+    : path_(_path),
+      connection_(_connection),
+      adapter_(_adapter) {
     assert(!path_.empty());
     assert(path_[0] == '/');
     assert(_connection);
@@ -66,9 +66,9 @@ DBusFreedesktopPropertiesStub::onInterfaceDBusMessage(const DBusMessage &_messag
     }
 
     if (!_message.isMethodCallType() ||
-    	!(_message.hasMemberName("Get") ||
-    	_message.hasMemberName("GetAll") ||
-    	_message.hasMemberName("Set"))) {
+        !(_message.hasMemberName("Get") ||
+        _message.hasMemberName("GetAll") ||
+        _message.hasMemberName("Set"))) {
         return false;
     }
 
@@ -89,7 +89,7 @@ DBusFreedesktopPropertiesStub::onInterfaceDBusMessage(const DBusMessage &_messag
     return it->second->onInterfaceDBusFreedesktopPropertiesMessage(_message);
 }
 
-const bool DBusFreedesktopPropertiesStub::hasFreedesktopProperties() {
+bool DBusFreedesktopPropertiesStub::hasFreedesktopProperties() {
     return false;
 }
 
@@ -98,7 +98,7 @@ const std::string &DBusFreedesktopPropertiesStub::getObjectPath() const {
 }
 
 const std::string &DBusFreedesktopPropertiesStub::getInterface() {
-	static std::string theInterface("org.freedesktop.DBus.Properties");
+    static std::string theInterface("org.freedesktop.DBus.Properties");
     return theInterface;
 }
 

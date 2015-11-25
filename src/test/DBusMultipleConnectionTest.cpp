@@ -24,26 +24,39 @@
 
 #define VERSION v1_0
 
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
 
 const std::string domain = "local";
 const std::string serviceAddress = "commonapi.tests.TestInterface";
 
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
+};
+
 class DBusMultipleConnectionTest: public ::testing::Test {
  protected:
-	 virtual void SetUp() {
-		runtime = CommonAPI::Runtime::get();
-		stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-		bool serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
+     virtual void SetUp() {
+        runtime = CommonAPI::Runtime::get();
+        stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+        bool serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
 
         for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
             usleep(10000);
-			serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
+            serviceNameAcquired = runtime->registerService(domain, serviceAddress, stub, "connection");
         }
         ASSERT_TRUE(serviceNameAcquired);
 
-		proxy = runtime->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, serviceAddress);
+        proxy = runtime->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, serviceAddress);
         ASSERT_TRUE((bool)proxy);
 
         for(unsigned int i = 0; !proxy->isAvailable() && i < 100; ++i) {
@@ -52,13 +65,13 @@ class DBusMultipleConnectionTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
-		runtime->unregisterService(domain, stub->getStubAdapter()->getInterface(), serviceAddress);
+        runtime->unregisterService(domain, stub->getStubAdapter()->getInterface(), serviceAddress);
         usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Runtime> runtime;
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub;
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxy<>> proxy;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxy<>> proxy;
 };
 
 
@@ -80,6 +93,7 @@ TEST_F(DBusMultipleConnectionTest, Broadcast) {
 
     auto subscription = proxy->getTestPredefinedTypeBroadcastEvent().subscribe([&](
                     const uint32_t intVal, const std::string& strVal) {
+        (void)strVal;
         v3 = intVal;
         promise.set_value(true);
     });
@@ -105,12 +119,18 @@ TEST_F(DBusMultipleConnectionTest, SetAttributeBroadcast) {
     uint32_t v1 = 6;
     uint32_t v2;
     uint32_t v3 = 0;
+    bool initial = true;
 
     std::promise<bool> promise;
     auto future = promise.get_future();
 
     auto subscription = proxy->getTestPredefinedTypeAttributeAttribute().getChangedEvent().subscribe([&](
                     const uint32_t intVal) {
+        // this subscription is called twice. Ignore the first call (the initial value).
+        if (initial) {
+            initial = false;
+            return;
+        }
         v3 = intVal;
         promise.set_value(true);
     });
@@ -137,6 +157,7 @@ TEST_F(DBusMultipleConnectionTest, GetAttribute) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

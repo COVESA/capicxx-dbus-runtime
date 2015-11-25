@@ -16,7 +16,14 @@ include_directories(.
        ${GLIB_INCLUDE_DIRS}
 )
 
-set(VERSION "v1_0")
+if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
+    set(DBus_LDFLAGS dbus-1)
+    link_directories(
+        ${DBus_INCLUDE_DIRS}/dbus/.libs
+    )
+endif()
+
+set(VERSION "v1")
 
 set(TestInterfaceSources src-gen/core/commonapi/tests/DerivedTypeCollection.cpp
                          src-gen/core/${VERSION}/commonapi/tests/TestInterfaceStubDefault.cpp)
@@ -26,14 +33,20 @@ set(TestInterfaceDBusSources ${TestInterfaceSources}
                              src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusStubAdapter.cpp
                              src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp)
 
+set(TestInterfaceManagerSources src-gen/core/${VERSION}/commonapi/tests/TestInterfaceManagerStubDefault.cpp)
 
-set(FreedesktopPropertiesDBusSources ${TestInterfaceSources}
+set(TestInterfaceManagerDBusSources ${TestInterfaceManagerSources}
+                                    src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceManagerDBusProxy.cpp
+                                    src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceManagerDBusStubAdapter.cpp)
+
+set(FreedesktopPropertiesSources src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp
+                                 src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp)
+
+set(FreedesktopPropertiesDBusSources ${FreedesktopPropertiesSources}
                                      src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusProxy.cpp
                                      src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusStubAdapter.cpp
-                                     src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp
                                      src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusProxy.cpp
-                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp
-                                     src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp)
+                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp)
 
 set(ManagedSources src-gen/core/${VERSION}/commonapi/tests/managed/LeafInterfaceStubDefault.cpp
                    src-gen/core/${VERSION}/commonapi/tests/managed/BranchInterfaceStubDefault.cpp
@@ -50,66 +63,40 @@ set(ManagedDBusSources ${ManagedSources}
                        src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusProxy.cpp
                        src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp)
 
-set(ExtendedInterfaceSources src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
-                             src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp
-                             src-gen/core/${VERSION}/commonapi/tests/ExtendedInterfaceStubDefault.cpp)
+set(ExtendedInterfaceSources src-gen/core/${VERSION}/commonapi/tests/ExtendedInterfaceStubDefault.cpp)
 
-set(LIB_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI)
+set(ExtendedInterfaceDBusSources ${ExtendedInterfaceSources}
+                                 src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
+                                 src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp)
+
 
 set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
 
 set(TEST_LINK_LIBRARIES_WITHOUT_COMMONAPI_DBUS CommonAPI gtest ${PTHREAD_LIBRARY})
 
-##### FIXME: disabled due to removal of MiddlewareInfo from CommonAPI
-##### add_library(CommonAPI-Fake SHARED dbusDynamicLoadingTests/fakeTestBinding/FakeBinding.cpp)
-##### set_target_properties(CommonAPI-Fake PROPERTIES VERSION 1.0.0 SOVERSION 1 LINKER_LANGUAGE C)
-##### target_link_libraries(CommonAPI-Fake ${LIB_LINK_LIBRARIES})
-
-add_library(DBusGen-TestInterface SHARED ${TestInterfaceDBusSources})
-set_target_properties(DBusGen-TestInterface PROPERTIES VERSION 3.0.0 SOVERSION 3 LINKER_LANGUAGE C)
-target_link_libraries(DBusGen-TestInterface ${LIB_LINK_LIBRARIES})
-
-add_library(SomeOtherNameForGeneratedDBus SHARED ${TestInterfaceDBusSources})
-set_target_properties(SomeOtherNameForGeneratedDBus PROPERTIES VERSION 3.0.0 SOVERSION 3 LINKER_LANGUAGE C)
-target_link_libraries(SomeOtherNameForGeneratedDBus ${LIB_LINK_LIBRARIES})
+add_library(fakeGlueCode-dbus SHARED FakeGlueCode.cpp)
+set_target_properties(fakeGlueCode-dbus PROPERTIES VERSION 3.0.0 SOVERSION 3 LINKER_LANGUAGE C)
+target_link_libraries(fakeGlueCode-dbus)
 
 ##############################################################################
 # DBusManagedTest
 ##############################################################################
 
 add_executable(DBusManagedTest DBusManagedTest.cpp
-                              ${ManagedDBusSources})
+                               ${ManagedDBusSources})
 target_link_libraries(DBusManagedTest ${TEST_LINK_LIBRARIES})
-
-##############################################################################
-# DBusObjectManagerStubTest
-##############################################################################
-
-##### FIXME: SubscriptionStatus not part of CommonAPI 3.0
-##### add_executable(DBusObjectManagerStubTest DBusObjectManagerStubTest.cpp)
-##### target_link_libraries(DBusObjectManagerStubTest ${TEST_LINK_LIBRARIES} ${GLIB_LDFLAGS})
 
 ##############################################################################
 # DBusMainLoopIntegrationTest
 ##############################################################################
 
 add_executable(DBusMainLoopIntegrationTest DBusMainLoopIntegrationTest.cpp
-                                        ${TestInterfaceDBusSources})
+                                           ${TestInterfaceDBusSources})
 if (MSVC)
 target_link_libraries(DBusMainLoopIntegrationTest ${TEST_LINK_LIBRARIES} ws2_32)
 else()
 target_link_libraries(DBusMainLoopIntegrationTest ${TEST_LINK_LIBRARIES} ${GLIB_LDFLAGS})
 endif()
-
-##############################################################################
-# DBusServiceRegistryTest
-##############################################################################
-
-##### FIXME: getCurrentBinaryFileFQN, SubscriptionStatus not part of CommonAPI 3.0 
-##### add_executable(DBusServiceRegistryTest DBusServiceRegistryTest.cpp
-#####                                       ${TestInterfaceDBusSources})
-#####
-##### target_link_libraries(DBusServiceRegistryTest ${TEST_LINK_LIBRARIES})
 
 ##############################################################################
 # DBusAddressTranslatorTest
@@ -129,15 +116,6 @@ target_link_libraries(DBusAddressTranslatorTest ${TEST_LINK_LIBRARIES})
 add_executable(DBusConnectionTest DBusConnectionTest.cpp)
 
 target_link_libraries(DBusConnectionTest ${TEST_LINK_LIBRARIES})
-
-##############################################################################
-# DBusTypeStreamTest
-##############################################################################
-
-##### FIXME: CommonAPI::Typewriter not part of CommonAPI 3.0 
-##### add_executable(DBusTypeStreamTest DBusTypeStreamTest.cpp)
-##### 
-##### target_link_libraries(DBusTypeStreamTest ${TEST_LINK_LIBRARIES})
 
 ##############################################################################
 # DBusVariantOutputStreamTest
@@ -206,31 +184,21 @@ target_link_libraries(DBusMultipleConnectionTest ${TEST_LINK_LIBRARIES})
 # DBusProxyTest
 ##############################################################################
 
-##### FIXME: generated ExtendedInterfaceProxy.hpp contains serveral errors
-##### add_executable(DBusProxyTest DBusProxyTest.cpp
-#####                            ${TestInterfaceDBusSources}
-#####                            ${ExtendedInterfaceSources})
-#####
-##### target_link_libraries(DBusProxyTest ${TEST_LINK_LIBRARIES})
+add_executable(DBusProxyTest DBusProxyTest.cpp
+                             ${TestInterfaceDBusSources}
+                             ${ExtendedInterfaceDBusSources})
+
+target_link_libraries(DBusProxyTest ${TEST_LINK_LIBRARIES})
 
 ##############################################################################
 # DBusFreedesktopPropertiesTest
 ##############################################################################
 
-##### FIXME: generated TestFreedesktopDerivedInterfaceProxy.hpp contains serveral errors
-##### add_executable(DBusFreedesktopPropertiesTest DBusFreedesktopPropertiesTest.cpp
-#####                                            ${FreedesktopPropertiesDBusSources})
-#####
-##### target_link_libraries(DBusFreedesktopPropertiesTest ${TEST_LINK_LIBRARIES})
+add_executable(DBusFreedesktopPropertiesTest DBusFreedesktopPropertiesTest.cpp
+                                             ${TestInterfaceSources}
+                                             ${FreedesktopPropertiesDBusSources})
 
-##############################################################################
-# DBusServicePublisherTest
-##############################################################################
-
-add_executable(DBusServicePublisherTest DBusServicePublisherTest.cpp
-                                        ${TestInterfaceDBusSources})
-
-target_link_libraries(DBusServicePublisherTest ${TEST_LINK_LIBRARIES})
+target_link_libraries(DBusFreedesktopPropertiesTest ${TEST_LINK_LIBRARIES})
 
 ##############################################################################
 # DBusVariantTest
@@ -248,54 +216,6 @@ add_executable(DBusRuntimeTest DBusRuntimeTest.cpp)
 
 target_link_libraries(DBusRuntimeTest ${TEST_LINK_LIBRARIES})
 
-#####
-##### FIXME: commented out disfunctional test, due to different middleware loading mechanism                     
-#####
-###################################################################################                       
-###### DBusDynamicLoadingBasicTest                                                                        
-###################################################################################                       
-#####                                                                                                     
-#####add_executable(DBusDynamicLoadingBasicTest ${TestInterfaceSources}                                   
-#####                                           dbusDynamicLoadingTests/DBusDynamicLoadingBasicTest.cpp)  
-#####                                                                                                     
-#####target_link_libraries(DBusDynamicLoadingBasicTest ${TEST_LINK_LIBRARIES})                            
-#####                                                                                                     
-###################################################################################                       
-###### DBusDynamicLoadingMultipleDefinitionTest                                                           
-###################################################################################                       
-#####                                                                                                     
-#####add_executable(DBusDynamicLoadingMultipleDefinitionTest ${TestInterfaceSources}                      
-#####                                                        dbusDynamicLoadingTests/DBusDynamicLoadingMul
-#####                                                                                                     
-#####target_link_libraries(DBusDynamicLoadingMultipleDefinitionTest ${TEST_LINK_LIBRARIES})               
-#####                                                                                                     
-###################################################################################                       
-###### DBusDynamicLoadingMultipleBindingsTest                                                             
-###################################################################################                       
-#####                                                                                                     
-#####add_executable(DBusDynamicLoadingMultipleBindingsTest ${TestInterfaceSources}                        
-#####                                                      dbusDynamicLoadingTests/DBusDynamicLoadingMulti
-#####                                                                                                     
-#####target_link_libraries(DBusDynamicLoadingMultipleBindingsTest ${TEST_LINK_LIBRARIES})                 
-#####                                                                                                     
-###################################################################################                       
-###### DBusDynamicLoadingMixedValidityTest                                                                
-###################################################################################                       
-#####                                                                                                     
-#####add_executable(DBusDynamicLoadingMixedValidityTest ${TestInterfaceSources}                           
-#####                                                   dbusDynamicLoadingTests/DBusDynamicLoadingMixedVal
-#####                                                                                                     
-#####target_link_libraries(DBusDynamicLoadingMixedValidityTest ${TEST_LINK_LIBRARIES})                    
-#####                                                                                                     
-###################################################################################                       
-###### DBusDynamicLoadingNoValidityTest                                                                   
-###################################################################################                       
-#####                                                                                                     
-#####add_executable(DBusDynamicLoadingNoValidityTest ${TestInterfaceSources}                              
-#####                                                dbusDynamicLoadingTests/DBusDynamicLoadingNoValidityT
-#####                                                                                                     
-#####target_link_libraries(DBusDynamicLoadingNoValidityTest ${TEST_LINK_LIBRARIES_WITHOUT_COMMONAPI_DBUS})
-
 ##############################################################################
 # DBusClientIdTest
 ##############################################################################
@@ -309,6 +229,7 @@ target_link_libraries(DBusClientIdTest ${TEST_LINK_LIBRARIES})
 ##############################################################################
 
 add_executable(DBusBroadcastTest ${TestInterfaceDBusSources}
+                                 ${TestInterfaceManagerDBusSources}
                                  DBusBroadcastTest.cpp)
 
 target_link_libraries(DBusBroadcastTest ${TEST_LINK_LIBRARIES})
@@ -337,12 +258,9 @@ target_link_libraries(DBusLoadTest ${TEST_LINK_LIBRARIES})
 ##############################################################################
 
 add_dependencies(DBusManagedTest gtest)
-##### add_dependencies(DBusObjectManagerStubTest gtest)
 add_dependencies(DBusMainLoopIntegrationTest gtest)
-##### add_dependencies(DBusServiceRegistryTest gtest)
 add_dependencies(DBusAddressTranslatorTest gtest)
 add_dependencies(DBusConnectionTest gtest)
-##### add_dependencies(DBusTypeStreamTest gtest)
 add_dependencies(DBusVariantOutputStreamTest gtest)
 add_dependencies(DBusCommunicationTest gtest)
 add_dependencies(DBusDaemonProxyTest gtest)
@@ -350,16 +268,10 @@ add_dependencies(DBusInputStreamTest gtest)
 add_dependencies(DBusOutputStreamTest gtest)
 add_dependencies(DBusFactoryTest gtest)
 add_dependencies(DBusMultipleConnectionTest gtest)
-##### add_dependencies(DBusProxyTest gtest)
-##### add_dependencies(DBusFreedesktopPropertiesTest gtest)
-add_dependencies(DBusServicePublisherTest gtest)
+add_dependencies(DBusProxyTest gtest)
+add_dependencies(DBusFreedesktopPropertiesTest gtest)
 add_dependencies(DBusVariantTest gtest)
 add_dependencies(DBusRuntimeTest gtest)                
-##### add_dependencies(DBusDynamicLoadingBasicTest gtest)
-##### add_dependencies(DBusDynamicLoadingMultipleDefinitionTest gtest)
-##### add_dependencies(DBusDynamicLoadingMultipleBindingsTest gtest)
-##### add_dependencies(DBusDynamicLoadingMixedValidityTest gtest)
-##### add_dependencies(DBusDynamicLoadingNoValidityTest gtest)
 add_dependencies(DBusClientIdTest gtest)
 add_dependencies(DBusBroadcastTest gtest)
 add_dependencies(DBusPolymorphicTest gtest)
@@ -369,16 +281,11 @@ add_dependencies(DBusLoadTest gtest)
 # Add tests to the target build_tests
 ##############################################################################
 
-##### add_dependencies(build_tests CommonAPI-Fake)
-add_dependencies(build_tests DBusGen-TestInterface)
-add_dependencies(build_tests SomeOtherNameForGeneratedDBus)
+add_dependencies(build_tests fakeGlueCode-dbus)
 add_dependencies(build_tests DBusManagedTest)
-##### add_dependencies(build_tests DBusObjectManagerStubTest)
 add_dependencies(build_tests DBusMainLoopIntegrationTest)
-##### add_dependencies(build_tests DBusServiceRegistryTest)
 add_dependencies(build_tests DBusAddressTranslatorTest)
 add_dependencies(build_tests DBusConnectionTest)
-##### add_dependencies(build_tests DBusTypeStreamTest)
 add_dependencies(build_tests DBusVariantOutputStreamTest)
 add_dependencies(build_tests DBusCommunicationTest)
 add_dependencies(build_tests DBusDaemonProxyTest)
@@ -386,16 +293,10 @@ add_dependencies(build_tests DBusInputStreamTest)
 add_dependencies(build_tests DBusOutputStreamTest)
 add_dependencies(build_tests DBusFactoryTest)
 add_dependencies(build_tests DBusMultipleConnectionTest)
-##### add_dependencies(build_tests DBusProxyTest)
-##### add_dependencies(build_tests DBusFreedesktopPropertiesTest)
-add_dependencies(build_tests DBusServicePublisherTest)
+add_dependencies(build_tests DBusProxyTest)
+add_dependencies(build_tests DBusFreedesktopPropertiesTest)
 add_dependencies(build_tests DBusVariantTest)
 add_dependencies(build_tests DBusRuntimeTest)              
-##### add_dependencies(build_tests DBusDynamicLoadingBasicTest)
-##### add_dependencies(build_tests DBusDynamicLoadingMultipleDefinitionTest)
-##### add_dependencies(build_tests DBusDynamicLoadingMultipleBindingsTest)
-##### add_dependencies(build_tests DBusDynamicLoadingMixedValidityTest)
-##### add_dependencies(build_tests DBusDynamicLoadingNoValidityTest)
 add_dependencies(build_tests DBusClientIdTest)
 add_dependencies(build_tests DBusBroadcastTest)
 add_dependencies(build_tests DBusPolymorphicTest)
@@ -406,12 +307,9 @@ add_dependencies(build_tests DBusLoadTest)
 ##############################################################################
 
 add_test(NAME DBusManagedTest COMMAND DBusManagedTest)
-##### add_test(NAME DBusObjectManagerStubTest COMMAND DBusObjectManagerStubTest)
 add_test(NAME DBusMainLoopIntegrationTest COMMAND DBusMainLoopIntegrationTest)
-##### add_test(NAME DBusServiceRegistryTest COMMAND DBusServiceRegistryTest)
 add_test(NAME DBusAddressTranslatorTest WORKING_DIRECTORY ${libcommonapi-dbus_SOURCE_DIR} COMMAND DBusAddressTranslatorTest)
 add_test(NAME DBusConnectionTest COMMAND DBusConnectionTest)
-##### add_test(NAME DBusTypeStreamTest COMMAND DBusTypeStreamTest)
 add_test(NAME DBusVariantOutputStreamTest COMMAND DBusVariantOutputStreamTest)
 add_test(NAME DBusCommunicationTest COMMAND DBusCommunicationTest)
 add_test(NAME DBusDaemonProxyTest COMMAND DBusDaemonProxyTest)
@@ -419,16 +317,10 @@ add_test(NAME DBusInputStreamTest COMMAND DBusInputStreamTest)
 add_test(NAME DBusOutputStreamTest COMMAND DBusOutputStreamTest)
 add_test(NAME DBusFactoryTest COMMAND DBusFactoryTest)
 add_test(NAME DBusMultipleConnectionTest COMMAND DBusMultipleConnectionTest)
-##### add_test(NAME DBusProxyTest COMMAND DBusProxyTest)
-##### add_test(NAME DBusFreedesktopPropertiesTest COMMAND DBusFreedesktopPropertiesTest)
-add_test(NAME DBusServicePublisherTest COMMAND DBusServicePublisherTest)
+add_test(NAME DBusProxyTest COMMAND DBusProxyTest)
+add_test(NAME DBusFreedesktopPropertiesTest COMMAND DBusFreedesktopPropertiesTest)
 add_test(NAME DBusVariantTest COMMAND DBusVariantTest)
 add_test(NAME DBusRuntimeTest COMMAND DBusRuntimeTest)
-##### add_test(NAME DBusDynamicLoadingBasicTest COMMAND DBusDynamicLoadingBasicTest)
-##### add_test(NAME DBusDynamicLoadingMultipleDefinitionTest COMMAND DBusDynamicLoadingMultipleDefinitionTest)
-##### add_test(NAME DBusDynamicLoadingMultipleBindingsTest COMMAND DBusDynamicLoadingMultipleBindingsTest)
-##### add_test(NAME DBusDynamicLoadingMixedValidityTest COMMAND DBusDynamicLoadingMixedValidityTest)
-##### add_test(NAME DBusDynamicLoadingNoValidityTest COMMAND DBusDynamicLoadingNoValidityTest)
 add_test(NAME DBusClientIdTest COMMAND DBusClientIdTest)
 add_test(NAME DBusBroadcastTest COMMAND DBusBroadcastTest)
 add_test(NAME DBusPolymorphicTest COMMAND DBusPolymorphicTest)

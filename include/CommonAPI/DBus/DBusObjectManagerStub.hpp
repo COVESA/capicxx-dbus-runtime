@@ -42,17 +42,17 @@ class DBusStubAdapter;
 class DBusObjectManagerStub : public DBusInterfaceHandler {
 public:
    // serialization trick: use bool instead of variant since we never serialize it
-	typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;
-	typedef std::unordered_map<std::string, DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
-	typedef std::unordered_map<std::string, DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
+    typedef std::unordered_map<std::string, bool> DBusPropertiesChangedDict;
+    typedef std::unordered_map<std::string, DBusPropertiesChangedDict> DBusInterfacesAndPropertiesDict;
+    typedef std::unordered_map<std::string, DBusInterfacesAndPropertiesDict> DBusObjectPathAndInterfacesDict;
 
 public:
-	COMMONAPI_EXPORT DBusObjectManagerStub(const std::string& dbusObjectPath, const std::shared_ptr<DBusProxyConnection>&);
+    COMMONAPI_EXPORT DBusObjectManagerStub(const std::string& dbusObjectPath, const std::shared_ptr<DBusProxyConnection>&);
 
-	/**
-	 * Unregisters all currently registered DBusStubAdapter instances from the DBusServicePublisher
-	 */
-	COMMONAPI_EXPORT virtual ~DBusObjectManagerStub();
+    /**
+     * Unregisters all currently registered DBusStubAdapter instances from the DBusServicePublisher
+     */
+    COMMONAPI_EXPORT virtual ~DBusObjectManagerStub();
 
     /**
      * Export DBusStubAdapter instance with the current DBusObjectManagerStub instance.
@@ -72,7 +72,7 @@ public:
      * @see CommonAPI::ServicePublisher
      * @see DBusObjectManager
      */
-	COMMONAPI_EXPORT bool exportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    COMMONAPI_EXPORT bool exportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
     /**
      * Unexport DBusStubAdapter instance from this DBusObjectManagerStub instance.
@@ -88,25 +88,25 @@ public:
      *
      * @see exportDBusStubAdapter()
      */
-	COMMONAPI_EXPORT bool unexportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    COMMONAPI_EXPORT bool unexportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-	COMMONAPI_EXPORT bool isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+    COMMONAPI_EXPORT bool isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-	COMMONAPI_EXPORT const std::string& getDBusObjectPath() const;
-	COMMONAPI_EXPORT static const char* getInterfaceName();
+    COMMONAPI_EXPORT const std::string& getDBusObjectPath() const;
+    COMMONAPI_EXPORT static const char* getInterfaceName();
 
-	COMMONAPI_EXPORT virtual const char* getMethodsDBusIntrospectionXmlData() const;
-	COMMONAPI_EXPORT virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage);
-	COMMONAPI_EXPORT virtual const bool hasFreedesktopProperties();
+    COMMONAPI_EXPORT virtual const char* getMethodsDBusIntrospectionXmlData() const;
+    COMMONAPI_EXPORT virtual bool onInterfaceDBusMessage(const DBusMessage& dbusMessage);
+    COMMONAPI_EXPORT virtual bool hasFreedesktopProperties();
 
  private:
-	 COMMONAPI_EXPORT bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
-	 COMMONAPI_EXPORT bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-	 COMMONAPI_EXPORT bool emitInterfacesAddedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
+     COMMONAPI_EXPORT bool emitInterfacesAddedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                    const std::shared_ptr<DBusProxyConnection>& dbusConnection) const;
 
-	 COMMONAPI_EXPORT bool emitInterfacesRemovedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
+     COMMONAPI_EXPORT bool emitInterfacesRemovedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                      const std::shared_ptr<DBusProxyConnection>& dbusConnection) const;
 
     std::string dbusObjectPath_;

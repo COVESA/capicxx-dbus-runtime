@@ -23,29 +23,29 @@ namespace DBus {
 class DBusProxyConnection;
 
 class DBusStubAdapter
-		: virtual public CommonAPI::StubAdapter,
-		  public DBusInterfaceHandler {
+        : virtual public CommonAPI::StubAdapter,
+          public DBusInterfaceHandler {
  public:
-	 COMMONAPI_EXPORT DBusStubAdapter(const DBusAddress &_dbusAddress,
+     COMMONAPI_EXPORT DBusStubAdapter(const DBusAddress &_dbusAddress,
                     const std::shared_ptr<DBusProxyConnection> &_connection,
                     const bool isManagingInterface);
 
-	 COMMONAPI_EXPORT virtual ~DBusStubAdapter();
+     COMMONAPI_EXPORT virtual ~DBusStubAdapter();
 
-	 COMMONAPI_EXPORT virtual void init(std::shared_ptr<DBusStubAdapter> _instance);
-	 COMMONAPI_EXPORT virtual void deinit();
+     COMMONAPI_EXPORT virtual void init(std::shared_ptr<DBusStubAdapter> _instance);
+     COMMONAPI_EXPORT virtual void deinit();
 
-	 COMMONAPI_EXPORT const DBusAddress &getDBusAddress() const;
-	 COMMONAPI_EXPORT const std::shared_ptr<DBusProxyConnection> &getDBusConnection() const;
+     COMMONAPI_EXPORT const DBusAddress &getDBusAddress() const;
+     COMMONAPI_EXPORT const std::shared_ptr<DBusProxyConnection> &getDBusConnection() const;
 
-	 COMMONAPI_EXPORT const bool isManaging() const;
+     COMMONAPI_EXPORT bool isManaging() const;
 
-	 COMMONAPI_EXPORT virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
-	 COMMONAPI_EXPORT virtual bool onInterfaceDBusMessage(const DBusMessage &_message) = 0;
+     COMMONAPI_EXPORT virtual const char* getMethodsDBusIntrospectionXmlData() const = 0;
+     COMMONAPI_EXPORT virtual bool onInterfaceDBusMessage(const DBusMessage &_message) = 0;
 
-	 COMMONAPI_EXPORT virtual void deactivateManagedInstances() = 0;
-	 COMMONAPI_EXPORT virtual const bool hasFreedesktopProperties();
-	 COMMONAPI_EXPORT virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const DBusMessage &_message) = 0;
+     COMMONAPI_EXPORT virtual void deactivateManagedInstances() = 0;
+     COMMONAPI_EXPORT virtual bool hasFreedesktopProperties();
+     COMMONAPI_EXPORT virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const DBusMessage &_message) = 0;
 
  protected:
     DBusAddress dbusAddress_;

@@ -29,6 +29,7 @@ public:
 class TestClientId: public CommonAPI::ClientId {
 public:
     bool operator==(CommonAPI::ClientId& clientIdToCompare) {
+    (void)clientIdToCompare;
         return false; // doesn't matter, as we are just comparing this class with DBusClientId;
     }
 

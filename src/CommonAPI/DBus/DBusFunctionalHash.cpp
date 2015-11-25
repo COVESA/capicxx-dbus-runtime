@@ -13,7 +13,7 @@
 /*
  * @see http://code.google.com/p/smhasher/
  */
-#define SMHASHER_SEED_VALUE			0xc70f6907UL
+#define SMHASHER_SEED_VALUE            0xc70f6907UL
 
 namespace std {
 
@@ -25,15 +25,15 @@ size_t hash<pair<const char*, const char*> >::operator()(const pair<const char*,
     assert(b);
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a, strlen(a), seed, &seed);
-    MurmurHash3_x86_32(b, strlen(b), seed, &seed);
+    MurmurHash3_x86_32(a, static_cast<int>(strlen(a)), seed, &seed);
+    MurmurHash3_x86_32(b, static_cast<int>(strlen(b)), seed, &seed);
 
     return static_cast<size_t>(seed);
 }
 
 size_t hash<const char*>::operator()(const char* const t) const {
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(t, strlen(t), seed, &seed);
+    MurmurHash3_x86_32(t, static_cast<int>(strlen(t)), seed, &seed);
     return static_cast<size_t>(seed);
 }
 
@@ -42,8 +42,8 @@ size_t hash<pair<string, string> >::operator()(const pair<string, string>& t) co
     const string& b = t.second;
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
-    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
+    MurmurHash3_x86_32(a.c_str(), static_cast<int>(a.length()), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), static_cast<int>(b.length()), seed, &seed);
 
     return static_cast<size_t>(seed);
 }
@@ -54,9 +54,9 @@ size_t hash<tuple<string, string, string> >::operator()(const tuple<string, stri
     const string& c = get<2>(t);
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
-    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
-    MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+    MurmurHash3_x86_32(a.c_str(), static_cast<int>(a.length()), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), static_cast<int>(b.length()), seed, &seed);
+    MurmurHash3_x86_32(c.c_str(), static_cast<int>(c.length()), seed, &seed);
 
     return static_cast<size_t>(seed);
 }
@@ -68,9 +68,9 @@ size_t hash<tuple<string, string, string, bool> >::operator()(const tuple<string
     const bool d = get<3>(t);
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
-    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
-    MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+    MurmurHash3_x86_32(a.c_str(), static_cast<int>(a.length()), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), static_cast<int>(b.length()), seed, &seed);
+    MurmurHash3_x86_32(c.c_str(), static_cast<int>(c.length()), seed, &seed);
     MurmurHash3_x86_32(&d, sizeof(bool), seed, &seed);
 
     return static_cast<size_t>(seed);
@@ -83,9 +83,9 @@ size_t hash<tuple<string, string, string, int> >::operator()(const tuple<string,
     const int d = get<3>(t);
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
-    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
-    MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
+    MurmurHash3_x86_32(a.c_str(), static_cast<int>(a.length()), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), static_cast<int>(b.length()), seed, &seed);
+    MurmurHash3_x86_32(c.c_str(), static_cast<int>(c.length()), seed, &seed);
     MurmurHash3_x86_32(&d, sizeof(d), seed, &seed);
 
     return static_cast<size_t>(seed);
@@ -98,10 +98,10 @@ size_t hash<tuple<string, string, string, string> >::operator()(const tuple<stri
     const string& d = get<3>(t);
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a.c_str(), a.length(), seed, &seed);
-    MurmurHash3_x86_32(b.c_str(), b.length(), seed, &seed);
-    MurmurHash3_x86_32(c.c_str(), c.length(), seed, &seed);
-    MurmurHash3_x86_32(d.c_str(), d.length(), seed, &seed);
+    MurmurHash3_x86_32(a.c_str(), static_cast<int>(a.length()), seed, &seed);
+    MurmurHash3_x86_32(b.c_str(), static_cast<int>(b.length()), seed, &seed);
+    MurmurHash3_x86_32(c.c_str(), static_cast<int>(c.length()), seed, &seed);
+    MurmurHash3_x86_32(d.c_str(), static_cast<int>(d.length()), seed, &seed);
 
     return static_cast<size_t>(seed);
 }

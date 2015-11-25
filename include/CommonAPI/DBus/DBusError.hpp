@@ -23,20 +23,20 @@ class DBusConnection;
 
 class COMMONAPI_EXPORT DBusError {
  public:
-	DBusError();
-	~DBusError();
+    DBusError();
+    ~DBusError();
 
-	operator bool() const;
+    operator bool() const;
 
-	void clear();
+    void clear();
 
-	std::string getName() const;
-	std::string getMessage() const;
+    std::string getName() const;
+    std::string getMessage() const;
 
  private:
-	::DBusError libdbusError_;
+    ::DBusError libdbusError_;
 
-	friend class DBusConnection;
+    friend class DBusConnection;
 };
 
 } // namespace DBus

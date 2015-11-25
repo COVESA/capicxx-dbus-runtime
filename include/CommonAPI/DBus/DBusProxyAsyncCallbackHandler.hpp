@@ -22,20 +22,26 @@
 namespace CommonAPI {
 namespace DBus {
 
-template<typename ... _ArgTypes>
-class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageReplyAsyncHandler {
+template<typename ... ArgTypes_>
+class DBusProxyAsyncCallbackHandler:
+        public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
-    typedef std::function<void(CallStatus, _ArgTypes...)> FunctionType;
+    typedef std::function<void(CallStatus, ArgTypes_...)> FunctionType;
 
     static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
-            FunctionType&& callback, std::tuple<_ArgTypes...> args) {
+            FunctionType&& callback, std::tuple<ArgTypes_...> args) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
                 new DBusProxyAsyncCallbackHandler(std::move(callback), args));
     }
 
     DBusProxyAsyncCallbackHandler() = delete;
-    DBusProxyAsyncCallbackHandler(FunctionType&& callback, std::tuple<_ArgTypes...> args):
-        callback_(std::move(callback)), args_(args) {
+    DBusProxyAsyncCallbackHandler(FunctionType&& callback, std::tuple<ArgTypes_...> args)
+        : callback_(std::move(callback)),
+          args_(args),
+          executionStarted_(false),
+          executionFinished_(false),
+          timeoutOccurred_(false),
+          hasToBeDeleted_(false) {
     }
     virtual ~DBusProxyAsyncCallbackHandler() {}
 
@@ -43,19 +49,74 @@ class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageRepl
         return promise_.get_future();
     }
 
-    virtual void onDBusMessageReply(const CallStatus& dbusMessageCallStatus, const DBusMessage& dbusMessage) {
-        promise_.set_value(handleDBusMessageReply(dbusMessageCallStatus, dbusMessage, typename make_sequence<sizeof...(_ArgTypes)>::type(), args_));
+    virtual void onDBusMessageReply(const CallStatus& dbusMessageCallStatus,
+            const DBusMessage& dbusMessage) {
+        promise_.set_value(handleDBusMessageReply(dbusMessageCallStatus,
+                dbusMessage,
+                typename make_sequence<sizeof...(ArgTypes_)>::type(), args_));
+    }
+
+    virtual void setExecutionStarted() {
+        executionStarted_ = true;
+    }
+
+    virtual bool getExecutionStarted() {
+        return executionStarted_;
+    }
+
+    virtual void setExecutionFinished() {
+        executionFinished_ = true;
+        // free assigned std::function<> immediately
+        callback_ = [](CallStatus, ArgTypes_...) {};
+    }
+
+    virtual bool getExecutionFinished() {
+        return executionFinished_;
+    }
+
+    virtual void setTimeoutOccurred() {
+        timeoutOccurred_ = true;
+    }
+
+    virtual bool getTimeoutOccurred() {
+        return timeoutOccurred_;
+    }
+
+    virtual void setHasToBeDeleted() {
+        hasToBeDeleted_ = true;
+    }
+
+    virtual bool hasToBeDeleted() {
+        return hasToBeDeleted_;
+    }
+
+    virtual void lock() {
+        asyncHandlerMutex_.lock();
+    }
+
+    virtual void unlock() {
+        asyncHandlerMutex_.unlock();
     }
 
  private:
-    template <int... _ArgIndices>
-    inline CallStatus handleDBusMessageReply(const CallStatus dbusMessageCallStatus, const DBusMessage& dbusMessage, index_sequence<_ArgIndices...>, std::tuple<_ArgTypes...> argTuple) const {
+    template <int... ArgIndices_>
+    inline CallStatus handleDBusMessageReply(
+            const CallStatus dbusMessageCallStatus,
+            const DBusMessage& dbusMessage,
+            index_sequence<ArgIndices_...>,
+            std::tuple<ArgTypes_...> argTuple) const {
+        (void)argTuple; // this suppresses warning "set but not used" in case of empty _ArgTypes
+                        // Looks like: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57560 - Bug 57650
+
         CallStatus callStatus = dbusMessageCallStatus;
 
         if (dbusMessageCallStatus == CallStatus::SUCCESS) {
             if (!dbusMessage.isErrorType()) {
                 DBusInputStream dbusInputStream(dbusMessage);
-                const bool success = DBusSerializableArguments<_ArgTypes...>::deserialize(dbusInputStream, std::get<_ArgIndices>(argTuple)...);
+                const bool success
+                    = DBusSerializableArguments<ArgTypes_...>::deserialize(
+                            dbusInputStream,
+                            std::get<ArgIndices_>(argTuple)...);
                 if (!success)
                     callStatus = CallStatus::REMOTE_ERROR;
             } else {
@@ -63,13 +124,19 @@ class DBusProxyAsyncCallbackHandler: public DBusProxyConnection::DBusMessageRepl
             }
         }
 
-        callback_(callStatus, std::move(std::get<_ArgIndices>(argTuple))...);
+        callback_(callStatus, std::move(std::get<ArgIndices_>(argTuple))...);
         return callStatus;
     }
 
     std::promise<CallStatus> promise_;
-    const FunctionType callback_;
-    std::tuple<_ArgTypes...> args_;
+    FunctionType callback_;
+    std::tuple<ArgTypes_...> args_;
+    bool executionStarted_;
+    bool executionFinished_;
+    bool timeoutOccurred_;
+    bool hasToBeDeleted_;
+
+    std::mutex asyncHandlerMutex_;
 };
 
 } // namespace DBus

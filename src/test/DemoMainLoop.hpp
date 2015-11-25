@@ -43,14 +43,14 @@ class MainLoop {
                       context_(context),
                       currentMinimalTimeoutInterval_(TIMEOUT_INFINITE),
                       breakLoop_(false),
-					  running_(false){
+                      running_(false){
 
 #ifdef WIN32
-		WSAEVENT wsaEvent = WSACreateEvent();
+        WSAEVENT wsaEvent = WSACreateEvent();
 
-		if (wsaEvent != WSA_INVALID_EVENT) {
-			wakeFd_.fd = PtrToInt(wsaEvent);
-		}
+        if (wsaEvent != WSA_INVALID_EVENT) {
+            wakeFd_.fd = PtrToInt(wsaEvent);
+        }
 #else
         wakeFd_.fd = eventfd(0, EFD_SEMAPHORE | EFD_NONBLOCK);
 #endif
@@ -81,7 +81,7 @@ class MainLoop {
         context_->unsubscribeForWakeupEvents(wakeupListenerSubscription_);
 
 #ifdef WIN32
-		WSACloseEvent(IntToPtr(wakeFd_.fd));
+        WSACloseEvent(IntToPtr(wakeFd_.fd));
 
 #else
         close(wakeFd_.fd);
@@ -172,15 +172,15 @@ class MainLoop {
         }
 
 #if WIN32
-		INT currentMinimalTimeoutIntervalWin32_ = 1;
-		size_t numReadyFileDescriptors = ::WSAPoll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), currentMinimalTimeoutIntervalWin32_);
+        INT currentMinimalTimeoutIntervalWin32_ = 1;
+        size_t numReadyFileDescriptors = ::WSAPoll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), currentMinimalTimeoutIntervalWin32_);
 
-		if (numReadyFileDescriptors == SOCKET_ERROR) {
-			int iError = WSAGetLastError();
-			//printf("WSAPoll failed with error: %ld\n", iError);
-		}
+        if (numReadyFileDescriptors == SOCKET_ERROR) {
+            int iError = WSAGetLastError();
+            //printf("WSAPoll failed with error: %ld\n", iError);
+        }
 #else
-		size_t numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), currentMinimalTimeoutInterval_);
+        size_t numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]), managedFileDescriptors_.size(), int(currentMinimalTimeoutInterval_));
 #endif
         // If no FileDescriptors are ready, poll returned because of a timeout that has expired.
         // The only case in which this is not the reason is when the timeout handed in "prepare"
@@ -263,7 +263,9 @@ class MainLoop {
         SetEvent(h);
 #else
         int64_t wake = 1;
-        ::write(wakeFd_.fd, &wake, sizeof(int64_t));
+        if(::write(wakeFd_.fd, &wake, sizeof(int64_t)) == -1) {
+            std::perror("MainLoop::wakeup");
+        }
 #endif
     }
 

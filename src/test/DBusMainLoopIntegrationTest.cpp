@@ -33,11 +33,11 @@
 
 #include "commonapi/tests/PredefinedTypeCollection.hpp"
 #include "commonapi/tests/DerivedTypeCollection.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
-#include "v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusProxy.hpp"
 
 const std::string domain = "local";
 const std::string testAddress1 = "commonapi.address.one";
@@ -53,6 +53,19 @@ const std::string testAddress8 = "commonapi.address.eight";
 
 //####################################################################################################################
 
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
+};
+
 class DBusBasicMainLoopTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
@@ -66,6 +79,7 @@ struct TestSource: public CommonAPI::DispatchSource {
     TestSource(const std::string value, std::string& result): value_(value), result_(result) {}
 
     bool prepare(int64_t& timeout) {
+        (void)timeout;
         return true;
     }
     bool check() {
@@ -85,7 +99,7 @@ TEST_F(DBusBasicMainLoopTest, PrioritiesAreHandledCorrectlyInDemoMainloop) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::get();
     ASSERT_TRUE((bool) runtime);
 
-	std::shared_ptr<CommonAPI::MainLoopContext> context = std::make_shared<CommonAPI::MainLoopContext>();
+    std::shared_ptr<CommonAPI::MainLoopContext> context = std::make_shared<CommonAPI::MainLoopContext>();
     ASSERT_TRUE((bool) context);
 
     auto mainLoop = new CommonAPI::MainLoop(context);
@@ -120,7 +134,7 @@ protected:
         runtime_ = CommonAPI::Runtime::get();
         ASSERT_TRUE((bool) runtime_);
 
-		context_ = std::make_shared<CommonAPI::MainLoopContext>();
+        context_ = std::make_shared<CommonAPI::MainLoopContext>();
         ASSERT_TRUE((bool) context_);
         mainLoop_ = new CommonAPI::MainLoop(context_);
     }
@@ -137,10 +151,10 @@ protected:
 
 TEST_F(DBusMainLoopTest, ServiceInDemoMainloopCanBeAddressed) {
     std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-		VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	ASSERT_TRUE(runtime_->registerService(domain, testAddress1, stub, context_));
+        VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress1, stub, context_));
 
-	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress1, "connection");
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress1, "connection");
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -168,13 +182,13 @@ TEST_F(DBusMainLoopTest, ServiceInDemoMainloopCanBeAddressed) {
 
 
 TEST_F(DBusMainLoopTest, ProxyInDemoMainloopCanCallMethods) {
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-		VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	ASSERT_TRUE(runtime_->registerService(domain, testAddress2, stub, "connection"));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+        VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress2, stub, "connection"));
 
     usleep(500000);
 
-	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress2, context_);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress2, context_);
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -198,15 +212,15 @@ TEST_F(DBusMainLoopTest, ProxyInDemoMainloopCanCallMethods) {
 
     ASSERT_EQ(toString(CommonAPI::CallStatus::SUCCESS), toString(futureStatus.get()));
 
-	runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress2);
+    runtime_->unregisterService(domain, stub->getStubAdapter()->getInterface(), testAddress2);
 }
 
 TEST_F(DBusMainLoopTest, ProxyAndServiceInSameDemoMainloopCanCommunicate) {
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-		VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	ASSERT_TRUE(runtime_->registerService(domain, testAddress4, stub, context_));
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
+        VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, testAddress4, stub, context_));
 
-	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress4, context_);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress4, context_);
     ASSERT_TRUE((bool) proxy);
 
     while (!proxy->isAvailable()) {
@@ -246,7 +260,7 @@ class BigDataTestStub : public VERSION::commonapi::tests::TestInterfaceStubDefau
 };
 
 TEST_F(DBusMainLoopTest, DemoMainloopClientsHandleNonavailableServices) {
-	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress3, context_);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress3, context_);
     ASSERT_TRUE((bool) proxy);
 
     uint32_t uint32Value = 42;
@@ -273,6 +287,7 @@ class GDispatchWrapper: public GSource {
 };
 
 gboolean dispatchPrepare(GSource* source, gint* timeout) {
+    (void)timeout;
     int64_t eventTimeout;
     return static_cast<GDispatchWrapper*>(source)->dispatchSource_->prepare(eventTimeout);
 }
@@ -282,11 +297,14 @@ gboolean dispatchCheck(GSource* source) {
 }
 
 gboolean dispatchExecute(GSource* source, GSourceFunc callback, gpointer userData) {
+    (void)callback;
+    (void)userData;
     static_cast<GDispatchWrapper*>(source)->dispatchSource_->dispatch();
     return true;
 }
 
 gboolean gWatchDispatcher(GIOChannel *source, GIOCondition condition, gpointer userData) {
+    (void)source;
     CommonAPI::Watch* watch = static_cast<CommonAPI::Watch*>(userData);
     watch->dispatch(condition);
     return true;
@@ -301,6 +319,8 @@ static GSourceFuncs standardGLibSourceCallbackFuncs = {
         dispatchPrepare,
         dispatchCheck,
         dispatchExecute,
+        NULL,
+        NULL,
         NULL
 };
 
@@ -350,6 +370,7 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
     GIOChannel* dbusChannel_;
 
     void watchAddedCallback(CommonAPI::Watch* watch, const CommonAPI::DispatchPriority dispatchPriority) {
+        (void)dispatchPriority;
         const pollfd& fileDesc = watch->getAssociatedFileDescriptor();
         dbusChannel_ = g_io_channel_unix_new(fileDesc.fd);
 
@@ -390,7 +411,8 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
     }
 
     void timeoutAddedCallback(CommonAPI::Timeout* commonApiTimeoutSource, const CommonAPI::DispatchPriority dispatchPriority) {
-        GSource* gTimeoutSource = g_timeout_source_new(commonApiTimeoutSource->getTimeoutInterval());
+        (void)dispatchPriority;
+        GSource* gTimeoutSource = g_timeout_source_new(guint(commonApiTimeoutSource->getTimeoutInterval()));
         g_source_set_callback(gTimeoutSource, &gTimeoutDispatcher, commonApiTimeoutSource, NULL);
         g_source_attach(gTimeoutSource, NULL);
     }
@@ -406,11 +428,11 @@ class DBusInGLibMainLoopTest: public ::testing::Test {
 
 
 TEST_F(DBusInGLibMainLoopTest, ProxyInGLibMainloopCanCallMethods) {
-	auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress5, context_);
+    auto proxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, testAddress5, context_);
     ASSERT_TRUE((bool) proxy);
 
     std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+            VERSION::commonapi::tests::TestInterfaceStubDefault>();
     ASSERT_TRUE(runtime_->registerService(domain, testAddress5, stub, "connection"));
 
     while(!proxy->isAvailable()) {
@@ -446,7 +468,7 @@ TEST_F(DBusInGLibMainLoopTest, ServiceInGLibMainloopCanBeAddressed) {
     ASSERT_TRUE((bool) proxy);
 
     std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+            VERSION::commonapi::tests::TestInterfaceStubDefault>();
     ASSERT_TRUE(runtime_->registerService(domain, testAddress6, stub, context_));
 
     uint32_t uint32Value = 42;
@@ -485,7 +507,7 @@ TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) 
     ASSERT_TRUE((bool) proxy);
 
     std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<
-    		VERSION::commonapi::tests::TestInterfaceStubDefault>();
+            VERSION::commonapi::tests::TestInterfaceStubDefault>();
     ASSERT_TRUE(runtime_->registerService(domain, testAddress7, stub, context_));
 
     uint32_t uint32Value = 42;
@@ -522,6 +544,7 @@ TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) 
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

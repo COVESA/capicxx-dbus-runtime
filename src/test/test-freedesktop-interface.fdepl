@@ -8,7 +8,7 @@ import "test-freedesktop-interface.fidl"
 
 
 define org.genivi.commonapi.dbus.deployment for interface commonapi.tests.TestFreedesktopInterface {
-	DBusDefaultAttributeType = freedesktop
+    DBusDefaultAttributeType = freedesktop
 }
 
 define org.genivi.commonapi.dbus.deployment for interface commonapi.tests.TestFreedesktopDerivedInterface {

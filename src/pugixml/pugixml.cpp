@@ -22,6 +22,8 @@
 #include <assert.h>
 #include <wchar.h>
 
+#include <cmath>
+
 #ifndef PUGIXML_NO_XPATH
 #	include <math.h>
 #	include <float.h>
@@ -6230,7 +6232,7 @@ PUGI__NS_BEGIN
 	#if defined(PUGI__MSVC_CRT_VERSION) || defined(__BORLANDC__)
 		return !!_isnan(value);
 	#elif defined(fpclassify) && defined(FP_NAN)
-		return fpclassify(value) == FP_NAN;
+		return std::fpclassify(value) == FP_NAN;
 	#else
 		// fallback
 		const volatile double v = value;
@@ -6245,7 +6247,7 @@ PUGI__NS_BEGIN
 		if (_isnan(value)) return PUGIXML_TEXT("NaN");
 		return value > 0 ? PUGIXML_TEXT("Infinity") : PUGIXML_TEXT("-Infinity");
 	#elif defined(fpclassify) && defined(FP_NAN) && defined(FP_INFINITE) && defined(FP_ZERO)
-		switch (fpclassify(value))
+		switch (std::fpclassify(value))
 		{
 		case FP_NAN:
 			return PUGIXML_TEXT("NaN");

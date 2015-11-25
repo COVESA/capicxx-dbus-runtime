@@ -29,24 +29,38 @@
 
 #include "commonapi/tests/PredefinedTypeCollection.hpp"
 #include "commonapi/tests/DerivedTypeCollection.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
 
-#include "v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusProxy.hpp"
 
 #define VERSION v1_0
 
 class TestInterfaceStubFinal : public VERSION::commonapi::tests::TestInterfaceStubDefault {
 
 public:
-	void testPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> _client, 
-									uint32_t _uint32InValue, 
-									std::string _stringInValue, 
-									testPredefinedTypeMethodReply_t _reply) {
-		uint32_t uint32OutValue = _uint32InValue;
-		std::string stringOutValue = _stringInValue;
-		_reply(uint32OutValue, stringOutValue);
-	}
+    void testPredefinedTypeMethod(const std::shared_ptr<CommonAPI::ClientId> _client, 
+                                    uint32_t _uint32InValue, 
+                                    std::string _stringInValue, 
+                                    testPredefinedTypeMethodReply_t _reply) {
+        (void)_client;
+        uint32_t uint32OutValue = _uint32InValue;
+        std::string stringOutValue = _stringInValue;
+        _reply(uint32OutValue, stringOutValue);
+    }
+};
+
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
 };
 
 class DBusLoadTest: public ::testing::Test {
@@ -84,7 +98,7 @@ public:
     std::vector<bool> callSucceeded_;
     std::mutex mutexCallSucceeded_;
 
-	static const std::string domain_;
+    static const std::string domain_;
     static const std::string serviceAddress_;
     static const uint32_t numCallsPerProxy_;
     static const uint32_t numProxies_;
@@ -103,17 +117,17 @@ const uint32_t DBusLoadTest::numProxies_ = 65;
 
 // Multiple proxies in one thread, one stub
 TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
-	std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
+    std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
 
     for (unsigned int i = 0; i < numProxies_; i++) {
-		testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_);
+        testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_);
         ASSERT_TRUE((bool )testProxies[i]);
     }
 
     auto stub = std::make_shared<TestInterfaceStubFinal>();
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
     for (auto i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -138,14 +152,14 @@ TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
                             in1,
                             in2,
                             std::bind(
-                                            &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
-                                            this,
-                                            callId++,
-                                            in1,
-                                            in2,
-                                            std::placeholders::_1,
-                                            std::placeholders::_2,
-                                            std::placeholders::_3));
+                                      &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
+                                      this,
+                                      callId++,
+                                      in1,
+                                      in2,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2,
+                                      std::placeholders::_3));
         }
     }
 
@@ -157,23 +171,23 @@ TEST_F(DBusLoadTest, SingleClientMultipleProxiesSingleStubCallsSucceed) {
     }
     ASSERT_TRUE(allCallsSucceeded);
 
-	runtime_->unregisterService(domain_, stub->getStubAdapter()->getInterface(), serviceAddress_);
+    runtime_->unregisterService(domain_, stub->getStubAdapter()->getInterface(), serviceAddress_);
 }
 
 // Multiple proxies in separate threads, one stub
 TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     std::array<std::shared_ptr<CommonAPI::Factory>, numProxies_> testProxyFactories;
-	std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
+    std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
 
     for (unsigned int i = 0; i < numProxies_; i++) {
-		testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_);
+        testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_);
         ASSERT_TRUE((bool )testProxies[i]);
     }
 
     auto stub = std::make_shared<TestInterfaceStubFinal>();
     bool serviceRegistered = false;
     for (auto i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         if(!serviceRegistered)
             usleep(10000);
     }
@@ -198,15 +212,15 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
             testProxies[j]->testPredefinedTypeMethodAsync(
                             in1,
                             in2,
-							std::bind(
-                                            &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
-                                            this,
-                                            callId++,
-                                            in1,
-                                            in2,
-                                            std::placeholders::_1,
-                                            std::placeholders::_2,
-                                            std::placeholders::_3));
+                            std::bind(
+                                      &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
+                                      this,
+                                      callId++,
+                                      in1,
+                                      in2,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2,
+                                      std::placeholders::_3));
         }
     }
 
@@ -218,18 +232,18 @@ TEST_F(DBusLoadTest, MultipleClientsSingleStubCallsSucceed) {
     }
     ASSERT_TRUE(allCallsSucceeded);
 
-	runtime_->unregisterService(domain_, stub->getStubAdapter()->getInterface(), serviceAddress_);
+    runtime_->unregisterService(domain_, stub->getStubAdapter()->getInterface(), serviceAddress_);
 }
 
 // Multiple proxies in separate threads, multiple stubs in separate threads
 TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     std::array<std::shared_ptr<CommonAPI::Factory>, numProxies_> testProxyFactories;
     std::array<std::shared_ptr<CommonAPI::Factory>, numProxies_> testStubFactories;
-	std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
-	std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStub>, numProxies_> testStubs;
+    std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxyBase>, numProxies_> testProxies;
+    std::array<std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStub>, numProxies_> testStubs;
 
     for (unsigned int i = 0; i < numProxies_; i++) {
-		testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_ + std::to_string(i));
+        testProxies[i] = runtime_->buildProxy < VERSION::commonapi::tests::TestInterfaceProxy >(domain_, serviceAddress_ + std::to_string(i));
         ASSERT_TRUE((bool )testProxies[i]);
     }
 
@@ -238,7 +252,7 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
         ASSERT_TRUE((bool )testStubs[i]);
         bool serviceRegistered = false;
         for (auto j = 0; !serviceRegistered && j < 100; ++j) {
-			serviceRegistered = runtime_->registerService(domain_, serviceAddress_ + std::to_string(i), testStubs[i], "connection");
+            serviceRegistered = runtime_->registerService(domain_, serviceAddress_ + std::to_string(i), testStubs[i], "connection");
             if(!serviceRegistered)
                 usleep(10000);
         }
@@ -265,14 +279,14 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
                             in1,
                             in2,
                             std::bind(
-                                            &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
-                                            this,
-                                            callId++,
-                                            in1,
-                                            in2,
-                                            std::placeholders::_1,
-                                            std::placeholders::_2,
-                                            std::placeholders::_3));
+                                      &DBusLoadTest::TestPredefinedTypeMethodAsyncCallback,
+                                      this,
+                                      callId++,
+                                      in1,
+                                      in2,
+                                      std::placeholders::_1,
+                                      std::placeholders::_2,
+                                      std::placeholders::_3));
         }
     }
 
@@ -285,13 +299,14 @@ TEST_F(DBusLoadTest, MultipleClientsMultipleServersCallsSucceed) {
     ASSERT_TRUE(allCallsSucceeded);
 
     for (unsigned int i = 0; i < numProxies_; i++) {
-		runtime_->unregisterService(domain_, testStubs[i]->getStubAdapter()->getInterface(), serviceAddress_ + std::to_string(i));
+        runtime_->unregisterService(domain_, testStubs[i]->getStubAdapter()->getInterface(), serviceAddress_ + std::to_string(i));
     }
 }
 
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

@@ -104,10 +104,10 @@ class TestDBusStubAdapter: public TestStubAdapter,  public TestStubAdapterHelper
                         const std::shared_ptr<CommonAPI::DBus::DBusConnection>& dbusConnection,
                         const std::shared_ptr<TestStub>& testStub) :
                     TestStubAdapterHelper(
-									CommonAPI::DBus::DBusAddress(dbusBusName, dbusObjectPath, "org.genivi.CommonAPI.DBus.TestInterface"),
+                                    CommonAPI::DBus::DBusAddress(dbusBusName, dbusObjectPath, "org.genivi.CommonAPI.DBus.TestInterface"),
                                     dbusConnection,
                                     testStub,
-									false) {
+                                    false) {
     }
 
     virtual void fireTestAttributeChanged(const int32_t& testValue) {
@@ -202,7 +202,7 @@ int main(void) {
                     "/common/api/dbus/TestDBusInterfaceAdapter",
                     dbusConnection,
                     testStub);
-	testStubAdapter->init(testStubAdapter);
+    testStubAdapter->init(testStubAdapter);
 
     auto dbusMessageCall = CommonAPI::DBus::DBusMessage::createMethodCall(CommonAPI::DBus::DBusAddress("org.genivi.CommonAPI.DBus.TestDBusInterfaceAdapter", testStubAdapter->getDBusAddress().getObjectPath().c_str(), testStubAdapter->getDBusAddress().getService().c_str()), "GetEmptyResponse");
 

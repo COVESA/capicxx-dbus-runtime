@@ -16,12 +16,13 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusProxyStatusEvent::DBusProxyStatusEvent(DBusProxy *_dbusProxy)
-	: dbusProxy_(_dbusProxy) {
+    : dbusProxy_(_dbusProxy) {
 }
 
-void DBusProxyStatusEvent::onListenerAdded(const Listener& listener, const Subscription subscription) {
+void DBusProxyStatusEvent::onListenerAdded(const Listener &_listener, const Subscription _subscription) {
+    (void)_subscription;
     if (dbusProxy_->isAvailable())
-        listener(AvailabilityStatus::AVAILABLE);
+        _listener(AvailabilityStatus::AVAILABLE);
 }
 
 DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
@@ -31,7 +32,7 @@ DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
                 interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
                 dbusServiceRegistry_(DBusServiceRegistry::get(_connection)),
-				signalMemberHandlerInfo_(3000)
+                signalMemberHandlerInfo_(3000)
 {
 }
 
@@ -73,80 +74,85 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
     return interfaceVersionAttribute_;
 }
 
-void DBusProxy::signalMemberCallback(const CallStatus dbusMessageCallStatus,
-		const DBusMessage& dbusMessage,
-		DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-		const uint32_t tag) {
-	dbusSignalHandler->onSignalDBusMessage(dbusMessage);
+void DBusProxy::signalMemberCallback(const CallStatus _status,
+        const DBusMessage& dbusMessage,
+        DBusProxyConnection::DBusSignalHandler *_handler,
+        const uint32_t _tag) {
+    (void)_status;
+    (void)_tag;
+    _handler->onSignalDBusMessage(dbusMessage);
 }
 
-void DBusProxy::signalInitialValueCallback(const CallStatus dbusMessageCallStatus,
-		const DBusMessage& dbusMessage,
-		DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-		const uint32_t tag) {
-	dbusSignalHandler->onInitialValueSignalDBusMessage(dbusMessage, tag);
+void DBusProxy::signalInitialValueCallback(const CallStatus _status,
+        const DBusMessage &_message,
+        DBusProxyConnection::DBusSignalHandler *_handler,
+        const uint32_t _tag) {
+    (void)_status;
+    _handler->onInitialValueSignalDBusMessage(_message, _tag);
 }
 
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
-	if (availabilityStatus != availabilityStatus_) {
-		availabilityStatusMutex_.lock();
-		availabilityStatus_ = availabilityStatus;
-		availabilityStatusMutex_.unlock();
+    if (availabilityStatus != availabilityStatus_) {
+        availabilityStatusMutex_.lock();
+        availabilityStatus_ = availabilityStatus;
+        availabilityStatusMutex_.unlock();
 
-		dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+        dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
 
-		if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
-			std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
+        if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
+            std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
 
-			for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
-					signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
-					signalMemberHandlerIterator++) {
+            for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
+                    signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
+                    signalMemberHandlerIterator++) {
 
-				if (!std::get<7>(*signalMemberHandlerIterator)) {
-					connection_->addSignalMemberHandler(
-								std::get<0>(*signalMemberHandlerIterator),
-								std::get<1>(*signalMemberHandlerIterator),
-								std::get<2>(*signalMemberHandlerIterator),
-								std::get<3>(*signalMemberHandlerIterator),
-								std::get<5>(*signalMemberHandlerIterator),
-								std::get<6>(*signalMemberHandlerIterator));
-					std::get<7>(*signalMemberHandlerIterator) = true;
+                if (!std::get<7>(*signalMemberHandlerIterator)) {
+                    connection_->addSignalMemberHandler(
+                                std::get<0>(*signalMemberHandlerIterator),
+                                std::get<1>(*signalMemberHandlerIterator),
+                                std::get<2>(*signalMemberHandlerIterator),
+                                std::get<3>(*signalMemberHandlerIterator),
+                                std::get<5>(*signalMemberHandlerIterator),
+                                std::get<6>(*signalMemberHandlerIterator));
+                    std::get<7>(*signalMemberHandlerIterator) = true;
 
-					DBusMessage message = createMethodCall(std::get<4>(*signalMemberHandlerIterator), "");
+                    DBusMessage message = createMethodCall(std::get<4>(*signalMemberHandlerIterator), "");
 
-					DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(
-							&DBusProxy::signalMemberCallback,
-							this,
-							std::placeholders::_1,
-							std::placeholders::_2,
-							std::placeholders::_3,
-							std::placeholders::_4);
-					connection_->sendDBusMessageWithReplyAsync(
-							message,
-							DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, std::get<5>(*signalMemberHandlerIterator), 0),
-							&signalMemberHandlerInfo_);
-				}
-			}
-		} else {
-			std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
+                    DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(
+                            &DBusProxy::signalMemberCallback,
+                            this,
+                            std::placeholders::_1,
+                            std::placeholders::_2,
+                            std::placeholders::_3,
+                            std::placeholders::_4);
+                    connection_->sendDBusMessageWithReplyAsync(
+                            message,
+                            DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, std::get<5>(*signalMemberHandlerIterator), 0),
+                            &signalMemberHandlerInfo_);
+                }
+            }
+        } else {
+            std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
 
-			for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
-					signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
-					signalMemberHandlerIterator++) {
+            for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
+                    signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
+                    signalMemberHandlerIterator++) {
 
-				if (std::get<7>(*signalMemberHandlerIterator)) {
-					DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
-							std::get<0>(*signalMemberHandlerIterator),
-							std::get<1>(*signalMemberHandlerIterator),
-							std::get<2>(*signalMemberHandlerIterator),
-							std::get<3>(*signalMemberHandlerIterator));
-					connection_->removeSignalMemberHandler(signalHandlerToken, std::get<5>(*signalMemberHandlerIterator));
-					std::get<7>(*signalMemberHandlerIterator) = false;
-				}
-			}
-		}
-	}
+                if (std::get<7>(*signalMemberHandlerIterator)) {
+                    DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
+                            std::get<0>(*signalMemberHandlerIterator),
+                            std::get<1>(*signalMemberHandlerIterator),
+                            std::get<2>(*signalMemberHandlerIterator),
+                            std::get<3>(*signalMemberHandlerIterator));
+                    connection_->removeSignalMemberHandler(signalHandlerToken, std::get<5>(*signalMemberHandlerIterator));
+                    std::get<7>(*signalMemberHandlerIterator) = false;
+                }
+            }
+        }
+    }
+    availabilityStatusMutex_.lock();
     availabilityCondition_.notify_one();
+    availabilityStatusMutex_.unlock();
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroadcastOnConnection(
@@ -194,101 +200,101 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(
         const std::string &interfaceName,
         const std::string &signalName,
         const std::string &signalSignature,
-		const std::string &getMethodName,
+        const std::string &getMethodName,
         DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
         const bool justAddFilter) {
 
-	DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
-			objectPath,
-			interfaceName,
-			signalName,
-			signalSignature);
+    DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
+            objectPath,
+            interfaceName,
+            signalName,
+            signalSignature);
 
-	if (getMethodName != "") {
+    if (getMethodName != "") {
 
-		SignalMemberHandlerTuple signalMemberHandler(
-			objectPath,
-			interfaceName,
-			signalName,
-			signalSignature,
-			getMethodName,
-			dbusSignalHandler,
-			justAddFilter,
-			false);
+        SignalMemberHandlerTuple signalMemberHandler(
+            objectPath,
+            interfaceName,
+            signalName,
+            signalSignature,
+            getMethodName,
+            dbusSignalHandler,
+            justAddFilter,
+            false);
 
-		availabilityStatusMutex_.lock();
-		if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
-			availabilityStatusMutex_.unlock();
-			signalHandlerToken = connection_->addSignalMemberHandler(
-				objectPath,
-				interfaceName,
-				signalName,
-				signalSignature,
-				dbusSignalHandler,
-				justAddFilter);
-			std::get<7>(signalMemberHandler) = true;
-		} else {
-			availabilityStatusMutex_.unlock();
-		}
-		addSignalMemberHandlerToQueue(signalMemberHandler);
-	} else {
-		signalHandlerToken = connection_->addSignalMemberHandler(
-				objectPath,
-				interfaceName,
-				signalName,
-				signalSignature,
-				dbusSignalHandler,
-				justAddFilter);
-	}
+        availabilityStatusMutex_.lock();
+        if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
+            availabilityStatusMutex_.unlock();
+            signalHandlerToken = connection_->addSignalMemberHandler(
+                objectPath,
+                interfaceName,
+                signalName,
+                signalSignature,
+                dbusSignalHandler,
+                justAddFilter);
+            std::get<7>(signalMemberHandler) = true;
+        } else {
+            availabilityStatusMutex_.unlock();
+        }
+        addSignalMemberHandlerToQueue(signalMemberHandler);
+    } else {
+        signalHandlerToken = connection_->addSignalMemberHandler(
+                objectPath,
+                interfaceName,
+                signalName,
+                signalSignature,
+                dbusSignalHandler,
+                justAddFilter);
+    }
 
     return signalHandlerToken;
 }
 
 void DBusProxy::addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler) {
 
-	std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
-	bool found = false;
+    std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
+    bool found = false;
 
-	for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
-			signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
-			signalMemberHandlerIterator++) {
+    for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
+            signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
+            signalMemberHandlerIterator++) {
 
-		if ( (std::get<0>(*signalMemberHandlerIterator) == std::get<0>(_signalMemberHandler)) &&
-				(std::get<1>(*signalMemberHandlerIterator) == std::get<1>(_signalMemberHandler)) &&
-				(std::get<2>(*signalMemberHandlerIterator) == std::get<2>(_signalMemberHandler)) &&
-				(std::get<3>(*signalMemberHandlerIterator) == std::get<3>(_signalMemberHandler))) {
+        if ( (std::get<0>(*signalMemberHandlerIterator) == std::get<0>(_signalMemberHandler)) &&
+                (std::get<1>(*signalMemberHandlerIterator) == std::get<1>(_signalMemberHandler)) &&
+                (std::get<2>(*signalMemberHandlerIterator) == std::get<2>(_signalMemberHandler)) &&
+                (std::get<3>(*signalMemberHandlerIterator) == std::get<3>(_signalMemberHandler))) {
 
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		signalMemberHandlerQueue_.push_back(_signalMemberHandler);
-	}
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        signalMemberHandlerQueue_.push_back(_signalMemberHandler);
+    }
 }
 
 bool DBusProxy::removeSignalMemberHandler(
-    		const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-    		const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler) {
+            const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
+            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler) {
 
-	{
-		std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
-		for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
-				signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
-				signalMemberHandlerIterator++) {
+    {
+        std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
+        for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
+                signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
+                signalMemberHandlerIterator++) {
 
-			if ( (std::get<0>(*signalMemberHandlerIterator) == std::get<0>(_dbusSignalHandlerToken)) &&
-					(std::get<1>(*signalMemberHandlerIterator) == std::get<1>(_dbusSignalHandlerToken)) &&
-					(std::get<2>(*signalMemberHandlerIterator) == std::get<2>(_dbusSignalHandlerToken)) &&
-					(std::get<3>(*signalMemberHandlerIterator) == std::get<3>(_dbusSignalHandlerToken))) {
-				signalMemberHandlerIterator = signalMemberHandlerQueue_.erase(signalMemberHandlerIterator);
+            if ( (std::get<0>(*signalMemberHandlerIterator) == std::get<0>(_dbusSignalHandlerToken)) &&
+                    (std::get<1>(*signalMemberHandlerIterator) == std::get<1>(_dbusSignalHandlerToken)) &&
+                    (std::get<2>(*signalMemberHandlerIterator) == std::get<2>(_dbusSignalHandlerToken)) &&
+                    (std::get<3>(*signalMemberHandlerIterator) == std::get<3>(_dbusSignalHandlerToken))) {
+                signalMemberHandlerIterator = signalMemberHandlerQueue_.erase(signalMemberHandlerIterator);
 
-				if (signalMemberHandlerIterator == signalMemberHandlerQueue_.end()) {
-					break;
-				}
-			}
-		}
-	}
+                if (signalMemberHandlerIterator == signalMemberHandlerQueue_.end()) {
+                    break;
+                }
+            }
+        }
+    }
 
     return connection_->removeSignalMemberHandler(_dbusSignalHandlerToken, _dbusSignalHandler);
 }
@@ -296,28 +302,64 @@ bool DBusProxy::removeSignalMemberHandler(
 void DBusProxy::getCurrentValueForSignalListener(
         const std::string &getMethodName,
         DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-		const uint32_t subscription) {
+        const uint32_t subscription) {
 
-	availabilityStatusMutex_.lock();
-	if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
-		availabilityStatusMutex_.unlock();
+    availabilityStatusMutex_.lock();
+    if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
+        availabilityStatusMutex_.unlock();
 
-		DBusMessage message = createMethodCall(getMethodName, "");
+        DBusMessage message = createMethodCall(getMethodName, "");
 
-		DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2,
-				std::placeholders::_3,
-				std::placeholders::_4);
-		connection_->sendDBusMessageWithReplyAsync(
-				message,
-				DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, dbusSignalHandler, subscription),
-				&signalMemberHandlerInfo_);
-	} else {
-		availabilityStatusMutex_.unlock();
-	}
+        DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                std::placeholders::_3,
+                std::placeholders::_4);
+        connection_->sendDBusMessageWithReplyAsync(
+                message,
+                DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, dbusSignalHandler, subscription),
+                &signalMemberHandlerInfo_);
+    } else {
+        availabilityStatusMutex_.unlock();
+    }
 }
+
+void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
+    DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+    const uint32_t subscription,
+    const std::string &interfaceName,
+    const std::string &propertyName) {
+
+    availabilityStatusMutex_.lock();
+    if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
+        availabilityStatusMutex_.unlock();
+
+        DBusAddress itsAddress(getDBusAddress());
+        itsAddress.setInterface("org.freedesktop.DBus.Properties");
+        DBusMessage _message = DBusMessage::createMethodCall(itsAddress, "Get", "ss");
+        DBusOutputStream output(_message);
+        const bool success = DBusSerializableArguments<const std::string, const std::string>
+                                ::serialize(output, interfaceName, propertyName);
+        if (success) {
+            output.flush();
+            DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
+                    this,
+                    std::placeholders::_1,
+                    std::placeholders::_2,
+                    std::placeholders::_3,
+                    std::placeholders::_4);
+
+            connection_->sendDBusMessageWithReplyAsync(
+                    _message,
+                    DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, dbusSignalHandler, subscription),
+                    &signalMemberHandlerInfo_);
+        }
+    } else {
+        availabilityStatusMutex_.unlock();
+    }
+}
+
 
 } // namespace DBus
 } // namespace CommonAPI

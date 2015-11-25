@@ -11,23 +11,23 @@ import gobject
 import math
 import dbus
 import dbus.service
-	
+    
 def finish():
-	try:
-		bus = dbus.SessionBus()
-		remote_object = bus.get_object('fake.legacy.service.LegacyInterface_fake.legacy.service','/fake/legacy/service')
-		iface = dbus.Interface(remote_object, 'fake.legacy.service.LegacyInterface')
-		iface.finish()
-		return 0
-	except:
-		print "Service not existing, therefore could not be stopped"
-		return 1
+    try:
+        bus = dbus.SessionBus()
+        remote_object = bus.get_object('fake.legacy.service.connection','/some/legacy/path/6259504')
+        iface = dbus.Interface(remote_object, 'fake.legacy.service.LegacyInterface')
+        iface.finish()
+        return 0
+    except:
+        print "Service not existing, therefore could not be stopped"
+        return 1
 
 def main():
-	command=sys.argv[1]
-	if command=="finish":
-		return finish()
-	
-	return 0
+    command=sys.argv[1]
+    if command=="finish":
+        return finish()
+    
+    return 0
 
 sys.exit(main())

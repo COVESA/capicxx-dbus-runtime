@@ -12,11 +12,11 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusProxyBase::DBusProxyBase(
-	const DBusAddress &_dbusAddress,
-	const std::shared_ptr<DBusProxyConnection> &_connection)
-	: dbusAddress_(_dbusAddress),
-	  connection_(_connection) {
-	DBusAddressTranslator::get()->translate(dbusAddress_, address_);
+    const DBusAddress &_dbusAddress,
+    const std::shared_ptr<DBusProxyConnection> &_connection)
+    : dbusAddress_(_dbusAddress),
+      connection_(_connection) {
+    DBusAddressTranslator::get()->translate(dbusAddress_, address_);
 }
 
 DBusMessage
@@ -27,7 +27,7 @@ DBusProxyBase::createMethodCall(const std::string &_method, const std::string &_
 
 const DBusAddress &
 DBusProxyBase::getDBusAddress() const {
-	return dbusAddress_;
+    return dbusAddress_;
 }
 
 const std::shared_ptr<DBusProxyConnection> &
@@ -52,20 +52,21 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandler(
-				const std::string &objectPath,
-				const std::string &interfaceName,
-				const std::string &signalName,
-				const std::string &signalSignature,
-				const std::string &getMethodName,
-				DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-				const bool justAddFilter) {
+                const std::string &objectPath,
+                const std::string &interfaceName,
+                const std::string &signalName,
+                const std::string &signalSignature,
+                const std::string &getMethodName,
+                DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+                const bool justAddFilter) {
+    (void)getMethodName;
     return addSignalMemberHandler(
-    			objectPath,
-				interfaceName,
-				signalName,
-				signalSignature,
-				dbusSignalHandler,
-				justAddFilter);
+                objectPath,
+                interfaceName,
+                signalName,
+                signalSignature,
+                dbusSignalHandler,
+                justAddFilter);
 }
 
 bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& _dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler) {

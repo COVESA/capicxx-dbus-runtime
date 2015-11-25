@@ -24,49 +24,49 @@ namespace DBus {
 
 class DBusAddressTranslator {
 public:
-	COMMONAPI_EXPORT static std::shared_ptr<DBusAddressTranslator> get();
+    COMMONAPI_EXPORT static std::shared_ptr<DBusAddressTranslator> get();
 
-	COMMONAPI_EXPORT DBusAddressTranslator();
+    COMMONAPI_EXPORT DBusAddressTranslator();
 
-	COMMONAPI_EXPORT void init();
+    COMMONAPI_EXPORT void init();
 
-	COMMONAPI_EXPORT bool translate(const std::string &_key, DBusAddress &_value);
-	COMMONAPI_EXPORT bool translate(const CommonAPI::Address &_key, DBusAddress &_value);
+    COMMONAPI_EXPORT bool translate(const std::string &_key, DBusAddress &_value);
+    COMMONAPI_EXPORT bool translate(const CommonAPI::Address &_key, DBusAddress &_value);
 
-	COMMONAPI_EXPORT bool translate(const DBusAddress &_key, std::string &_value);
-	COMMONAPI_EXPORT bool translate(const DBusAddress &_key, CommonAPI::Address &_value);
+    COMMONAPI_EXPORT bool translate(const DBusAddress &_key, std::string &_value);
+    COMMONAPI_EXPORT bool translate(const DBusAddress &_key, CommonAPI::Address &_value);
 
-	COMMONAPI_EXPORT void insert(const std::string &_address,
-		const std::string &_service, const std::string &_path, const std::string &_interface, const bool _objPathStartWithDigits = false);
+    COMMONAPI_EXPORT void insert(const std::string &_address,
+        const std::string &_service, const std::string &_path, const std::string &_interface, const bool _objPathStartWithDigits = false);
 
-	COMMONAPI_EXPORT DBusType_t getDBusBusType(const ConnectionId_t &_connectionId) const ;
+    COMMONAPI_EXPORT DBusType_t getDBusBusType(const ConnectionId_t &_connectionId) const ;
 
-	/**
-	 * @brief Returns whether or not org.freedesktop.DBus.Peer interface is used in a (valid) name mapping.
-	 * @return true in case any (valid) mapping of org.freedesktop.DBus.Peer is present, otherwise false
-	 */
-	COMMONAPI_EXPORT bool isOrgFreedesktopDBusPeerMapped() const;
-
-private:
-	COMMONAPI_EXPORT bool readConfiguration();
-
-	COMMONAPI_EXPORT bool isValid(const std::string &, const char,
-								  bool = false, bool = false, bool = false) const;
+    /**
+     * @brief Returns whether or not org.freedesktop.DBus.Peer interface is used in a (valid) name mapping.
+     * @return true in case any (valid) mapping of org.freedesktop.DBus.Peer is present, otherwise false
+     */
+    COMMONAPI_EXPORT bool isOrgFreedesktopDBusPeerMapped() const;
 
 private:
-	bool isDefault_;
+    COMMONAPI_EXPORT bool readConfiguration();
 
-	std::string defaultConfig_;
-	std::string defaultDomain_;
+    COMMONAPI_EXPORT bool isValid(const std::string &, const char,
+                                  bool = false, bool = false, bool = false) const;
 
-	std::map<CommonAPI::Address, DBusAddress> forwards_;
-	std::map<DBusAddress, CommonAPI::Address> backwards_;
+private:
+    bool isDefault_;
 
-	std::mutex mutex_;
+    std::string defaultConfig_;
+    std::string defaultDomain_;
 
-	std::map<ConnectionId_t, DBusType_t> dbusTypes_;
+    std::map<CommonAPI::Address, DBusAddress> forwards_;
+    std::map<DBusAddress, CommonAPI::Address> backwards_;
 
-	bool orgFreedesktopDBusPeerMapped_;
+    std::mutex mutex_;
+
+    std::map<ConnectionId_t, DBusType_t> dbusTypes_;
+
+    bool orgFreedesktopDBusPeerMapped_;
 };
 
 } // namespace DBus

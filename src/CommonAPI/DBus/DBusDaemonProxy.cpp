@@ -16,13 +16,16 @@ StaticInterfaceVersionAttribute::StaticInterfaceVersionAttribute(const uint32_t&
 }
 
 void StaticInterfaceVersionAttribute::getValue(CallStatus &_status, Version &_version,
-											   const CommonAPI::CallInfo *_info) const {
+                                               const CommonAPI::CallInfo *_info) const {
+    (void)_info;
     _version = version_;
     _status = CallStatus::SUCCESS;
 }
 
 std::future<CallStatus> StaticInterfaceVersionAttribute::getValueAsync(AttributeAsyncCallback attributeAsyncCallback,
-																	   const CommonAPI::CallInfo *_info) {
+                                                                       const CommonAPI::CallInfo *_info) {
+    (void)_info;
+
     attributeAsyncCallback(CallStatus::SUCCESS, version_);
 
     std::promise<CallStatus> versionPromise;
@@ -41,8 +44,8 @@ static CommonAPI::CallInfo daemonProxyInfo(30000);
 DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
                 DBusProxyBase(dbusProxyAddress, dbusConnection),
                 nameOwnerChangedEvent_(*this,
-                					   "NameOwnerChanged", "sss",
-                					   std::tuple<std::string, std::string, std::string>()),
+                                       "NameOwnerChanged", "sss",
+                                       std::tuple<std::string, std::string, std::string>()),
                 interfaceVersionAttribute_(1, 0) {
 }
 
@@ -74,7 +77,7 @@ void DBusDaemonProxy::listNames(CommonAPI::CallStatus& callStatus, std::vector<s
 
     DBusError dbusError;
     DBusMessage dbusMessageReply
-		= getDBusConnection()->sendDBusMessageWithReplyAndBlock(dbusMethodCall, dbusError, &daemonProxyInfo);
+        = getDBusConnection()->sendDBusMessageWithReplyAndBlock(dbusMethodCall, dbusError, &daemonProxyInfo);
 
     if (dbusError || !dbusMessageReply.isMethodReturnType()) {
         callStatus = CallStatus::REMOTE_ERROR;
@@ -114,7 +117,7 @@ void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallSt
     DBusMessage dbusMessageReply = getDBusConnection()->sendDBusMessageWithReplyAndBlock(
                     dbusMethodCall,
                     dbusError,
-					&daemonProxyInfo);
+                    &daemonProxyInfo);
     if (dbusError || !dbusMessageReply.isMethodReturnType()) {
         callStatus = CallStatus::REMOTE_ERROR;
         return;
@@ -144,7 +147,7 @@ std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& bu
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
                     DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback, std::tuple<bool>()),
-					&daemonProxyInfo);
+                    &daemonProxyInfo);
 }
 
 std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback callback) const {
@@ -154,9 +157,9 @@ std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::strin
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMethodCallMessage,
                     DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(
-                    	callback, std::tuple<DBusObjectToInterfaceDict>()
+                        callback, std::tuple<DBusObjectToInterfaceDict>()
                     ),
-					&daemonProxyInfo);
+                    &daemonProxyInfo);
 }
 
 std::future<CallStatus> DBusDaemonProxy::getNameOwnerAsync(const std::string& busName, GetNameOwnerAsyncCallback getNameOwnerAsyncCallback) const {
@@ -174,7 +177,7 @@ std::future<CallStatus> DBusDaemonProxy::getNameOwnerAsync(const std::string& bu
     return getDBusConnection()->sendDBusMessageWithReplyAsync(
                     dbusMessage,
                     DBusProxyAsyncCallbackHandler<std::string>::create(getNameOwnerAsyncCallback, std::tuple<std::string>()),
-					&daemonProxyInfo);
+                    &daemonProxyInfo);
 }
 
 const char* DBusDaemonProxy::getInterfaceId() {

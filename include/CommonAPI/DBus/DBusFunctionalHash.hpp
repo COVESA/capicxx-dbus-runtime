@@ -20,56 +20,56 @@ namespace std {
 
 template<>
 struct COMMONAPI_EXPORT hash<pair<const char*, const char*> >
-	: public unary_function<pair<const char*, const char*>, size_t> {
+    : public unary_function<pair<const char*, const char*>, size_t> {
 
     size_t operator()(const pair<const char*, const char*>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<const char*>
-	: public unary_function<const char*, size_t> {
+    : public unary_function<const char*, size_t> {
 
     size_t operator()(const char* const t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<pair<string, string> >
-	: public unary_function<pair<string, string>, size_t> {
+    : public unary_function<pair<string, string>, size_t> {
 
     size_t operator()(const pair<string, string>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<tuple<string, string, string> >
-	: public unary_function<tuple<string, string, string>, size_t> {
+    : public unary_function<tuple<string, string, string>, size_t> {
 
     size_t operator()(const tuple<string, string, string>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<tuple<string, string, string, bool> >
-	: public unary_function<tuple<string, string, string, bool>, size_t> {
+    : public unary_function<tuple<string, string, string, bool>, size_t> {
 
     size_t operator()(const tuple<string, string, string, bool>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<tuple<string, string, string, int> >
-	: public unary_function<tuple<string, string, string, int>, size_t> {
+    : public unary_function<tuple<string, string, string, int>, size_t> {
 
     size_t operator()(const tuple<string, string, string, int>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT hash<tuple<string, string, string, string> >
-	: public std::unary_function<tuple<string, string, string, string>, size_t> {
+    : public std::unary_function<tuple<string, string, string, string>, size_t> {
 
     size_t operator()(const tuple<string, string, string, string>& t) const;
 };
 
 template<>
 struct COMMONAPI_EXPORT equal_to<pair<const char*, const char*> >
-	: public binary_function<pair<const char*, const char*>,
+    : public binary_function<pair<const char*, const char*>,
       pair<const char*, const char*>,
       bool> {
 

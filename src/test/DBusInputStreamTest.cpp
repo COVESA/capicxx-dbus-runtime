@@ -238,51 +238,52 @@ TEST_F(InputStreamTest, ReadsStrings) {
 
 namespace bmw {
 namespace test {
-	struct TestSerializableStruct : CommonAPI::Struct<uint32_t, int16_t, bool, std::string, double> {
-		virtual uint32_t	getA()				{ return std::get<0>(values_); }
-		virtual int16_t		getB()				{ return std::get<1>(values_); }
-		virtual bool		getC()				{ return std::get<2>(values_); }
-		virtual std::string getD()				{ return std::get<3>(values_); }
-		virtual double		getE()				{ return std::get<4>(values_); }
+    struct TestSerializableStruct : CommonAPI::Struct<uint32_t, int16_t, bool, std::string, double> {
+        virtual uint32_t    getA()                { return std::get<0>(values_); }
+        virtual int16_t     getB()                { return std::get<1>(values_); }
+        virtual bool        getC()                { return std::get<2>(values_); }
+        virtual std::string getD()                { return std::get<3>(values_); }
+        virtual double      getE()                { return std::get<4>(values_); }
 
-		virtual void*		getAderef()			{ return &std::get<0>(values_); }
-		virtual void*		getBderef()			{ return &std::get<1>(values_); }
-		virtual void*		getCderef()			{ return &std::get<2>(values_); }
-		virtual void*		getDderef()			{ return &std::get<3>(values_); }
-		virtual void*		getEderef()			{ return &std::get<4>(values_); }
+        virtual void*       getAderef()           { return &std::get<0>(values_); }
+        virtual void*       getBderef()           { return &std::get<1>(values_); }
+        virtual void*       getCderef()           { return &std::get<2>(values_); }
+        virtual void*       getDderef()           { return &std::get<3>(values_); }
+        virtual void*       getEderef()           { return &std::get<4>(values_); }
 
-		virtual void		setA(uint32_t a)	{ std::get<0>(values_) = a; }
-		virtual void		setB(int16_t b)		{ std::get<1>(values_) = b; }
-		virtual void		setC(bool c)		{ std::get<2>(values_) = c; }
-		virtual void		setD(std::string d)	{ std::get<3>(values_) = d; }
-		virtual void		setE(double e)		{ std::get<4>(values_) = e; }
+        virtual void        setA(uint32_t a)      { std::get<0>(values_) = a; }
+        virtual void        setB(int16_t b)       { std::get<1>(values_) = b; }
+        virtual void        setC(bool c)          { std::get<2>(values_) = c; }
+        virtual void        setD(std::string d)   { std::get<3>(values_) = d; }
+        virtual void        setE(double e)        { std::get<4>(values_) = e; }
 
-		virtual void readFromInputStream(CommonAPI::InputStream<CommonAPI::DBus::DBusInputStream>& inputStream) {
-			inputStream >> std::get<0>(values_) >> std::get<1>(values_) >> std::get<2>(values_) >> std::get<3>(values_) >> std::get<4>(values_);
-		}
+        virtual void readFromInputStream(CommonAPI::InputStream<CommonAPI::DBus::DBusInputStream>& inputStream) {
+            inputStream >> std::get<0>(values_) >> std::get<1>(values_) >> std::get<2>(values_) >> std::get<3>(values_) >> std::get<4>(values_);
+        }
 
-		virtual void writeToOutputStream(CommonAPI::OutputStream<CommonAPI::DBus::DBusOutputStream>& outputStream) const {
-			outputStream << std::get<0>(values_) << std::get<1>(values_) << std::get<2>(values_) << std::get<3>(values_) << std::get<4>(values_);
-		}
+        virtual void writeToOutputStream(CommonAPI::OutputStream<CommonAPI::DBus::DBusOutputStream>& outputStream) const {
+            outputStream << std::get<0>(values_) << std::get<1>(values_) << std::get<2>(values_) << std::get<3>(values_) << std::get<4>(values_);
+        }
 
-		static void writeToTypeOutputStream(CommonAPI::TypeOutputStream<CommonAPI::DBus::DBusTypeOutputStream>& typeOutputStream) {
-			//typeOutputStream.writeType();
-			//typeOutputStream.writeType();
-			//typeOutputStream.writeType();
-			//typeOutputStream.writeType();
-			//typeOutputStream.writeType();
-		}
+        static void writeToTypeOutputStream(CommonAPI::TypeOutputStream<CommonAPI::DBus::DBusTypeOutputStream>& typeOutputStream) {
+            (void)typeOutputStream;
+            //typeOutputStream.writeType();
+            //typeOutputStream.writeType();
+            //typeOutputStream.writeType();
+            //typeOutputStream.writeType();
+            //typeOutputStream.writeType();
+        }
 };
 
 bool operator==(const TestSerializableStruct& lhs, const TestSerializableStruct& rhs) {
     if (&lhs == &rhs)
         return true;
 
-	return (std::get<0>(lhs.values_) == std::get<0>(rhs.values_))
-		&& (std::get<1>(lhs.values_) == std::get<1>(rhs.values_))
-		&& (std::get<2>(lhs.values_) == std::get<2>(rhs.values_))
-		&& (std::get<3>(lhs.values_) == std::get<3>(rhs.values_))
-		&& (std::get<4>(lhs.values_) == std::get<4>(rhs.values_));
+    return (std::get<0>(lhs.values_) == std::get<0>(rhs.values_))
+        && (std::get<1>(lhs.values_) == std::get<1>(rhs.values_))
+        && (std::get<2>(lhs.values_) == std::get<2>(rhs.values_))
+        && (std::get<3>(lhs.values_) == std::get<3>(rhs.values_))
+        && (std::get<4>(lhs.values_) == std::get<4>(rhs.values_));
 }
 
 } //namespace test
@@ -303,7 +304,7 @@ TEST_F(InputStreamTest, ReadsStructs) {
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_INT16, testStruct.getBderef());
     dbus_bool_t dbusBool = static_cast<dbus_bool_t>(testStruct.getC());
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_BOOLEAN, &dbusBool);
-	const char* dPtr = std::get<3>(testStruct.values_).c_str();
+    const char* dPtr = std::get<3>(testStruct.values_).c_str();
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_STRING, &dPtr);
     dbus_message_iter_append_basic(&subIter, DBUS_TYPE_DOUBLE, testStruct.getEderef());
     dbus_message_iter_close_container(&libdbusMessageWriteIter, &subIter);
@@ -435,7 +436,7 @@ TEST_F(InputStreamTest, ReadsInt32Variants) {
     EXPECT_EQ(numOfElements*4 + numOfElements*4, scopedMessage.getBodyLength());
     for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
-		inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<int32_t, double, std::string>*>(nullptr));
+        inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>*>(nullptr));
 
         int32_t actualResult;
         EXPECT_NO_THROW(actualResult = readVariant.get<int32_t>());
@@ -474,7 +475,7 @@ TEST_F(InputStreamTest, ReadsStringVariants) {
     EXPECT_EQ(numOfElements * (1+3+4+fromString.length()+1) + (numOfElements - 1) * (8-((fromString.length()+1)%8)) , scopedMessage.getBodyLength());
     for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
-		inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<int32_t, double, std::string>*>(nullptr));
+        inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>*>(nullptr));
 
         std::string actualResult = readVariant.get<std::string>();
 
@@ -528,7 +529,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStrings) {
     EXPECT_EQ(129 + 7 + 129, scopedMessage.getBodyLength());
     for (unsigned int i = 0; i < numOfElements; i += 1) {
         TestedVariantType readVariant;
-		inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<int32_t, double, std::vector<std::string>>*>(nullptr));
+        inStream.readValue(readVariant, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>*>(nullptr));
 
         std::vector<std::string> actualResult = readVariant.get<std::vector<std::string>>();
 
@@ -553,7 +554,7 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
     int8_t innerVariant1TypeIndex = 1;
     int8_t innerVariant2TypeIndex = 3;
 
-    const uint32_t byteBufferElementCount = numOfElements*10;
+    const uint32_t byteBufferElementCount = static_cast<uint32_t>(numOfElements*10);
 
     CommonAPI::ByteBuffer innerVariant1Value;
     for (unsigned int i = 0; i < byteBufferElementCount; ++i) {
@@ -638,8 +639,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithVariants) {
 
     TestedVariantType readVariant1;
     TestedVariantType readVariant2;
-	inStream.readValue(readVariant1, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::ByteBuffer>>*>(nullptr));
-	inStream.readValue(readVariant2, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::ByteBuffer>>*>(nullptr));
+    inStream.readValue(readVariant1, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>>*>(nullptr));
+    inStream.readValue(readVariant2, static_cast<CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::DBus::VariantDeployment<CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment, CommonAPI::EmptyDeployment>>*>(nullptr));
     EXPECT_EQ(referenceVariant1, readVariant1);
     EXPECT_EQ(referenceVariant2, readVariant2);
 
@@ -724,12 +725,12 @@ TEST_F(InputStreamTest, ReadsVariantsWithStructs) {
 TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
     typedef CommonAPI::Variant<int32_t, double, std::vector<bmw::test::TestSerializableStruct>> TestedVariantType;
 
-	bmw::test::TestSerializableStruct testStruct;
-	testStruct.setA(15);
-	testStruct.setB(-32);
-	testStruct.setC(false);
-	testStruct.setD("Hello all!");
-	testStruct.setE(3.414);
+    bmw::test::TestSerializableStruct testStruct;
+    testStruct.setA(15);
+    testStruct.setB(-32);
+    testStruct.setC(false);
+    testStruct.setD("Hello all!");
+    testStruct.setE(3.414);
 
     int8_t variantTypeIndex = 1;
 
@@ -752,8 +753,8 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
     dbus_bool_t dbusBool = 0;
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_UINT32, testStruct.getAderef());
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_INT16, testStruct.getBderef());
-	dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
-	const char* dPtr = std::get<3>(testStruct.values_).c_str();
+    dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_BOOLEAN, &dbusBool);
+    const char* dPtr = std::get<3>(testStruct.values_).c_str();
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_STRING, &dPtr);
     dbus_message_iter_append_basic(&innerStructIter, DBUS_TYPE_DOUBLE, testStruct.getEderef());
 
@@ -784,11 +785,11 @@ TEST_F(InputStreamTest, ReadsVariantsWithAnArrayOfStructs) {
     std::vector<bmw::test::TestSerializableStruct> actualResult = readVariant.get<std::vector<bmw::test::TestSerializableStruct>>();
     bmw::test::TestSerializableStruct readStruct = actualResult[0];
 
-	EXPECT_EQ(testStruct.getA(), readStruct.getA());
-	EXPECT_EQ(testStruct.getB(), readStruct.getB());
-	EXPECT_EQ(testStruct.getC(), readStruct.getC());
-	EXPECT_EQ(testStruct.getD(), readStruct.getD());
-	EXPECT_EQ(testStruct.getE(), readStruct.getE());
+    EXPECT_EQ(testStruct.getA(), readStruct.getA());
+    EXPECT_EQ(testStruct.getB(), readStruct.getB());
+    EXPECT_EQ(testStruct.getC(), readStruct.getC());
+    EXPECT_EQ(testStruct.getD(), readStruct.getD());
+    EXPECT_EQ(testStruct.getE(), readStruct.getE());
     EXPECT_EQ(testStruct, readStruct);
     EXPECT_EQ(referenceInnerVector, actualResult);
     EXPECT_EQ(referenceVariant, readVariant);

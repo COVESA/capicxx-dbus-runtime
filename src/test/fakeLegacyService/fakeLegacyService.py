@@ -18,8 +18,8 @@ dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 class FakeLegacyService(dbus.service.Object):
   def __init__(self, loop):
-    busName = dbus.service.BusName('fake.legacy.service.LegacyInterface_fake.legacy.service', bus = dbus.SessionBus())
-    dbus.service.Object.__init__(self, busName, '/fake/legacy/service')
+    busName = dbus.service.BusName('fake.legacy.service.connection', bus = dbus.SessionBus())
+    dbus.service.Object.__init__(self, busName, '/some/legacy/path/6259504')
     #self.properties = {'RestartReason': 1, 'ShutdownReason': 2, 'WakeUpReason' :3, 'BootMode' :4}
     self.ABus=""
     self.APath=""
@@ -27,9 +27,9 @@ class FakeLegacyService(dbus.service.Object):
 
   @dbus.service.method(dbus_interface='fake.legacy.service.Introspectable', out_signature = 's')
   def Introspect(self):
-	f = open('fake.legacy.service.xml', "r")
-	text = f.read()
-	return text
+    f = open('fake.legacy.service.xml', "r")
+    text = f.read()
+    return text
  
   @dbus.service.method(dbus_interface='fake.legacy.service.LegacyInterface', in_signature = 'i', out_signature = 'ii')
   def TestMethod(self, input):
@@ -44,9 +44,27 @@ class FakeLegacyService(dbus.service.Object):
     return greeting, identifier
 
   @dbus.service.method(dbus_interface='fake.legacy.service.LegacyInterface')
-  def finish(self): 
-	self.loop.quit()
-	return 0
+  def finish(self):
+    self.loop.quit()
+    return 0
+
+class ObjectManager(dbus.service.Object):
+  def __init__(self, loop):
+    busName = dbus.service.BusName('fake.legacy.service.connection', bus = dbus.SessionBus())
+    dbus.service.Object.__init__(self, busName, '/')
+    self.ABus=""
+    self.APath=""
+    self.loop=loop
+
+  @dbus.service.method(dbus_interface='org.freedesktop.DBus.ObjectManager', out_signature = 'a{oa{sa{sv}}}')
+  def GetManagedObjects(self):
+    response = {}
+    idict = {}
+    idict['fake.legacy.service.LegacyInterface'] = {}
+    idict['fake.legacy.service.Introspectable'] = {}
+    response['/some/legacy/path/6259504'] = idict  
+    return response
 
 nsm = FakeLegacyService(loop)
+ObjectManager(loop)
 loop.run()

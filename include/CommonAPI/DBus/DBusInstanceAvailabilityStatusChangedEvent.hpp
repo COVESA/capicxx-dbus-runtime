@@ -36,8 +36,8 @@ class DBusInstanceAvailabilityStatusChangedEvent:
     }
 
     virtual ~DBusInstanceAvailabilityStatusChangedEvent() {
-        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_);
-        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_);
+        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
+        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
     }
 
     virtual void onSignalDBusMessage(const DBusMessage& dbusMessage) {
@@ -59,7 +59,7 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                         false);
 
         interfacesRemovedSubscription_ = proxy_.addSignalMemberHandler(
-        				proxy_.getDBusAddress().getObjectPath(),
+                        proxy_.getDBusAddress().getObjectPath(),
                         DBusObjectManagerStub::getInterfaceName(),
                         "InterfacesRemoved",
                         "oas",
@@ -68,8 +68,8 @@ class DBusInstanceAvailabilityStatusChangedEvent:
     }
 
     virtual void onLastListenerRemoved(const Listener&) {
-        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_);
-        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_);
+        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
+        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
     }
 
  private:
@@ -118,8 +118,8 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                                       const AvailabilityStatus &_availability) {
         CommonAPI::Address itsAddress;
         DBusAddress itsDBusAddress(proxy_.getDBusAddress().getService(),
-                				   _objectPath,
-								   _interfaceName);
+                                   _objectPath,
+                                   _interfaceName);
 
         DBusAddressTranslator::get()->translate(itsDBusAddress, itsAddress);
 

@@ -22,32 +22,32 @@ class DBusInterfaceHandler;
 
 class DBusObjectManager {
  public:
-	 COMMONAPI_EXPORT DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
-	 COMMONAPI_EXPORT ~DBusObjectManager();
+     COMMONAPI_EXPORT DBusObjectManager(const std::shared_ptr<DBusProxyConnection>&);
+     COMMONAPI_EXPORT ~DBusObjectManager();
 
-	 COMMONAPI_EXPORT bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
-	 COMMONAPI_EXPORT bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
     //Zusammenfassbar mit "registerDBusStubAdapter"?
-	 COMMONAPI_EXPORT bool exportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
-	 COMMONAPI_EXPORT bool unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool exportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
+     COMMONAPI_EXPORT bool unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter);
 
-	 COMMONAPI_EXPORT bool handleMessage(const DBusMessage&);
+     COMMONAPI_EXPORT bool handleMessage(const DBusMessage&);
 
-	 COMMONAPI_EXPORT std::shared_ptr<DBusObjectManagerStub> getRootDBusObjectManagerStub();
+     COMMONAPI_EXPORT std::shared_ptr<DBusObjectManagerStub> getRootDBusObjectManagerStub();
 
  private:
     // objectPath, interfaceName
-	typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
+    typedef std::pair<std::string, std::string> DBusInterfaceHandlerPath;
 
-	COMMONAPI_EXPORT bool addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+    COMMONAPI_EXPORT bool addDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
                                  std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler);
 
-	COMMONAPI_EXPORT bool removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
+    COMMONAPI_EXPORT bool removeDBusInterfaceHandler(const DBusInterfaceHandlerPath& dbusInterfaceHandlerPath,
                                     std::shared_ptr<DBusInterfaceHandler> dbusInterfaceHandler);
 
-	COMMONAPI_EXPORT bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
-	COMMONAPI_EXPORT bool onFreedesktopPropertiesDBusMessage(const DBusMessage& callMessage);
+    COMMONAPI_EXPORT bool onIntrospectableInterfaceDBusMessage(const DBusMessage& callMessage);
+    COMMONAPI_EXPORT bool onFreedesktopPropertiesDBusMessage(const DBusMessage& callMessage);
 
 
     typedef std::unordered_map<DBusInterfaceHandlerPath, std::shared_ptr<DBusInterfaceHandler>> DBusRegisteredObjectsTable;

@@ -22,7 +22,7 @@ namespace CommonAPI {
 namespace DBus {
 
 class DBusProxyStatusEvent
-		: public ProxyStatusEvent {
+        : public ProxyStatusEvent {
     friend class DBusProxy;
 
  public:
@@ -37,32 +37,32 @@ class DBusProxyStatusEvent
 
 
 class DBusProxy
-		: public DBusProxyBase {
+        : public DBusProxyBase {
 public:
-	COMMONAPI_EXPORT DBusProxy(const DBusAddress &_address,
+    COMMONAPI_EXPORT DBusProxy(const DBusAddress &_address,
               const std::shared_ptr<DBusProxyConnection> &_connection);
-	COMMONAPI_EXPORT virtual ~DBusProxy();
+    COMMONAPI_EXPORT virtual ~DBusProxy();
 
-	COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
-	COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
+    COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
+    COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
 
-	COMMONAPI_EXPORT virtual bool isAvailable() const;
-	COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
+    COMMONAPI_EXPORT virtual bool isAvailable() const;
+    COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
 
-	COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcastOnConnection(
+    COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcastOnConnection(
               bool& subscriptionAccepted,
               const std::string& objectPath,
               const std::string& interfaceName,
               const std::string& interfaceMemberName,
               const std::string& interfaceMemberSignature,
               DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
-	COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
+    COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                            DBusProxyConnection::DBusSignalHandlerToken subscription,
                                            const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
 
-	COMMONAPI_EXPORT void init();
+    COMMONAPI_EXPORT void init();
 
-	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+    COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,
             const std::string &interfaceName,
             const std::string &signalName,
@@ -70,48 +70,54 @@ public:
             DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
             const bool justAddFilter);
 
-	COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
+    COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,
             const std::string &interfaceName,
             const std::string &signalName,
             const std::string &signalSignature,
-			const std::string &getMethodName,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-            const bool justAddFilter);
-
-	COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
-    		const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-    		const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
-
-	COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
             const std::string &getMethodName,
             DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
-			const uint32_t subscription);
+            const bool justAddFilter);
+
+    COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
+            const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
+            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+
+    COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
+            const std::string &getMethodName,
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const uint32_t subscription);
+
+    COMMONAPI_EXPORT virtual void freeDesktopGetCurrentValueForSignalListener(
+            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            const uint32_t subscription,
+            const std::string &interfaceName,
+            const std::string &propertyName);
 
 private:
     typedef std::tuple<
-		const std::string,
-		const std::string,
-		const std::string,
-		const std::string,
-		const std::string,
-		DBusProxyConnection::DBusSignalHandler*,
-		const bool,
-		bool
-		> SignalMemberHandlerTuple;
+        const std::string,
+        const std::string,
+        const std::string,
+        const std::string,
+        const std::string,
+        DBusProxyConnection::DBusSignalHandler*,
+        const bool,
+        bool
+        > SignalMemberHandlerTuple;
 
-	COMMONAPI_EXPORT DBusProxy(const DBusProxy &) = delete;
+    COMMONAPI_EXPORT DBusProxy(const DBusProxy &) = delete;
 
-	COMMONAPI_EXPORT void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
-	COMMONAPI_EXPORT void signalMemberCallback(const CallStatus dbusMessageCallStatus,
-			const DBusMessage& dbusMessage,
-			DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
-			const uint32_t tag);
-	COMMONAPI_EXPORT void signalInitialValueCallback(const CallStatus dbusMessageCallStatus,
-			const DBusMessage& dbusMessage,
-			DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
-			const uint32_t tag);
-	COMMONAPI_EXPORT void addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler);
+    COMMONAPI_EXPORT void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
+    COMMONAPI_EXPORT void signalMemberCallback(const CallStatus dbusMessageCallStatus,
+            const DBusMessage& dbusMessage,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+            const uint32_t tag);
+    COMMONAPI_EXPORT void signalInitialValueCallback(const CallStatus dbusMessageCallStatus,
+            const DBusMessage& dbusMessage,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+            const uint32_t tag);
+    COMMONAPI_EXPORT void addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler);
 
     DBusProxyStatusEvent dbusProxyStatusEvent_;
     DBusServiceRegistry::DBusServiceSubscription dbusServiceRegistrySubscription_;

@@ -21,7 +21,7 @@ namespace {
 class DBusDaemonProxyTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-		dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
         ASSERT_TRUE(dbusConnection_->connect());
         dbusDaemonProxy_ = std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusConnection_);
     }
@@ -47,7 +47,7 @@ TEST_F(DBusDaemonProxyTest, ListNames) {
     }
 }
 
-TEST_F(DBusDaemonProxyTest, DISABLED_ListNamesAsync) {
+TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
     std::promise<std::tuple<CommonAPI::CallStatus, std::vector<std::string>>>promise;
     auto future = promise.get_future();
 
@@ -75,7 +75,7 @@ TEST_F(DBusDaemonProxyTest, DISABLED_ListNamesAsync) {
     }
 }
 
-TEST_F(DBusDaemonProxyTest, DISABLED_NameHasOwner) {
+TEST_F(DBusDaemonProxyTest, NameHasOwner) {
     bool nameHasOwner;
     CommonAPI::CallStatus callStatus;
 
@@ -112,7 +112,7 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
     ASSERT_TRUE(nameHasOwner);
 }
 
-TEST_F(DBusDaemonProxyTest, DISABLED_NameOwnerChangedEvent) {
+TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
     std::promise<bool> promise;
     auto future = promise.get_future();
 
@@ -126,7 +126,7 @@ TEST_F(DBusDaemonProxyTest, DISABLED_NameOwnerChangedEvent) {
                     });
 
     // Trigger NameOwnerChanged using a new DBusConnection
-	ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION)->connect());
+    ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION)->connect());
 
     ASSERT_TRUE(future.get());
 

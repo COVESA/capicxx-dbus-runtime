@@ -15,37 +15,42 @@
 namespace CommonAPI {
 namespace DBus {
 
-template<typename _EventType, typename... _Arguments>
-class DBusSelectiveEvent: public DBusEvent<_EventType, _Arguments...> {
+template<typename EventType_, typename... Arguments_>
+class DBusSelectiveEvent: public DBusEvent<EventType_, Arguments_...> {
 public:
-    typedef typename DBusEvent<_EventType, _Arguments...>::Listener Listener;
-    typedef DBusEvent<_EventType, _Arguments...> DBusEventBase;
+    typedef typename DBusEvent<EventType_, Arguments_...>::Listener Listener;
+    typedef DBusEvent<EventType_, Arguments_...> DBusEventBase;
 
     DBusSelectiveEvent(DBusProxy &_proxy,
-    				   const char *_name, const char *_signature,
-    				   std::tuple<_Arguments...> _arguments)
-    	: DBusEventBase(_proxy, _name, _signature, _arguments) {
+                       const char *_name, const char *_signature,
+                       std::tuple<Arguments_...> _arguments)
+        : DBusEventBase(_proxy, _name, _signature, _arguments) {
     }
 
     DBusSelectiveEvent(DBusProxy &_proxy,
-    				   const char *_name, const char *_signature,
+                       const char *_name, const char *_signature,
                        const char *_path, const char *_interface,
-                       std::tuple<_Arguments...> _arguments)
-    	: DBusEventBase(_proxy, _name, _signature, _path, _interface, _arguments) {
+                       std::tuple<Arguments_...> _arguments)
+        : DBusEventBase(_proxy, _name, _signature, _path, _interface, _arguments) {
     }
 
     virtual ~DBusSelectiveEvent() {}
 
 protected:
     void onFirstListenerAdded(const Listener &) {
-    	bool success;
-		this->subscription_
-			= static_cast<DBusProxy&>(this->proxy_).subscribeForSelectiveBroadcastOnConnection(
-				success, this->path_, this->interface_, this->name_, this->signature_, this);
+        bool success;
+        this->subscription_
+            = static_cast<DBusProxy&>(this->proxy_).subscribeForSelectiveBroadcastOnConnection(
+                success, this->path_, this->interface_, this->name_, this->signature_, this);
+                
+        if (success == false) {
+            // Call error listener with an error code
+            this->notifyError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED);
+        }
     }
 
     void onLastListenerRemoved(const Listener &) {
-    	static_cast<DBusProxy&>(this->proxy_).unsubscribeFromSelectiveBroadcast(
+        static_cast<DBusProxy&>(this->proxy_).unsubscribeFromSelectiveBroadcast(
                         this->name_, this->subscription_, this);
     }
 };

@@ -18,98 +18,98 @@
 namespace CommonAPI {
 namespace DBus {
 
-template <typename... _Arguments>
+template <typename... Arguments_>
 class DBusMultiEvent {
  public:
-	typedef std::function<SubscriptionStatus(const std::string&, const _Arguments&...)> Listener;
-	typedef std::unordered_multimap<std::string, Listener> ListenersMap;
-	typedef typename ListenersMap::iterator Subscription;
+    typedef std::function<SubscriptionStatus(const std::string&, const Arguments_&...)> Listener;
+    typedef std::unordered_multimap<std::string, Listener> ListenersMap;
+    typedef typename ListenersMap::iterator Subscription;
 
-	virtual ~DBusMultiEvent() {}
+    virtual ~DBusMultiEvent() {}
 
-	Subscription subscribeAll(const Listener& listener);
-	Subscription subscribe(const std::string& eventName, const Listener& listener);
+    Subscription subscribeAll(const Listener& listener);
+    Subscription subscribe(const std::string& eventName, const Listener& listener);
 
-	void unsubscribe(Subscription listenerSubscription);
+    void unsubscribe(Subscription listenerSubscription);
 
  protected:
-	SubscriptionStatus notifyListeners(const std::string& name, const _Arguments&... eventArguments);
+    SubscriptionStatus notifyListeners(const std::string& name, const Arguments_&... eventArguments);
 
-	virtual void onFirstListenerAdded(const std::string& name, const Listener& listener) { }
-	virtual void onListenerAdded(const std::string& name, const Listener& listener) { }
+    virtual void onFirstListenerAdded(const std::string& name, const Listener& listener) { }
+    virtual void onListenerAdded(const std::string& name, const Listener& listener) { }
 
-	virtual void onListenerRemoved(const std::string& name, const Listener& listener) { }
-	virtual void onLastListenerRemoved(const std::string& name, const Listener& listener) { }
+    virtual void onListenerRemoved(const std::string& name, const Listener& listener) { }
+    virtual void onLastListenerRemoved(const std::string& name, const Listener& listener) { }
 
  private:
-	typedef std::pair<typename ListenersMap::iterator, typename ListenersMap::iterator> IteratorRange;
-	SubscriptionStatus notifyListenersRange(const std::string& name, IteratorRange listenersRange, const _Arguments&... eventArguments);
+    typedef std::pair<typename ListenersMap::iterator, typename ListenersMap::iterator> IteratorRange;
+    SubscriptionStatus notifyListenersRange(const std::string& name, IteratorRange listenersRange, const Arguments_&... eventArguments);
 
-	ListenersMap listenersMap_;
+    ListenersMap listenersMap_;
 };
 
-template <typename... _Arguments>
-typename DBusMultiEvent<_Arguments...>::Subscription
-DBusMultiEvent<_Arguments...>::subscribeAll(const Listener& listener) {
-	return subscribe(std::string(), listener);
+template <typename... Arguments_>
+typename DBusMultiEvent<Arguments_...>::Subscription
+DBusMultiEvent<Arguments_...>::subscribeAll(const Listener& listener) {
+    return subscribe(std::string(), listener);
 }
 
-template <typename... _Arguments>
-typename DBusMultiEvent<_Arguments...>::Subscription
-DBusMultiEvent<_Arguments...>::subscribe(const std::string& eventName, const Listener& listener) {
-	const bool firstListenerAdded = listenersMap_.empty();
+template <typename... Arguments_>
+typename DBusMultiEvent<Arguments_...>::Subscription
+DBusMultiEvent<Arguments_...>::subscribe(const std::string& eventName, const Listener& listener) {
+    const bool firstListenerAdded = listenersMap_.empty();
 
-	auto listenerSubscription = listenersMap_.insert({eventName, listener});
+    auto listenerSubscription = listenersMap_.insert({eventName, listener});
 
-	if (firstListenerAdded) {
-		onFirstListenerAdded(eventName, listener);
-	}
+    if (firstListenerAdded) {
+        onFirstListenerAdded(eventName, listener);
+    }
 
-	onListenerAdded(eventName, listener);
+    onListenerAdded(eventName, listener);
 
-	return listenerSubscription;
+    return listenerSubscription;
 }
 
-template <typename... _Arguments>
-void DBusMultiEvent<_Arguments...>::unsubscribe(Subscription listenerSubscription) {
-	const std::string name = listenerSubscription->first;
-	const Listener listener = listenerSubscription->second;
+template <typename... Arguments_>
+void DBusMultiEvent<Arguments_...>::unsubscribe(Subscription listenerSubscription) {
+    const std::string name = listenerSubscription->first;
+    const Listener listener = listenerSubscription->second;
 
-	listenersMap_.erase(listenerSubscription);
+    listenersMap_.erase(listenerSubscription);
 
-	onListenerRemoved(name, listener);
+    onListenerRemoved(name, listener);
 
-	const bool lastListenerRemoved = listenersMap_.empty();
-	if (lastListenerRemoved)
-		onLastListenerRemoved(name, listener);
+    const bool lastListenerRemoved = listenersMap_.empty();
+    if (lastListenerRemoved)
+        onLastListenerRemoved(name, listener);
 }
 
-template <typename... _Arguments>
-SubscriptionStatus DBusMultiEvent<_Arguments...>::notifyListeners(const std::string& name, const _Arguments&... eventArguments) {
-	const SubscriptionStatus subscriptionStatus = notifyListenersRange(name, listenersMap_.equal_range(name), eventArguments...);
+template <typename... Arguments_>
+SubscriptionStatus DBusMultiEvent<Arguments_...>::notifyListeners(const std::string& name, const Arguments_&... eventArguments) {
+    const SubscriptionStatus subscriptionStatus = notifyListenersRange(name, listenersMap_.equal_range(name), eventArguments...);
 
-	if (subscriptionStatus == SubscriptionStatus::CANCEL)
-		return SubscriptionStatus::CANCEL;
+    if (subscriptionStatus == SubscriptionStatus::CANCEL)
+        return SubscriptionStatus::CANCEL;
 
-	return notifyListenersRange(name, listenersMap_.equal_range(std::string()), eventArguments...);
+    return notifyListenersRange(name, listenersMap_.equal_range(std::string()), eventArguments...);
 }
 
-template <typename... _Arguments>
-SubscriptionStatus DBusMultiEvent<_Arguments...>::notifyListenersRange(
-		const std::string& name,
-		IteratorRange listenersRange,
-		const _Arguments&... eventArguments) {
-	for (auto iterator = listenersRange.first; iterator != listenersRange.second; iterator++) {
-		const Listener& listener = iterator->second;
-		const SubscriptionStatus listenerSubcriptionStatus = listener(name, eventArguments...);
+template <typename... Arguments_>
+SubscriptionStatus DBusMultiEvent<Arguments_...>::notifyListenersRange(
+        const std::string& name,
+        IteratorRange listenersRange,
+        const Arguments_&... eventArguments) {
+    for (auto iterator = listenersRange.first; iterator != listenersRange.second; iterator++) {
+        const Listener& listener = iterator->second;
+        const SubscriptionStatus listenerSubcriptionStatus = listener(name, eventArguments...);
 
-		if (listenerSubcriptionStatus == SubscriptionStatus::CANCEL) {
-			auto listenerIterator = iterator;
-			listenersMap_.erase(listenerIterator);
-		}
-	}
+        if (listenerSubcriptionStatus == SubscriptionStatus::CANCEL) {
+            auto listenerIterator = iterator;
+            listenersMap_.erase(listenerIterator);
+        }
+    }
 
-	return listenersMap_.empty() ? SubscriptionStatus::CANCEL : SubscriptionStatus::RETAIN;
+    return listenersMap_.empty() ? SubscriptionStatus::CANCEL : SubscriptionStatus::RETAIN;
 }
 
 } // namespace DBus

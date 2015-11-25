@@ -12,31 +12,29 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusError::DBusError() {
-	dbus_error_init(&libdbusError_);
+    dbus_error_init(&libdbusError_);
 }
 
 DBusError::~DBusError() {
-	dbus_error_free(&libdbusError_);
+    dbus_error_free(&libdbusError_);
 }
 
 DBusError::operator bool() const {
-	return 0 != dbus_error_is_set(&libdbusError_);
+    return 0 != dbus_error_is_set(&libdbusError_);
 }
 
 void DBusError::clear() {
-	dbus_error_free(&libdbusError_);
+    dbus_error_free(&libdbusError_);
 }
 
 std::string DBusError::getName() const {
-	assert(*this);
 
-	return std::string(libdbusError_.name);
+    return std::string(libdbusError_.name);
 }
 
 std::string DBusError::getMessage() const {
-	assert(*this);
 
-	return std::string(libdbusError_.message);
+    return std::string(libdbusError_.message);
 }
 
 } // namespace DBus

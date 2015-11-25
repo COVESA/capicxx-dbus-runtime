@@ -30,13 +30,26 @@
 
 #include "commonapi/tests/PredefinedTypeCollection.hpp"
 #include "commonapi/tests/DerivedTypeCollection.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
-#include "v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusProxy.hpp"
 
 #define VERSION v1_0
+
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
+};
 
 class DBusCommunicationTest: public ::testing::Test {
  protected:
@@ -46,19 +59,19 @@ class DBusCommunicationTest: public ::testing::Test {
     }
 
     virtual void TearDown() {
-		runtime_->unregisterService(domain_, interface_, serviceAddress_);
-		runtime_->unregisterService(domain_, interface_, serviceAddress2_);
-		runtime_->unregisterService(domain_, interface_, serviceAddress3_);
-		runtime_->unregisterService(domain_, interface_, serviceAddress4_);
-		runtime_->unregisterService(domain_, interface_, serviceAddress5_);
+        runtime_->unregisterService(domain_, interface_, serviceAddress_);
+        runtime_->unregisterService(domain_, interface_, serviceAddress2_);
+        runtime_->unregisterService(domain_, interface_, serviceAddress3_);
+        runtime_->unregisterService(domain_, interface_, serviceAddress4_);
+        runtime_->unregisterService(domain_, interface_, serviceAddress5_);
         usleep(30000);
     }
 
     std::shared_ptr<CommonAPI::Runtime> runtime_;
 
-	std::string interface_;
+    std::string interface_;
 
-	static const std::string domain_;
+    static const std::string domain_;
     static const std::string serviceAddress_;
     static const std::string serviceAddress2_;
     static const std::string serviceAddress3_;
@@ -77,15 +90,15 @@ const std::string DBusCommunicationTest::serviceAddress5_ = "CommonAPI.DBus.test
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
     for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -100,20 +113,20 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallSucceeds) {
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
-	EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
 }
 
 TEST_F(DBusCommunicationTest, AccessStubAdapterAfterInitialised) {
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
 
     unsigned int in = 5;
     stub->setTestPredefinedTypeAttributeAttribute(in);
 
     for (unsigned int i = 0; !serviceRegistered && i < 100; i++) {
         if (!serviceRegistered) {
-			serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+            serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         }
         usleep(10000);
     }
@@ -122,17 +135,17 @@ TEST_F(DBusCommunicationTest, AccessStubAdapterAfterInitialised) {
 }
 
 TEST_F(DBusCommunicationTest, AccessStubAdapterBeforeInitialised) {
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
     unsigned int in = 5;
     stub->setTestPredefinedTypeAttributeAttribute(in);
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
 
     for (unsigned int i = 0; !serviceRegistered && i < 100; i++) {
         if (!serviceRegistered) {
-			serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+            serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         }
         usleep(10000);
     }
@@ -140,28 +153,28 @@ TEST_F(DBusCommunicationTest, AccessStubAdapterBeforeInitialised) {
 }
 
 TEST_F(DBusCommunicationTest, SameStubCanBeRegisteredSeveralTimes) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress_);
-	auto defaultTestProxy2 = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress2_);
-	auto defaultTestProxy3 = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress3_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress_);
+    auto defaultTestProxy2 = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress2_);
+    auto defaultTestProxy3 = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress3_);
     ASSERT_TRUE((bool)defaultTestProxy);
     ASSERT_TRUE((bool)defaultTestProxy2);
     ASSERT_TRUE((bool)defaultTestProxy3);
 
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
-	bool serviceRegistered2 = runtime_->registerService(domain_, serviceAddress2_, stub, "connection");
-	bool serviceRegistered3 = runtime_->registerService(domain_, serviceAddress3_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+    bool serviceRegistered2 = runtime_->registerService(domain_, serviceAddress2_, stub, "connection");
+    bool serviceRegistered3 = runtime_->registerService(domain_, serviceAddress3_, stub, "connection");
     for (unsigned int i = 0; (!serviceRegistered || !serviceRegistered2 || !serviceRegistered3) && i < 100; ++i) {
         if (!serviceRegistered) {
-			serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
+            serviceRegistered = runtime_->registerService(domain_, serviceAddress_, stub, "connection");
         }
         if (!serviceRegistered2) {
-			serviceRegistered2 = runtime_->registerService(domain_, serviceAddress2_, stub, "connection");
+            serviceRegistered2 = runtime_->registerService(domain_, serviceAddress2_, stub, "connection");
         }
         if (!serviceRegistered3) {
-			serviceRegistered3 = runtime_->registerService(domain_, serviceAddress3_, stub, "connection");
+            serviceRegistered3 = runtime_->registerService(domain_, serviceAddress3_, stub, "connection");
         }
         usleep(10000);
     }
@@ -185,20 +198,20 @@ TEST_F(DBusCommunicationTest, SameStubCanBeRegisteredSeveralTimes) {
 
     EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
     EXPECT_EQ(stat2, CommonAPI::CallStatus::SUCCESS);
-	EXPECT_EQ(stat3, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat3, CommonAPI::CallStatus::SUCCESS);
 }
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, nonstandardAddress_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, nonstandardAddress_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, nonstandardAddress_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, nonstandardAddress_, stub, "connection");
     for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, nonstandardAddress_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, nonstandardAddress_, stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -213,20 +226,20 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallWithNonstandardAddressSucceeds) {
     CommonAPI::CallStatus stat;
     defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
-	EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
+    EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
 }
 
 
 TEST_F(DBusCommunicationTest, MixedSyncAndAsyncCallsSucceed) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress5_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress5_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress5_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress5_, stub, "connection");
     for(unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, serviceAddress5_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, serviceAddress5_, stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -255,20 +268,20 @@ TEST_F(DBusCommunicationTest, MixedSyncAndAsyncCallsSucceed) {
     for (unsigned int i = 0; i < 500 && responseCounter < 10; i++) {
         usleep(1000);
     }
-	EXPECT_EQ(10, responseCounter);
+    EXPECT_EQ(10, responseCounter);
 }
 
 
 TEST_F(DBusCommunicationTest, RemoteMethodCallHeavyLoad) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress4_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress4_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
     for (unsigned int i = 0; !serviceRegistered && i < 100; ++i) {
-		serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
+        serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceRegistered);
@@ -285,17 +298,17 @@ TEST_F(DBusCommunicationTest, RemoteMethodCallHeavyLoad) {
     for (uint32_t i = 0; i < 1000; i++) {
         defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
         EXPECT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
-	}
+    }
 }
 
 TEST_F(DBusCommunicationTest, ProxyCanFetchVersionAttributeFromStub) {
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress4_);
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, serviceAddress4_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
-	auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-	interface_ = stub->getStubAdapter()->getInterface();
+    auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+    interface_ = stub->getStubAdapter()->getInterface();
 
-	bool serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
+    bool serviceRegistered = runtime_->registerService(domain_, serviceAddress4_, stub, "connection");
 
     ASSERT_TRUE(serviceRegistered);
 
@@ -416,8 +429,8 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
 
     std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> createDBusStubAdapter(std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection,
                                                                             const std::string& commonApiAddress) {
-		CommonAPI::DBus::DBusAddress dbusAddress;
-		CommonAPI::DBus::DBusAddressTranslator::get()->translate(commonApiAddress, dbusAddress);
+        CommonAPI::DBus::DBusAddress dbusAddress;
+        CommonAPI::DBus::DBusAddressTranslator::get()->translate(commonApiAddress, dbusAddress);
 
         std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> dbusStubAdapter;
         std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
@@ -427,10 +440,10 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
 
         std::shared_ptr<CommonAPI::DBus::DBusObjectManagerStub> rootDBusObjectManagerStub = dbusConnection->getDBusObjectManager()->getRootDBusObjectManagerStub();
 
+        rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
+
         const auto dbusObjectManager = dbusConnection->getDBusObjectManager();
         dbusObjectManager->registerDBusStubAdapter(dbusStubAdapter);
-
-        rootDBusObjectManagerStub->exportManagedDBusStubAdapter(dbusStubAdapter);
 
         return dbusStubAdapter;
     }
@@ -438,35 +451,36 @@ class DBusLowLevelCommunicationTest: public ::testing::Test {
     std::shared_ptr<CommonAPI::Runtime> runtime_;
     std::shared_ptr<CommonAPI::Factory> proxyFactory_;
 
-	static const std::string domain_;
-	static const std::string lowLevelAddress_;
-	static const std::string lowLevelAddressInstance_;
+    static const std::string domain_;
+    static const std::string lowLevelAddress_;
+    static const std::string lowLevelAddressInstance_;
     static const std::string lowLevelConnectionName_;
 };
 
 const std::string DBusLowLevelCommunicationTest::domain_ = "local";
-const std::string DBusLowLevelCommunicationTest::lowLevelAddress_ = "local:CommonAPI.DBus.tests.DBusProxyTestInterface:CommonAPI.DBus.tests.DBusProxyLowLevelService";
+const std::string DBusLowLevelCommunicationTest::lowLevelAddress_ = "local:commonapi.tests.TestInterface:CommonAPI.DBus.tests.DBusProxyLowLevelService";
 const std::string DBusLowLevelCommunicationTest::lowLevelAddressInstance_ = "CommonAPI.DBus.tests.DBusProxyLowLevelService";
-const std::string DBusLowLevelCommunicationTest::lowLevelConnectionName_ = "CommonAPI.DBus.tests.DBusProxyLowLevelService";
+const std::string DBusLowLevelCommunicationTest::lowLevelConnectionName_ = "commonapi.tests.TestInterface_CommonAPI.DBus.tests.DBusProxyLowLevelService";
 
 namespace DBusCommunicationTestNamespace {
 ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
                                                     ::DBusMessage* libdbusMessage,
                                                     void* userData) {
+    (void)libdbusConnection;
+    (void)libdbusMessage;
+    (void)userData;
     return ::DBusHandlerResult::DBUS_HANDLER_RESULT_HANDLED;
 }
 
 DBusObjectPathVTable libdbusObjectPathVTable = {
                 NULL,
-                &onLibdbusObjectPathMessageThunk
+                &onLibdbusObjectPathMessageThunk,
+                NULL, NULL, NULL, NULL
 };
 }
 
-TEST_F(DBusLowLevelCommunicationTest, DISABLED_AgressiveNameClaimingOfServicesIsHandledCorrectly) {
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> connection1 = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
-	std::shared_ptr<CommonAPI::DBus::DBusConnection> connection2 = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
-
-	auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, lowLevelAddressInstance_);
+TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCorrectly) {
+    auto defaultTestProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain_, lowLevelAddressInstance_);
     ASSERT_TRUE((bool)defaultTestProxy);
 
     uint32_t counter = 0;
@@ -560,6 +574,7 @@ TEST_F(DBusLowLevelCommunicationTest, DISABLED_AgressiveNameClaimingOfServicesIs
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

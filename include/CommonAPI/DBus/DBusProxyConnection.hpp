@@ -45,6 +45,16 @@ class DBusProxyConnection {
        virtual ~DBusMessageReplyAsyncHandler() {}
        virtual std::future<CallStatus> getFuture() = 0;
        virtual void onDBusMessageReply(const CallStatus&, const DBusMessage&) = 0;
+       virtual void setExecutionStarted() = 0;
+       virtual bool getExecutionStarted() = 0;
+       virtual void setExecutionFinished() = 0;
+       virtual bool getExecutionFinished() = 0;
+       virtual void setTimeoutOccurred() = 0;
+       virtual bool getTimeoutOccurred() = 0;
+       virtual void setHasToBeDeleted() = 0;
+       virtual bool hasToBeDeleted() = 0;
+       virtual void lock() = 0;
+       virtual void unlock() = 0;
     };
 
     class DBusSignalHandler {
@@ -72,12 +82,12 @@ class DBusProxyConnection {
     virtual std::future<CallStatus> sendDBusMessageWithReplyAsync(
             const DBusMessage& dbusMessage,
             std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
-			const CommonAPI::CallInfo *_info) const = 0;
+            const CommonAPI::CallInfo *_info) const = 0;
 
     virtual DBusMessage sendDBusMessageWithReplyAndBlock(
             const DBusMessage& dbusMessage,
             DBusError& dbusError,
-			const CommonAPI::CallInfo *_info) const = 0;
+            const CommonAPI::CallInfo *_info) const = 0;
 
     virtual DBusSignalHandlerToken addSignalMemberHandler(
             const std::string& objectPath,

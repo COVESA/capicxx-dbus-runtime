@@ -16,22 +16,22 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusOutputStream::DBusOutputStream(DBusMessage dbusMessage)
-	: dbusMessage_(dbusMessage) {
+    : dbusMessage_(dbusMessage) {
 }
 
 // Internal
 size_t DBusOutputStream::getPosition() {
-	return payload_.size();
+    return payload_.size();
 }
 
 void DBusOutputStream::pushPosition() {
-	positions_.push(payload_.size());
+    positions_.push(payload_.size());
 }
 
 size_t DBusOutputStream::popPosition() {
-	size_t itsPosition = positions_.top();
-	positions_.pop();
-	return itsPosition;
+    size_t itsPosition = positions_.top();
+    positions_.pop();
+    return itsPosition;
 }
 
 // TODO Check where dbusError_ is set
@@ -45,8 +45,8 @@ bool DBusOutputStream::hasError() const {
 // #DBusMessage. The data that is buffered in this #DBusOutputMessageStream
 // is not deleted by calling flush().
 void DBusOutputStream::flush() {
-    const int toWrite = payload_.size();
-    dbusMessage_.setBodyLength(toWrite);
+    const std::string::size_type toWrite = payload_.size();
+    dbusMessage_.setBodyLength(static_cast<int>(toWrite));
     char* destinationDataPtr = dbusMessage_.getBodyData();
     memcpy(destinationDataPtr, payload_.c_str(), toWrite);
 }
@@ -63,7 +63,7 @@ void DBusOutputStream::setError() {
  * @param numOfBytes The number of bytes that should be reserved for writing.
  */
 void DBusOutputStream::reserveMemory(size_t numOfBytes) {
-    assert(numOfBytes >= 0);
+    assert(numOfBytes > 0);
     payload_.reserve(numOfBytes);
 }
 
@@ -82,7 +82,7 @@ static const char eightByteZeroString[] = "\0\0\0\0\0\0\0";
 
 void DBusOutputStream::align(const size_t _boundary) {
     assert(_boundary > 0 && _boundary <= 8 &&
-    	(_boundary % 2 == 0 || _boundary == 1));
+        (_boundary % 2 == 0 || _boundary == 1));
 
     size_t mask = _boundary - 1;
     size_t necessary = ((mask - (payload_.size() & mask)) + 1) & mask;

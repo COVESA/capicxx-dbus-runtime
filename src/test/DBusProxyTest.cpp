@@ -20,14 +20,14 @@
 #include <CommonAPI/DBus/DBusStubAdapter.hpp>
 #include <CommonAPI/DBus/DBusFactory.hpp>
 
-#include <v1_0/commonapi/tests/TestInterfaceDBusProxy.hpp>
-#include <v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp>
-#include <v1_0/commonapi/tests/TestInterfaceStubDefault.hpp>
+#include <v1/commonapi/tests/TestInterfaceDBusProxy.hpp>
+#include <v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp>
+#include <v1/commonapi/tests/TestInterfaceStubDefault.hpp>
 
-#include <v1_0/commonapi/tests/ExtendedInterfaceProxy.hpp>
-#include <v1_0/commonapi/tests/ExtendedInterfaceDBusProxy.hpp>
-#include <v1_0/commonapi/tests/ExtendedInterfaceDBusStubAdapter.hpp>
-#include <v1_0/commonapi/tests/ExtendedInterfaceStubDefault.hpp>
+#include <v1/commonapi/tests/ExtendedInterfaceProxy.hpp>
+#include <v1/commonapi/tests/ExtendedInterfaceDBusProxy.hpp>
+#include <v1/commonapi/tests/ExtendedInterfaceDBusStubAdapter.hpp>
+#include <v1/commonapi/tests/ExtendedInterfaceStubDefault.hpp>
 
 #include "DBusTestUtils.hpp"
 
@@ -44,13 +44,26 @@ static const std::string domain = "local";
 static const std::string commonApiAddress = "CommonAPI.DBus.tests.DBusProxyTestService";
 static const std::string commonApiAddressExtended = "CommonAPI.DBus.tests.DBusProxyTestService2";
 static const std::string commonApiServiceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
-static const std::string interfaceName = "CommonAPI.DBus.tests.DBusProxyTestInterface";
-static const std::string busName = "CommonAPI.DBus.tests.DBusProxyTestService";
+static const std::string interfaceName = "commonapi.tests.TestInterface";
+static const std::string busName = "commonapi.tests.TestInterface_CommonAPI.DBus.tests.DBusProxyTestService";
 static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
 static const std::string objectPathExtended = "/CommonAPI/DBus/tests/DBusProxyTestService2";
 static const std::string commonApiAddressFreedesktop = "CommonAPI.DBus.tests.DBusProxyTestInterface";
 
 #define VERSION v1_0
+
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
+};
 
 class ProxyTest: public ::testing::Test {
 protected:
@@ -60,8 +73,8 @@ protected:
         proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
         ASSERT_TRUE(proxyDBusConnection_->connect());
 
-		proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(
-			CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName),
+        proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(
+            CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName),
                         proxyDBusConnection_);
         proxy_->init();
     }
@@ -73,17 +86,17 @@ protected:
     }
 
     void registerTestStub() {
-		stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-		bool isTestStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_, "connection");
+        stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+        bool isTestStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_, "connection");
         ASSERT_TRUE(isTestStubAdapterRegistered_);
 
         usleep(100000);
     }
 
     void registerExtendedStub() {
-		stubExtended_ = std::make_shared<VERSION::commonapi::tests::ExtendedInterfaceStubDefault>();
+        stubExtended_ = std::make_shared<VERSION::commonapi::tests::ExtendedInterfaceStubDefault>();
 
-		bool isExtendedStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::ExtendedInterfaceStub>(domain, commonApiAddressExtended, stubExtended_, "connection");
+        bool isExtendedStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::ExtendedInterfaceStub>(domain, commonApiAddressExtended, stubExtended_, "connection");
         ASSERT_TRUE(isExtendedStubAdapterRegistered_);
 
         usleep(100000);
@@ -91,7 +104,7 @@ protected:
 
     void deregisterTestStub() {
         const bool isStubAdapterUnregistered = CommonAPI::Runtime::get()->unregisterService(
-			domain, stubDefault_->getStubAdapter()->getInterface(), commonApiAddress);
+            domain, stubDefault_->getStubAdapter()->getInterface(), commonApiAddress);
         ASSERT_TRUE(isStubAdapterUnregistered);
         stubDefault_.reset();
         isTestStubAdapterRegistered_ = false;
@@ -99,7 +112,7 @@ protected:
 
     void deregisterExtendedStub() {
         const bool isStubAdapterUnregistered = runtime_->unregisterService(
-			domain, stubExtended_->CommonAPI::Stub<VERSION::commonapi::tests::ExtendedInterfaceStubAdapter, VERSION::commonapi::tests::ExtendedInterfaceStubRemoteEvent>::getStubAdapter()->VERSION::commonapi::tests::ExtendedInterface::getInterface(), commonApiAddressExtended);
+            domain, stubExtended_->CommonAPI::Stub<VERSION::commonapi::tests::ExtendedInterfaceStubAdapter, VERSION::commonapi::tests::ExtendedInterfaceStubRemoteEvent>::getStubAdapter()->VERSION::commonapi::tests::ExtendedInterface::getInterface(), commonApiAddressExtended);
         ASSERT_TRUE(isStubAdapterUnregistered);
         stubExtended_.reset();
         isExtendedStubAdapterRegistered_ = false;
@@ -133,14 +146,14 @@ protected:
     bool isTestStubAdapterRegistered_;
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceDBusProxy> proxy_;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceDBusProxy> proxy_;
 
-	CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
+    CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
 
     CommonAPI::ProxyStatusEvent::Subscription proxyStatusSubscription_;
 
-	std::shared_ptr<VERSION::commonapi::tests::ExtendedInterfaceStubDefault> stubExtended_;
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stubDefault_;
+    std::shared_ptr<VERSION::commonapi::tests::ExtendedInterfaceStubDefault> stubExtended_;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stubDefault_;
 };
 
 TEST_F(ProxyTest, HasCorrectConnectionName) {
@@ -149,12 +162,12 @@ TEST_F(ProxyTest, HasCorrectConnectionName) {
 }
 
 TEST_F(ProxyTest, HasCorrectObjectPath) {
-	std::string actualPath = proxy_->getDBusAddress().getObjectPath();
+    std::string actualPath = proxy_->getDBusAddress().getObjectPath();
     EXPECT_EQ(objectPath, actualPath);
 }
 
 TEST_F(ProxyTest, HasCorrectInterfaceName) {
-	std::string actualName = proxy_->getDBusAddress().getInterface();
+    std::string actualName = proxy_->getDBusAddress().getInterface();
     EXPECT_EQ(interfaceName, actualName);
 }
 
@@ -165,12 +178,6 @@ TEST_F(ProxyTest, IsNotAvailable) {
 
 TEST_F(ProxyTest, IsConnected) {
     ASSERT_TRUE(proxy_->getDBusConnection()->isConnected());
-}
-
-TEST_F(ProxyTest, AssociatedConnectionHasServiceRegistry) {
-    std::shared_ptr<CommonAPI::DBus::DBusProxyConnection> connection = proxy_->getDBusConnection();
-    //auto registry = connection->getDBusServiceRegistry();
-    //ASSERT_FALSE(!registry);
 }
 
 TEST_F(ProxyTest, DBusProxyStatusEventBeforeServiceIsRegistered) {
@@ -215,43 +222,6 @@ TEST_F(ProxyTest, DBusProxyStatusEventAfterServiceIsRegistered) {
 }
 #endif
 
-TEST_F(ProxyTest, ServiceStatus) {
-    registerTestStub();
-
-    std::vector<std::string> availableDBusServices;
-	/*
-    //Service actually IS available!
-    for (int i = 0; i < 5; i++) {
-        availableDBusServices = proxyDBusConnection_->getDBusServiceRegistry()->getAvailableServiceInstances(
-                        commonApiServiceName,
-                        "local");
-
-        if (!availableDBusServices.empty()) {
-            break;
-        }
-    }
-
-    auto found = std::find(availableDBusServices.begin(), availableDBusServices.end(), commonApiAddress);
-	*/
-    //EXPECT_TRUE(availableDBusServices.begin() != availableDBusServices.end());
-    //EXPECT_TRUE(found != availableDBusServices.end());
-	deregisterTestStub();
-}
-
-TEST_F(ProxyTest, isServiceInstanceAlive) {
-    registerTestStub();
-
-    //bool isInstanceAlive = proxyDBusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(interfaceName, busName, objectPath);
-
-    //for (int i = 0; !isInstanceAlive && i < 10; i++) {
-    //    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        //isInstanceAlive = proxyDBusConnection_->getDBusServiceRegistry()->isServiceInstanceAlive(interfaceName, busName, objectPath);
-    //}
-
-    //EXPECT_TRUE(isInstanceAlive);
-
-    deregisterTestStub();
-}
 
 TEST_F(ProxyTest, IsAvailableBlocking) {
     registerTestStub();
@@ -282,6 +252,7 @@ TEST_F(ProxyTest, TestInterfaceVersionAttribute) {
 TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
     ::commonapi::tests::DerivedTypeCollection::TestEnumExtended2 testInputStruct;
     ::commonapi::tests::DerivedTypeCollection::TestMap testInputMap;
+    CommonAPI::CallInfo info;
     std::promise<bool> wasCalledPromise;
     std::future<bool> wasCalledFuture = wasCalledPromise.get_future();
     proxy_->testDerivedTypeMethodAsync(testInputStruct, testInputMap, [&] (
@@ -291,7 +262,7 @@ TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
         ASSERT_EQ(callStatus, CommonAPI::CallStatus::NOT_AVAILABLE);
         wasCalledPromise.set_value(true);
     }
-                    );
+                    , &info);
     ASSERT_TRUE(wasCalledFuture.get());
 }
 
@@ -299,7 +270,7 @@ TEST_F(ProxyTest, AsyncCallbacksAreCalledIfServiceNotAvailable) {
 TEST_F(ProxyTest, CallMethodFromExtendedInterface) {
     registerExtendedStub();
 
-	auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
+    auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
 
     // give the proxy time to become available
     for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
@@ -325,13 +296,13 @@ TEST_F(ProxyTest, CallMethodFromExtendedInterface) {
 TEST_F(ProxyTest, CallMethodFromParentInterface) {
     registerExtendedStub();
 
-	auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
+    auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
 
     for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
-        usleep(20 * 1000);
+        usleep(10 * 1000);
     }
     EXPECT_TRUE(extendedProxy->isAvailable());
-	
+    
     bool wasCalled = false;
     extendedProxy->testEmptyMethodAsync(
                     [&](const CommonAPI::CallStatus& callStatus) {
@@ -340,7 +311,7 @@ TEST_F(ProxyTest, CallMethodFromParentInterface) {
                     });
     usleep(100000);
     EXPECT_TRUE(wasCalled);
-	
+    
     deregisterExtendedStub();
 }
 
@@ -376,7 +347,7 @@ TEST_F(ProxyTest, CanHandleRemoteAttribute) {
 TEST_F(ProxyTest, CanHandleRemoteAttributeFromParentInterface) {
     registerExtendedStub();
 
-	auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
+    auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
 
     for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
         usleep(20 * 1000);
@@ -386,8 +357,8 @@ TEST_F(ProxyTest, CanHandleRemoteAttributeFromParentInterface) {
     CommonAPI::CallStatus callStatus(CommonAPI::CallStatus::REMOTE_ERROR);
     uint32_t value;
 
-    usleep(200000000);
-	
+    usleep(50000);
+    
     auto& testAttribute = extendedProxy->getTestPredefinedTypeAttributeAttribute();
 
     testAttribute.getValue(callStatus, value);
@@ -400,7 +371,7 @@ TEST_F(ProxyTest, CanHandleRemoteAttributeFromParentInterface) {
 
     EXPECT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
     EXPECT_EQ(value, responseValue);
-	
+    
     usleep(50000);
     deregisterExtendedStub();
 }
@@ -408,7 +379,7 @@ TEST_F(ProxyTest, CanHandleRemoteAttributeFromParentInterface) {
 TEST_F(ProxyTest, ProxyCanFetchVersionAttributeFromInheritedInterfaceStub) {
     registerExtendedStub();
 
-	auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, commonApiAddressExtended);
+    auto extendedProxy = runtime_->buildProxy<VERSION::commonapi::tests::ExtendedInterfaceProxy>(domain, commonApiAddressExtended);
 
     for (uint32_t i = 0; !extendedProxy->isAvailable() && i < 200; ++i) {
         usleep(20 * 1000);
@@ -447,16 +418,16 @@ protected:
     }
 
     void registerTestStub(const std::string commonApiAddress) {
-		stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
+        stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
         bool isTestStubAdapterRegistered_ = runtime_->registerService<
-			VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_);
+            VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_);
         ASSERT_TRUE(isTestStubAdapterRegistered_);
 
         usleep(100000);
     }
 
     void deregisterTestStub(const std::string commonApiAddress) {
-		const bool isStubAdapterUnregistered = CommonAPI::Runtime::get()->unregisterService(domain, stubDefault_->getStubAdapter()->getInterface(), commonApiAddress);
+        const bool isStubAdapterUnregistered = CommonAPI::Runtime::get()->unregisterService(domain, stubDefault_->getStubAdapter()->getInterface(), commonApiAddress);
         ASSERT_TRUE(isStubAdapterUnregistered);
         stubDefault_.reset();
         isTestStubAdapterRegistered_ = false;
@@ -490,12 +461,12 @@ protected:
     std::shared_ptr<CommonAPI::Runtime> runtime_;
 
     std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyDBusConnection_;
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceDBusProxy> proxy_;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceDBusProxy> proxy_;
     CommonAPI::AvailabilityStatus proxyAvailabilityStatus_;
 
     CommonAPI::ProxyStatusEvent::Subscription proxyStatusSubscription_;
 
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stubDefault_;
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceStubDefault> stubDefault_;
 };
 
 TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
@@ -504,7 +475,7 @@ TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
     proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
     ASSERT_TRUE(proxyDBusConnection_->connect());
 
-	proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), proxyDBusConnection_);
+    proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), proxyDBusConnection_);
     proxy_->init();
 
     proxyRegisterForAvailabilityStatus();
@@ -522,8 +493,8 @@ TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
 TEST_F(ProxyTest2, DBusProxyCanUseOrgFreedesktopAddress) {
     registerTestStub(commonApiAddressFreedesktop);
 
-	std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxy<>> proxy =
-		runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, commonApiAddressFreedesktop);
+    std::shared_ptr<VERSION::commonapi::tests::TestInterfaceProxy<>> proxy =
+        runtime_->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(domain, commonApiAddressFreedesktop);
 
     for (int i = 0; i < 100; i++) {
         if (proxy->isAvailable())
@@ -552,6 +523,7 @@ TEST_F(ProxyTest2, DBusProxyCanUseOrgFreedesktopAddress) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

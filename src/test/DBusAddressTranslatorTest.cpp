@@ -25,11 +25,11 @@
 
 #include "commonapi/tests/PredefinedTypeCollection.hpp"
 #include "commonapi/tests/DerivedTypeCollection.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceProxy.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceStubDefault.hpp"
-#include "v1_0/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
+#include "v1/commonapi/tests/TestInterfaceProxy.hpp"
+#include "v1/commonapi/tests/TestInterfaceStubDefault.hpp"
+#include "v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
-#include <v1_0/fake/legacy/service/LegacyInterfaceProxy.hpp>
+#include <v1/fake/legacy/service/LegacyInterfaceProxy.hpp>
 
 static const std::string domain = "local";
 
@@ -99,15 +99,15 @@ static const std::string fileString =
 ;
 
 static const std::vector<std::string> commonApiAddresses = {
-	"local:no.nothing.service:no.nothing.instance",
-	"local:service:instance",
-	"local:no.interface.service:no.interface.instance",
-	"local:no.connection.service:no.connection.instance",
-	"local:no.object.service:no.object.instance",
-	"local:only.interface.service:only.interface.instance",
-	"local:only.connection.service:only.connection.instance",
-	"local:only.object.service:only.object.instance",
-	"local:fake.legacy.service.LegacyInterface:fake.legacy.service"
+    "local:no.nothing.service:no.nothing.instance",
+    "local:service:instance",
+    "local:no.interface.service:no.interface.instance",
+    "local:no.connection.service:no.connection.instance",
+    "local:no.object.service:no.object.instance",
+    "local:only.interface.service:only.interface.instance",
+    "local:only.connection.service:only.connection.instance",
+    "local:only.object.service:only.object.instance",
+    "local:fake.legacy.service.LegacyInterface:fake.legacy.service"
 };
 
 typedef std::vector<CommonAPI::DBus::DBusAddress>::value_type vt;
@@ -120,7 +120,20 @@ static const std::vector<CommonAPI::DBus::DBusAddress> dbusAddresses = {
                 vt("only.interface.service_only.interface.instance", "/only/interface/instance", "only.interface.service"),
                 vt("only.connection.service_only.connection.instance", "/only/connection/instance", "only.connection.service"),
                 vt("only.object.service_only.object.instance", "/only/object/instance", "only.object.service"),
-                vt("fake.legacy.service.LegacyInterface_fake.legacy.service", "/fake/legacy/service", "fake.legacy.service.LegacyInterface")
+                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
+};
+
+class Environment: public ::testing::Environment {
+public:
+    virtual ~Environment() {
+    }
+
+    virtual void SetUp() {
+        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
+    }
+
+    virtual void TearDown() {
+    }
 };
 
 class AddressTranslatorTest: public ::testing::Test {
@@ -136,8 +149,8 @@ protected:
 };
 
 TEST_F(AddressTranslatorTest, InstanceCanBeRetrieved) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> dbusAddressTranslator = CommonAPI::DBus::DBusAddressTranslator::get();
-	ASSERT_TRUE((bool) dbusAddressTranslator);
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> dbusAddressTranslator = CommonAPI::DBus::DBusAddressTranslator::get();
+    ASSERT_TRUE((bool) dbusAddressTranslator);
 }
 
 TEST_F(AddressTranslatorTest, ParsesDBusAddresses) {
@@ -145,287 +158,287 @@ TEST_F(AddressTranslatorTest, ParsesDBusAddresses) {
 
     for(unsigned int i = 0; i < commonApiAddresses.size(); i++) {
         std::string interfaceName, connectionName, objectPath;
-		CommonAPI::DBus::DBusAddress dbusAddress;
-		translator->translate(commonApiAddresses[i], dbusAddress);
-		std::cout << dbusAddress.getService() << " " << dbusAddress.getObjectPath() << " " << dbusAddress.getInterface() << std::endl;
-		ASSERT_EQ(dbusAddresses[i].getService(), dbusAddress.getService());
+        CommonAPI::DBus::DBusAddress dbusAddress;
+        translator->translate(commonApiAddresses[i], dbusAddress);
+        std::cout << dbusAddress.getService() << " " << dbusAddress.getObjectPath() << " " << dbusAddress.getInterface() << std::endl;
+        ASSERT_EQ(dbusAddresses[i].getService(), dbusAddress.getService());
         ASSERT_EQ(dbusAddresses[i].getObjectPath(), dbusAddress.getObjectPath());
-		ASSERT_EQ(dbusAddresses[i].getInterface(), dbusAddress.getInterface());
+        ASSERT_EQ(dbusAddresses[i].getInterface(), dbusAddress.getInterface());
     }
 }
 
 TEST_F(AddressTranslatorTest, ParsesCommonAPIAddresses) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
     for(unsigned int i = 0; i < commonApiAddresses.size(); i++) {
-		CommonAPI::Address commonApiAddress;
-		translator->translate(CommonAPI::DBus::DBusAddress(dbusAddresses[i].getService(), dbusAddresses[i].getObjectPath(), dbusAddresses[i].getInterface()), commonApiAddress);
-		std::cout << dbusAddresses[i].getService() << " " << dbusAddresses[i].getObjectPath() << " " << dbusAddresses[i].getInterface() << std::endl;
-		std::cout << commonApiAddress.getDomain() << " " << commonApiAddress.getInterface() << " " << commonApiAddress.getInstance() << std::endl;
+        CommonAPI::Address commonApiAddress;
+        translator->translate(CommonAPI::DBus::DBusAddress(dbusAddresses[i].getService(), dbusAddresses[i].getObjectPath(), dbusAddresses[i].getInterface()), commonApiAddress);
+        std::cout << dbusAddresses[i].getService() << " " << dbusAddresses[i].getObjectPath() << " " << dbusAddresses[i].getInterface() << std::endl;
+        std::cout << commonApiAddress.getDomain() << " " << commonApiAddress.getInterface() << " " << commonApiAddress.getInstance() << std::endl;
         ASSERT_EQ(commonApiAddresses[i], commonApiAddress.getAddress());
     }
 }
 
 TEST_F(AddressTranslatorTest, InsertAddressPossible) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	std::string commonApiAddressRef = "local:my.service:my.instance";
+    std::string commonApiAddressRef = "local:my.service:my.instance";
 
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service_my.new.instance", "/my/new/instance", "my.new.service");
-	CommonAPI::DBus::DBusAddress dbusAddressSecondInsertRef("my.new.second.service_my.new.second.instance", "/my/new/second/instance", "my.new.second.service");
-	std::string commonApiSecondInsertAddressRef = "local:my.new.second.service:my.new.second.instance";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service_my.new.instance", "/my/new/instance", "my.new.service");
+    CommonAPI::DBus::DBusAddress dbusAddressSecondInsertRef("my.new.second.service_my.new.second.instance", "/my/new/second/instance", "my.new.second.service");
+    std::string commonApiSecondInsertAddressRef = "local:my.new.second.service:my.new.second.instance";
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	// insert new address
-	translator->insert(commonApiAddressRef,
-			dbusAddressInsertRef.getService(),
-			dbusAddressInsertRef.getObjectPath(),
-			dbusAddressInsertRef.getInterface());
+    // insert new address
+    translator->insert(commonApiAddressRef,
+            dbusAddressInsertRef.getService(),
+            dbusAddressInsertRef.getObjectPath(),
+            dbusAddressInsertRef.getInterface());
 
-	//check inserted address
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    //check inserted address
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	// try overwriting address
-	translator->insert(commonApiAddressRef,
-			dbusAddressSecondInsertRef.getService(),
-			dbusAddressSecondInsertRef.getObjectPath(),
-			dbusAddressSecondInsertRef.getInterface());
+    // try overwriting address
+    translator->insert(commonApiAddressRef,
+            dbusAddressSecondInsertRef.getService(),
+            dbusAddressSecondInsertRef.getObjectPath(),
+            dbusAddressSecondInsertRef.getInterface());
 
-	//check overwritten not possible
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    //check overwritten not possible
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressSecondInsertRef.getService(), dbusAddressSecondInsertRef.getObjectPath(), dbusAddressSecondInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressSecondInsertRef.getService() << " " << dbusAddressSecondInsertRef.getObjectPath() << " " << dbusAddressSecondInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressSecondInsertRef.getService(), dbusAddressSecondInsertRef.getObjectPath(), dbusAddressSecondInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressSecondInsertRef.getService() << " " << dbusAddressSecondInsertRef.getObjectPath() << " " << dbusAddressSecondInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiSecondInsertAddressRef, commonApiAddressResult.getAddress());
 
     translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
-	ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 }
 
 TEST_F(AddressTranslatorTest, InsertUniqueBusNameTranslate) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	translator->insert("local:my.Interface:busname.legacy.service_1_133",
-						":1.133",		/* unique bus name */
-						"/org/busname/legacy/service",
-						"busname.legacy.service");
+    translator->insert("local:my.Interface:busname.legacy.service_1_133",
+                        ":1.133",        /* unique bus name */
+                        "/org/busname/legacy/service",
+                        "busname.legacy.service");
 
-	CommonAPI::DBus::DBusAddress dbusAddress;
+    CommonAPI::DBus::DBusAddress dbusAddress;
 
-	translator->translate("local:my.Interface:busname.legacy.service_1_133", dbusAddress);
+    translator->translate("local:my.Interface:busname.legacy.service_1_133", dbusAddress);
 
-	ASSERT_EQ(":1.133", dbusAddress.getService());
+    ASSERT_EQ(":1.133", dbusAddress.getService());
     ASSERT_EQ("busname.legacy.service", dbusAddress.getInterface());
     ASSERT_EQ("/org/busname/legacy/service", dbusAddress.getObjectPath());
 }
 
 TEST_F(AddressTranslatorTest, InsertAddressNotPossibleConflictTranslate) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	CommonAPI::DBus::DBusAddress dbusAddressRef("my.service.translate_my.instance.translate", "/my/instance/translate", "my.service.translate");
-	std::string commonApiAddressRef = "local:my.service.translate:my.instance.translate";
+    CommonAPI::DBus::DBusAddress dbusAddressRef("my.service.translate_my.instance.translate", "/my/instance/translate", "my.service.translate");
+    std::string commonApiAddressRef = "local:my.service.translate:my.instance.translate";
 
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service.translate_my.new.instance.translate", "/my/new/instance/translate", "my.new.service.translate");
-	std::string commonApiAddressInsertRef = "local:my.new.service.translate:my.new.instance.translate";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service.translate_my.new.instance.translate", "/my/new/instance/translate", "my.new.service.translate");
+    std::string commonApiAddressInsertRef = "local:my.new.service.translate:my.new.instance.translate";
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	// insertion via translate
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressRef.getInterface(), dbusAddressResult.getInterface());
+    // insertion via translate
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressRef.getInterface(), dbusAddressResult.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressRef.getService(), dbusAddressRef.getObjectPath(), dbusAddressRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressRef.getService() << " " << dbusAddressRef.getObjectPath() << " " << dbusAddressRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressRef.getService(), dbusAddressRef.getObjectPath(), dbusAddressRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressRef.getService() << " " << dbusAddressRef.getObjectPath() << " " << dbusAddressRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	// try to overwrite address
-	translator->insert(commonApiAddressRef,
-			dbusAddressInsertRef.getService(),
-			dbusAddressInsertRef.getObjectPath(),
-			dbusAddressInsertRef.getInterface());
+    // try to overwrite address
+    translator->insert(commonApiAddressRef,
+            dbusAddressInsertRef.getService(),
+            dbusAddressInsertRef.getObjectPath(),
+            dbusAddressInsertRef.getInterface());
 
-	//check that inserting was not possible
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressRef.getInterface(), dbusAddressResult.getInterface());
+    //check that inserting was not possible
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressRef.getInterface(), dbusAddressResult.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressInsertRef, commonApiAddressResult.getAddress());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressRef.getService(), dbusAddressRef.getObjectPath(), dbusAddressRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressRef.getService() << " " << dbusAddressRef.getObjectPath() << " " << dbusAddressRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressRef.getService(), dbusAddressRef.getObjectPath(), dbusAddressRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressRef.getService() << " " << dbusAddressRef.getObjectPath() << " " << dbusAddressRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
 }
 
 TEST_F(AddressTranslatorTest, InsertAddressNotPossibleConflictConfigFile) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service.config_my.new.instance.config", "/my/new/instance/config", "my.new.service.config");
-	std::string commonApiAddressInsertRef = "local:my.new.service.config:my.new.instance.config";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.new.service.config_my.new.instance.config", "/my/new/instance/config", "my.new.service.config");
+    std::string commonApiAddressInsertRef = "local:my.new.service.config:my.new.instance.config";
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	// try to overwrite address
-	translator->insert(commonApiAddresses[1],
-			dbusAddressInsertRef.getService(),
-			dbusAddressInsertRef.getObjectPath(),
-			dbusAddressInsertRef.getInterface());
+    // try to overwrite address
+    translator->insert(commonApiAddresses[1],
+            dbusAddressInsertRef.getService(),
+            dbusAddressInsertRef.getObjectPath(),
+            dbusAddressInsertRef.getInterface());
 
-	//check that inserting was not possible
-	translator->translate(commonApiAddresses[1], dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddresses[1].getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddresses[1].getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddresses[1].getInterface(), dbusAddressResult.getInterface());
+    //check that inserting was not possible
+    translator->translate(commonApiAddresses[1], dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddresses[1].getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddresses[1].getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddresses[1].getInterface(), dbusAddressResult.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressInsertRef, commonApiAddressResult.getAddress());
 
     translator->translate(CommonAPI::DBus::DBusAddress(dbusAddresses[1].getService(), dbusAddresses[1].getObjectPath(), dbusAddresses[1].getInterface()), commonApiAddressResult);
-	std::cout << dbusAddresses[1].getService() << " " << dbusAddresses[1].getObjectPath() << " " << dbusAddresses[1].getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
-	ASSERT_EQ(commonApiAddresses[1], commonApiAddressResult.getAddress());
+    std::cout << dbusAddresses[1].getService() << " " << dbusAddresses[1].getObjectPath() << " " << dbusAddresses[1].getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    ASSERT_EQ(commonApiAddresses[1], commonApiAddressResult.getAddress());
 }
 
 TEST_F(AddressTranslatorTest, UniqueAddressHandlingTranslateWorks) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	std::string commonApiAddressRef = "local:my.unique.translate.interface:my.unique.translate.instance";
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef(":1.6", "/my/unique/translate/instance", "my.unique.translate.interface");
+    std::string commonApiAddressRef = "local:my.unique.translate.interface:my.unique.translate.instance";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef(":1.6", "/my/unique/translate/instance", "my.unique.translate.interface");
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 }
 
 TEST_F(AddressTranslatorTest, UniqueAddressHandlingInsertWorks) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	std::string commonApiAddressRef = "local:my.unique.insert.other.interface:my.unique.insert.other.instance";
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef(":1.6", "/my/unique/insert/instance", "my.unique.insert.interface");
+    std::string commonApiAddressRef = "local:my.unique.insert.other.interface:my.unique.insert.other.instance";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef(":1.6", "/my/unique/insert/instance", "my.unique.insert.interface");
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	translator->insert(commonApiAddressRef,
-				dbusAddressInsertRef.getService(),
-				dbusAddressInsertRef.getObjectPath(),
-				dbusAddressInsertRef.getInterface());
+    translator->insert(commonApiAddressRef,
+                dbusAddressInsertRef.getService(),
+                dbusAddressInsertRef.getObjectPath(),
+                dbusAddressInsertRef.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 }
 
 TEST_F(AddressTranslatorTest, CheckWellKnownNameTranslateWorks) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	std::string commonApiAddressRef = "local:my.well.translate.interface:my.well.translate.instance";
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.well.known.name", "/my/well/translate/instance", "my.well.translate.interface");
+    std::string commonApiAddressRef = "local:my.well.translate.interface:my.well.translate.instance";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.well.known.name", "/my/well/translate/instance", "my.well.translate.interface");
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 }
 
 TEST_F(AddressTranslatorTest, CheckWellKnownNameInsertWorks) {
-	std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
+    std::shared_ptr<CommonAPI::DBus::DBusAddressTranslator> translator = CommonAPI::DBus::DBusAddressTranslator::get();
 
-	std::string commonApiAddressRef = "local:my.well.insert.other.interface:my.well.insert.other.instance";
-	CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.well.known.name", "/my/well/insert/instance", "my.well.insert.interface");
+    std::string commonApiAddressRef = "local:my.well.insert.other.interface:my.well.insert.other.instance";
+    CommonAPI::DBus::DBusAddress dbusAddressInsertRef("my.well.known.name", "/my/well/insert/instance", "my.well.insert.interface");
 
-	CommonAPI::DBus::DBusAddress dbusAddressResult;
-	CommonAPI::Address commonApiAddressResult;
+    CommonAPI::DBus::DBusAddress dbusAddressResult;
+    CommonAPI::Address commonApiAddressResult;
 
-	translator->insert(commonApiAddressRef,
-				dbusAddressInsertRef.getService(),
-				dbusAddressInsertRef.getObjectPath(),
-				dbusAddressInsertRef.getInterface());
+    translator->insert(commonApiAddressRef,
+                dbusAddressInsertRef.getService(),
+                dbusAddressInsertRef.getObjectPath(),
+                dbusAddressInsertRef.getInterface());
 
-	translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
-	std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
-	std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
+    translator->translate(CommonAPI::DBus::DBusAddress(dbusAddressInsertRef.getService(), dbusAddressInsertRef.getObjectPath(), dbusAddressInsertRef.getInterface()), commonApiAddressResult);
+    std::cout << dbusAddressInsertRef.getService() << " " << dbusAddressInsertRef.getObjectPath() << " " << dbusAddressInsertRef.getInterface() << std::endl;
+    std::cout << commonApiAddressResult.getDomain() << " " << commonApiAddressResult.getInterface() << " " << commonApiAddressResult.getInstance() << std::endl;
     ASSERT_EQ(commonApiAddressRef, commonApiAddressResult.getAddress());
 
-	translator->translate(commonApiAddressRef, dbusAddressResult);
-	std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
-	ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
-	ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
-	ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
+    translator->translate(commonApiAddressRef, dbusAddressResult);
+    std::cout << dbusAddressResult.getService() << " " << dbusAddressResult.getObjectPath() << " " << dbusAddressResult.getInterface() << std::endl;
+    ASSERT_EQ(dbusAddressInsertRef.getService(), dbusAddressResult.getService());
+    ASSERT_EQ(dbusAddressInsertRef.getObjectPath(), dbusAddressResult.getObjectPath());
+    ASSERT_EQ(dbusAddressInsertRef.getInterface(), dbusAddressResult.getInterface());
 }
 
 TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::get();
     ASSERT_TRUE((bool)runtime);
 
-	CommonAPI::Address commonApiAddress(commonApiAddresses[0]);
-	auto defaultTestProxy = runtime->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(commonApiAddress.getDomain(), commonApiAddress.getInstance());
+    CommonAPI::Address commonApiAddress(commonApiAddresses[0]);
+    auto defaultTestProxy = runtime->buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(commonApiAddress.getDomain(), commonApiAddress.getInstance());
     ASSERT_TRUE((bool)defaultTestProxy);
 
     auto stub = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
 
-	bool serviceNameAcquired = runtime->registerService(commonApiAddress.getDomain(), commonApiAddress.getInstance(), stub, "connection");
+    bool serviceNameAcquired = runtime->registerService(commonApiAddress.getDomain(), commonApiAddress.getInstance(), stub, "connection");
     for(unsigned int i = 0; !serviceNameAcquired && i < 100; i++) {
-		serviceNameAcquired = runtime->registerService(commonApiAddress.getDomain(), commonApiAddress.getInstance(), stub, "connection");
+        serviceNameAcquired = runtime->registerService(commonApiAddress.getDomain(), commonApiAddress.getInstance(), stub, "connection");
         usleep(10000);
     }
     ASSERT_TRUE(serviceNameAcquired);
@@ -438,11 +451,11 @@ TEST_F(AddressTranslatorTest, ServicesUsingPredefinedAddressesCanCommunicate) {
     uint32_t v1 = 5;
     std::string v2 = "Hai :)";
     CommonAPI::CallStatus stat;
-	defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
+    defaultTestProxy->testVoidPredefinedTypeMethod(v1, v2, stat);
 
     ASSERT_EQ(stat, CommonAPI::CallStatus::SUCCESS);
-	
-	runtime->unregisterService(commonApiAddress.getDomain(), stub->getStubAdapter()->getInterface(), commonApiAddress.getInstance());
+    
+    runtime->unregisterService(commonApiAddress.getDomain(), stub->getStubAdapter()->getInterface(), commonApiAddress.getInstance());
 }
 
 #ifndef WIN32
@@ -465,22 +478,22 @@ TEST_F(AddressTranslatorTest, CreatedProxyHasCorrectCommonApiAddress) {
 }
 
 void callPythonService(std::string _pythonFileNameAndCommand) {
-	const char *pathToFolderForFakeLegacyService =
-			getenv("TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER");
+    const char *pathToFolderForFakeLegacyService =
+            getenv("TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER");
 
-	ASSERT_NE(pathToFolderForFakeLegacyService, nullptr) << "Environment variable "
-			"TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER "
-			"is not set!";
+    ASSERT_NE(pathToFolderForFakeLegacyService, nullptr) << "Environment variable "
+            "TEST_COMMONAPI_DBUS_ADDRESS_TRANSLATOR_FAKE_LEGACY_SERVICE_FOLDER "
+            "is not set!";
 
-	std::stringstream stream;
-	stream << "python " << pathToFolderForFakeLegacyService << "/" << _pythonFileNameAndCommand;
+    std::stringstream stream;
+    stream << "python " << pathToFolderForFakeLegacyService << "/" << _pythonFileNameAndCommand;
 
-	int resultCode = system(stream.str().c_str());
+    int resultCode = system(stream.str().c_str());
     EXPECT_EQ(0, resultCode);
 }
 
 void fakeLegacyServiceThread() {
-	callPythonService("fakeLegacyService.py");
+    callPythonService("fakeLegacyService.py");
 }
 
 TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
@@ -497,6 +510,8 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
     ASSERT_EQ(domainOfFakeLegacyService, address.getDomain());
     ASSERT_EQ(interfaceOfFakeLegacyService, address.getInterface());
     ASSERT_EQ(instanceOfFakeLegacyService, address.getInstance());
+
+    proxyForFakeLegacyService->isAvailableBlocking();
 
     CommonAPI::CallStatus status;
 
@@ -528,6 +543,7 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

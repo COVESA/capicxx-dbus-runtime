@@ -1,6 +1,6 @@
 = IPC CommonAPI D-Bus C++
 
-:doctitle: IPC CommonAPI C++
+:doctitle: IPC CommonAPI D-Bus C++
 :version:
 
 == Copyright
@@ -27,20 +27,21 @@ Source code and latest news can be found at http://projects.genivi.org/commonapi
 
 === Patching libdbus
 
-CommonAPI-D-Bus needs some api functions of libdbus which are not available in actual libdbus versions. For these additional api functions it is necessary to patch the required libdbus version with the patches in the directory src/dbus-patches. Use autotools to build libdbus.
+CommonAPI-D-Bus needs some api functions of libdbus which are not available in actual libdbus versions. For these additional api functions it is necessary to patch the required libdbus version with all the patches in the directory src/dbus-patches. Use autotools to build libdbus.
 
 ----
 $ wget http://dbus.freedesktop.org/releases/dbus/dbus-<VERSION>.tar.gz
 $ tar -xzf dbus-<VERSION>.tar.gz
 $ cd dbus-<VERSION>
 $ patch -p1 < </path/to/CommonAPI-D-Bus/src/dbus-patches/patch-names>.patch 
-$ ./configure --prefix=/usr/local
+$ ./configure --prefix=</path to your preferred installation folder for patched libdbus>
 $ make -C dbus 
-$ sudo make -C dbus install
-$ sudo make install-pkgconfigDATA
+$ make -C dbus install
+$ make install-pkgconfigDATA
 ----
 
 You can change the installation directory by the prefix option or you can let it uninstalled (skip the +make install+ commands).
+WARNING: Installing the patched libdbus to /usr/local can prevent your system from booting correctly at the next reboot.
 
 === Build CommonAPI-D-Bus Runtime
 

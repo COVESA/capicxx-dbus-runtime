@@ -19,34 +19,32 @@
 namespace CommonAPI {
 namespace DBus {
 
-template<typename... _Types>
-struct VariantDeployment : CommonAPI::Deployment<_Types...> {
-	VariantDeployment(bool _isDBus, _Types*... _t)
-		  : CommonAPI::Deployment<_Types...>(_t...),
-			isDBus_(_isDBus) {};
-
-	bool isDBus_;
+template<typename... Types_>
+struct VariantDeployment : CommonAPI::Deployment<Types_...> {
+    static const size_t size_ = std::tuple_size<std::tuple<Types_...>>::value;
+    VariantDeployment(bool _isDBus, Types_*... _t)
+          : CommonAPI::Deployment<Types_...>(_t...),
+            isDBus_(_isDBus) {};
+    bool isDBus_;
 };
-
-extern COMMONAPI_IMPORT_EXPORT VariantDeployment<> freedesktopVariant;
 
 struct StringDeployment : CommonAPI::Deployment<> {
-	StringDeployment(bool _isObjectPath)
-	: isObjectPath_(_isObjectPath) {};
+    StringDeployment(bool _isObjectPath)
+    : isObjectPath_(_isObjectPath) {};
 
-	bool isObjectPath_;
+    bool isObjectPath_;
 };
 
-template<typename... _Types>
-struct StructDeployment : CommonAPI::Deployment<_Types...> {
-	StructDeployment(_Types*... t)
-	: CommonAPI::Deployment<_Types...>(t...) {};
+template<typename... Types_>
+struct StructDeployment : CommonAPI::Deployment<Types_...> {
+    StructDeployment(Types_*... t)
+    : CommonAPI::Deployment<Types_...>(t...) {};
 };
 
-template<typename _ElementDepl>
-struct ArrayDeployment : CommonAPI::ArrayDeployment<_ElementDepl> {
-	ArrayDeployment(_ElementDepl *_element)
-	: CommonAPI::ArrayDeployment<_ElementDepl>(_element) {}
+template<typename ElementDepl_>
+struct ArrayDeployment : CommonAPI::ArrayDeployment<ElementDepl_> {
+    ArrayDeployment(ElementDepl_ *_element)
+    : CommonAPI::ArrayDeployment<ElementDepl_>(_element) {}
 };
 
 } // namespace DBus
