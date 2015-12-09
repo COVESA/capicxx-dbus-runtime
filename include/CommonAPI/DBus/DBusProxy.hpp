@@ -134,6 +134,9 @@ private:
     std::list<SignalMemberHandlerTuple> signalMemberHandlerQueue_;
     CallInfo signalMemberHandlerInfo_;
     mutable std::mutex signalMemberHandlerQueueMutex_;
+
+    std::map<std::string, DBusProxyConnection::DBusSignalHandler*> selectiveBroadcastHandlers;
+    mutable std::mutex selectiveBroadcastHandlersMutex_;
 };
 
 

@@ -21,7 +21,7 @@ namespace {
 class DBusDaemonProxyTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-        dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "connection1");
         ASSERT_TRUE(dbusConnection_->connect());
         dbusDaemonProxy_ = std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusConnection_);
     }
@@ -126,7 +126,7 @@ TEST_F(DBusDaemonProxyTest, NameOwnerChangedEvent) {
                     });
 
     // Trigger NameOwnerChanged using a new DBusConnection
-    ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION)->connect());
+    ASSERT_TRUE(CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "connection2")->connect());
 
     ASSERT_TRUE(future.get());
 

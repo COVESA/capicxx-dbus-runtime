@@ -6,6 +6,7 @@
 #ifdef WIN32
 #include <WinSock2.h>
 #include <ws2tcpip.h>
+#include <atomic>
 #define DEFAULT_BUFLEN 512
 #else
 #include <poll.h>
@@ -558,7 +559,11 @@ void DBusMainLoop::wakeup() {
 
     int iResult = send(sendFd_.fd, sendbuf, (int)strlen(sendbuf), 0);
     if (iResult == SOCKET_ERROR) {
-        printf("send failed with error: %d\n", WSAGetLastError());
+        int error = WSAGetLastError();
+
+        if (error != WSANOTINITIALISED) {
+            printf("send failed with error: %d\n", error);
+        }
     }
 #else
     int64_t wake = 1;
@@ -644,7 +649,9 @@ void DBusMainLoop::registerWatch(Watch* watch,
 
     registerFileDescriptor(fdToRegister);
     std::mutex* mtx = new std::mutex;
-#ifndef WIN32
+#ifdef WIN32
+    std::atomic_signal_fence(std::memory_order_acq_rel);
+#else
     asm volatile ("":::"memory");
 #endif
     WatchToDispatchStruct* watchStruct = new WatchToDispatchStruct(fdToRegister.fd, watch, mtx, false, false);

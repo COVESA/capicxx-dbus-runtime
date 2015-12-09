@@ -37,7 +37,9 @@
 
 #define VERSION v1_0
 
-static const std::string connectionId = "managed-test";
+static const std::string serviceConnectionId = "managed-test-service";
+static const std::string clientConnectionId = "managed-test-client";
+static const std::string clientConnectionId2 = "managed-test-client2";;
 
 static const std::string domain = "local";
 
@@ -115,26 +117,13 @@ bool isManaged(const std::string& _objectPath, const std::string& _interfaceName
     return false;
 }
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class DBusManagedTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
         leafStatus_ = CommonAPI::AvailabilityStatus::UNKNOWN;
         runtime_ = CommonAPI::Runtime::get();
 
-        manualDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        manualDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "manualConnection");
         ASSERT_TRUE(manualDBusConnection_->connect(false));
     }
 
@@ -158,7 +147,7 @@ public:
 
 TEST_F(DBusManagedTest, RegisterRoot) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
@@ -175,7 +164,7 @@ TEST_F(DBusManagedTest, RegisterRoot) {
 
 TEST_F(DBusManagedTest, RegisterLeafUnmanaged) {
     auto leafStub = std::make_shared<VERSION::commonapi::tests::managed::LeafInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, leafInstanceNameRoot, leafStub));
+    ASSERT_TRUE(runtime_->registerService(domain, leafInstanceNameRoot, leafStub, serviceConnectionId));
 
     //check that leaf is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(leafDbusServiceNameRoot,"/", manualDBusConnection_);
@@ -192,7 +181,7 @@ TEST_F(DBusManagedTest, RegisterLeafUnmanaged) {
 
 TEST_F(DBusManagedTest, RegisterLeafManaged) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
@@ -203,7 +192,7 @@ TEST_F(DBusManagedTest, RegisterLeafManaged) {
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -265,7 +254,7 @@ TEST_F(DBusManagedTest, RegisterLeafManaged) {
 
 TEST_F(DBusManagedTest, RegisterLeafManagedAndCreateProxyForLeaf) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName , rootStub, connectionId));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName , rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
@@ -276,7 +265,7 @@ TEST_F(DBusManagedTest, RegisterLeafManagedAndCreateProxyForLeaf) {
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "test");
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -348,9 +337,9 @@ TEST_F(DBusManagedTest, RegisterLeafManagedAndCreateProxyForLeaf) {
     proxyConnection->disconnect();
 }
 
-TEST_F(DBusManagedTest, PropagateTeardown) {
+TEST_F(DBusManagedTest, RegisterLeafManagedAndCreateProxyForLeafInCallback) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, connectionId));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName , rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
@@ -361,7 +350,112 @@ TEST_F(DBusManagedTest, PropagateTeardown) {
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "test");
+    proxyConnection->connect();
+
+    std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
+        VERSION::commonapi::tests::managed::RootInterfaceDBusProxy>(
+                    rootDBusAddress,
+                    proxyConnection
+                    );
+
+    rootProxy->init();
+
+    for (uint32_t i = 0; !rootProxy->isAvailable() && i < 200; ++i) {
+        usleep(10 * 1000);
+    }
+    ASSERT_TRUE(rootProxy->isAvailable());
+
+    std::condition_variable proxyCondVar;
+    bool proxyCallsSuccessful = false;
+
+    CommonAPI::ProxyManager& proxyManagerLeafInterface = rootProxy->getProxyManagerLeafInterface();
+    proxyManagerLeafInterface.getInstanceAvailabilityStatusChangedEvent().subscribe(
+            [&](const std::string instanceName, CommonAPI::AvailabilityStatus availabilityStatus) {
+    (void)instanceName;
+
+        if(availabilityStatus == CommonAPI::AvailabilityStatus::AVAILABLE) {
+            leafStatus_ = CommonAPI::AvailabilityStatus::AVAILABLE;
+
+            auto leafProxy = proxyManagerLeafInterface.buildProxy<VERSION::commonapi::tests::managed::LeafInterfaceProxy>(leafInstanceNameRoot, clientConnectionId2);
+            for (uint32_t i = 0; !leafProxy->isAvailable() && i < 200; ++i) {
+                usleep(10 * 1000);
+            }
+
+            ASSERT_TRUE(leafProxy->isAvailable());
+
+            CommonAPI::CallStatus callStatus;
+            VERSION::commonapi::tests::managed::LeafInterface::testLeafMethodError error;
+            int outInt;
+            std::string outString;
+            leafProxy->testLeafMethod(42, "Test", callStatus, error, outInt, outString);
+
+            ASSERT_TRUE(callStatus == CommonAPI::CallStatus::SUCCESS);
+
+            proxyCallsSuccessful = true;
+            proxyCondVar.notify_one();
+
+        } else if(availabilityStatus == CommonAPI::AvailabilityStatus::NOT_AVAILABLE) {
+            leafStatus_ = CommonAPI::AvailabilityStatus::NOT_AVAILABLE;
+        }
+    });
+
+    auto leafStub = std::make_shared<VERSION::commonapi::tests::managed::LeafInterfaceStubDefault>();
+    ASSERT_TRUE(rootStub->registerManagedStubLeafInterface(leafStub, leafInstanceNameRoot));
+
+    for (uint32_t i = 0; leafStatus_ != CommonAPI::AvailabilityStatus::AVAILABLE && i < 200; ++i) {
+        usleep(10 * 1000);
+    }
+    ASSERT_TRUE(leafStatus_ == CommonAPI::AvailabilityStatus::AVAILABLE);
+
+    //check that root manages leaf
+    dbusObjectPathAndInterfacesDict.clear();
+    dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, rootDbusObjectPath, manualDBusConnection_);
+    ASSERT_FALSE(dbusObjectPathAndInterfacesDict.empty());
+    ASSERT_TRUE(isManaged(leafDbusObjectPathRoot, leafInterfaceName, dbusObjectPathAndInterfacesDict));
+
+    std::mutex m;
+    std::unique_lock<std::mutex> lock(m);
+    std::chrono::milliseconds timeout(2000);
+
+    proxyCondVar.wait_for(lock, timeout);
+    ASSERT_TRUE(proxyCallsSuccessful);
+
+    ASSERT_TRUE(rootStub->deregisterManagedStubLeafInterface(leafInstanceNameRoot));
+
+    for (uint32_t i = 0; leafStatus_ != CommonAPI::AvailabilityStatus::NOT_AVAILABLE && i < 200; ++i) {
+        usleep(10 * 1000);
+    }
+    ASSERT_TRUE(leafStatus_ == CommonAPI::AvailabilityStatus::NOT_AVAILABLE);
+
+    //check that root no longer manages leaf
+    dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, rootDbusObjectPath, manualDBusConnection_);
+    ASSERT_TRUE(dbusObjectPathAndInterfacesDict.empty());
+
+    ASSERT_TRUE(runtime_->unregisterService(domain, rootInterfaceName, rootInstanceName));
+
+    //check that root is unregistered
+    dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
+    ASSERT_TRUE(dbusObjectPathAndInterfacesDict.empty());
+
+    proxyConnection->disconnect();
+
+}
+
+TEST_F(DBusManagedTest, PropagateTeardown) {
+    auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
+
+    //check that root is registered
+    auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName, "/", manualDBusConnection_);
+    ASSERT_FALSE(dbusObjectPathAndInterfacesDict.empty());
+    ASSERT_TRUE(isManaged(rootDbusObjectPath, rootInterfaceName, dbusObjectPathAndInterfacesDict));
+
+    CommonAPI::DBus::DBusAddress rootDBusAddress;
+    CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
+    CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
+
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -449,7 +543,7 @@ protected:
         leafInstanceAvailability = CommonAPI::AvailabilityStatus::UNKNOWN;
         branchInstanceAvailability = CommonAPI::AvailabilityStatus::UNKNOWN;
 
-        manualDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        manualDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "manualConnection");
         ASSERT_TRUE(manualDBusConnection_->connect(false));
     }
 
@@ -465,7 +559,7 @@ protected:
     inline bool registerRootStubForSuffix(const std::string& suffix) {
         auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
         const std::string instanceName = getSuffixedRootInstanceName(suffix);
-        bool registered = runtime_->registerService(domain, instanceName, rootStub);
+        bool registered = runtime_->registerService(domain, instanceName, rootStub, serviceConnectionId);
 
         if(registered)
             rootStubs_.insert( { instanceName, rootStub });
@@ -492,7 +586,7 @@ protected:
         CommonAPI::Address rootCommonAPIAddress(domain, getSuffixedRootInstanceName(suffix), rootInterfaceName);
         CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-        std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
         proxyConnection->connect();
 
         std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -857,7 +951,7 @@ TEST_F(DBusManagedTestExtended, DISABLED_RegisterSeveralRootsAndSeveralLeafsForE
 
 TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -920,7 +1014,7 @@ TEST_F(DBusManagedTestExtended, RegisterTwoRootsForSameLeafInterface) {
 
 TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootManaged) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -931,7 +1025,7 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootMan
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -1012,7 +1106,7 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootMan
 
 TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnmanaged) {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1023,7 +1117,7 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -1056,10 +1150,10 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
                               std::placeholders::_2));
 
     auto leafStub = std::make_shared<VERSION::commonapi::tests::managed::LeafInterfaceStubDefault>();
-    runtime_->registerService(domain, leafInstanceNameRoot, leafStub);
+    runtime_->registerService(domain, leafInstanceNameRoot, leafStub, serviceConnectionId);
 
     auto branchStub = std::make_shared<VERSION::commonapi::tests::managed::BranchInterfaceStubDefault>();
-    runtime_->registerService(domain, branchInstanceNameRoot, branchStub);
+    runtime_->registerService(domain, branchInstanceNameRoot, branchStub, serviceConnectionId);
 
     usleep(50000);
 
@@ -1109,7 +1203,7 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithDistinctInterfacesOnSameRootUnm
 TEST_F(DBusManagedTestExtended, RegisterInvalidChildInstance)
 {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1144,7 +1238,7 @@ TEST_F(DBusManagedTestExtended, RegisterInvalidChildInstance)
 TEST_F(DBusManagedTestExtended, RegsiterInvalidChildInstanceAndValidChildInstances)
 {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1155,7 +1249,7 @@ TEST_F(DBusManagedTestExtended, RegsiterInvalidChildInstanceAndValidChildInstanc
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -1252,7 +1346,7 @@ TEST_F(DBusManagedTestExtended, RegsiterInvalidChildInstanceAndValidChildInstanc
 TEST_F(DBusManagedTestExtended, ReegisterLeafsWithAutoGeneratedInstanceIds)
 {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1290,7 +1384,7 @@ TEST_F(DBusManagedTestExtended, ReegisterLeafsWithAutoGeneratedInstanceIds)
 TEST_F(DBusManagedTestExtended, RegisterLeafsWithAutoGeneratedInstanceIdsAndCommunicate)
 {
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, connectionId));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1301,7 +1395,7 @@ TEST_F(DBusManagedTestExtended, RegisterLeafsWithAutoGeneratedInstanceIdsAndComm
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -1374,7 +1468,7 @@ TEST_F(DBusManagedTestExtended, ConfigurationFileAffectsInterfaceUnmanaged) {
     ASSERT_TRUE(defaultConfigSet);
 
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1388,7 +1482,7 @@ TEST_F(DBusManagedTestExtended, ConfigurationFileAffectsInterfaceUnmanaged) {
     const std::string leafDbusServiceName = "commonapi.tests.managed.config.affects.interface.unmanaged";
     const std::string leafDbusObjectPath = "/commonapi/tests/managed/RootInterface/LeafInterface/Unmanaged";
 
-    ASSERT_TRUE(runtime_->registerService(domain, leafInstanceName, leafStub));
+    ASSERT_TRUE(runtime_->registerService(domain, leafInstanceName, leafStub, serviceConnectionId));
 
     //check that leaf is registered
     dbusObjectPathAndInterfacesDict.clear();
@@ -1417,7 +1511,7 @@ TEST_F(DBusManagedTestExtended, ConfigurationFileAffectsInterfaceManaged) {
     ASSERT_TRUE(defaultConfigSet);
 
     auto rootStub = std::make_shared<VERSION::commonapi::tests::managed::RootInterfaceStubDefault>();
-    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub));
+    ASSERT_TRUE(runtime_->registerService(domain, rootInstanceName, rootStub, serviceConnectionId));
 
     //check that root is registered
     auto dbusObjectPathAndInterfacesDict = getManagedObjects(rootDbusServiceName,"/", manualDBusConnection_);
@@ -1428,7 +1522,7 @@ TEST_F(DBusManagedTestExtended, ConfigurationFileAffectsInterfaceManaged) {
     CommonAPI::Address rootCommonAPIAddress(domain, rootInstanceName, rootInterfaceName);
     CommonAPI::DBus::DBusAddressTranslator::get()->translate(rootCommonAPIAddress, rootDBusAddress);
 
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> proxyConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, clientConnectionId);
     proxyConnection->connect();
 
     std::shared_ptr<VERSION::commonapi::tests::managed::RootInterfaceDBusProxy> rootProxy = std::make_shared<
@@ -1496,7 +1590,6 @@ TEST_F(DBusManagedTestExtended, ConfigurationFileAffectsInterfaceManaged) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

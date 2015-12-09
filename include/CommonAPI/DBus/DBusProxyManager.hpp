@@ -21,6 +21,7 @@
 #include <CommonAPI/DBus/DBusFactory.hpp>
 #include <CommonAPI/DBus/DBusObjectManagerStub.hpp>
 #include <CommonAPI/DBus/DBusInstanceAvailabilityStatusChangedEvent.hpp>
+#include <CommonAPI/DBus/DBusConnection.hpp>
 
 namespace CommonAPI {
 namespace DBus {

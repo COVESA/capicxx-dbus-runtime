@@ -30,6 +30,7 @@
 #include "v1/commonapi/tests/TestInterfaceDBusStubAdapter.hpp"
 
 #include <v1/fake/legacy/service/LegacyInterfaceProxy.hpp>
+#include <v1/fake/legacy/service/LegacyInterfaceNoObjectManagerProxy.hpp>
 
 static const std::string domain = "local";
 
@@ -107,7 +108,8 @@ static const std::vector<std::string> commonApiAddresses = {
     "local:only.interface.service:only.interface.instance",
     "local:only.connection.service:only.connection.instance",
     "local:only.object.service:only.object.instance",
-    "local:fake.legacy.service.LegacyInterface:fake.legacy.service"
+    "local:fake.legacy.service.LegacyInterface:fake.legacy.service",
+    "local:fake.legacy.service.LegacyInterfaceNoObjectManager:fake.legacy.service"
 };
 
 typedef std::vector<CommonAPI::DBus::DBusAddress>::value_type vt;
@@ -120,20 +122,8 @@ static const std::vector<CommonAPI::DBus::DBusAddress> dbusAddresses = {
                 vt("only.interface.service_only.interface.instance", "/only/interface/instance", "only.interface.service"),
                 vt("only.connection.service_only.connection.instance", "/only/connection/instance", "only.connection.service"),
                 vt("only.object.service_only.object.instance", "/only/object/instance", "only.object.service"),
-                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface")
-};
-
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
+                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterface"),
+                vt("fake.legacy.service.connection", "/some/legacy/path/6259504", "fake.legacy.service.LegacyInterfaceNoObjectManager")
 };
 
 class AddressTranslatorTest: public ::testing::Test {
@@ -464,6 +454,10 @@ const std::string domainOfFakeLegacyService = "local";
 const std::string interfaceOfFakeLegacyService = "fake.legacy.service.LegacyInterface";
 const std::string instanceOfFakeLegacyService = "fake.legacy.service";
 
+const std::string domainOfFakeLegacyServiceNoObjectManager = "local";
+const std::string interfaceOfFakeLegacyServiceNoObjectManager = "fake.legacy.service.LegacyInterfaceNoObjectManager";
+const std::string instanceOfFakeLegacyServiceNoObjectManager = "fake.legacy.service";
+
 TEST_F(AddressTranslatorTest, CreatedProxyHasCorrectCommonApiAddress) {
     std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::get();
     ASSERT_TRUE((bool)runtime);
@@ -493,7 +487,11 @@ void callPythonService(std::string _pythonFileNameAndCommand) {
 }
 
 void fakeLegacyServiceThread() {
-    callPythonService("fakeLegacyService.py");
+    callPythonService("fakeLegacyService.py withObjectManager");
+}
+
+void fakeLegacyServiceThreadNoObjectMananger() {
+    callPythonService("fakeLegacyService.py noObjectManager");
 }
 
 TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
@@ -534,16 +532,58 @@ TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressed) {
     }
 
     //end the fake legacy service via dbus
-    callPythonService("sendToFakeLegacyService.py finish");
+    callPythonService("sendToFakeLegacyService.py finish " + interfaceOfFakeLegacyService);
 
     fakeServiceThread.join();
+}
+
+TEST_F(AddressTranslatorTest, FakeLegacyServiceCanBeAddressedNoObjectManager) {
+    std::thread fakeServiceThreadNoObjectManager = std::thread(fakeLegacyServiceThreadNoObjectMananger);
+    usleep(500000);
+
+    std::shared_ptr<CommonAPI::Runtime> runtime = CommonAPI::Runtime::get();
+    ASSERT_TRUE((bool)runtime);
+
+    auto proxyForFakeLegacyServiceNoObjectManager = runtime->buildProxy<VERSION::fake::legacy::service::LegacyInterfaceNoObjectManagerProxy>(domainOfFakeLegacyServiceNoObjectManager, instanceOfFakeLegacyServiceNoObjectManager);
+    ASSERT_TRUE((bool)proxyForFakeLegacyServiceNoObjectManager);
+
+    const CommonAPI::Address & address = proxyForFakeLegacyServiceNoObjectManager->getAddress();
+    ASSERT_EQ(domainOfFakeLegacyServiceNoObjectManager, address.getDomain());
+    ASSERT_EQ(interfaceOfFakeLegacyServiceNoObjectManager, address.getInterface());
+    ASSERT_EQ(instanceOfFakeLegacyServiceNoObjectManager, address.getInstance());
+
+    proxyForFakeLegacyServiceNoObjectManager->isAvailableBlocking();
+
+    CommonAPI::CallStatus status;
+
+    const int32_t input = 42;
+    int32_t output1, output2;
+    proxyForFakeLegacyServiceNoObjectManager->TestMethod(input, status, output1, output2);
+    EXPECT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+    if(CommonAPI::CallStatus::SUCCESS == status) {
+        EXPECT_EQ(input -5, output1);
+        EXPECT_EQ(input +5, output2);
+    }
+
+    std::string greeting;
+    int32_t identifier;
+    proxyForFakeLegacyServiceNoObjectManager->OtherTestMethod(status, greeting, identifier);
+    EXPECT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+    if(CommonAPI::CallStatus::SUCCESS == status) {
+        EXPECT_EQ(std::string("Hello"), greeting);
+        EXPECT_EQ(42, identifier);
+    }
+
+    //end the fake legacy service via dbus
+    callPythonService("sendToFakeLegacyService.py finish " + interfaceOfFakeLegacyServiceNoObjectManager);
+
+    fakeServiceThreadNoObjectManager.join();
 }
 #endif // !WIN32
 
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

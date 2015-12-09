@@ -53,7 +53,8 @@ void DBusConnection::dispatch() {
     loop_->run();
 }
 
-DBusConnection::DBusConnection(DBusType_t busType) :
+DBusConnection::DBusConnection(DBusType_t busType,
+                               const ConnectionId_t& _connectionId) :
                 dispatchThread_(NULL),
                 stopDispatching_(false),
                 dispatchSource_(),
@@ -66,12 +67,14 @@ DBusConnection::DBusConnection(DBusType_t busType) :
                 dbusObjectMessageHandler_(),
                 connectionNameCount_(),
                 enforcerThread_(NULL),
-                enforcerThreadCancelled_(false) {
+                enforcerThreadCancelled_(false),
+                connectionId_(_connectionId) {
 
     dbus_threads_init_default();
 }
 
-DBusConnection::DBusConnection(::DBusConnection *_connection) :
+DBusConnection::DBusConnection(::DBusConnection *_connection,
+                               const ConnectionId_t& _connectionId) :
                 dispatchThread_(NULL),
                 stopDispatching_(false),
                 dispatchSource_(),
@@ -84,7 +87,8 @@ DBusConnection::DBusConnection(::DBusConnection *_connection) :
                 dbusObjectMessageHandler_(),
                 connectionNameCount_(),
                 enforcerThread_(NULL),
-                enforcerThreadCancelled_(false) {
+                enforcerThreadCancelled_(false),
+                connectionId_(_connectionId) {
 
     dbus_threads_init_default();
 }
@@ -805,6 +809,20 @@ bool DBusConnection::hasDispatchThread() {
     return (dispatchThread_ != NULL);
 }
 
+const ConnectionId_t& DBusConnection::getConnectionId() const {
+    return connectionId_;
+}
+
+bool DBusConnection::sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName) {
+    bool subscriptionAccepted;
+    CommonAPI::CallStatus callStatus;
+        DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
+                        CommonAPI::DBus::DBusSerializableArguments<bool>>::callMethodWithReply(
+                                *proxy, methodName.c_str(), "", &CommonAPI::DBus::defaultCallInfo, callStatus, subscriptionAccepted);
+
+    return subscriptionAccepted;
+}
+
 DBusProxyConnection::DBusSignalHandlerToken DBusConnection::subscribeForSelectiveBroadcast(
                     bool& subscriptionAccepted,
                     const std::string& objectPath,
@@ -824,7 +842,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::subscribeForSelectiv
                     *callingProxy, methodName.c_str(), "", &CommonAPI::DBus::defaultCallInfo, callStatus, subscriptionAccepted);
 
     DBusProxyConnection::DBusSignalHandlerToken subscriptionToken;
-    if (callStatus == CommonAPI::CallStatus::SUCCESS && subscriptionAccepted) {
+    if ((callStatus == CommonAPI::CallStatus::SUCCESS && subscriptionAccepted) || !callingProxy->isAvailable()) {
         subscriptionToken = addSignalMemberHandler(
                                 objectPath,
                                 interfaceName,
@@ -1386,12 +1404,12 @@ void notifyDBusOMSignalHandlers(DBusSignalHandlersTable& dbusSignalHandlerstable
     return dbusConnection->onLibdbusObjectPathMessage(libdbusMessage);
 }
 
-std::shared_ptr<DBusConnection> DBusConnection::getBus(const DBusType_t &_type) {
-    return std::make_shared<DBusConnection>(_type);
+std::shared_ptr<DBusConnection> DBusConnection::getBus(const DBusType_t &_type, const ConnectionId_t& _connectionId) {
+    return std::make_shared<DBusConnection>(_type, _connectionId);
 }
 
-std::shared_ptr<DBusConnection> DBusConnection::wrap(::DBusConnection *_connection) {
-    return std::make_shared<DBusConnection>(_connection);
+std::shared_ptr<DBusConnection> DBusConnection::wrap(::DBusConnection *_connection, const ConnectionId_t& _connectionId) {
+    return std::make_shared<DBusConnection>(_connection, _connectionId);
 }
 
 } // namespace DBus

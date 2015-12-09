@@ -174,7 +174,7 @@ public:
                                     Types_...
                                 >::visit(visitor, _value, _depl, _value.valueType_);
             if (!success) {
-                _value.valueType_ = _value.maxSize + 1;
+                _value.valueType_ = 0; // Invalid index
                 setError();
                 return (*this);
             }

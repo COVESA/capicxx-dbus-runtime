@@ -52,25 +52,12 @@ static const std::string commonApiAddressFreedesktop = "CommonAPI.DBus.tests.DBu
 
 #define VERSION v1_0
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class ProxyTest: public ::testing::Test {
 protected:
     void SetUp() {
         runtime_ = CommonAPI::Runtime::get();
 
-        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "clientConnection");
         ASSERT_TRUE(proxyDBusConnection_->connect());
 
         proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(
@@ -87,7 +74,7 @@ protected:
 
     void registerTestStub() {
         stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
-        bool isTestStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_, "connection");
+        bool isTestStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_, "serviceConnection");
         ASSERT_TRUE(isTestStubAdapterRegistered_);
 
         usleep(100000);
@@ -96,7 +83,7 @@ protected:
     void registerExtendedStub() {
         stubExtended_ = std::make_shared<VERSION::commonapi::tests::ExtendedInterfaceStubDefault>();
 
-        bool isExtendedStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::ExtendedInterfaceStub>(domain, commonApiAddressExtended, stubExtended_, "connection");
+        bool isExtendedStubAdapterRegistered_ = runtime_->registerService<VERSION::commonapi::tests::ExtendedInterfaceStub>(domain, commonApiAddressExtended, stubExtended_, "serviceConnection");
         ASSERT_TRUE(isExtendedStubAdapterRegistered_);
 
         usleep(100000);
@@ -420,7 +407,7 @@ protected:
     void registerTestStub(const std::string commonApiAddress) {
         stubDefault_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceStubDefault>();
         bool isTestStubAdapterRegistered_ = runtime_->registerService<
-            VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_);
+            VERSION::commonapi::tests::TestInterfaceStub>(domain, commonApiAddress, stubDefault_, "serviceConnection");
         ASSERT_TRUE(isTestStubAdapterRegistered_);
 
         usleep(100000);
@@ -472,7 +459,7 @@ protected:
 TEST_F(ProxyTest2, DBusProxyStatusEventAfterServiceIsRegistered) {
     registerTestStub(commonApiAddress);
 
-    proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "clientConnection");
     ASSERT_TRUE(proxyDBusConnection_->connect());
 
     proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), proxyDBusConnection_);
@@ -523,7 +510,6 @@ TEST_F(ProxyTest2, DBusProxyCanUseOrgFreedesktopAddress) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

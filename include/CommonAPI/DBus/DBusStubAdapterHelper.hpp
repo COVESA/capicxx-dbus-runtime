@@ -327,7 +327,6 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
                                   DBusStubAdapterHelperType& dbusStubAdapterHelper,
                                   index_sequence<InArgIndices_...>) {
         (void)dbusStubAdapterHelper;
-        std::tuple<InArgs_...> argTuple;
 
         if (sizeof...(InArgs_) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);

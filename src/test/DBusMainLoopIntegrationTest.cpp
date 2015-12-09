@@ -53,19 +53,6 @@ const std::string testAddress8 = "commonapi.address.eight";
 
 //####################################################################################################################
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class DBusBasicMainLoopTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
@@ -544,7 +531,6 @@ TEST_F(DBusInGLibMainLoopTest, ProxyAndServiceInSameGlibMainloopCanCommunicate) 
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

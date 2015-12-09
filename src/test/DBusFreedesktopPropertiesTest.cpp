@@ -24,19 +24,6 @@ static const std::string domain = "local";
 static const std::string commonApiAddress = "commonapi.tests.TestFreedesktopInterface";
 static const std::string commonApiDerivedAddress = "commonapi.tests.TestFreedesktopDerivedInterface";
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class FreedesktopPropertiesTest: public ::testing::Test {
 protected:
     void SetUp() {
@@ -235,7 +222,6 @@ TEST_F(FreedesktopPropertiesOnInheritedInterfacesTest, CanGetAndSetRemoteAttribu
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

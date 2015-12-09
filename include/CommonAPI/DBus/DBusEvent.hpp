@@ -77,6 +77,10 @@ public:
         handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
     }
 
+    virtual void onError(const CommonAPI::CallStatus status) {
+        (void) status;
+    }
+
  protected:
     virtual void onFirstListenerAdded(const Listener &_listener) {
         (void)_listener;

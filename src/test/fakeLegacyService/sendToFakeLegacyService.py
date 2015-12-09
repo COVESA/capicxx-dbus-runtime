@@ -11,12 +11,15 @@ import gobject
 import math
 import dbus
 import dbus.service
+
+BASE_PATH = 'fake.legacy.service'
+OBJECT_PATH = '/some/legacy/path/6259504'
     
-def finish():
+def finish(interface):
     try:
         bus = dbus.SessionBus()
-        remote_object = bus.get_object('fake.legacy.service.connection','/some/legacy/path/6259504')
-        iface = dbus.Interface(remote_object, 'fake.legacy.service.LegacyInterface')
+        remote_object = bus.get_object(BASE_PATH + '.connection', OBJECT_PATH)
+        iface = dbus.Interface(remote_object, interface)
         iface.finish()
         return 0
     except:
@@ -25,8 +28,9 @@ def finish():
 
 def main():
     command=sys.argv[1]
+    interface=sys.argv[2]
     if command=="finish":
-        return finish()
+        return finish(interface)
     
     return 0
 

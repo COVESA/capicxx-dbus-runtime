@@ -36,6 +36,10 @@ public:
 
     virtual ~DBusSelectiveEvent() {}
 
+    virtual void onError(const CommonAPI::CallStatus status) {
+        this->notifyError(status);
+    }
+
 protected:
     void onFirstListenerAdded(const Listener &) {
         bool success;

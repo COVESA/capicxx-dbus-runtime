@@ -131,6 +131,16 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
                             &signalMemberHandlerInfo_);
                 }
             }
+            {
+                std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
+                for (auto selectiveBroadcasts : selectiveBroadcastHandlers) {
+                    std::string methodName = "subscribeFor" + selectiveBroadcasts.first + "Selective";
+                    bool subscriptionAccepted = connection_->sendPendingSelectiveSubscription(this, methodName);
+                    if (!subscriptionAccepted) {
+                        selectiveBroadcasts.second->onError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED);
+                    }
+                }
+            }
         } else {
             std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
 
@@ -163,7 +173,8 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroa
                                                       const std::string& interfaceMemberSignature,
                                                       DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
 
-    return getDBusConnection()->subscribeForSelectiveBroadcast(
+    DBusProxyConnection::DBusSignalHandlerToken token =
+            getDBusConnection()->subscribeForSelectiveBroadcast(
                     subscriptionAccepted,
                     objectPath,
                     interfaceName,
@@ -171,12 +182,30 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroa
                     interfaceMemberSignature,
                     dbusSignalHandler,
                     this);
+
+    if (!isAvailable()) {
+        subscriptionAccepted = true;
+    }
+    if (subscriptionAccepted) {
+        std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
+        selectiveBroadcastHandlers[interfaceMemberName] = dbusSignalHandler;
+    }
+
+    return token;
 }
 
 void DBusProxy::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                                  DBusProxyConnection::DBusSignalHandlerToken subscription,
                                                  const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+
     getDBusConnection()->unsubscribeFromSelectiveBroadcast(eventName, subscription, this, dbusSignalHandler);
+
+    std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
+    std::string interfaceMemberName = std::get<2>(subscription);
+    auto its_handler = selectiveBroadcastHandlers.find(interfaceMemberName);
+    if (its_handler != selectiveBroadcastHandlers.end()) {
+        selectiveBroadcastHandlers.erase(its_handler);
+    }
 }
 
 DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(

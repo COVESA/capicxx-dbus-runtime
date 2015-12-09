@@ -102,19 +102,6 @@ private:
     std::shared_ptr<CommonAPI::ClientId> lastSubscribedClient;
 };
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class DBusBroadcastTest: public ::testing::Test {
 protected:
    virtual void SetUp() {
@@ -141,6 +128,7 @@ protected:
    static const CommonAPI::ConnectionId_t connectionIdService_;
    static const CommonAPI::ConnectionId_t connectionIdClient1_;
    static const CommonAPI::ConnectionId_t connectionIdClient2_;
+   static const CommonAPI::ConnectionId_t connectionIdClient3;
 
    int selectiveBroadcastArrivedAtProxyFromSameConnection1;
    int selectiveBroadcastArrivedAtProxyFromSameConnection2;
@@ -165,6 +153,7 @@ const std::string DBusBroadcastTest::managerServiceAddress_ = "local:CommonAPI.D
 const CommonAPI::ConnectionId_t DBusBroadcastTest::connectionIdService_ = "service";
 const CommonAPI::ConnectionId_t DBusBroadcastTest::connectionIdClient1_ = "client1";
 const CommonAPI::ConnectionId_t DBusBroadcastTest::connectionIdClient2_ = "client2";
+const CommonAPI::ConnectionId_t DBusBroadcastTest::connectionIdClient3 = "client3";
 
 TEST_F(DBusBroadcastTest, ProxysCanHandleBroadcast) {
     auto stub = std::make_shared<SelectiveBroadcastSender>();
@@ -595,7 +584,7 @@ TEST_F(DBusBroadcastTest, ProxyCanBeDeletedAndBuildFromNewInManagedContext) {
 
         if(availabilityStatus == CommonAPI::AvailabilityStatus::AVAILABLE) {
             //Create proxy for managed test interface
-            proxyTestInterface = testInterfaceProxyManager.buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(serviceAddressObject_.getInstance());
+            proxyTestInterface = testInterfaceProxyManager.buildProxy<VERSION::commonapi::tests::TestInterfaceProxy>(serviceAddressObject_.getInstance(), connectionIdClient3);
             ASSERT_TRUE((bool)proxyTestInterface);
 
             for (unsigned int i = 0; !proxyTestInterface->isAvailable() && i < 200; ++i) {
@@ -659,7 +648,6 @@ TEST_F(DBusBroadcastTest, ProxyCanBeDeletedAndBuildFromNewInManagedContext) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

@@ -24,19 +24,6 @@ static const std::string interfaceName = "commonapi.tests.TestInterface";
 static const std::string busName = "commonapi.tests.TestInterface_CommonAPI.DBus.tests.DBusProxyTestService";
 static const std::string objectPath = "/CommonAPI/DBus/tests/DBusProxyTestService";
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class PolymorphicTestStub : public VERSION::commonapi::tests::TestInterfaceStubDefault {
 public:
 
@@ -124,7 +111,7 @@ protected:
     void SetUp() {
         auto runtime = CommonAPI::Runtime::get();
 
-        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        proxyDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "clientConnection");
         ASSERT_TRUE(proxyDBusConnection_->connect());
 
         proxy_ = std::make_shared<VERSION::commonapi::tests::TestInterfaceDBusProxy>(CommonAPI::DBus::DBusAddress(busName, objectPath, interfaceName), proxyDBusConnection_);
@@ -150,7 +137,7 @@ protected:
     }
 
     void registerTestStub() {
-        stubDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        stubDBusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "serviceConnection");
         ASSERT_TRUE(stubDBusConnection_->connect());
 
         testStub = std::make_shared<PolymorphicTestStub>();
@@ -262,7 +249,6 @@ TEST_F(PolymorphicTest, SendStructWithMapWithEnumKeyMember) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

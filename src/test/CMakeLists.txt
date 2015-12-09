@@ -31,7 +31,8 @@ set(TestInterfaceSources src-gen/core/commonapi/tests/DerivedTypeCollection.cpp
 set(TestInterfaceDBusSources ${TestInterfaceSources}
                              src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusProxy.cpp
                              src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusStubAdapter.cpp
-                             src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp)
+                             src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
+	                         src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceNoObjectManagerDBusProxy.cpp)
 
 set(TestInterfaceManagerSources src-gen/core/${VERSION}/commonapi/tests/TestInterfaceManagerStubDefault.cpp)
 
@@ -73,10 +74,6 @@ set(ExtendedInterfaceDBusSources ${ExtendedInterfaceSources}
 set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
 
 set(TEST_LINK_LIBRARIES_WITHOUT_COMMONAPI_DBUS CommonAPI gtest ${PTHREAD_LIBRARY})
-
-add_library(fakeGlueCode-dbus SHARED FakeGlueCode.cpp)
-set_target_properties(fakeGlueCode-dbus PROPERTIES VERSION 3.0.0 SOVERSION 3 LINKER_LANGUAGE C)
-target_link_libraries(fakeGlueCode-dbus)
 
 ##############################################################################
 # DBusManagedTest
@@ -281,7 +278,6 @@ add_dependencies(DBusLoadTest gtest)
 # Add tests to the target build_tests
 ##############################################################################
 
-add_dependencies(build_tests fakeGlueCode-dbus)
 add_dependencies(build_tests DBusManagedTest)
 add_dependencies(build_tests DBusMainLoopIntegrationTest)
 add_dependencies(build_tests DBusAddressTranslatorTest)

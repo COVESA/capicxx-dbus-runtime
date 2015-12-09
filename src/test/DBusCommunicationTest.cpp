@@ -38,19 +38,6 @@
 
 #define VERSION v1_0
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class DBusCommunicationTest: public ::testing::Test {
  protected:
     virtual void SetUp() {
@@ -521,7 +508,7 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
     }).detach();
 
     //Test first connect
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection1 = std::make_shared<CommonAPI::DBus::DBusConnection>(libdbusConnection1);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection1 = std::make_shared<CommonAPI::DBus::DBusConnection>(libdbusConnection1, "connection1");
     ASSERT_TRUE(dbusConnection1->isConnected());
     std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> adapter1 = createDBusStubAdapter(dbusConnection1, lowLevelAddress_);
 
@@ -543,7 +530,7 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
     EXPECT_EQ(CommonAPI::AvailabilityStatus::AVAILABLE, status);
 
     //Test second connect
-    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection2 = std::make_shared<CommonAPI::DBus::DBusConnection>(libdbusConnection2);
+    std::shared_ptr<CommonAPI::DBus::DBusConnection> dbusConnection2 = std::make_shared<CommonAPI::DBus::DBusConnection>(libdbusConnection2, "connection2");
     ASSERT_TRUE(dbusConnection2->isConnected());
     std::shared_ptr<CommonAPI::DBus::DBusStubAdapter> adapter2 = createDBusStubAdapter(dbusConnection2, lowLevelAddress_);
 
@@ -574,7 +561,6 @@ TEST_F(DBusLowLevelCommunicationTest, AgressiveNameClaimingOfServicesIsHandledCo
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

@@ -30,19 +30,6 @@
 const std::string domain = "local";
 const std::string serviceAddress = "commonapi.tests.TestInterface";
 
-class Environment: public ::testing::Environment {
-public:
-    virtual ~Environment() {
-    }
-
-    virtual void SetUp() {
-        CommonAPI::Runtime::setProperty("LibraryBase", "fakeGlueCode");
-    }
-
-    virtual void TearDown() {
-    }
-};
-
 class DBusMultipleConnectionTest: public ::testing::Test {
  protected:
      virtual void SetUp() {
@@ -157,7 +144,6 @@ TEST_F(DBusMultipleConnectionTest, GetAttribute) {
 #ifndef __NO_MAIN__
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new Environment());
     return RUN_ALL_TESTS();
 }
 #endif

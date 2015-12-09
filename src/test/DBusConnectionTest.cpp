@@ -30,7 +30,7 @@ class DBusConnectionTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
 
-        dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+        dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "connection1");
     }
 
     virtual void TearDown() {
@@ -98,7 +98,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
     const char interfaceName[] = "commonapi.dbus.test.TestInterface";
     const char methodName[] = "TestMethod";
 
-    auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION);
+    auto interfaceHandlerDBusConnection = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "connection2");
 
     ASSERT_TRUE(interfaceHandlerDBusConnection->connect());
     ASSERT_TRUE(interfaceHandlerDBusConnection->requestServiceNameAndBlock(service));

@@ -33,7 +33,9 @@ DBusProxyManager::getInterface() const {
 
 const ConnectionId_t &
 DBusProxyManager::getConnectionId() const {
-    return connectionId_;
+    // Every DBusProxyConnection is created as DBusConnection
+    // in Factory::getConnection and is only stored as DBusProxyConnection
+    return std::static_pointer_cast<DBusConnection>(proxy_.getDBusConnection())->getConnectionId();
 }
 
 void

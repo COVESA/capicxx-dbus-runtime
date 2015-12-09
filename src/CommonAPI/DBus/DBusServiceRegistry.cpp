@@ -126,7 +126,21 @@ DBusServiceRegistry::subscribeAvailabilityListener(
         availabilityStatus = AvailabilityStatus::NOT_AVAILABLE;
     } else if (dbusServiceListenersRecord.uniqueBusNameState != DBusRecordState::RESOLVING &&
                dbusInterfaceNameListenersRecord.state == DBusRecordState::UNKNOWN) {
-        dbusInterfaceNameListenersRecord.state = resolveDBusInterfaceNameState(dbusAddress, dbusServiceListenersRecord);
+        if(dbusPredefinedServices_.find(dbusAddress.getService()) != dbusPredefinedServices_.end()) {
+            //service is predefined -> notify service listeners about availability
+            auto dbusServiceNameMapIterator = dbusServiceNameMap_.find(dbusAddress.getService());
+            if(dbusServiceNameMapIterator != dbusServiceNameMap_.end()) {
+                std::unordered_set<std::string> dbusInterfaceNames;
+                for(auto dbusInterfaceNameListenerRecordIterator = dbusInterfaceNameListenersMap.begin();
+                        dbusInterfaceNameListenerRecordIterator != dbusInterfaceNameListenersMap.end();
+                        ++dbusInterfaceNameListenerRecordIterator) {
+                    dbusInterfaceNames.insert(dbusInterfaceNameListenerRecordIterator->first);
+                }
+                notifyDBusServiceListeners(*dbusServiceNameMapIterator->second, dbusAddress.getObjectPath(), dbusInterfaceNames, DBusRecordState::AVAILABLE);
+            }
+        } else {
+            dbusInterfaceNameListenersRecord.state = resolveDBusInterfaceNameState(dbusAddress, dbusServiceListenersRecord);
+        }
     }
 
     if(availabilityStatus == AvailabilityStatus::UNKNOWN) {
@@ -1142,17 +1156,13 @@ void DBusServiceRegistry::onDBusServiceAvailable(const std::string& dbusServiceN
             }
         } else {
             //service is predefined -> notify service listeners about availability
+            std::unordered_set<std::string> dbusInterfaceNames;
             for(auto dbusInterfaceNameListenerRecordIterator = dbusInterfaceNameListenersMap.begin();
                     dbusInterfaceNameListenerRecordIterator != dbusInterfaceNameListenersMap.end();
                     ++dbusInterfaceNameListenerRecordIterator) {
-                auto& dbusInterfaceNameListenerRecord = dbusInterfaceNameListenerRecordIterator->second;
-                dbusInterfaceNameListenerRecord.state = DBusRecordState::RESOLVED;
-                for(auto dbusServiceListenerIterator = dbusInterfaceNameListenerRecord.listenerList.begin();
-                        dbusServiceListenerIterator != dbusInterfaceNameListenerRecord.listenerList.end();
-                        ++dbusServiceListenerIterator) {
-                    (*dbusServiceListenerIterator)(AvailabilityStatus::AVAILABLE);
-                }
+                dbusInterfaceNames.insert(dbusInterfaceNameListenerRecordIterator->first);
             }
+            notifyDBusServiceListeners(*dbusUniqueNameRecord, listenersDBusObjectPath, dbusInterfaceNames, DBusRecordState::AVAILABLE);
         }
 
         if (dbusInterfaceNameListenersMap.empty()) {

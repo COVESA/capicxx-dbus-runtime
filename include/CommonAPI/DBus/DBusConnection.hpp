@@ -57,12 +57,16 @@ class DBusConnection
         : public DBusProxyConnection,
           public std::enable_shared_from_this<DBusConnection> {
 public:
-    COMMONAPI_EXPORT static std::shared_ptr<DBusConnection> getBus(const DBusType_t &_type);
-    COMMONAPI_EXPORT static std::shared_ptr<DBusConnection> wrap(::DBusConnection *_connection);
+    COMMONAPI_EXPORT static std::shared_ptr<DBusConnection> getBus(
+        const DBusType_t &_type, const ConnectionId_t& _connectionId);
+    COMMONAPI_EXPORT static std::shared_ptr<DBusConnection> wrap(
+        ::DBusConnection *_connection, const ConnectionId_t& _connectionId);
 
-    COMMONAPI_EXPORT DBusConnection(DBusType_t _type);
+    COMMONAPI_EXPORT DBusConnection(DBusType_t _type,
+        const ConnectionId_t& _connectionId);
     COMMONAPI_EXPORT DBusConnection(const DBusConnection&) = delete;
-    COMMONAPI_EXPORT DBusConnection(::DBusConnection* libDbusConnection);
+    COMMONAPI_EXPORT DBusConnection(::DBusConnection* libDbusConnection,
+        const ConnectionId_t& _connectionId);
     COMMONAPI_EXPORT virtual ~DBusConnection();
 
     COMMONAPI_EXPORT DBusConnection& operator=(const DBusConnection&) = delete;
@@ -135,6 +139,8 @@ public:
 
     COMMONAPI_EXPORT virtual bool hasDispatchThread();
 
+    COMMONAPI_EXPORT virtual const ConnectionId_t& getConnectionId() const;
+
 #ifdef COMMONAPI_DBUS_TEST
     inline std::weak_ptr<DBusMainloop> getLoop() { return loop_; }
 #endif
@@ -198,6 +204,8 @@ public:
 
     COMMONAPI_EXPORT void enforceAsynchronousTimeouts() const;
     COMMONAPI_EXPORT static const DBusObjectPathVTable* getDBusObjectPathVTable();
+
+    COMMONAPI_EXPORT bool sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName);
 
     ::DBusConnection* connection_;
     mutable std::mutex connectionGuard_;
@@ -268,6 +276,7 @@ public:
     mutable std::shared_ptr<std::thread> enforcerThread_;
     mutable std::mutex enforcerThreadMutex_;
     bool enforcerThreadCancelled_;
+    ConnectionId_t connectionId_;
 
     std::shared_ptr<DBusMainLoop> loop_;
 

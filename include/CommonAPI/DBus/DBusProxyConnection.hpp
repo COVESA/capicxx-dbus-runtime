@@ -62,6 +62,7 @@ class DBusProxyConnection {
         virtual ~DBusSignalHandler() {}
         virtual void onSignalDBusMessage(const DBusMessage&) = 0;
         virtual void onInitialValueSignalDBusMessage(const DBusMessage&, const uint32_t) {};
+        virtual void onError(const CommonAPI::CallStatus status) { (void) status; };
     };
 
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
@@ -132,6 +133,8 @@ class DBusProxyConnection {
     virtual bool isObjectPathMessageHandlerSet() = 0;
 
     virtual bool hasDispatchThread() = 0;
+
+    virtual bool sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName) = 0;
 };
 
 } // namespace DBus
