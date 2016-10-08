@@ -253,8 +253,7 @@ Factory::getConnection(std::shared_ptr<MainLoopContext> _context) {
         = std::make_shared<DBusConnection>(dbusType, _context->getName());
     contextConnections_.insert({ _context.get(), itsConnection } );
 
-    itsConnection->connect(false);
-    if (_context)
+    if (itsConnection->connect(false))
         itsConnection->attachMainLoopContext(_context);
 
     return itsConnection;
