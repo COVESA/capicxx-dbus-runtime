@@ -248,8 +248,9 @@ Factory::getConnection(std::shared_ptr<MainLoopContext> _context) {
     }
 
     // No connection found, lets create and initialize one
+    DBusType_t dbusType = DBusAddressTranslator::get()->getDBusBusType(_context->getName());
     std::shared_ptr<DBusConnection> itsConnection
-        = std::make_shared<DBusConnection>(DBusType_t::SESSION, _context->getName());
+        = std::make_shared<DBusConnection>(dbusType, _context->getName());
     contextConnections_.insert({ _context.get(), itsConnection } );
 
     itsConnection->connect(false);
