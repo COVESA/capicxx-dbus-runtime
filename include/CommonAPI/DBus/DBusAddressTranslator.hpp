@@ -53,6 +53,8 @@ private:
     COMMONAPI_EXPORT bool isValid(const std::string &, const char,
                                   bool = false, bool = false, bool = false) const;
 
+    COMMONAPI_EXPORT bool isValidVersion(const std::string &) const;
+
 private:
     bool isDefault_;
 
@@ -61,6 +63,8 @@ private:
 
     std::map<CommonAPI::Address, DBusAddress> forwards_;
     std::map<DBusAddress, CommonAPI::Address> backwards_;
+    std::map<std::string, std::string> compatibility_;
+    std::map<CommonAPI::Address, std::tuple<std::string, std::string, std::string>> unversioned_;
 
     std::mutex mutex_;
 

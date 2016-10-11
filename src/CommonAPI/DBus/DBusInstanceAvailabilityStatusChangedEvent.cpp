@@ -15,9 +15,13 @@ DBusInstanceAvailabilityStatusChangedEvent::DBusInstanceAvailabilityStatusChange
         const std::string &_dbusInterfaceName,
         const std::string &_capiInterfaceName) :
                 proxy_(_proxy),
-                observedDbusInterfaceName_(_dbusInterfaceName),
                 observedCapiInterfaceName_(_capiInterfaceName),
                 registry_(DBusServiceRegistry::get(_proxy.getDBusConnection())) {
+    (void)_dbusInterfaceName;
+    DBusAddress itsDBusAddress;
+    std::string itsCapiAddress = "local:" + observedCapiInterfaceName_ + ":fakeInstance";
+    DBusAddressTranslator::get()->translate(itsCapiAddress, itsDBusAddress);
+    observedDbusInterfaceName_ = itsDBusAddress.getInterface();
 }
 
 DBusInstanceAvailabilityStatusChangedEvent::~DBusInstanceAvailabilityStatusChangedEvent() {

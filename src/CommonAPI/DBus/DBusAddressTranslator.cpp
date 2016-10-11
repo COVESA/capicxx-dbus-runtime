@@ -60,7 +60,24 @@ DBusAddressTranslator::translate(const std::string &_key, DBusAddress &_value) {
 bool
 DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_value) {
     bool result(true);
-    std::lock_guard<std::mutex> itsLock(mutex_);
+    mutex_.lock();
+
+    std::string capiInterfaceName = _key.getInterface();
+
+    std::size_t itsVersionPos = capiInterfaceName.rfind(":");
+    if( itsVersionPos != std::string::npos) {
+        capiInterfaceName = capiInterfaceName.substr(0, itsVersionPos);
+
+        CommonAPI::Address itsCapiAddress(_key);
+        itsCapiAddress.setInterface(capiInterfaceName);
+        auto it = unversioned_.find(itsCapiAddress);
+        if(it != unversioned_.end()) {
+            mutex_.unlock();
+            insert(_key.getAddress(), std::get<0>(it->second), std::get<1>(it->second), std::get<2>(it->second));
+            mutex_.lock();
+            unversioned_.erase(itsCapiAddress);
+        }
+    }
 
     const auto it = forwards_.find(_key);
     if (it != forwards_.end()) {
@@ -75,9 +92,18 @@ DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_v
         if (isValid(service, '.', false, false, true)
          && isValid(objectPath, '/', true)
          && isValid(interfaceName, '.')) {
-            _value.setInterface(interfaceName);
+
+            // check if interface needs to be compatible to newer/older version
+            auto it = compatibility_.find(_key.getInterface());
+            if(it != compatibility_.end()) {
+                _value.setInterface(it->second);
+                _value.setService(it->second + "_" + _key.getInstance());
+            } else {
+                _value.setInterface(interfaceName);
+                _value.setService(service);
+            }
+
             _value.setObjectPath(objectPath);
-            _value.setService(service);
 
             forwards_.insert({ _key, _value });
             backwards_.insert({ _value, _key });
@@ -91,6 +117,7 @@ DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_v
         result = false;
     }
 
+    mutex_.unlock();
     return result;
 }
 
@@ -109,7 +136,6 @@ DBusAddressTranslator::translate(const DBusAddress &_key, CommonAPI::Address &_v
     bool result(true);
     std::size_t itsInterfacePos;
     std::string itsVersion;
-    bool isValidVersion(true);
     std::lock_guard<std::mutex> itsLock(mutex_);
 
     const auto it = backwards_.find(_key);
@@ -123,27 +149,8 @@ DBusAddressTranslator::translate(const DBusAddress &_key, CommonAPI::Address &_v
             if( itsInterfacePos != std::string::npos
                     && ( interfaceName.length() - itsInterfacePos >= 4) ) {
                 itsVersion = interfaceName.substr(itsInterfacePos);
-                if( itsVersion != "" ) {
-                    std::size_t itsSeparatorPos = itsVersion.find('_');
-                    if (itsSeparatorPos == std::string::npos) {
-                        isValidVersion = false;
-                    }
-                    if(isValidVersion) {
-                        if( *(itsVersion.begin()) != 'v') {
-                            isValidVersion = false;
-                        }
-                        if(isValidVersion) {
-                            for (auto it = itsVersion.begin()+1; it != itsVersion.end(); ++it) {
-                                if (!isdigit(*it) && *it != '_') {
-                                    isValidVersion = false;
-                                    break;
-                                }
-                            }
-                        }
-                        if( isValidVersion ) {
-                            interfaceName.replace(itsInterfacePos - 1, 1, ":");
-                        }
-                    }
+                if(isValidVersion(itsVersion)) {
+                    interfaceName.replace(itsInterfacePos - 1, 1, ":");
                 }
             }
             std::string instance(_key.getObjectPath().substr(1));
@@ -256,15 +263,55 @@ DBusAddressTranslator::readConfiguration() {
                         " is set to: " + busType + " via ini file");
             }
             continue;
+        } else if(itsMapping.first == "compatibility") {
+            // section that defines the compatibility of interfaces
+            // CAPI interfaces can be converted to newer/older versions
+            std::map<std::string, std::string> mappings = itsMapping.second->getMappings();
+            std::string itsInterface;
+            std::string itsNewInterface;
+            for(auto const &it : mappings) {
+                itsInterface = it.first;
+                itsNewInterface = it.second;
+
+                if(itsNewInterface.empty()) {
+                    // convert to unversioned interface
+                    std::size_t itsVersionPos = itsInterface.rfind(":");
+                    itsVersionPos++;
+                    bool isValid = false;
+                    if( itsVersionPos != std::string::npos
+                            && ( itsInterface.length() - itsVersionPos >= 4) ) {
+                        std::string itsVersion = itsInterface.substr(itsVersionPos);
+                        if(isValidVersion(itsVersion)) {
+                            itsNewInterface = itsInterface.substr(0, itsVersionPos - 1);
+                            isValid = true;
+                        }
+                    }
+
+                    if(!isValid) {
+                        COMMONAPI_INFO("Managed Interface " + itsInterface +
+                                " contains no valid version information for compatibility conversion");
+                    }
+                }
+                compatibility_[itsInterface] = itsNewInterface;
+            }
+            continue;
         }
 
         CommonAPI::Address itsAddress(itsMapping.first);
 
-        std::string service = itsMapping.second->getValue("service");
-        std::string path = itsMapping.second->getValue("path");
-        std::string interfaceName = itsMapping.second->getValue("interface");
+        const std::string& service = itsMapping.second->getValue("service");
+        const std::string& path = itsMapping.second->getValue("path");
 
-        insert(itsMapping.first, service, path, interfaceName);
+        // check whether CommonAPI::Address "automatically" added "missing" version, thus ":v1_0"
+        if(itsMapping.first.rfind(itsAddress.getInterface()) == std::string::npos) {
+            std::string capiInterfaceName = itsAddress.getInterface();
+            std::size_t itsVersionPos = capiInterfaceName.rfind(":");
+            capiInterfaceName = capiInterfaceName.substr(0, itsVersionPos);
+            itsAddress.setInterface(capiInterfaceName);
+            unversioned_[itsAddress] = std::make_tuple(service, path, itsMapping.second->getValue("interface"));
+        } else {
+            insert(itsMapping.first, service, path, itsMapping.second->getValue("interface"));
+        }
     }
 
     return true;
@@ -367,6 +414,24 @@ DBusAddressTranslator::getDBusBusType(const ConnectionId_t &_connectionId) const
 
 bool DBusAddressTranslator::isOrgFreedesktopDBusPeerMapped() const {
     return orgFreedesktopDBusPeerMapped_;
+}
+
+bool DBusAddressTranslator::isValidVersion(const std::string& _version) const {
+    if( _version == "" )
+        return false;
+
+    std::size_t itsSeparatorPos = _version.find('_');
+    if (itsSeparatorPos == std::string::npos)
+        return false;
+
+    if( *(_version.begin()) != 'v')
+        return false;
+
+    for (auto it = _version.begin()+1; it != _version.end(); ++it) {
+        if (!isdigit(*it) && *it != '_')
+            return false;
+    }
+    return true;
 }
 
 } // namespace DBus
