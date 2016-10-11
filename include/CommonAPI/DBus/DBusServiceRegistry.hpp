@@ -68,6 +68,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     typedef DBusManagedInterfaceListenerList::iterator DBusManagedInterfaceSubscription;
 
     static std::shared_ptr<DBusServiceRegistry> get(std::shared_ptr<DBusProxyConnection> _connection);
+    static void remove(std::shared_ptr<DBusProxyConnection> _connection);
 
     DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
 
@@ -158,6 +159,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
             : referenceCount(other.referenceCount),
               state(other.state),
               promiseOnResolve(std::move(other.promiseOnResolve)),
+              futureOnResolve(std::move(other.futureOnResolve)),
               serviceName(std::move(other.serviceName)),
               dbusInterfaceNamesCache(std::move(other.dbusInterfaceNamesCache)){
         }
@@ -167,6 +169,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         size_t referenceCount;
         DBusRecordState state;
         std::promise<DBusRecordState> promiseOnResolve;
+        std::shared_future<DBusRecordState> futureOnResolve;
         std::string serviceName;
 
         std::unordered_set<std::string> dbusInterfaceNamesCache;

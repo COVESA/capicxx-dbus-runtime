@@ -63,17 +63,32 @@ void DBusOutputStream::setError() {
  * @param numOfBytes The number of bytes that should be reserved for writing.
  */
 void DBusOutputStream::reserveMemory(size_t numOfBytes) {
-    assert(numOfBytes > 0);
+    if (0 == numOfBytes) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " reserving 0 bytes");
+    }
     payload_.reserve(numOfBytes);
 }
 
 DBusOutputStream& DBusOutputStream::writeString(const char *_value, const uint32_t &_length) {
-    assert(_value != NULL);
-    assert(_value[_length] == '\0');
+    if (NULL == _value) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value == NULL");
+    } else if (_value[_length] != '\0') {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value is not zero-terminated")
+    } else {
+        _writeValue(_length);
+        _writeRaw(_value, _length + 1);
+    }
+    return (*this);
+}
 
-    _writeValue(_length);
-    _writeRaw(_value, _length + 1);
-
+DBusOutputStream& DBusOutputStream::writeByteBuffer(const uint8_t *_value,
+                                                    const uint32_t &_length) {
+    if (NULL == _value) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value == NULL");
+    } else {
+        _writeValue(_length);
+        _writeRaw(reinterpret_cast<const char*>(_value), _length);
+    }
     return (*this);
 }
 
@@ -81,8 +96,9 @@ DBusOutputStream& DBusOutputStream::writeString(const char *_value, const uint32
 static const char eightByteZeroString[] = "\0\0\0\0\0\0\0";
 
 void DBusOutputStream::align(const size_t _boundary) {
-    assert(_boundary > 0 && _boundary <= 8 &&
-        (_boundary % 2 == 0 || _boundary == 1));
+    if ( _boundary == 0 || _boundary > 8 || ( 0 != _boundary % 2 && 1 != _boundary) ) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid boundary ", _boundary);
+    }
 
     size_t mask = _boundary - 1;
     size_t necessary = ((mask - (payload_.size() & mask)) + 1) & mask;
@@ -100,7 +116,9 @@ void DBusOutputStream::_writeRawAt(const char *_data, const size_t _size, size_t
 
 void DBusOutputStream::writeSignature(const std::string& signature) {
     const auto& signatureLength = signature.length();
-    assert(signatureLength > 0 && signatureLength < 256);
+    if (0 == signatureLength || 255 < signatureLength) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid signatureLength ", signatureLength);
+    }
 
     const uint8_t wireLength = (uint8_t) signatureLength;
     (*this) << wireLength;

@@ -93,6 +93,8 @@ public:
     bool setBodyLength(const int bodyLength);
     bool setDestination(const char* destination);
 
+    void setSerial(const unsigned int serial) const;
+
 private:
     ::DBusMessage *message_;
 

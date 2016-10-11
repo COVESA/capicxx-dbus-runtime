@@ -36,21 +36,24 @@ public:
 
     virtual ~DBusSelectiveEvent() {}
 
-    virtual void onError(const CommonAPI::CallStatus status) {
-        this->notifyError(status);
+    virtual void onSpecificError(const CommonAPI::CallStatus status, uint32_t tag) {
+        this->notifySpecificError(tag, status);
+    }
+
+    virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken _subscriptionToken, uint32_t tag) {
+        this->subscription_ = _subscriptionToken;
+        static_cast<DBusProxy&>(this->proxy_).insertSelectiveSubscription(this->name_, this, tag);
     }
 
 protected:
     void onFirstListenerAdded(const Listener &) {
-        bool success;
-        this->subscription_
-            = static_cast<DBusProxy&>(this->proxy_).subscribeForSelectiveBroadcastOnConnection(
-                success, this->path_, this->interface_, this->name_, this->signature_, this);
-                
-        if (success == false) {
-            // Call error listener with an error code
-            this->notifyError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED);
-        }
+
+    }
+
+    void onListenerAdded(const Listener &_listener, const uint32_t subscription) {
+        (void) _listener;
+        static_cast<DBusProxy&>(this->proxy_).subscribeForSelectiveBroadcastOnConnection(
+                this->path_, this->interface_, this->name_, this->signature_, this, subscription);
     }
 
     void onLastListenerRemoved(const Listener &) {

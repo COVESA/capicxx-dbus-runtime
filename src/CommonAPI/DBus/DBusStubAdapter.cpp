@@ -5,6 +5,7 @@
 
 #include <CommonAPI/DBus/DBusAddressTranslator.hpp>
 #include <CommonAPI/DBus/DBusStubAdapter.hpp>
+#include <CommonAPI/DBus/DBusFactory.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -15,10 +16,12 @@ DBusStubAdapter::DBusStubAdapter(const DBusAddress &_dbusAddress,
     : dbusAddress_(_dbusAddress),
       connection_(_connection),
       isManaging_(_isManaging) {
+    Factory::get()->incrementConnection(connection_);
 }
 
 DBusStubAdapter::~DBusStubAdapter() {
     deinit();
+    Factory::get()->decrementConnection(connection_);
 }
 
 void DBusStubAdapter::init(std::shared_ptr<DBusStubAdapter> _instance) {

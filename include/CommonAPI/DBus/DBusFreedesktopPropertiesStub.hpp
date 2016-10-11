@@ -47,7 +47,7 @@ private:
     std::weak_ptr<DBusProxyConnection> connection_;
     std::shared_ptr<DBusStubAdapter> adapter_;
 
-    typedef std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> DBusInterfacesMap;
+    typedef std::unordered_map<std::string, std::vector<std::shared_ptr<DBusStubAdapter>>> DBusInterfacesMap;
     DBusInterfacesMap managedInterfaces_;
 
     std::mutex dbusInterfacesLock_;

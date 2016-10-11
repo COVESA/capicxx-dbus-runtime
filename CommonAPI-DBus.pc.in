@@ -7,5 +7,7 @@ Name: @PROJECT@
 Description: GENIVI Common API D-Bus C++ Library
 Version: @COMPONENT_VERSION@
 Libs: -L${libdir} -lCommonAPI-DBus
+Requires: CommonAPI
+Requires.private: dbus-1
 Cflags: -I${includedir}/CommonAPI-@COMMONAPI_API_HEADER_VERSION@
 

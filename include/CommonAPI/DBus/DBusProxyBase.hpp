@@ -26,7 +26,7 @@ namespace DBus {
 
 class DBusAddress;
 
-class DBusProxyBase
+class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusProxyBase
         : public virtual CommonAPI::Proxy {
 public:
     COMMONAPI_EXPORT DBusProxyBase(const DBusAddress &_address,
@@ -38,6 +38,11 @@ public:
 
     COMMONAPI_EXPORT DBusMessage createMethodCall(const std::string &_method,
                                  const std::string &_signature = "") const;
+
+    typedef std::function<void(const AvailabilityStatus, const Timeout_t remaining)> isAvailableAsyncCallback;
+    COMMONAPI_EXPORT virtual std::future<AvailabilityStatus> isAvailableAsync(
+            isAvailableAsyncCallback _callback,
+            const CallInfo *_info) const = 0;
 
     COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
             const std::string &objectPath,

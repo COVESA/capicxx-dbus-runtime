@@ -10,7 +10,6 @@
 #ifndef COMMONAPI_DBUS_DBUS_ATTRIBUTE_HPP_
 #define COMMONAPI_DBUS_DBUS_ATTRIBUTE_HPP_
 
-#include <cassert>
 #include <cstdint>
 #include <tuple>
 
@@ -35,7 +34,9 @@ public:
           getMethodName_(getMethodName),
           setMethodSignature_(setMethodSignature),
           depl_(_depl)    {
-        assert(getMethodName);
+        if (NULL == getMethodName) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": getMethodName is NULL");
+        }
     }
 
     void getValue(CommonAPI::CallStatus &_status, ValueType &_value, const CommonAPI::CallInfo *_info) const {
@@ -84,8 +85,12 @@ public:
         : DBusReadonlyAttribute<AttributeType_, AttributeDepl_>(_proxy, _setMethodSignature, _getMethodName, _depl),
             setMethodName_(_setMethodName),
             setMethodSignature_(_setMethodSignature) {
-        assert(_setMethodName);
-        assert(_setMethodSignature);
+        if (NULL == _setMethodName) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": _setMethodName is NULL");
+        }
+        if (NULL == _setMethodSignature) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": _setMethodSignature is NULL");
+        }
     }
 
     void setValue(const ValueType &_request, CommonAPI::CallStatus &_status, ValueType &_response, const CommonAPI::CallInfo *_info) {

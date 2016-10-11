@@ -3,7 +3,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cassert>
 #include <sstream>
 
 #include <CommonAPI/Utils.hpp>
@@ -25,15 +24,153 @@ void DBusProxyStatusEvent::onListenerAdded(const Listener &_listener, const Subs
         _listener(AvailabilityStatus::AVAILABLE);
 }
 
+void DBusProxy::availabilityTimeoutThreadHandler() const {
+    std::unique_lock<std::mutex> threadLock(availabilityTimeoutThreadMutex_);
+
+    bool cancel = false;
+    bool firstIteration = true;
+
+    // the callbacks that have to be done are stored with
+    // their required data in a list of tuples.
+    typedef std::tuple<
+            isAvailableAsyncCallback,
+            std::promise<AvailabilityStatus>,
+            AvailabilityStatus,
+            std::chrono::time_point<std::chrono::high_resolution_clock>
+            > CallbackData_t;
+    std::list<CallbackData_t> callbacks;
+
+    while(!cancel) {
+
+        //get min timeout
+        timeoutsMutex_.lock();
+
+        int timeout = std::numeric_limits<int>::max();
+        std::chrono::time_point<std::chrono::high_resolution_clock> minTimeout;
+        if (timeouts_.size() > 0) {
+            auto minTimeoutElement = std::min_element(timeouts_.begin(), timeouts_.end(),
+                    [] (const AvailabilityTimeout_t& lhs, const AvailabilityTimeout_t& rhs) {
+                        return std::get<0>(lhs) < std::get<0>(rhs);
+            });
+            minTimeout = std::get<0>(*minTimeoutElement);
+            std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+            timeout = (int)std::chrono::duration_cast<std::chrono::milliseconds>(minTimeout - now).count();
+        }
+        timeoutsMutex_.unlock();
+
+        //wait for timeout or notification
+        if (!firstIteration && std::cv_status::timeout ==
+                    availabilityTimeoutCondition_.wait_for(threadLock, std::chrono::milliseconds(timeout))) {
+            timeoutsMutex_.lock();
+
+            //iterate through timeouts
+            auto it = timeouts_.begin();
+            while (it != timeouts_.end()) {
+                std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+
+                isAvailableAsyncCallback callback = std::get<1>(*it);
+
+                if (now > std::get<0>(*it)) {
+                    //timeout
+                    availabilityMutex_.lock();
+                    if(isAvailable())
+                        callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
+                                                            AvailabilityStatus::AVAILABLE,
+                                                            std::chrono::time_point<std::chrono::high_resolution_clock>()));
+                    else
+                        callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
+                                                            AvailabilityStatus::NOT_AVAILABLE,
+                                                            std::chrono::time_point<std::chrono::high_resolution_clock>()));
+                    it = timeouts_.erase(it);
+                    availabilityMutex_.unlock();
+                } else {
+                    //timeout not expired
+                    availabilityMutex_.lock();
+                    if(isAvailable()) {
+                        callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
+                                                            AvailabilityStatus::AVAILABLE,
+                                                            minTimeout));
+                        it = timeouts_.erase(it);
+                    } else {
+                        ++it;
+                    }
+                    availabilityMutex_.unlock();
+                }
+            }
+
+            timeoutsMutex_.unlock();
+        } else {
+
+            if(firstIteration) {
+                firstIteration = false;
+                continue;
+            }
+
+            //timeout not expired
+            timeoutsMutex_.lock();
+            auto it = timeouts_.begin();
+            while (it != timeouts_.end()) {
+                isAvailableAsyncCallback callback = std::get<1>(*it);
+
+                availabilityMutex_.lock();
+                if(isAvailable()) {
+                    callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
+                                                        AvailabilityStatus::AVAILABLE,
+                                                        minTimeout));
+                    it = timeouts_.erase(it);
+                } else {
+                    ++it;
+                }
+                availabilityMutex_.unlock();
+            }
+
+            timeoutsMutex_.unlock();
+        }
+
+        //do callbacks
+        isAvailableAsyncCallback callback;
+        AvailabilityStatus avStatus;
+        int remainingTimeout;
+        std::chrono::high_resolution_clock::time_point now;
+
+        auto it = callbacks.begin();
+        while(it != callbacks.end()) {
+            callback = std::get<0>(*it);
+            avStatus = std::get<2>(*it);
+
+            // compute remaining timeout
+            now = std::chrono::high_resolution_clock::now();
+            remainingTimeout = (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::get<3>(*it) - now).count();
+            if(remainingTimeout < 0)
+                remainingTimeout = 0;
+
+            threadLock.unlock();
+
+            std::get<1>(*it).set_value(avStatus);
+            callback(avStatus, remainingTimeout);
+
+            threadLock.lock();
+
+            it = callbacks.erase(it);
+        }
+
+        //cancel thread
+        timeoutsMutex_.lock();
+        if(timeouts_.size() == 0 && callbacks.size() == 0)
+            cancel = true;
+        timeoutsMutex_.unlock();
+    }
+}
+
 DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
                      const std::shared_ptr<DBusProxyConnection> &_connection):
                 DBusProxyBase(_dbusAddress, _connection),
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
                 interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
-                dbusServiceRegistry_(DBusServiceRegistry::get(_connection)),
-                signalMemberHandlerInfo_(3000)
+                dbusServiceRegistry_(DBusServiceRegistry::get(_connection))
 {
+    Factory::get()->incrementConnection(connection_);
 }
 
 void DBusProxy::init() {
@@ -43,9 +180,14 @@ void DBusProxy::init() {
 }
 
 DBusProxy::~DBusProxy() {
+    if(availabilityTimeoutThread_) {
+        if(availabilityTimeoutThread_->joinable())
+            availabilityTimeoutThread_->join();
+    }
     dbusServiceRegistry_->unsubscribeAvailabilityListener(
                     getAddress().getAddress(),
                     dbusServiceRegistrySubscription_);
+    Factory::get()->decrementConnection(connection_);
 }
 
 bool DBusProxy::isAvailable() const {
@@ -64,6 +206,56 @@ bool DBusProxy::isAvailableBlocking() const {
     }
 
     return true;
+}
+
+std::future<AvailabilityStatus> DBusProxy::isAvailableAsync(
+            isAvailableAsyncCallback _callback,
+            const CommonAPI::CallInfo *_info) const {
+
+    std::promise<AvailabilityStatus> promise;
+    std::future<AvailabilityStatus> future = promise.get_future();
+
+    //set timeout point
+    auto timeoutPoint = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(_info->timeout_);
+
+    timeoutsMutex_.lock();
+    if(timeouts_.size() == 0) {
+        //no timeouts
+
+        bool isAvailabilityTimeoutThread = false;
+
+        //join running availability thread
+        if(availabilityTimeoutThread_) {
+
+            //check if current thread is availability timeout thread
+            isAvailabilityTimeoutThread = (std::this_thread::get_id() ==
+                            availabilityTimeoutThread_.get()->get_id());
+
+            if(availabilityTimeoutThread_->joinable() && !isAvailabilityTimeoutThread) {
+                timeoutsMutex_.unlock();
+                availabilityTimeoutThread_->join();
+                timeoutsMutex_.lock();
+            }
+        }
+        //add new timeout
+        timeouts_.push_back(std::make_tuple(timeoutPoint, _callback, std::move(promise)));
+
+        //start availability thread
+        if(!isAvailabilityTimeoutThread)
+            availabilityTimeoutThread_ = std::make_shared<std::thread>(
+                    std::bind(&DBusProxy::availabilityTimeoutThreadHandler, this));
+    } else {
+        //add timeout
+        timeouts_.push_back(std::make_tuple(timeoutPoint, _callback, std::move(promise)));
+    }
+    timeoutsMutex_.unlock();
+
+    availabilityTimeoutThreadMutex_.lock();
+    //notify availability thread that new timeout was added
+    availabilityTimeoutCondition_.notify_all();
+    availabilityTimeoutThreadMutex_.unlock();
+
+    return future;
 }
 
 ProxyStatusEvent& DBusProxy::getProxyStatusEvent() {
@@ -87,15 +279,23 @@ void DBusProxy::signalInitialValueCallback(const CallStatus _status,
         const DBusMessage &_message,
         DBusProxyConnection::DBusSignalHandler *_handler,
         const uint32_t _tag) {
-    (void)_status;
-    _handler->onInitialValueSignalDBusMessage(_message, _tag);
+    if (_status != CallStatus::SUCCESS) {
+        COMMONAPI_ERROR("Error when receiving initial value of an attribute");
+    } else {
+        _handler->onInitialValueSignalDBusMessage(_message, _tag);
+    }
 }
 
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
     if (availabilityStatus != availabilityStatus_) {
-        availabilityStatusMutex_.lock();
+        availabilityMutex_.lock();
         availabilityStatus_ = availabilityStatus;
-        availabilityStatusMutex_.unlock();
+        availabilityMutex_.unlock();
+
+        availabilityTimeoutThreadMutex_.lock();
+        //notify availability thread that proxy status has changed
+        availabilityTimeoutCondition_.notify_all();
+        availabilityTimeoutThreadMutex_.unlock();
 
         dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
 
@@ -118,27 +318,26 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
 
                     DBusMessage message = createMethodCall(std::get<4>(*signalMemberHandlerIterator), "");
 
-                    DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(
+                    DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate::FunctionType myFunc = std::bind(
                             &DBusProxy::signalMemberCallback,
                             this,
                             std::placeholders::_1,
                             std::placeholders::_2,
                             std::placeholders::_3,
                             std::placeholders::_4);
+                    DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate delegate(shared_from_this(), myFunc);
                     connection_->sendDBusMessageWithReplyAsync(
                             message,
-                            DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, std::get<5>(*signalMemberHandlerIterator), 0),
-                            &signalMemberHandlerInfo_);
+                            DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::create(delegate, std::get<5>(*signalMemberHandlerIterator), 0),
+                            &defaultCallInfo);
                 }
             }
             {
                 std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
                 for (auto selectiveBroadcasts : selectiveBroadcastHandlers) {
                     std::string methodName = "subscribeFor" + selectiveBroadcasts.first + "Selective";
-                    bool subscriptionAccepted = connection_->sendPendingSelectiveSubscription(this, methodName);
-                    if (!subscriptionAccepted) {
-                        selectiveBroadcasts.second->onError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED);
-                    }
+                    connection_->sendPendingSelectiveSubscription(this, methodName, selectiveBroadcasts.second.first,
+                            selectiveBroadcasts.second.second);
                 }
             }
         } else {
@@ -160,38 +359,33 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
             }
         }
     }
-    availabilityStatusMutex_.lock();
+    availabilityMutex_.lock();
     availabilityCondition_.notify_one();
-    availabilityStatusMutex_.unlock();
+    availabilityMutex_.unlock();
 }
 
-DBusProxyConnection::DBusSignalHandlerToken DBusProxy::subscribeForSelectiveBroadcastOnConnection(
-                                                      bool& subscriptionAccepted,
+void DBusProxy::insertSelectiveSubscription(const std::string& interfaceMemberName,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag) {
+    std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
+    selectiveBroadcastHandlers[interfaceMemberName] = std::make_pair(dbusSignalHandler, tag);
+}
+
+void DBusProxy::subscribeForSelectiveBroadcastOnConnection(
                                                       const std::string& objectPath,
                                                       const std::string& interfaceName,
                                                       const std::string& interfaceMemberName,
                                                       const std::string& interfaceMemberSignature,
-                                                      DBusProxyConnection::DBusSignalHandler* dbusSignalHandler) {
+                                                      DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                                                      uint32_t tag) {
 
-    DBusProxyConnection::DBusSignalHandlerToken token =
-            getDBusConnection()->subscribeForSelectiveBroadcast(
-                    subscriptionAccepted,
-                    objectPath,
-                    interfaceName,
-                    interfaceMemberName,
-                    interfaceMemberSignature,
-                    dbusSignalHandler,
-                    this);
-
-    if (!isAvailable()) {
-        subscriptionAccepted = true;
-    }
-    if (subscriptionAccepted) {
-        std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
-        selectiveBroadcastHandlers[interfaceMemberName] = dbusSignalHandler;
-    }
-
-    return token;
+    getDBusConnection()->subscribeForSelectiveBroadcast(
+        objectPath,
+        interfaceName,
+        interfaceMemberName,
+        interfaceMemberSignature,
+        dbusSignalHandler,
+        this,
+        tag);
 }
 
 void DBusProxy::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
@@ -204,7 +398,7 @@ void DBusProxy::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
     std::string interfaceMemberName = std::get<2>(subscription);
     auto its_handler = selectiveBroadcastHandlers.find(interfaceMemberName);
     if (its_handler != selectiveBroadcastHandlers.end()) {
-        selectiveBroadcastHandlers.erase(its_handler);
+        selectiveBroadcastHandlers.erase(interfaceMemberName);
     }
 }
 
@@ -251,9 +445,9 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(
             justAddFilter,
             false);
 
-        availabilityStatusMutex_.lock();
+        availabilityMutex_.lock();
         if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
-            availabilityStatusMutex_.unlock();
+            availabilityMutex_.unlock();
             signalHandlerToken = connection_->addSignalMemberHandler(
                 objectPath,
                 interfaceName,
@@ -263,7 +457,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(
                 justAddFilter);
             std::get<7>(signalMemberHandler) = true;
         } else {
-            availabilityStatusMutex_.unlock();
+            availabilityMutex_.unlock();
         }
         addSignalMemberHandlerToQueue(signalMemberHandler);
     } else {
@@ -333,24 +527,25 @@ void DBusProxy::getCurrentValueForSignalListener(
         DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
         const uint32_t subscription) {
 
-    availabilityStatusMutex_.lock();
+    availabilityMutex_.lock();
     if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
-        availabilityStatusMutex_.unlock();
+        availabilityMutex_.unlock();
 
         DBusMessage message = createMethodCall(getMethodName, "");
 
-        DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
+        DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
                 this,
                 std::placeholders::_1,
                 std::placeholders::_2,
                 std::placeholders::_3,
                 std::placeholders::_4);
+        DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate delegate(shared_from_this(), myFunc);
         connection_->sendDBusMessageWithReplyAsync(
                 message,
-                DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, dbusSignalHandler, subscription),
-                &signalMemberHandlerInfo_);
+                DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::create(delegate, dbusSignalHandler, subscription),
+                &defaultCallInfo);
     } else {
-        availabilityStatusMutex_.unlock();
+        availabilityMutex_.unlock();
     }
 }
 
@@ -360,9 +555,9 @@ void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
     const std::string &interfaceName,
     const std::string &propertyName) {
 
-    availabilityStatusMutex_.lock();
+    availabilityMutex_.lock();
     if (availabilityStatus_ == AvailabilityStatus::AVAILABLE) {
-        availabilityStatusMutex_.unlock();
+        availabilityMutex_.unlock();
 
         DBusAddress itsAddress(getDBusAddress());
         itsAddress.setInterface("org.freedesktop.DBus.Properties");
@@ -372,20 +567,21 @@ void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
                                 ::serialize(output, interfaceName, propertyName);
         if (success) {
             output.flush();
-            DBusProxyAsyncSignalMemberCallbackHandler::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
+            DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate::FunctionType myFunc = std::bind(&DBusProxy::signalInitialValueCallback,
                     this,
                     std::placeholders::_1,
                     std::placeholders::_2,
                     std::placeholders::_3,
                     std::placeholders::_4);
+            DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::Delegate delegate(shared_from_this(), myFunc);
 
             connection_->sendDBusMessageWithReplyAsync(
                     _message,
-                    DBusProxyAsyncSignalMemberCallbackHandler::create(myFunc, dbusSignalHandler, subscription),
-                    &signalMemberHandlerInfo_);
+                    DBusProxyAsyncSignalMemberCallbackHandler<DBusProxy>::create(delegate, dbusSignalHandler, subscription),
+                    &defaultCallInfo);
         }
     } else {
-        availabilityStatusMutex_.unlock();
+        availabilityMutex_.unlock();
     }
 }
 

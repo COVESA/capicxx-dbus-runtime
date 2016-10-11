@@ -7,7 +7,11 @@
 #include <WinSock2.h>
 #else
 #include <poll.h>
+#include <unistd.h>
 #endif
+
+#include <fcntl.h>
+#include <cstdio>
 
 #include <chrono>
 
@@ -25,7 +29,7 @@ DBusDispatchSource::~DBusDispatchSource() {
 }
 
 bool DBusDispatchSource::prepare(int64_t &_timeout) {
-    (void)_timeout;
+    _timeout = -1;
     return dbusConnection_->isDispatchReady();
 }
 
@@ -37,11 +41,46 @@ bool DBusDispatchSource::dispatch() {
     return dbusConnection_->singleDispatch();
 }
 
+DBusMessageDispatchSource::DBusMessageDispatchSource(DBusMessageWatch* watch) :
+    watch_(watch) {
+    watch_->addDependentDispatchSource(this);
+}
 
-DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& mainLoopContext):
+DBusMessageDispatchSource::~DBusMessageDispatchSource() {
+    std::unique_lock<std::mutex> itsLock(watchMutex_);
+    watch_->removeDependentDispatchSource(this);
+}
+
+bool DBusMessageDispatchSource::prepare(int64_t& timeout) {
+    std::unique_lock<std::mutex> itsLock(watchMutex_);
+    timeout = -1;
+    return !watch_->emptyMsgQueue();
+}
+
+bool DBusMessageDispatchSource::check() {
+    std::unique_lock<std::mutex> itsLock(watchMutex_);
+    return !watch_->emptyMsgQueue();
+}
+
+bool DBusMessageDispatchSource::dispatch() {
+    std::unique_lock<std::mutex> itsLock(watchMutex_);
+    if (!watch_->emptyMsgQueue()) {
+        auto queueEntry = watch_->frontMsgQueue();
+        watch_->popMsgQueue();
+        watch_->processMsgQueueEntry(queueEntry);
+    }
+
+    return !watch_->emptyMsgQueue();
+}
+
+DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& mainLoopContext,
+                     std::weak_ptr<DBusConnection>& dbusConnection):
                 libdbusWatch_(libdbusWatch),
-                mainLoopContext_(mainLoopContext) {
-    assert(libdbusWatch_);
+                mainLoopContext_(mainLoopContext),
+                dbusConnection_(dbusConnection) {
+    if (NULL == libdbusWatch_) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " libdbusWatch_ == NULL");
+    }
 }
 
 bool DBusWatch::isReadyToBeWatched() {
@@ -52,11 +91,8 @@ void DBusWatch::startWatching() {
     if(!dbus_watch_get_enabled(libdbusWatch_)) stopWatching();
 
     unsigned int channelFlags_ = dbus_watch_get_flags(libdbusWatch_);
-#ifdef WIN32
     short int pollFlags = 0;
-#else
-    short int pollFlags = POLLERR | POLLHUP;
-#endif
+
     if(channelFlags_ & DBUS_WATCH_READABLE) {
         pollFlags |= POLLIN;
     }
@@ -76,8 +112,11 @@ void DBusWatch::startWatching() {
     pollFileDescriptor_.revents = 0;
 
     auto lockedContext = mainLoopContext_.lock();
-    assert(lockedContext);
-    lockedContext->registerWatch(this);
+    if (NULL == lockedContext) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " lockedContext == NULL");
+    } else {
+        lockedContext->registerWatch(this);
+    }
 }
 
 void DBusWatch::stopWatching() {
@@ -120,10 +159,15 @@ void DBusWatch::dispatch(unsigned int eventFlags) {
                             ((eventFlags & POLLERR) >> 1) |
                             ((eventFlags & POLLHUP) >> 1);
 #endif
-    dbus_bool_t response = dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
-
-    if (!response) {
-        printf("dbus_watch_handle returned FALSE!");
+    std::shared_ptr<DBusConnection> itsConnection = dbusConnection_.lock();
+    if(itsConnection) {
+        if(itsConnection->setDispatching(true)) {
+            dbus_bool_t response = dbus_watch_handle(libdbusWatch_, dbusWatchFlags);
+            if (!response) {
+                printf("dbus_watch_handle returned FALSE!");
+            }
+            itsConnection->setDispatching(false);
+        }
     }
 }
 
@@ -135,6 +179,244 @@ void DBusWatch::addDependentDispatchSource(DispatchSource* dispatchSource) {
     dependentDispatchSources_.push_back(dispatchSource);
 }
 
+void DBusMessageWatch::MsgReplyQueueEntry::process(std::shared_ptr<DBusConnection> _connection) {
+    _connection->dispatchDBusMessageReply(message_, replyAsyncHandler_);
+}
+
+void DBusMessageWatch::MsgReplyQueueEntry::clear() {
+    delete replyAsyncHandler_;
+}
+
+void DBusMessageWatch::MsgQueueEntry::clear() {
+
+}
+
+DBusMessageWatch::DBusMessageWatch(std::shared_ptr<DBusConnection> _connection) : pipeValue_(4) {
+#ifdef WIN32
+    std::string pipeName = "\\\\.\\pipe\\CommonAPI-DBus-";
+
+    UUID uuid;
+    CHAR* uuidString = NULL;
+    UuidCreate(&uuid);
+    UuidToString(&uuid, (RPC_CSTR*)&uuidString);
+    pipeName += uuidString;
+    RpcStringFree((RPC_CSTR*)&uuidString);
+
+    HANDLE hPipe = ::CreateNamedPipe(
+        pipeName.c_str(),
+        PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+        1,
+        4096,
+        4096,
+        100,
+        nullptr);
+
+    if (hPipe == INVALID_HANDLE_VALUE) {
+        if (GetLastError() != ERROR_PIPE_BUSY)
+        {
+            printf("Could not open pipe %d\n", GetLastError());
+        }
+
+        // All pipe instances are busy, so wait for sometime.
+        else if (!WaitNamedPipe(pipeName.c_str(), NMPWAIT_USE_DEFAULT_WAIT))
+        {
+            printf("Could not open pipe: wait timed out.\n");
+        }
+    }
+
+    HANDLE hPipe2 = CreateFile(
+        pipeName.c_str(),   // pipe name
+        GENERIC_READ |  // read and write access
+        GENERIC_WRITE,
+        0,              // no sharing
+        NULL,           // default security attributes
+        OPEN_EXISTING,  // opens existing pipe
+        0,              // default attributes
+        NULL);          // no template file
+
+    if (hPipe2 == INVALID_HANDLE_VALUE) {
+        if (GetLastError() != ERROR_PIPE_BUSY)
+        {
+            printf("Could not open pipe2 %d\n", GetLastError());
+        }
+
+        // All pipe instances are busy, so wait for sometime.
+        else if (!WaitNamedPipe(pipeName.c_str(), NMPWAIT_USE_DEFAULT_WAIT))
+        {
+            printf("Could not open pipe2: wait timed out.\n");
+        }
+    }
+
+    pipeFileDescriptors_[0] = (int)hPipe;
+    pipeFileDescriptors_[1] = (int)hPipe2;
+
+    wsaEvent_ = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+
+    if (wsaEvent_ == WSA_INVALID_EVENT) {
+        printf("Invalid Event Created!\n");
+    }
+
+    ov = { 0 };
+    ov.hEvent = wsaEvent_;
+
+    BOOL retVal = ::ConnectNamedPipe(hPipe, &ov);
+
+    if (retVal == 0) {
+        int error = GetLastError();
+
+        if (error != 535) {
+            printf("ERROR: ConnectNamedPipe failed with (%d)\n", error);
+        }
+    }
+#else
+    if(pipe2(pipeFileDescriptors_, O_NONBLOCK) == -1) {
+        std::perror(__func__);
+    }
+#endif
+    pollFileDescriptor_.fd = pipeFileDescriptors_[0];
+    pollFileDescriptor_.events = POLLIN;
+
+    connection_ = _connection;
+}
+
+DBusMessageWatch::~DBusMessageWatch() {
+#ifdef WIN32
+    BOOL retVal = DisconnectNamedPipe((HANDLE)pipeFileDescriptors_[0]);
+
+    if (!retVal) {
+        printf(TEXT("DisconnectNamedPipe failed. GLE=%d\n"), GetLastError());
+    }
+
+    retVal = CloseHandle((HANDLE)pipeFileDescriptors_[0]);
+
+    if (!retVal) {
+        printf(TEXT("CloseHandle failed. GLE=%d\n"), GetLastError());
+    }
+
+    retVal = CloseHandle((HANDLE)pipeFileDescriptors_[1]);
+
+    if (!retVal) {
+        printf(TEXT("CloseHandle2 failed. GLE=%d\n"), GetLastError());
+    }
+#else
+    close(pipeFileDescriptors_[0]);
+    close(pipeFileDescriptors_[1]);
+#endif
+
+    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+    while(!msgQueue_.empty()) {
+        auto queueEntry = msgQueue_.front();
+        msgQueue_.pop();
+        queueEntry->clear();
+    }
+}
+
+void DBusMessageWatch::dispatch(unsigned int) {
+}
+
+const pollfd& DBusMessageWatch::getAssociatedFileDescriptor() {
+    return pollFileDescriptor_;
+}
+
+#ifdef WIN32
+const HANDLE& DBusMessageWatch::getAssociatedEvent() {
+    return wsaEvent_;
+}
+#endif
+
+const std::vector<DispatchSource*>& DBusMessageWatch::getDependentDispatchSources() {
+    return dependentDispatchSources_;
+}
+
+void DBusMessageWatch::addDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+    dependentDispatchSources_.push_back(_dispatchSource);
+}
+
+void DBusMessageWatch::removeDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+    std::vector<CommonAPI::DispatchSource*>::iterator it;
+
+    for (it = dependentDispatchSources_.begin(); it != dependentDispatchSources_.end(); it++) {
+        if ( (*it) == _dispatchSource ) {
+            dependentDispatchSources_.erase(it);
+            break;
+        }
+    }
+}
+
+void DBusMessageWatch::pushMsgQueue(std::shared_ptr<MsgQueueEntry> _queueEntry) {
+    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+    msgQueue_.push(_queueEntry);
+
+#ifdef WIN32
+    char writeValue[sizeof(pipeValue_)];
+    *reinterpret_cast<int*>(writeValue) = pipeValue_;
+    DWORD cbWritten;
+
+    int fSuccess = WriteFile(
+        (HANDLE)pipeFileDescriptors_[1],                  // pipe handle
+        writeValue,             // message
+        sizeof(pipeValue_),              // message length
+        &cbWritten,             // bytes written
+        &ov);                  // overlapped
+
+    if (!fSuccess)
+    {
+        printf(TEXT("WriteFile to pipe failed. GLE=%d\n"), GetLastError());
+    }
+#else
+    if(write(pipeFileDescriptors_[1], &pipeValue_, sizeof(pipeValue_)) == -1) {
+        std::perror(__func__);
+    }
+#endif
+}
+
+void DBusMessageWatch::popMsgQueue() {
+    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+
+#ifdef WIN32
+    char readValue[sizeof(pipeValue_)];
+    DWORD cbRead;
+
+    int fSuccess = ReadFile(
+        (HANDLE)pipeFileDescriptors_[0],    // pipe handle
+        readValue,    // buffer to receive reply
+        sizeof(pipeValue_),  // size of buffer
+        &cbRead,  // number of bytes read
+        &ov);    // overlapped
+
+    if (!fSuccess)
+    {
+        printf(TEXT("ReadFile to pipe failed. GLE=%d\n"), GetLastError());
+    }
+#else
+    int readValue = 0;
+    if(read(pipeFileDescriptors_[0], &readValue, sizeof(readValue)) == -1) {
+        std::perror(__func__);
+    }
+#endif
+
+    msgQueue_.pop();
+}
+
+std::shared_ptr<DBusMessageWatch::MsgQueueEntry> DBusMessageWatch::frontMsgQueue() {
+    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+
+    return msgQueue_.front();
+}
+
+bool DBusMessageWatch::emptyMsgQueue() {
+    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+
+    return msgQueue_.empty();
+}
+
+void DBusMessageWatch::processMsgQueueEntry(std::shared_ptr<DBusMessageWatch::MsgQueueEntry> _queueEntry) {
+    std::shared_ptr<DBusConnection> itsConnection = connection_.lock();
+    if(itsConnection) {
+        _queueEntry->process(itsConnection);
+    }
+}
 
 DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext) :
                 dueTimeInMs_(TIMEOUT_INFINITE),
@@ -148,9 +430,12 @@ bool DBusTimeout::isReadyToBeMonitored() {
 
 void DBusTimeout::startMonitoring() {
     auto lockedContext = mainLoopContext_.lock();
-    assert(lockedContext);
-    recalculateDueTime();
-    lockedContext->registerTimeoutSource(this);
+    if (NULL == lockedContext) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " lockedContext == NULL");
+    } else {
+        recalculateDueTime();
+        lockedContext->registerTimeoutSource(this);
+    }
 }
 
 void DBusTimeout::stopMonitoring() {
@@ -177,7 +462,7 @@ int64_t DBusTimeout::getReadyTime() const {
 
 void DBusTimeout::recalculateDueTime() {
     if(dbus_timeout_get_enabled(libdbusTimeout_)) {
-        unsigned int intervalInMs = dbus_timeout_get_interval(libdbusTimeout_);
+        int intervalInMs = dbus_timeout_get_interval(libdbusTimeout_);
         dueTimeInMs_ = getCurrentTimeInMs() + intervalInMs;
     } else {
         dueTimeInMs_ = TIMEOUT_INFINITE;

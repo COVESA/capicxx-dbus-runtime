@@ -201,7 +201,7 @@ index 86fb8c3..bfa2a39 100644
  #define _dbus_string_set_byte(s, i, b) ((((unsigned char*)(((DBusString*)(s))->dummy1))[(i)]) = (unsigned char) (b))
  #define _dbus_string_get_byte(s, i) (((const unsigned char*)(((DBusString*)(s))->dummy1))[(i)])
  #define _dbus_string_get_const_data(s) ((const char*)(((DBusString*)(s))->dummy1))
-@@ -131,6 +132,10 @@ void          _dbus_string_copy_to_buffer_with_nul (const DBusString  *str,
+@@ -151,6 +152,10 @@ DBUS_PRIVATE_EXPORT
  int           _dbus_string_get_length            (const DBusString  *str);
  #endif /* !_dbus_string_get_length */
  
@@ -209,9 +209,9 @@ index 86fb8c3..bfa2a39 100644
 +int           _dbus_string_get_allocated         (const DBusString  *str);
 +#endif /* !_dbus_string_get_allocated */
 +
- dbus_bool_t   _dbus_string_lengthen              (DBusString        *str,
-                                                   int                additional_length);
- void          _dbus_string_shorten               (DBusString        *str,
+ /**
+  * Get the string's length as an unsigned integer, for comparison with
+  * size_t and similar unsigned types that does not trigger compiler
 -- 
 1.9.1
 

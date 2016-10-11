@@ -3,11 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cassert>
 #include <cstring>
 
 #include <murmurhash/MurmurHash3.h>
 
+#include <CommonAPI/Logger.hpp>
 #include <CommonAPI/DBus/DBusFunctionalHash.hpp>
 
 /*
@@ -15,18 +15,29 @@
  */
 #define SMHASHER_SEED_VALUE            0xc70f6907UL
 
+using namespace CommonAPI;
+
 namespace std {
 
 size_t hash<pair<const char*, const char*> >::operator()(const pair<const char*, const char*>& t) const {
     const char* a = t.first;
     const char* b = t.second;
 
-    assert(a);
-    assert(b);
+    if (NULL == a) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " t.first is NULL");
+    }
+    if (NULL == b) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " t.second is NULL");
+    }
 
     uint32_t seed = static_cast<uint32_t>(SMHASHER_SEED_VALUE);
-    MurmurHash3_x86_32(a, static_cast<int>(strlen(a)), seed, &seed);
-    MurmurHash3_x86_32(b, static_cast<int>(strlen(b)), seed, &seed);
+
+    if (NULL != a) {
+        MurmurHash3_x86_32(a, static_cast<int>(strlen(a)), seed, &seed);
+    }
+    if (NULL != b) {
+        MurmurHash3_x86_32(b, static_cast<int>(strlen(b)), seed, &seed);
+    }
 
     return static_cast<size_t>(seed);
 }

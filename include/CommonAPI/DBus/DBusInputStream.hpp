@@ -14,11 +14,11 @@
 #include <iomanip>
 #include <sstream>
 
-#include <cassert>
 #include <cstdint>
 #include <stack>
 #include <string>
 #include <vector>
+#include <cstring>
 
 #include <CommonAPI/Export.hpp>
 #include <CommonAPI/InputStream.hpp>
@@ -73,7 +73,7 @@ public:
     COMMONAPI_EXPORT InputStream &readValue(Version &_value, const EmptyDeployment *_depl);
 
     COMMONAPI_EXPORT void beginReadMapOfSerializableStructs() {
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         pushSize(itsSize);
         align(8); /* correct alignment for first DICT_ENTRY */
@@ -90,10 +90,12 @@ public:
     }
 
     COMMONAPI_EXPORT InputStream &skipMap() {
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         align(8); /* skip padding (if any) */
-        assert(itsSize <= (sizes_.top() + positions_.top() - current_));
+        if (itsSize > (sizes_.top() + positions_.top() - current_)) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": size ", itsSize, " exceeds remaining ", (sizes_.top() + positions_.top() - current_));
+        }
         _readRaw(itsSize);
         return (*this);
     }
@@ -103,6 +105,10 @@ public:
         Base_ tmpValue;
         readValue(tmpValue, _depl);
         _value = tmpValue;
+
+        if(!_value.validate()) {
+            setError();
+        }
         return (*this);
     }
 
@@ -118,7 +124,7 @@ public:
     template<class Deployment_, class PolymorphicStruct_>
     COMMONAPI_EXPORT InputStream &readValue(std::shared_ptr<PolymorphicStruct_> &_value,
                            const Deployment_ *_depl) {
-        uint32_t serial;
+        uint32_t serial(0);
         align(8);
         _readValue(serial);
         skipSignature();
@@ -135,8 +141,13 @@ public:
     COMMONAPI_EXPORT InputStream &readValue(Variant<Types_...> &_value, const CommonAPI::EmptyDeployment *_depl = nullptr) {
         (void)_depl;
         if(_value.hasValue()) {
-            DeleteVisitor<_value.maxSize> visitor(_value.valueStorage_);
-            ApplyVoidVisitor<DeleteVisitor<_value.maxSize>,
+#if _MSC_VER < 1900
+            const auto maxSize = Variant<Types_...>::maxSize;
+#else
+            constexpr auto maxSize = Variant<Types_...>::maxSize;
+#endif
+            DeleteVisitor<maxSize> visitor(_value.valueStorage_);
+            ApplyVoidVisitor<DeleteVisitor<maxSize>,
                 Variant<Types_...>, Types_... >::visit(visitor, _value);
         }
 
@@ -154,8 +165,13 @@ public:
     template<typename Deployment_, typename... Types_>
     COMMONAPI_EXPORT InputStream &readValue(Variant<Types_...> &_value, const Deployment_ *_depl) {
         if(_value.hasValue()) {
-            DeleteVisitor<_value.maxSize> visitor(_value.valueStorage_);
-            ApplyVoidVisitor<DeleteVisitor<_value.maxSize>,
+#if _MSC_VER < 1900
+            const auto maxSize = Variant<Types_...>::maxSize;
+#else
+            constexpr auto maxSize = Variant<Types_...>::maxSize;
+#endif
+            DeleteVisitor<maxSize> visitor(_value.valueStorage_);
+            ApplyVoidVisitor<DeleteVisitor<maxSize>,
                 Variant<Types_...>, Types_... >::visit(visitor, _value);
         }
 
@@ -163,20 +179,32 @@ public:
             // Read signature
             uint8_t signatureLength;
             readValue(signatureLength, static_cast<EmptyDeployment *>(nullptr));
-            std::string signature(_readRaw(signatureLength+1), signatureLength);
-
-            // Determine index (value type) from signature
-            TypeCompareVisitor<Types_...> visitor(signature);
-            bool success = ApplyTypeCompareVisitor<
-                                    TypeCompareVisitor<Types_...>,
-                                    Variant<Types_...>,
-                                    Deployment_,
-                                    Types_...
-                                >::visit(visitor, _value, _depl, _value.valueType_);
-            if (!success) {
-                _value.valueType_ = 0; // Invalid index
-                setError();
+            char * raw = _readRaw(signatureLength+1);
+            if (hasError()) {
                 return (*this);
+            } else  {
+                std::string signature(raw, signatureLength);
+
+                // Determine index (value type) from signature
+                TypeCompareVisitor<Types_...> visitor(signature);
+                bool success = ApplyTypeCompareVisitor<
+                                        TypeCompareVisitor<Types_...>,
+                                        Variant<Types_...>,
+                                        Deployment_,
+                                        Types_...
+                                    >::visit(visitor, _value, _depl, _value.valueType_);
+                /*
+                 * It is possible that this ApplyTypeCompareVisitor fails on purpose,
+                 * if the data type of the variant does not match the data type in the stream.
+                 * This can happen for instance with the Freedesktop messages that return
+                 * data in variants, but we don't have any idea _which variant_ until we've
+                 * tried to stream the value in the ApplyTypeComputerVisitor.
+                 */
+                if (!success) {
+                    _value.valueType_ = 0; // Invalid index signifying 'no value'
+                    setError();
+                    return (*this);
+                }
             }
         } else {
             align(8);
@@ -196,7 +224,7 @@ public:
     COMMONAPI_EXPORT InputStream &readValue(std::vector<ElementType_> &_value, const EmptyDeployment *_depl) {
         (void)_depl;
 
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         pushSize(itsSize);
 
@@ -222,9 +250,27 @@ public:
         return (*this);
     }
 
+    COMMONAPI_EXPORT InputStream &readValue(std::vector<uint8_t> &_value, const EmptyDeployment *_depl) {
+        (void)_depl;
+
+        uint32_t itsSize(0);
+        _readValue(itsSize);
+
+        alignVector<uint8_t>();
+
+        uint8_t *data = reinterpret_cast<uint8_t *>(_readRaw(itsSize));
+        if (!hasError()) {
+            _value.resize(itsSize);
+            std::memcpy(_value.data(), data, itsSize);
+        }
+
+        return (*this);
+    }
+
+
     template<class Deployment_, typename ElementType_>
     COMMONAPI_EXPORT InputStream &readValue(std::vector<ElementType_> &_value, const Deployment_ *_depl) {
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         pushSize(itsSize);
 
@@ -256,7 +302,7 @@ public:
 
         typedef typename std::unordered_map<KeyType_, ValueType_, HasherType_>::value_type MapElement;
 
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         pushSize(itsSize);
 
@@ -291,7 +337,7 @@ public:
 
         typedef typename std::unordered_map<KeyType_, ValueType_, HasherType_>::value_type MapElement;
 
-        uint32_t itsSize;
+        uint32_t itsSize(0);
         _readValue(itsSize);
         pushSize(itsSize);
 
@@ -395,7 +441,10 @@ public:
         if (sizeof(_value) > 1)
             align(sizeof(Type_));
 
-        _value = *(reinterpret_cast<Type_ *>(_readRaw(sizeof(Type_))));
+        char * raw = _readRaw(sizeof(Type_));
+        if (!hasError()) {
+            _value = *(reinterpret_cast<Type_ *>(raw));
+        }
 
         return (*this);
     }
@@ -403,7 +452,10 @@ public:
     COMMONAPI_EXPORT DBusInputStream &_readValue(float &_value) {
         align(sizeof(double));
 
-        _value = (float) (*(reinterpret_cast<double*>(_readRaw(sizeof(double)))));
+        char * raw = _readRaw(sizeof(double));
+        if (!hasError()) {
+            _value = (float) (*(reinterpret_cast<double*>(raw)));
+        }
         return (*this);
     }
 
@@ -415,7 +467,7 @@ private:
     COMMONAPI_EXPORT size_t popSize();
 
     inline void skipSignature() {
-        uint8_t length;
+        uint8_t length(0);
         _readValue(length);
         _readRaw(length + 1);
     }

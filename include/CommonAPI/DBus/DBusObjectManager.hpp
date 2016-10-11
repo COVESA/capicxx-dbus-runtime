@@ -50,8 +50,9 @@ class DBusObjectManager {
     COMMONAPI_EXPORT bool onFreedesktopPropertiesDBusMessage(const DBusMessage& callMessage);
 
 
-    typedef std::unordered_map<DBusInterfaceHandlerPath, std::shared_ptr<DBusInterfaceHandler>> DBusRegisteredObjectsTable;
+    typedef std::unordered_map<DBusInterfaceHandlerPath, std::vector<std::shared_ptr<DBusInterfaceHandler>>> DBusRegisteredObjectsTable;
     DBusRegisteredObjectsTable dbusRegisteredObjectsTable_;
+    COMMONAPI_EXPORT bool addToRegisteredObjectsTable(DBusInterfaceHandlerPath ifpath, std::shared_ptr<DBusInterfaceHandler> handler);
 
     std::shared_ptr<DBusObjectManagerStub> rootDBusObjectManagerStub_;
 

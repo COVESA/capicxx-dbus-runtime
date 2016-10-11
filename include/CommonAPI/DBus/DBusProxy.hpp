@@ -36,8 +36,9 @@ class DBusProxyStatusEvent
 };
 
 
-class DBusProxy
-        : public DBusProxyBase {
+class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusProxy
+        : public DBusProxyBase,
+          public std::enable_shared_from_this<DBusProxy> {
 public:
     COMMONAPI_EXPORT DBusProxy(const DBusAddress &_address,
               const std::shared_ptr<DBusProxyConnection> &_connection);
@@ -48,14 +49,20 @@ public:
 
     COMMONAPI_EXPORT virtual bool isAvailable() const;
     COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
+    COMMONAPI_EXPORT virtual std::future<AvailabilityStatus> isAvailableAsync(
+                isAvailableAsyncCallback _callback,
+                const CallInfo *_info) const;
 
-    COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcastOnConnection(
-              bool& subscriptionAccepted,
+    COMMONAPI_EXPORT void subscribeForSelectiveBroadcastOnConnection(
               const std::string& objectPath,
               const std::string& interfaceName,
               const std::string& interfaceMemberName,
               const std::string& interfaceMemberSignature,
-              DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
+              DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+			  uint32_t tag);
+
+    COMMONAPI_EXPORT void insertSelectiveSubscription(const std::string& interfaceMemberName,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag);
     COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                            DBusProxyConnection::DBusSignalHandlerToken subscription,
                                            const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
@@ -119,10 +126,11 @@ private:
             const uint32_t tag);
     COMMONAPI_EXPORT void addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler);
 
+    COMMONAPI_EXPORT void availabilityTimeoutThreadHandler() const;
+
     DBusProxyStatusEvent dbusProxyStatusEvent_;
     DBusServiceRegistry::DBusServiceSubscription dbusServiceRegistrySubscription_;
     AvailabilityStatus availabilityStatus_;
-    mutable std::mutex availabilityStatusMutex_;
 
     DBusReadonlyAttribute<InterfaceVersionAttribute> interfaceVersionAttribute_;
 
@@ -132,11 +140,22 @@ private:
     mutable std::condition_variable availabilityCondition_;
 
     std::list<SignalMemberHandlerTuple> signalMemberHandlerQueue_;
-    CallInfo signalMemberHandlerInfo_;
     mutable std::mutex signalMemberHandlerQueueMutex_;
 
-    std::map<std::string, DBusProxyConnection::DBusSignalHandler*> selectiveBroadcastHandlers;
+    std::map<std::string, std::pair<DBusProxyConnection::DBusSignalHandler*, uint32_t>> selectiveBroadcastHandlers;
     mutable std::mutex selectiveBroadcastHandlersMutex_;
+
+    mutable std::shared_ptr<std::thread> availabilityTimeoutThread_;
+    mutable std::mutex availabilityTimeoutThreadMutex_;
+    mutable std::mutex timeoutsMutex_;
+    mutable std::condition_variable availabilityTimeoutCondition_;
+
+    typedef std::tuple<
+                std::chrono::time_point<std::chrono::high_resolution_clock>,
+                isAvailableAsyncCallback,
+                std::promise<AvailabilityStatus>
+                > AvailabilityTimeout_t;
+    mutable std::list<AvailabilityTimeout_t> timeouts_;
 };
 
 

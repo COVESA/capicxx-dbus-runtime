@@ -172,13 +172,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         }
     }
 
-    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
+    template <typename DBusProxy_ = DBusProxy, typename DelegateFunction_>
     static std::future<CallStatus> callMethodAsync(
-                    const DBusProxy_ &_proxy,
+                    DBusProxy_ &_proxy,
                     DBusMessage &_message,
                     const CommonAPI::CallInfo *_info,
                     const InArgs_&... _in,
-                    AsyncCallback_ _callback,
+                    DelegateFunction_ _function,
                     std::tuple<OutArgs_...> _out) {
         if (sizeof...(InArgs_) > 0) {
             DBusOutputStream output(_message);
@@ -193,51 +193,75 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
             output.flush();
         }
 
-        return _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
-                        _message,
-                        DBusProxyAsyncCallbackHandler<
-                            OutArgs_...
-                        >::create(std::move(_callback), _out),
-                        _info);
+        typename DBusProxyAsyncCallbackHandler<
+                                    DBusProxy, OutArgs_...
+                                >::Delegate delegate(_proxy.shared_from_this(), _function);
+        auto dbusMessageReplyAsyncHandler = DBusProxyAsyncCallbackHandler<
+                                                                DBusProxy, OutArgs_...
+                                                                >::create(delegate, _out).release();
+
+        if(_proxy.isAvailable()) {
+            return _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
+                            _message,
+                            std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler),
+                            _info);
+        } else {
+            //async isAvailable call with timeout
+            _proxy.isAvailableAsync([&_proxy, _message, _info,
+                                     _out, dbusMessageReplyAsyncHandler, _function](
+                                             const AvailabilityStatus _status,
+                                             const Timeout_t remaining) {
+                if(_status == AvailabilityStatus::AVAILABLE) {
+                    //create new call info with remaining timeout. Minimal timeout is 100 ms.
+                    Timeout_t newTimeout = remaining;
+                    if(remaining < 100)
+                        newTimeout = 100;
+                    CallInfo newInfo(newTimeout);
+                    _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
+                                    _message,
+                                    std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler),
+                                    &newInfo);
+                } else {
+                    //create error message and push it directly to the connection
+                    unsigned int dummySerial = 999;
+                    _message.setSerial(dummySerial);   //set dummy serial
+                    DBusMessage errorMessage = _message.createMethodError(DBUS_ERROR_UNKNOWN_METHOD);
+                    _proxy.getDBusConnection()->pushDBusMessageReply(errorMessage,
+                            std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler));
+                }
+            }, _info);
+            return dbusMessageReplyAsyncHandler->getFuture();
+        }
     }
 
-    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
+    template <typename DBusProxy_ = DBusProxy, typename DelegateFunction_>
     static std::future<CallStatus> callMethodAsync(
-                        const DBusProxy_ &_proxy,
+                        DBusProxy_ &_proxy,
                         const DBusAddress &_address,
                         const std::string &_method,
                         const std::string &_signature,
                         const CommonAPI::CallInfo *_info,
                         const InArgs_&... _in,
-                        AsyncCallback_ _callback,
+                        DelegateFunction_ _function,
                         std::tuple<OutArgs_...> _out) {
 #ifndef WIN32
         static std::mutex callMethodAsync_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
 
-        if (_proxy.isAvailable()) {
-            DBusMessage message = DBusMessage::createMethodCall(_address, _method, _signature);
-            return callMethodAsync(_proxy, message, _info, _in..., _callback, _out);
-        } else {
-            CallStatus status = CallStatus::NOT_AVAILABLE;
-            callCallbackOnNotAvailable(_callback, typename make_sequence<sizeof...(OutArgs_)>::type(), _out);
-
-            std::promise<CallStatus> promise;
-            promise.set_value(status);
-            return promise.get_future();
-        }
+        DBusMessage message = DBusMessage::createMethodCall(_address, _method, _signature);
+        return callMethodAsync(_proxy, message, _info, _in..., _function, _out);
     }
 
-    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
+    template <typename DBusProxy_ = DBusProxy, typename DelegateFunction_>
     static std::future<CallStatus> callMethodAsync(
-                const DBusProxy_ &_proxy,
+                DBusProxy_ &_proxy,
                 const std::string &_interface,
                 const std::string &_method,
                 const std::string &_signature,
                 const CommonAPI::CallInfo *_info,
                 const InArgs_&... _in,
-                AsyncCallback_ _callback,
+                DelegateFunction_ _function,
                 std::tuple<OutArgs_...> _out) {
         DBusAddress itsAddress(_proxy.getDBusAddress());
         itsAddress.setInterface(_interface);
@@ -245,43 +269,34 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     _proxy, itsAddress,
                     _method, _signature,
                     _info,
-                    _in...,    _callback, _out);
+                    _in..., _function,
+                    _out);
     }
 
-    template <typename DBusProxy_ = DBusProxy, typename AsyncCallback_>
+    template <typename DBusProxy_ = DBusProxy, typename DelegateFunction_>
     static std::future<CallStatus> callMethodAsync(
-                    const DBusProxy_ &_proxy,
+                    DBusProxy_ &_proxy,
                     const std::string &_method,
                     const std::string &_signature,
                     const CommonAPI::CallInfo *_info,
                     const InArgs_&... _in,
-                    AsyncCallback_ _callback,
+                    DelegateFunction_ _function,
                     std::tuple<OutArgs_...> _out) {
 #ifndef WIN32
         static std::mutex callMethodAsync_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
 
-        if (_proxy.isAvailable()) {
-            DBusMessage message = _proxy.createMethodCall(_method, _signature);
-            return callMethodAsync(_proxy, message, _info, _in..., _callback, _out);
-        } else {
-            callCallbackOnNotAvailable(
-                _callback, typename make_sequence<sizeof...(OutArgs_)>::type(), _out);
-
-            CallStatus status = CallStatus::NOT_AVAILABLE;
-            std::promise<CallStatus> promise;
-            promise.set_value(status);
-            return promise.get_future();
-        }
+        DBusMessage message = _proxy.createMethodCall(_method, _signature);
+        return callMethodAsync(_proxy, message, _info, _in..., _function, _out);
     }
 
     template <int... ArgIndices_>
     static void callCallbackOnNotAvailable(std::function<void(CallStatus, OutArgs_&...)> _callback,
                                            index_sequence<ArgIndices_...>, std::tuple<OutArgs_...> _out) {
         const CallStatus status(CallStatus::NOT_AVAILABLE);
-        _callback(status, std::get<ArgIndices_>(_out)...);
-        (void)_out;
+       _callback(status, std::get<ArgIndices_>(_out)...);
+       (void)_out;
     }
 };
 

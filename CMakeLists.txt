@@ -10,7 +10,7 @@ PROJECT(libcommonapi-dbus)
 # version of CommonAPI-DBus
 SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
 SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 1 )
-SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 5 )
+SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 8 )
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 
@@ -45,6 +45,18 @@ message(STATUS "USE_INSTALLED_COMMONAPI is set to value: ${USE_INSTALLED_COMMONA
 OPTION(USE_INSTALLED_DBUS "Set to OFF to use the local (build tree) version of DBUS" ON)
 message(STATUS "USE_INSTALLED_DBUS is set to value: ${USE_INSTALLED_DBUS}")
 
+OPTION(USE_FILE "Set to OFF to disable file logging" OFF )
+message(STATUS "USE_FILE is set to value: ${USE_FILE}")
+
+OPTION(USE_CONSOLE "Set to OFF to disable console logging" OFF )
+message(STATUS "USE_CONSOLE is set to value: ${USE_CONSOLE}")
+
+SET(DEFAULT_SEND_TIMEOUT "5000" CACHE STRING "default send timeout")
+message(STATUS "DEFAULT_SEND_TIMEOUT is set to value: ${DEFAULT_SEND_TIMEOUT} ms")
+
+SET(DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT "10000" CACHE STRING "dbus daemon proxy default send timeout")
+message(STATUS "DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT is set to value: ${DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT} ms")
+
 SET(RPM_PACKAGE_VERSION "r0" CACHE STRING "rpm packet version") # used in e.g. commonapi-dbus.spec.in
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -59,6 +71,7 @@ SET(BUILD_SERVER_COMMONAPI_INSTALL_PATH "na" CACHE STRING "CommonAPI install pat
 
 # Offer the user the choice of overriding the installation directories
 set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+set (INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
 set(INSTALL_INCLUDE_DIR include/CommonAPI-${COMMONAPI_API_HEADER_VERSION} CACHE PATH "Installation directory for header files")
 if(WIN32 AND NOT CYGWIN)
   set(DEF_INSTALL_CMAKE_DIR cmake)
@@ -84,6 +97,16 @@ message(STATUS "MAX_LOG_LEVEL is set to value: ${MAX_LOG_LEVEL}")
 SET( LICENSE "MPLv2" )
 #########################################################
 
+IF(USE_FILE)
+  add_definitions(-DUSE_FILE)
+ENDIF(USE_FILE)
+IF(USE_CONSOLE)
+  add_definitions(-DUSE_CONSOLE)
+ENDIF(USE_CONSOLE)
+
+add_definitions(-DDEFAULT_SEND_TIMEOUT=${DEFAULT_SEND_TIMEOUT})
+add_definitions(-DDBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT=${DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT})
+
 add_definitions( -DCOMMONAPI_DBUS_VERSION_MAJOR=${LIBCOMMONAPI_DBUS_MAJOR_VERSION} )
 add_definitions( -DCOMMONAPI_DBUS_VERSION_MINOR=${LIBCOMMONAPI_DBUS_MINOR_VERSION} )
 
@@ -100,9 +123,9 @@ message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
 FIND_PACKAGE(PkgConfig)
 FIND_PACKAGE(Threads REQUIRED)
 if ("${USE_INSTALLED_COMMONAPI}" STREQUAL "ON")
-    FIND_PACKAGE(CommonAPI 3.1.5 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    FIND_PACKAGE(CommonAPI 3.1.8 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    FIND_PACKAGE(CommonAPI 3.1.5 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    FIND_PACKAGE(CommonAPI 3.1.8 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
@@ -116,12 +139,18 @@ if (MSVC)
     if (DBus_DIR)
         if (DBus_BUILD_DIR)
             set(DBus_INCLUDE_DIRS "${DBus_DIR};${DBus_BUILD_DIR};")
-        else ()
-            message (FATAL_ERROR "DBus_BUILD_DIR not set! Cannot continue.")
-        endif ()
-    else()
-        message (FATAL_ERROR "DBus_DIR not set! Cannot continue.")
-    endif ()
+            set(DBus_LIBRARY_RELEASE "${DBus_BUILD_DIR}/bin/Release/dbus-1.lib")
+            set(DBus_LIBRARY_DEBUG "${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib")
+        endif()
+    endif()
+
+    if (NOT DBus_LIBRARIES)
+        include(SelectLibraryConfigurations)
+        select_library_configurations(DBus)
+    endif()
+    if (NOT DBus_INCLUDE_DIRS OR NOT DBus_LIBRARIES)
+      message(SEND_ERROR "Set DBus_INCLUDE_DIRS and DBus_LIBRARIES to your D-Bus installation (e.g. cmake -DDBus_INCLUDE_DIRS=C:\\D-Bus\\include -DDBus_LIBRARIES=C:\\DBus\\lib\\dbus-1.lib")
+    endif()
 else()
     pkg_check_modules(DBus REQUIRED dbus-1>=1.4)
 endif()
@@ -149,6 +178,7 @@ include_directories(
 )
 
 if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
+	set (DBus_LIBRARIES dbus-1)
     link_directories(
         ${DBus_INCLUDE_DIRS}/dbus/.libs
     )
@@ -164,16 +194,15 @@ file(GLOB PUGIXML_SRCS "src/pugixml/*.cpp")
 file(GLOB MMHASH_SRCS "src/murmurhash/*.cpp")
 
 # CommonAPI-DBus library
-add_library(CommonAPI-DBus ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
+add_library(CommonAPI-DBus SHARED ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
 
-if(MSVC)
-#workaround since pkg-config on windows doesn't work easily and windows needs ws2_32 for the mainloop
-target_link_libraries(CommonAPI-DBus CommonAPI ws2_32 debug ${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib optimized ${DBus_BUILD_DIR}/bin/Release/dbus-1.lib)
-else()
-target_link_libraries(CommonAPI-DBus CommonAPI dbus-1)
+target_link_libraries(CommonAPI-DBus CommonAPI ${DBus_LIBRARIES})
+
+if (MSVC)
+    target_link_libraries(CommonAPI-DBus ws2_32 Rpcrt4)
 endif()
 
-set_target_properties(CommonAPI-DBus PROPERTIES VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION} LINKER_LANGUAGE C)
+set_target_properties(CommonAPI-DBus PROPERTIES VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} LINKER_LANGUAGE C)
 
 ##############################################################################
 
@@ -191,6 +220,7 @@ set_target_properties (CommonAPI-DBus PROPERTIES PUBLIC_HEADER "${CommonAPI-DBus
 # install CommonAPI-DBus library including headers
 install(TARGETS CommonAPI-DBus
         EXPORT CommonAPI-DBusTargets
+        RUNTIME DESTINATION ${INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
         PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/CommonAPI/DBus"

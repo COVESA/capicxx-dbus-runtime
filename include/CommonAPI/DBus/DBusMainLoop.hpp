@@ -75,6 +75,8 @@ class DBusMainLoop {
     COMMONAPI_EXPORT void wakeup();
     COMMONAPI_EXPORT void wakeupAck();
 
+    COMMONAPI_EXPORT void cleanup();
+
     COMMONAPI_EXPORT void registerFileDescriptor(const DBusMainLoopPollFd& fileDescriptor);
     COMMONAPI_EXPORT void unregisterFileDescriptor(const DBusMainLoopPollFd& fileDescriptor);
 
@@ -158,9 +160,9 @@ class DBusMainLoop {
     std::mutex watchesMutex_;
     std::mutex timeoutsMutex_;
 
-    std::set<DispatchSourceToDispatchStruct*> sourcesToDispatch_;
-    std::set<WatchToDispatchStruct*> watchesToDispatch_;
-    std::set<TimeoutToDispatchStruct*> timeoutsToDispatch_;
+    std::set<std::pair<DispatchPriority, DispatchSourceToDispatchStruct*>> sourcesToDispatch_;
+    std::set<std::pair<DispatchPriority, WatchToDispatchStruct*>> watchesToDispatch_;
+    std::set<std::pair<DispatchPriority, TimeoutToDispatchStruct*>> timeoutsToDispatch_;
 
     DispatchSourceListenerSubscription dispatchSourceListenerSubscription_;
     WatchListenerSubscription watchListenerSubscription_;

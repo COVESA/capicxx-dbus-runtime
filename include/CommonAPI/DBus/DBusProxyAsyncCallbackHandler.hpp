@@ -22,21 +22,31 @@
 namespace CommonAPI {
 namespace DBus {
 
-template<typename ... ArgTypes_>
+template<typename DelegateObjectType_, typename ... ArgTypes_>
 class DBusProxyAsyncCallbackHandler:
         public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
-    typedef std::function<void(CallStatus, ArgTypes_...)> FunctionType;
+
+    struct Delegate {
+        typedef std::function<void(CallStatus, ArgTypes_...)> FunctionType;
+
+        Delegate(std::shared_ptr<DelegateObjectType_> object, FunctionType function) :
+            function_(std::move(function)) {
+            object_ = object;
+        }
+        std::weak_ptr<DelegateObjectType_> object_;
+        FunctionType function_;
+    };
 
     static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
-            FunctionType&& callback, std::tuple<ArgTypes_...> args) {
+            Delegate& delegate, std::tuple<ArgTypes_...> args) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
-                new DBusProxyAsyncCallbackHandler(std::move(callback), args));
+                new DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>(std::move(delegate), args));
     }
 
     DBusProxyAsyncCallbackHandler() = delete;
-    DBusProxyAsyncCallbackHandler(FunctionType&& callback, std::tuple<ArgTypes_...> args)
-        : callback_(std::move(callback)),
+    DBusProxyAsyncCallbackHandler(Delegate&& delegate, std::tuple<ArgTypes_...> args)
+        : delegate_(std::move(delegate)),
           args_(args),
           executionStarted_(false),
           executionFinished_(false),
@@ -67,7 +77,7 @@ class DBusProxyAsyncCallbackHandler:
     virtual void setExecutionFinished() {
         executionFinished_ = true;
         // free assigned std::function<> immediately
-        callback_ = [](CallStatus, ArgTypes_...) {};
+        delegate_.function_ = [](CallStatus, ArgTypes_...) {};
     }
 
     virtual bool getExecutionFinished() {
@@ -124,12 +134,15 @@ class DBusProxyAsyncCallbackHandler:
             }
         }
 
-        callback_(callStatus, std::move(std::get<ArgIndices_>(argTuple))...);
+        //check if object is expired
+        if(!delegate_.object_.expired())
+            delegate_.function_(callStatus, std::move(std::get<ArgIndices_>(argTuple))...);
+
         return callStatus;
     }
 
     std::promise<CallStatus> promise_;
-    FunctionType callback_;
+    Delegate delegate_;
     std::tuple<ArgTypes_...> args_;
     bool executionStarted_;
     bool executionFinished_;

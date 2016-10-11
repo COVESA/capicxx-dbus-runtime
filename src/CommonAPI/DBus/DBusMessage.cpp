@@ -3,9 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cassert>
 #include <cstring>
 
+#include <CommonAPI/Logger.hpp>
 #include <CommonAPI/DBus/DBusAddress.hpp>
 #include <CommonAPI/DBus/DBusMessage.hpp>
 
@@ -21,8 +21,10 @@ DBusMessage::DBusMessage(::DBusMessage *_message) {
 }
 
 DBusMessage::DBusMessage(::DBusMessage *_message, bool reference) {
-    assert(_message);
-    message_ = (reference ? dbus_message_ref(message_) : _message);
+    if (NULL == _message) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " NULL _message");
+    }
+    message_ = (_message != nullptr ? (reference ? dbus_message_ref(message_) : _message) : nullptr);
 }
 
 DBusMessage::DBusMessage(const DBusMessage &_source) {
@@ -88,7 +90,9 @@ DBusMessage::createMethodCall(
     ::DBusMessage *methodCall = dbus_message_new_method_call(
                                     service.c_str(), path.c_str(),
                                     interface.c_str(), _method.c_str());
-    assert(methodCall);
+    if (NULL == methodCall) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbus_message_new_method_call() returned NULL");
+    }
 
     if ("" != _signature)
         dbus_message_set_signature(methodCall, _signature.c_str());
@@ -99,7 +103,9 @@ DBusMessage::createMethodCall(
 DBusMessage
 DBusMessage::createMethodReturn(const std::string &_signature) const {
     ::DBusMessage *methodReturn = dbus_message_new_method_return(message_);
-    assert(methodReturn);
+    if (NULL == methodReturn) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbus_message_new_method_return() returned NULL");
+    }
 
     if ("" != _signature)
        dbus_message_set_signature(methodReturn, _signature.c_str());
@@ -113,7 +119,9 @@ DBusMessage::createMethodError(
 
     ::DBusMessage *methodError
           = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
-    assert(methodError);
+    if (NULL == methodError) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbus_message_new_error() returned NULL");
+    }
 
     return DBusMessage(methodError, false);
 }
@@ -125,7 +133,9 @@ DBusMessage::createSignal(
 
     ::DBusMessage *messageSignal
           = dbus_message_new_signal(_path.c_str(), _interface.c_str(), _signal.c_str());
-    assert(messageSignal);
+    if (NULL == messageSignal) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbus_message_new_signal() returned NULL");
+    }
 
     if ("" != _signature)
         dbus_message_set_signature(messageSignal, _signature.c_str());
@@ -160,7 +170,9 @@ DBusMessage::getSignature() const {
 
 const char *
 DBusMessage::getError() const {
-    assert(isErrorType());
+    if (!isErrorType()) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " !isErrorType");
+    }
     return dbus_message_get_error_name(message_);
 }
 
@@ -176,38 +188,53 @@ uint32_t DBusMessage::getSerial() const {
 bool
 DBusMessage::hasObjectPath(const char *_path) const {
     const char *path = getObjectPath();
+    if (NULL == _path) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " _path == NULL");
+    }
+    if (NULL == path) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " path == NULL");
+    }
 
-    assert(_path);
-    assert(path);
-
-    return (!strcmp(path, _path));
+    return (((NULL != path) && (NULL != _path))? !strcmp(path, _path) : false);
 }
 
 bool DBusMessage::hasInterfaceName(const char *_interface) const {
     const char *interface = getInterface();
 
-    assert(_interface);
-    assert(interface);
+    if (NULL == _interface) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " _interface == NULL");
+    }
+    if (NULL == interface) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " interface == NULL");
+    }
 
-    return (!strcmp(interface, _interface));
+    return (((NULL != interface) && (NULL != _interface))? !strcmp(interface, _interface) : false);
 }
 
 bool DBusMessage::hasMemberName(const char *_member) const {
     const char *member = getMember();
 
-    assert(_member);
-    assert(member);
+    if (NULL == _member) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " _member == NULL");
+    }
+    if (NULL == member) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " member == NULL");
+    }
 
-    return (!strcmp(member, _member));
+    return (((NULL != member) && (NULL != _member))? !strcmp(member, _member) : false);
 }
 
 bool DBusMessage::hasSignature(const char *_signature) const {
     const char *signature = getSignature();
 
-    assert(_signature);
-    assert(signature);
+    if (NULL == _signature) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " _signature == NULL");
+    }
+    if (NULL == signature) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " signature == NULL");
+    }
 
-    return (!strcmp(signature, _signature));
+    return (((NULL != signature) && (NULL != _signature))? !strcmp(signature, _signature) : false);
 }
 
 DBusMessage::Type DBusMessage::getType() const {
@@ -233,6 +260,10 @@ bool DBusMessage::setBodyLength(const int _length) {
 bool DBusMessage::setDestination(const char *_destination)
 {
     return 0 != dbus_message_set_destination(message_, _destination);
+}
+
+void DBusMessage::setSerial(const unsigned int _serial) const {
+    dbus_message_set_serial(message_, _serial);
 }
 
 bool DBusMessage::hasObjectPath(const std::string &_path) const {

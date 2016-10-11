@@ -10,6 +10,7 @@
 #ifndef COMMONAPI_DBUS_FACTORY_HPP_
 #define COMMONAPI_DBUS_FACTORY_HPP_
 
+#include <list>
 #include <map>
 
 #include <CommonAPI/Export.hpp>
@@ -23,6 +24,8 @@ class DBusAddress;
 class DBusProxy;
 class DBusProxyConnection;
 class DBusStubAdapter;
+
+typedef void (*InterfaceInitFunction)(void);
 
 typedef std::shared_ptr<DBusProxy>
 (*ProxyCreateFunction)(const DBusAddress &_address,
@@ -39,6 +42,8 @@ public:
 
     COMMONAPI_EXPORT Factory();
     COMMONAPI_EXPORT virtual ~Factory();
+
+    COMMONAPI_EXPORT void init();
 
     COMMONAPI_EXPORT void registerProxyCreateMethod(const std::string &_address,
                                     ProxyCreateFunction _function);
@@ -84,6 +89,13 @@ public:
     COMMONAPI_EXPORT bool registerManagedService(const std::shared_ptr<DBusStubAdapter> &_adapter);
     COMMONAPI_EXPORT bool unregisterManagedService(const std::string &_address);
 
+    COMMONAPI_EXPORT void incrementConnection(std::shared_ptr<DBusProxyConnection>);
+    COMMONAPI_EXPORT void decrementConnection(std::shared_ptr<DBusProxyConnection>);
+    COMMONAPI_EXPORT void releaseConnection(const ConnectionId_t&, MainLoopContext*);
+
+    // Initialization
+    COMMONAPI_EXPORT void registerInterface(InterfaceInitFunction _function);
+
 private:
     COMMONAPI_EXPORT std::shared_ptr<DBusConnection> getConnection(const ConnectionId_t &);
     COMMONAPI_EXPORT std::shared_ptr<DBusConnection> getConnection(std::shared_ptr<MainLoopContext>);
@@ -97,7 +109,10 @@ private:
 private:
     static std::shared_ptr<Factory> theFactory;
 
+    std::mutex connectionsMutex_;
     std::map<ConnectionId_t, std::shared_ptr<DBusConnection>> connections_;
+
+    std::mutex contextConnectionsMutex_;
     std::map<MainLoopContext *, std::shared_ptr<DBusConnection>> contextConnections_;
 
     std::map<std::string, ProxyCreateFunction> proxyCreateFunctions_;
@@ -105,7 +120,9 @@ private:
 
     ServicesMap services_;
 
-    DBusType_t dBusBusType_;
+    std::list<InterfaceInitFunction> initializers_;
+    std::mutex initializerMutex_;
+    bool isInitialized_;
 };
 
 } // namespace DBus

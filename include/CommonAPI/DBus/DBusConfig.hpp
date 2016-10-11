@@ -15,8 +15,7 @@
 namespace CommonAPI {
 namespace DBus {
 
-static const Timeout_t DEFAULT_SEND_TIMEOUT_MS = 5000;
-static CommonAPI::CallInfo defaultCallInfo(DEFAULT_SEND_TIMEOUT_MS);
+static CommonAPI::CallInfo defaultCallInfo(CommonAPI::DEFAULT_SEND_TIMEOUT_MS);
 
 } // namespace DBus
 } // namespace CommonAPI

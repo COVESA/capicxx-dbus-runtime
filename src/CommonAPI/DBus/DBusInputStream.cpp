@@ -13,7 +13,7 @@ namespace DBus {
 DBusInputStream::DBusInputStream(const CommonAPI::DBus::DBusMessage &_message)
     : begin_(_message.getBodyData()),
       current_(0),
-      size_(_message.getBodyLength()),
+      size_((size_t)(_message.getBodyLength())),
       exception_(nullptr),
       message_(_message) {
 }
@@ -38,7 +38,10 @@ void DBusInputStream::align(const size_t _boundary) {
 }
 
 char *DBusInputStream::_readRaw(const size_t _size) {
-    assert(current_ + _size <= size_);
+    if ((current_ + _size) > size_) {
+        setError();
+        return NULL;
+    }
 
     char *data = (char *) (begin_ + current_);
     current_ += _size;
@@ -130,14 +133,15 @@ InputStream<DBusInputStream> &DBusInputStream::readValue(double &_value, const E
 
 InputStream<DBusInputStream> &DBusInputStream::readValue(std::string &_value, const EmptyDeployment *_depl) {
     (void)_depl;
-    uint32_t length;
+    uint32_t length(0);
     _readValue(length);
 
     // length field does not include terminating 0-byte, therefore length of data to read is +1
     char *data = _readRaw(length + 1);
-
-    // The string contained in a DBus-message is required to be 0-terminated, therefore the following line works
-    _value = data;
+    if (!hasError()) {
+        // The string contained in a DBus-message is required to be 0-terminated, therefore the following line works
+        _value = data;
+    }
 
     return (*this);
 }

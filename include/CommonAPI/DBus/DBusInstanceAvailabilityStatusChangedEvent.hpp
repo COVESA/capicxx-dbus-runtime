@@ -80,14 +80,18 @@ class DBusInstanceAvailabilityStatusChangedEvent:
         DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict;
 
         dbusInputStream >> dbusObjectPath;
-        assert(!dbusInputStream.hasError());
+        if (dbusInputStream.hasError()) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read object path");
+        }
 
         dbusInputStream.beginReadMapOfSerializableStructs();
         while (!dbusInputStream.readMapCompleted()) {
             dbusInputStream.align(8);
             dbusInputStream >> dbusInterfaceName;
             dbusInputStream.skipMap();
-            assert(!dbusInputStream.hasError());
+            if (dbusInputStream.hasError()) {
+                COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read interface name");
+            }
             if(dbusInterfaceName == observedInterfaceName_) {
                 notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::AVAILABLE);
             }
@@ -101,10 +105,14 @@ class DBusInstanceAvailabilityStatusChangedEvent:
         std::vector<std::string> dbusInterfaceNames;
 
         dbusInputStream >> dbusObjectPath;
-        assert(!dbusInputStream.hasError());
+        if (dbusInputStream.hasError()) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read object path");
+        }
 
         dbusInputStream >> dbusInterfaceNames;
-        assert(!dbusInputStream.hasError());
+        if (dbusInputStream.hasError()) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read interface names");
+        }
 
         for (const auto& dbusInterfaceName : dbusInterfaceNames) {
             if(dbusInterfaceName == observedInterfaceName_) {

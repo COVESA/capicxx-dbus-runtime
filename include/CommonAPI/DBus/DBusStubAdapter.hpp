@@ -22,7 +22,7 @@ namespace DBus {
 
 class DBusProxyConnection;
 
-class DBusStubAdapter
+class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusStubAdapter
         : virtual public CommonAPI::StubAdapter,
           public DBusInterfaceHandler {
  public:

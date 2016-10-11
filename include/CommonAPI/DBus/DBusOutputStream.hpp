@@ -10,7 +10,6 @@
 #ifndef COMMONAPI_DBUS_DBUSOUTPUTSTREAM_HPP_
 #define COMMONAPI_DBUS_DBUSOUTPUTSTREAM_HPP_
 
-#include <cassert>
 #include <cstring>
 #include <memory>
 #include <stack>
@@ -231,6 +230,14 @@ public:
         return (*this);
     }
 
+    COMMONAPI_EXPORT OutputStream &writeValue(const std::vector<uint8_t> &_value,
+                                              const EmptyDeployment *_depl) {
+        (void)_depl;
+        align(sizeof(uint32_t));
+        writeByteBuffer(_value.data(), static_cast<uint32_t>(_value.size()));
+        return (*this);
+    }
+
     template<class Deployment_, typename ElementType_>
     COMMONAPI_EXPORT OutputStream &writeValue(const std::vector<ElementType_> &_value,
                              const Deployment_ *_depl) {
@@ -405,12 +412,16 @@ private:
 
     template<typename Type_>
     COMMONAPI_EXPORT void _writeValueAt(size_t _position, const Type_ &_value) {
-        assert(_position + sizeof(Type_) <= payload_.size());
+        if ((_position + sizeof(Type_)) > payload_.size()) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": payload size ", payload_.size(), " too small ", (_position + sizeof(Type_)));
+        }
         _writeRawAt(reinterpret_cast<const char *>(&_value),
                       sizeof(Type_), _position);
     }
 
     COMMONAPI_EXPORT DBusOutputStream &writeString(const char *_data, const uint32_t &_length);
+
+    COMMONAPI_EXPORT DBusOutputStream &writeByteBuffer(const uint8_t *_date, const uint32_t &_length);
 
     /**
      * Takes sizeInByte characters, starting from the character which val points to, and stores them for later writing.

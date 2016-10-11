@@ -34,8 +34,14 @@ class StaticInterfaceVersionAttribute: public InterfaceVersionAttribute {
     Version version_;
 };
 
+#ifndef DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT
+#define DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT 10000
+#endif
 
-class DBusDaemonProxy : public DBusProxyBase {
+static const CommonAPI::CallInfo daemonProxyInfo(DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT);
+
+class DBusDaemonProxy : public DBusProxyBase,
+                        public std::enable_shared_from_this<DBusDaemonProxy> {
  public:
     typedef Event<std::string, std::string, std::string> NameOwnerChangedEvent;
 
@@ -53,6 +59,10 @@ class DBusDaemonProxy : public DBusProxyBase {
 
     COMMONAPI_EXPORT virtual bool isAvailable() const;
     COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
+    COMMONAPI_EXPORT virtual std::future<AvailabilityStatus> isAvailableAsync(
+            isAvailableAsyncCallback _callback,
+            const CallInfo *_info) const;
+
     COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
 
     COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
@@ -64,14 +74,54 @@ class DBusDaemonProxy : public DBusProxyBase {
     COMMONAPI_EXPORT NameOwnerChangedEvent& getNameOwnerChangedEvent();
 
     COMMONAPI_EXPORT void listNames(CommonAPI::CallStatus& callStatus, std::vector<std::string>& busNames) const;
-    COMMONAPI_EXPORT std::future<CallStatus> listNamesAsync(ListNamesAsyncCallback listNamesAsyncCallback) const;
+
+    template <typename DelegateObjectType>
+    COMMONAPI_EXPORT std::future<CallStatus> listNamesAsync(typename DBusProxyAsyncCallbackHandler<DelegateObjectType,
+                                                            std::vector<std::string>>::Delegate& delegate) const {
+        DBusMessage dbusMessage = createMethodCall("ListNames", "");
+        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                        dbusMessage,
+                        DBusProxyAsyncCallbackHandler<DelegateObjectType, std::vector<std::string>>::create(delegate, std::tuple<std::vector<std::string>>()),
+                        &daemonProxyInfo);
+    }
 
     COMMONAPI_EXPORT void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
-    COMMONAPI_EXPORT std::future<CallStatus> nameHasOwnerAsync(const std::string& busName,
-                                              NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const;
 
+    template <typename DelegateObjectType>
+    COMMONAPI_EXPORT std::future<CallStatus> nameHasOwnerAsync(const std::string& busName,
+                                                               typename DBusProxyAsyncCallbackHandler<DelegateObjectType,
+                                                               bool>::Delegate& delegate) const {
+        DBusMessage dbusMessage = createMethodCall("NameHasOwner", "s");
+
+        DBusOutputStream outputStream(dbusMessage);
+        const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
+        if (!success) {
+            std::promise<CallStatus> promise;
+            promise.set_value(CallStatus::OUT_OF_MEMORY);
+            return promise.get_future();
+        }
+        outputStream.flush();
+
+        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                        dbusMessage,
+                        DBusProxyAsyncCallbackHandler<DelegateObjectType, bool>::create(delegate, std::tuple<bool>()),
+                        &daemonProxyInfo);
+    }
+
+    template <typename DelegateObjectType>
     COMMONAPI_EXPORT std::future<CallStatus> getManagedObjectsAsync(const std::string& forDBusServiceName,
-                                                   GetManagedObjectsAsyncCallback) const;
+                                                                    typename DBusProxyAsyncCallbackHandler<DelegateObjectType,
+                                                                    DBusObjectToInterfaceDict>::Delegate& delegate) const {
+        static DBusAddress address(forDBusServiceName, "/", "org.freedesktop.DBus.ObjectManager");
+        auto dbusMethodCallMessage = DBusMessage::createMethodCall(address, "GetManagedObjects", "");
+
+        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                        dbusMethodCallMessage,
+                        DBusProxyAsyncCallbackHandler<DelegateObjectType, DBusObjectToInterfaceDict>::create(
+                            delegate, std::tuple<DBusObjectToInterfaceDict>()
+                        ),
+                        &daemonProxyInfo);
+    }
 
     /**
      * Get the unique connection/bus name of the primary owner of the name given
@@ -81,7 +131,26 @@ class DBusDaemonProxy : public DBusProxyBase {
      *
      * @return CallStatus::REMOTE_ERROR if the name is unknown, otherwise CallStatus::SUCCESS and the uniq name of the owner
      */
-    std::future<CallStatus> getNameOwnerAsync(const std::string& busName, GetNameOwnerAsyncCallback getNameOwnerAsyncCallback) const;
+    template <typename DelegateObjectType>
+    std::future<CallStatus> getNameOwnerAsync(const std::string& busName,
+                                              typename DBusProxyAsyncCallbackHandler<DelegateObjectType,
+                                              std::string>::Delegate& delegate) const {
+        DBusMessage dbusMessage = createMethodCall("GetNameOwner", "s");
+
+        DBusOutputStream outputStream(dbusMessage);
+        const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
+        if (!success) {
+            std::promise<CallStatus> promise;
+            promise.set_value(CallStatus::OUT_OF_MEMORY);
+            return promise.get_future();
+        }
+        outputStream.flush();
+
+        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+                        dbusMessage,
+                        DBusProxyAsyncCallbackHandler<DelegateObjectType, std::string>::create(delegate, std::tuple<std::string>()),
+                        &daemonProxyInfo);
+    }
 
  private:
     DBusEvent<NameOwnerChangedEvent, std::string, std::string, std::string> nameOwnerChangedEvent_;

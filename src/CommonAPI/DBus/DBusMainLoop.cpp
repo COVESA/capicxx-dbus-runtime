@@ -203,6 +203,8 @@ DBusMainLoop::~DBusMainLoop() {
 #else
     close(wakeFd_.fd);
 #endif
+
+    cleanup();
 }
 
 void DBusMainLoop::run(const int64_t& timeoutInterval) {
@@ -228,9 +230,9 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
                 if (!(dispatchSourceIterator->second)->isExecuted_) {
                     (dispatchSourceIterator->second)->mutex_->unlock();
                     bool contained = false;
-                    for (std::set<DispatchSourceToDispatchStruct*>::iterator dispatchSourceIteratorInner = sourcesToDispatch_.begin();
+                    for (std::set<std::pair<DispatchPriority, DispatchSourceToDispatchStruct*>>::iterator dispatchSourceIteratorInner = sourcesToDispatch_.begin();
                         dispatchSourceIteratorInner != sourcesToDispatch_.end(); dispatchSourceIteratorInner++) {
-                        if ((*dispatchSourceIteratorInner)->dispatchSource_ == (dispatchSourceIterator->second)->dispatchSource_) {
+                        if (std::get<1>(*dispatchSourceIteratorInner)->dispatchSource_ == (dispatchSourceIterator->second)->dispatchSource_) {
                             contained = true;
                             break;
                         }
@@ -268,9 +270,9 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
                 if (!(timeoutIterator->second)->isExecuted_) {
                     (timeoutIterator->second)->mutex_->unlock();
                     bool contained = false;
-                    for (std::set<TimeoutToDispatchStruct*>::iterator timeoutIteratorInner = timeoutsToDispatch_.begin();
+                    for (std::set<std::pair<DispatchPriority, TimeoutToDispatchStruct*>>::iterator timeoutIteratorInner = timeoutsToDispatch_.begin();
                         timeoutIteratorInner != timeoutsToDispatch_.end(); timeoutIteratorInner++) {
-                        if ((*timeoutIteratorInner)->timeout_ == (timeoutIterator->second)->timeout_) {
+                        if (std::get<1>(*timeoutIteratorInner)->timeout_ == (timeoutIterator->second)->timeout_) {
                             contained = true;
                             break;
                         }
@@ -310,7 +312,7 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
                     bool contained = false;
                     for (auto watchesIteratorInner = watchesToDispatch_.begin();
                         watchesIteratorInner != watchesToDispatch_.end(); watchesIteratorInner++) {
-                        if ((*watchesIteratorInner)->watch_ == (watchesIterator->second)->watch_) {
+                        if (std::get<1>(*watchesIteratorInner)->watch_ == (watchesIterator->second)->watch_) {
                             contained = true;
                             break;
                         }
@@ -350,20 +352,22 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
 bool DBusMainLoop::prepare(const int64_t& timeout) {
     currentMinimalTimeoutInterval_ = timeout;
 
-    {
-        std::lock_guard<std::mutex> itsLock(dispatchSourcesMutex_);
-        for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
-                dispatchSourceIterator != registeredDispatchSources_.end();
-                dispatchSourceIterator++) {
+    dispatchSourcesMutex_.lock();
+    for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
+            dispatchSourceIterator != registeredDispatchSources_.end();
+            dispatchSourceIterator++) {
 
-            int64_t dispatchTimeout = TIMEOUT_INFINITE;
-            if ((dispatchSourceIterator->second)->dispatchSource_->prepare(dispatchTimeout)) {
-                sourcesToDispatch_.insert(dispatchSourceIterator->second);
-            } else if (dispatchTimeout < currentMinimalTimeoutInterval_) {
-                currentMinimalTimeoutInterval_ = dispatchTimeout;
-            }
+        int64_t dispatchTimeout = TIMEOUT_INFINITE;
+        dispatchSourcesMutex_.unlock();
+        if (!(dispatchSourceIterator->second->deleteObject_) &&
+                (dispatchSourceIterator->second)->dispatchSource_->prepare(dispatchTimeout)) {
+            sourcesToDispatch_.insert(*dispatchSourceIterator);
+        } else if (dispatchTimeout > 0 && dispatchTimeout < currentMinimalTimeoutInterval_) {
+            currentMinimalTimeoutInterval_ = dispatchTimeout;
         }
+        dispatchSourcesMutex_.lock();
     }
+    dispatchSourcesMutex_.unlock();
 
     int64_t currentContextTime = getCurrentTimeInMs();
 
@@ -386,7 +390,7 @@ bool DBusMainLoop::prepare(const int64_t& timeout) {
                         // set information that timeout is elapsed
                         (timeoutPriorityRange->second)->timeoutElapsed_ = true;
 
-                        timeoutsToDispatch_.insert(timeoutPriorityRange->second);
+                        timeoutsToDispatch_.insert(*timeoutPriorityRange);
                         currentMinimalTimeoutInterval_ = TIMEOUT_NONE;
                     } else if (intervalToReady < currentMinimalTimeoutInterval_) {
                         currentMinimalTimeoutInterval_ = intervalToReady;
@@ -401,16 +405,18 @@ bool DBusMainLoop::prepare(const int64_t& timeout) {
 
 void DBusMainLoop::poll() {
     int managedFileDescriptorOffset = 0;
-
-    for (auto fileDescriptor = managedFileDescriptors_.begin() + managedFileDescriptorOffset; fileDescriptor != managedFileDescriptors_.end(); ++fileDescriptor) {
-        (*fileDescriptor).revents = 0;
+    {
+        std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
+        for (auto fileDescriptor = managedFileDescriptors_.begin() + managedFileDescriptorOffset; fileDescriptor != managedFileDescriptors_.end(); ++fileDescriptor) {
+            (*fileDescriptor).revents = 0;
+        }
     }
 
-#ifdef WIN32    
-    size_t numReadyFileDescriptors = WSAPoll(&managedFileDescriptors_[0], managedFileDescriptors_.size(), -1);
+#ifdef WIN32
+    int numReadyFileDescriptors = WSAPoll(&managedFileDescriptors_[0], managedFileDescriptors_.size(), int(currentMinimalTimeoutInterval_));
 #else
-    size_t numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]),
-            managedFileDescriptors_.size(), -1);
+    int numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]),
+            managedFileDescriptors_.size(), int(currentMinimalTimeoutInterval_));
 #endif
     if (!numReadyFileDescriptors) {
         int64_t currentContextTime = getCurrentTimeInMs();
@@ -435,7 +441,7 @@ void DBusMainLoop::poll() {
                             // set information that timeout is elapsed
                             (timeoutPriorityRange->second)->timeoutElapsed_ = true;
 
-                            timeoutsToDispatch_.insert(timeoutPriorityRange->second);
+                            timeoutsToDispatch_.insert(*timeoutPriorityRange);
                         }
                     }
                 }
@@ -450,7 +456,7 @@ void DBusMainLoop::poll() {
 }
 
 bool DBusMainLoop::check() {
-//The first file descriptor always is the loop's wakeup-descriptor (but not for windows anymore). All others need to be linked to a watch.
+    //The first file descriptor always is the loop's wakeup-descriptor (but not for windows anymore). All others need to be linked to a watch.
     int managedFileDescriptorOffset = 1;
     {
         std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
@@ -461,7 +467,7 @@ bool DBusMainLoop::check() {
                 for (auto registeredWatchIterator = registeredWatches_.begin();
                         registeredWatchIterator != registeredWatches_.end();
                         registeredWatchIterator++) {
-                    
+
                     (registeredWatchIterator->second)->mutex_->lock();
                     bool deleteObject = (registeredWatchIterator->second)->deleteObject_;
                     (registeredWatchIterator->second)->mutex_->unlock();
@@ -469,23 +475,26 @@ bool DBusMainLoop::check() {
                     if (!deleteObject) {
                         if ((registeredWatchIterator->second)->fd_ == fileDescriptor->fd
                                 && fileDescriptor->revents) {
-                            watchesToDispatch_.insert(registeredWatchIterator->second);
+                            watchesToDispatch_.insert(*registeredWatchIterator);
                         }
                     }
                 }
             }
         }
     }
-    {
-        std::lock_guard<std::mutex> itsLock(dispatchSourcesMutex_);
-        for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
-                dispatchSourceIterator != registeredDispatchSources_.end();
-                ++dispatchSourceIterator) {
-            if ((dispatchSourceIterator->second)->dispatchSource_->check()) {
-                sourcesToDispatch_.insert(dispatchSourceIterator->second);
-            }
+
+    dispatchSourcesMutex_.lock();
+    for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
+            dispatchSourceIterator != registeredDispatchSources_.end();
+            ++dispatchSourceIterator) {
+        dispatchSourcesMutex_.unlock();
+        if (!dispatchSourceIterator->second->deleteObject_&&
+                dispatchSourceIterator->second->dispatchSource_->check()) {
+            sourcesToDispatch_.insert(*dispatchSourceIterator);
         }
+        dispatchSourcesMutex_.lock();
     }
+    dispatchSourcesMutex_.unlock();
 
     return (!timeoutsToDispatch_.empty() ||
             !watchesToDispatch_.empty() ||
@@ -497,15 +506,16 @@ void DBusMainLoop::dispatch() {
     {
         for (auto timeoutIterator = timeoutsToDispatch_.begin();
                 timeoutIterator != timeoutsToDispatch_.end(); timeoutIterator++) {
-            (*timeoutIterator)->mutex_->lock();
-            if (!(*timeoutIterator)->deleteObject_) {
-                (*timeoutIterator)->isExecuted_ = true;
-                (*timeoutIterator)->mutex_->unlock();
-                (*timeoutIterator)->timeout_->dispatch();
-                (*timeoutIterator)->mutex_->lock();
-                (*timeoutIterator)->isExecuted_ = false;
+            auto timeoutToDispatchStruct = std::get<1>(*timeoutIterator);
+            timeoutToDispatchStruct->mutex_->lock();
+            if (!timeoutToDispatchStruct->deleteObject_) {
+                timeoutToDispatchStruct->isExecuted_ = true;
+                timeoutToDispatchStruct->mutex_->unlock();
+                timeoutToDispatchStruct->timeout_->dispatch();
+                timeoutToDispatchStruct->mutex_->lock();
+                timeoutToDispatchStruct->isExecuted_ = false;
             }
-            (*timeoutIterator)->mutex_->unlock();
+            timeoutToDispatchStruct->mutex_->unlock();
         }
 
         timeoutsToDispatch_.clear();
@@ -515,17 +525,18 @@ void DBusMainLoop::dispatch() {
     {
         for (auto watchIterator = watchesToDispatch_.begin();
                 watchIterator != watchesToDispatch_.end(); watchIterator++) {
-            (*watchIterator)->mutex_->lock();
-            if (!(*watchIterator)->deleteObject_) {
-                (*watchIterator)->isExecuted_ = true;
-                (*watchIterator)->mutex_->unlock();
-                Watch* watch = (*watchIterator)->watch_;
-                const unsigned int flags = watch->getAssociatedFileDescriptor().events;
+            auto watchToDispatchStruct = std::get<1>(*watchIterator);
+            watchToDispatchStruct->mutex_->lock();
+            if (!watchToDispatchStruct->deleteObject_) {
+                watchToDispatchStruct->isExecuted_ = true;
+                watchToDispatchStruct->mutex_->unlock();
+                Watch* watch = watchToDispatchStruct->watch_;
+                const unsigned int flags = (unsigned int)(watch->getAssociatedFileDescriptor().events);
                 watch->dispatch(flags);
-                (*watchIterator)->mutex_->lock();
-                (*watchIterator)->isExecuted_ = false;
+                watchToDispatchStruct->mutex_->lock();
+                watchToDispatchStruct->isExecuted_ = false;
             }
-            (*watchIterator)->mutex_->unlock();
+            watchToDispatchStruct->mutex_->unlock();
         }
         watchesToDispatch_.clear();
     }
@@ -536,15 +547,17 @@ void DBusMainLoop::dispatch() {
         for (auto dispatchSourceIterator = sourcesToDispatch_.begin();
                 dispatchSourceIterator != sourcesToDispatch_.end() && !isBroken_;
                 dispatchSourceIterator++) {
-            (*dispatchSourceIterator)->mutex_->lock();
-            if (!(*dispatchSourceIterator)->deleteObject_) {
-                (*dispatchSourceIterator)->isExecuted_ = true;
-                (*dispatchSourceIterator)->mutex_->unlock();
-                while ((*dispatchSourceIterator)->dispatchSource_->dispatch());
-                (*dispatchSourceIterator)->mutex_->lock();
-                (*dispatchSourceIterator)->isExecuted_ = false;
+            auto dispatchSourceToDispatchStruct = std::get<1>(*dispatchSourceIterator);
+            dispatchSourceToDispatchStruct->mutex_->lock();
+            if (!dispatchSourceToDispatchStruct->deleteObject_) {
+                dispatchSourceToDispatchStruct->isExecuted_ = true;
+                dispatchSourceToDispatchStruct->mutex_->unlock();
+                while(!dispatchSourceToDispatchStruct->deleteObject_ &&
+                        dispatchSourceToDispatchStruct->dispatchSource_->dispatch());
+                dispatchSourceToDispatchStruct->mutex_->lock();
+                dispatchSourceToDispatchStruct->isExecuted_ = false;
             }
-            (*dispatchSourceIterator)->mutex_->unlock();
+            dispatchSourceToDispatchStruct->mutex_->unlock();
         }
         {
             sourcesToDispatch_.clear();
@@ -595,6 +608,50 @@ void DBusMainLoop::wakeupAck() {
     int64_t buffer;
     while(::read(wakeFd_.fd, &buffer, sizeof(int64_t)) == sizeof(buffer));
 #endif
+}
+
+void DBusMainLoop::cleanup() {
+    {
+        std::lock_guard<std::mutex> itsLock(dispatchSourcesMutex_);
+        for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
+            dispatchSourceIterator != registeredDispatchSources_.end();) {
+
+            delete (dispatchSourceIterator->second)->dispatchSource_;
+            (dispatchSourceIterator->second)->dispatchSource_ = NULL;
+            delete (dispatchSourceIterator->second)->mutex_;
+            (dispatchSourceIterator->second)->mutex_ = NULL;
+            delete dispatchSourceIterator->second;
+            dispatchSourceIterator = registeredDispatchSources_.erase(dispatchSourceIterator);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> itsLock(timeoutsMutex_);
+        for (auto timeoutIterator = registeredTimeouts_.begin();
+            timeoutIterator != registeredTimeouts_.end();) {
+
+            delete (timeoutIterator->second)->timeout_;
+            (timeoutIterator->second)->timeout_ = NULL;
+            delete (timeoutIterator->second)->mutex_;
+            (timeoutIterator->second)->mutex_ = NULL;
+            delete timeoutIterator->second;
+            timeoutIterator = registeredTimeouts_.erase(timeoutIterator);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> itsLock(watchesMutex_);
+        for (auto watchesIterator = registeredWatches_.begin();
+            watchesIterator != registeredWatches_.end();) {
+
+            delete (watchesIterator->second)->watch_;
+            (watchesIterator->second)->watch_ = NULL;
+            delete (watchesIterator->second)->mutex_;
+            (watchesIterator->second)->mutex_ = NULL;
+            delete watchesIterator->second;
+            watchesIterator = registeredWatches_.erase(watchesIterator);
+        }
+    }
 }
 
 void DBusMainLoop::registerFileDescriptor(

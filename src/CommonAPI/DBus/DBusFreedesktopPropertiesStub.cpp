@@ -3,8 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cassert>
 #include <vector>
+#include <algorithm>
 
 #include <CommonAPI/DBus/DBusFreedesktopPropertiesStub.hpp>
 #include <CommonAPI/DBus/DBusStubAdapter.hpp>
@@ -21,14 +21,30 @@ DBusFreedesktopPropertiesStub::DBusFreedesktopPropertiesStub(
     : path_(_path),
       connection_(_connection),
       adapter_(_adapter) {
-    assert(!path_.empty());
-    assert(path_[0] == '/');
-    assert(_connection);
+    if (path_.empty()) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " empty _path");
+    }
+    if ('/' != path_[0]) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid _path ", _path);
+    }
+    if (!_connection) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid _connection");
+    }
 
     dbusInterfacesLock_.lock();
-    if(managedInterfaces_.find(_interface) == managedInterfaces_.end()) {
-        managedInterfaces_.insert({ _interface, _adapter });
+
+    const auto& it = managedInterfaces_.find(_interface);
+    if (it != managedInterfaces_.end()) {
+        auto& adapters = it->second;
+        if (find(adapters.begin(), adapters.end(), _adapter) == adapters.end()) {
+            adapters.push_back(_adapter);
+            it->second = adapters;
+        }
     }
+    else {
+        managedInterfaces_.insert({ _interface, std::vector<std::shared_ptr<DBusStubAdapter>> ({_adapter}) });
+    }
+
     dbusInterfacesLock_.unlock();
 }
 
@@ -86,7 +102,12 @@ DBusFreedesktopPropertiesStub::onInterfaceDBusMessage(const DBusMessage &_messag
         return false;
     }
 
-    return it->second->onInterfaceDBusFreedesktopPropertiesMessage(_message);
+    for (auto& adapter : it->second) {
+        adapter->onInterfaceDBusFreedesktopPropertiesMessage(_message);
+    }
+
+    // errors are ignored.
+    return true;
 }
 
 bool DBusFreedesktopPropertiesStub::hasFreedesktopProperties() {

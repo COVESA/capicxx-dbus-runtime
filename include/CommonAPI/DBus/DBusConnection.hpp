@@ -45,12 +45,14 @@ friend class DBusConnection;
 };
 
 struct WatchContext {
-    WatchContext(std::weak_ptr<MainLoopContext> mainLoopContext, DispatchSource* dispatchSource) :
-            mainLoopContext_(mainLoopContext), dispatchSource_(dispatchSource) {
+    WatchContext(std::weak_ptr<MainLoopContext> mainLoopContext, DispatchSource* dispatchSource,
+                 std::weak_ptr<DBusConnection> dbusConnection) :
+            mainLoopContext_(mainLoopContext), dispatchSource_(dispatchSource), dbusConnection_(dbusConnection) {
     }
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
     DispatchSource* dispatchSource_;
+    std::weak_ptr<DBusConnection> dbusConnection_;
 };
 
 class DBusConnection
@@ -107,13 +109,13 @@ public:
                                                   DBusSignalHandler* dbusSignalHandler,
                                                   const bool justAddFilter = false);
 
-    COMMONAPI_EXPORT DBusProxyConnection::DBusSignalHandlerToken subscribeForSelectiveBroadcast(bool& subscriptionAccepted,
-                                                                               const std::string& objectPath,
-                                                                               const std::string& interfaceName,
-                                                                               const std::string& interfaceMemberName,
-                                                                               const std::string& interfaceMemberSignature,
-                                                                               DBusSignalHandler* dbusSignalHandler,
-                                                                               DBusProxy* callingProxy);
+    COMMONAPI_EXPORT void subscribeForSelectiveBroadcast(const std::string& objectPath,
+                                                   const std::string& interfaceName,
+                                                   const std::string& interfaceMemberName,
+                                                   const std::string& interfaceMemberSignature,
+                                                   DBusSignalHandler* dbusSignalHandler,
+                                                   DBusProxy* callingProxy,
+                                                   uint32_t tag);
 
     COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                           DBusProxyConnection::DBusSignalHandlerToken subscription,
@@ -136,10 +138,20 @@ public:
 
     COMMONAPI_EXPORT bool isDispatchReady();
     COMMONAPI_EXPORT bool singleDispatch();
+    COMMONAPI_EXPORT void dispatchDBusMessageReply(const DBusMessage& _reply,
+                                                   DBusMessageReplyAsyncHandler* _dbusMessageReplyAsyncHandler);
 
     COMMONAPI_EXPORT virtual bool hasDispatchThread();
 
     COMMONAPI_EXPORT virtual const ConnectionId_t& getConnectionId() const;
+
+    COMMONAPI_EXPORT void incrementConnection();
+    COMMONAPI_EXPORT void decrementConnection();
+
+    COMMONAPI_EXPORT bool setDispatching(bool isDispatching);
+
+    COMMONAPI_EXPORT void pushDBusMessageReply(const DBusMessage& _reply,
+                                      std::unique_ptr<DBusMessageReplyAsyncHandler> _dbusMessageReplyAsyncHandler);
 
 #ifdef COMMONAPI_DBUS_TEST
     inline std::weak_ptr<DBusMainloop> getLoop() { return loop_; }
@@ -149,20 +161,28 @@ public:
     typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
     typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
  private:
+
+    struct PendingCallNotificationData {
+        PendingCallNotificationData(const DBusConnection* _dbusConnection,
+                                    DBusMessageReplyAsyncHandler* _replyAsyncHandler) :
+                                    dbusConnection_(_dbusConnection),
+                                    replyAsyncHandler_(_replyAsyncHandler) { }
+
+        const DBusConnection* dbusConnection_;
+        DBusMessageReplyAsyncHandler* replyAsyncHandler_;
+    };
+
     COMMONAPI_EXPORT void dispatch();
     COMMONAPI_EXPORT void suspendDispatching() const;
     COMMONAPI_EXPORT void resumeDispatching() const;
 
     std::thread* dispatchThread_;
-    bool stopDispatching_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
+    DBusMessageWatch* msgWatch_;
+    DBusMessageDispatchSource* msgDispatchSource_;
     DispatchSource* dispatchSource_;
     WatchContext* watchContext_;
-
-    mutable std::recursive_mutex sendLock_;
-    mutable bool pauseDispatching_;
-    mutable std::mutex dispatchSuspendLock_;
 
     COMMONAPI_EXPORT void addLibdbusSignalMatchRule(const std::string& objectPath,
             const std::string& interfaceName,
@@ -179,9 +199,11 @@ public:
     COMMONAPI_EXPORT void initLibdbusObjectPathHandlerAfterConnect();
     ::DBusHandlerResult onLibdbusObjectPathMessage(::DBusMessage* libdbusMessage);
 
-    COMMONAPI_EXPORT static DBusMessage convertToDBusMessage(::DBusPendingCall* _libdbusPendingCall,
-            CallStatus& _callStatus);
+    COMMONAPI_EXPORT static DBusMessage convertToDBusMessage(::DBusPendingCall* _libdbusPendingCall);
     COMMONAPI_EXPORT static void onLibdbusPendingCallNotifyThunk(::DBusPendingCall* libdbusPendingCall, void* userData);
+    void onLibdbusPendingCall(::DBusPendingCall* _libdbusPendingCall,
+                              const DBusMessage& _reply,
+                              DBusMessageReplyAsyncHandler* _dbusMessageReplyAsyncHandler) const;
     COMMONAPI_EXPORT static void onLibdbusDataCleanup(void* userData);
 
     COMMONAPI_EXPORT static ::DBusHandlerResult onLibdbusObjectPathMessageThunk(::DBusConnection* libdbusConnection,
@@ -205,7 +227,8 @@ public:
     COMMONAPI_EXPORT void enforceAsynchronousTimeouts() const;
     COMMONAPI_EXPORT static const DBusObjectPathVTable* getDBusObjectPathVTable();
 
-    COMMONAPI_EXPORT bool sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName);
+    COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName,
+            DBusSignalHandler* dbusSignalHandler, uint32_t tag);
 
     ::DBusConnection* connection_;
     mutable std::mutex connectionGuard_;
@@ -284,6 +307,16 @@ public:
     mutable std::set<DBusMessageReplyAsyncHandler*> timeoutInfiniteAsyncHandlers_;
     mutable std::mutex timeoutInfiniteAsyncHandlersMutex_;
 
+    uint32_t activeConnections_;
+    mutable std::mutex activeConnectionsMutex_;
+
+    bool isDisconnecting_;
+    bool isDispatching_;
+    bool isWaitingOnFinishedDispatching_;
+
+    std::set<std::thread::id> dispatchThreads_;
+    std::mutex dispatchMutex_;
+    std::condition_variable dispatchCondition_;
 };
 
 

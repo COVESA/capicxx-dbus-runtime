@@ -54,6 +54,7 @@ void
 DBusProxyManager::getAvailableInstances(
         CommonAPI::CallStatus &_status,
         std::vector<std::string> &_availableInstances) {
+    _availableInstances.clear();
     DBusObjectManagerStub::DBusObjectPathAndInterfacesDict dict;
 
     DBusProxyHelper<
@@ -160,6 +161,10 @@ DBusProxyManager::translateCommonApiAddresses(
 
     CommonAPI::Address itsAddress;
     DBusAddress itsDBusAddress;
+
+    // get service information from proxy
+    const std::string &_service = proxy_.getDBusAddress().getService();
+    itsDBusAddress.setService(_service);
 
     for (const auto &objectPathIter : _dict) {
         itsDBusAddress.setObjectPath(objectPathIter.first);

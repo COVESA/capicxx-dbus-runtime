@@ -24,7 +24,7 @@ class DBusMessage;
  * This class represents the DBus specific implementation of CommonAPI::ClientId.
  * It internally uses a string to identify clients. This string is the unique sender id used by dbus.
  */
-class DBusClientId
+class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusClientId
         : public CommonAPI::ClientId {
     friend struct std::hash<DBusClientId>;
 

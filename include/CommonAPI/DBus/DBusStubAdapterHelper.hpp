@@ -108,8 +108,12 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         const char* interfaceMemberName = dbusMessage.getMember();
         const char* interfaceMemberSignature = dbusMessage.getSignature();
 
-        assert(interfaceMemberName);
-        assert(interfaceMemberSignature);
+        if (NULL == interfaceMemberName) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__), " member empty");
+        }
+        if (NULL == interfaceMemberSignature) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__), " signature empty");
+        }
 
         DBusInterfaceMemberPath dbusInterfaceMemberPath(interfaceMemberName, interfaceMemberSignature);
         auto findIterator = getStubDispatcherTable().find(dbusInterfaceMemberPath);
@@ -160,8 +164,12 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
         }
 
         StubDispatcher* getterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.getter);
-        assert(getterDispatcher != NULL); // all attributes have at least a getter
-        return (getterDispatcher->dispatchDBusMessage(_message, stub_, *this));
+        if (NULL == getterDispatcher) { // all attributes have at least a getter
+            COMMONAPI_ERROR(std::string(__FUNCTION__), "getterDispatcher == NULL");
+            return false;
+        } else {
+            return (getterDispatcher->dispatchDBusMessage(_message, stub_, *this));
+        }
     }
 
     bool handleFreedesktopSet(const DBusMessage& dbusMessage, DBusInputStream& dbusInputStream) {
@@ -206,10 +214,14 @@ class DBusStubAdapterHelper: public virtual DBusStubAdapter {
             //To prevent the destruction of the stub whilst still handling a message
             if (stub_) {
                 StubDispatcher* getterDispatcher = static_cast<StubDispatcher*>(attributeDispatcherIterator->second.getter);
-                assert(getterDispatcher != NULL); // all attributes have at least a getter
-                dbusOutputStream.align(8);
-                dbusOutputStream << attributeDispatcherIterator->first;
-                getterDispatcher->appendGetAllReply(dbusMessage, stub_, *this, dbusOutputStream);
+                if (NULL == getterDispatcher) { // all attributes have at least a getter
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), "getterDispatcher == NULL");
+                    break;
+                } else {
+                    dbusOutputStream.align(8);
+                    dbusOutputStream << attributeDispatcherIterator->first;
+                    getterDispatcher->appendGetAllReply(dbusMessage, stub_, *this, dbusOutputStream);
+                }
             }
         }
 
@@ -463,9 +475,14 @@ private:
                 }
                 output.flush();
             }
-            bool isSuccessful = connection_->sendDBusMessage(reply->second);
-            pending_.erase(_call);
-            return isSuccessful;
+            if (std::shared_ptr<DBusProxyConnection> connection = connection_.lock()) {
+                bool isSuccessful = connection->sendDBusMessage(reply->second);
+                pending_.erase(_call);
+                return isSuccessful;
+            }
+            else {
+                return false;
+            }
         }
         return false;
     }
@@ -479,7 +496,7 @@ private:
     std::map<CommonAPI::CallId_t, DBusMessage> pending_;
     std::mutex mutex_; // protects pending_
 
-    std::shared_ptr<DBusProxyConnection> connection_;
+    std::weak_ptr<DBusProxyConnection> connection_;
 };
 
 template< class, class, class, class >

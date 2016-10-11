@@ -21,22 +21,33 @@
 namespace CommonAPI {
 namespace DBus {
 
+template <typename DelegateObjectType_>
 class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
-    typedef std::function<void(CallStatus, DBusMessage, DBusProxyConnection::DBusSignalHandler*, int)> FunctionType;
+
+    struct Delegate {
+        typedef std::function<void(CallStatus, DBusMessage, DBusProxyConnection::DBusSignalHandler*, uint32_t)> FunctionType;
+
+        Delegate(std::shared_ptr<DelegateObjectType_> object, FunctionType function) :
+            function_(std::move(function)) {
+            object_ = object;
+        }
+        std::weak_ptr<DelegateObjectType_> object_;
+        FunctionType function_;
+    };
 
     static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
-            FunctionType& callback, DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-            const int tag) {
+            Delegate& delegate, DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+            const uint32_t tag) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
-                new DBusProxyAsyncSignalMemberCallbackHandler(std::move(callback), dbusSignalHandler, tag));
+                new DBusProxyAsyncSignalMemberCallbackHandler<DelegateObjectType_>(std::move(delegate), dbusSignalHandler, tag));
     }
 
     DBusProxyAsyncSignalMemberCallbackHandler() = delete;
-    DBusProxyAsyncSignalMemberCallbackHandler(FunctionType&& callback,
+    DBusProxyAsyncSignalMemberCallbackHandler(Delegate&& delegate,
             DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-            const int tag):
-        callback_(std::move(callback)), dbusSignalHandler_(dbusSignalHandler), tag_(tag),
+            const uint32_t tag):
+        delegate_(std::move(delegate)), dbusSignalHandler_(dbusSignalHandler), tag_(tag),
         executionStarted_(false), executionFinished_(false),
         timeoutOccurred_(false), hasToBeDeleted_(false) {
     }
@@ -94,14 +105,17 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
     inline CallStatus handleDBusMessageReply(const CallStatus dbusMessageCallStatus, const DBusMessage& dbusMessage) const {
         CallStatus callStatus = dbusMessageCallStatus;
 
-        callback_(callStatus, dbusMessage, dbusSignalHandler_, tag_);
+        //check if object is expired
+        if(!delegate_.object_.expired())
+            delegate_.function_(callStatus, dbusMessage, dbusSignalHandler_, tag_);
+
         return callStatus;
     }
 
     std::promise<CallStatus> promise_;
-    const FunctionType callback_;
+    const Delegate delegate_;
     DBusProxyConnection::DBusSignalHandler* dbusSignalHandler_;
-    const int tag_;
+    const uint32_t tag_;
     bool executionStarted_;
     bool executionFinished_;
     bool timeoutOccurred_;

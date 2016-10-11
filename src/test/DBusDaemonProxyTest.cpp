@@ -10,6 +10,7 @@
 #include <CommonAPI/DBus/DBusConnection.hpp>
 #include <CommonAPI/DBus/DBusDaemonProxy.hpp>
 #include <CommonAPI/DBus/DBusUtils.hpp>
+#include <CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp>
 
 #include <gtest/gtest.h>
 
@@ -51,10 +52,14 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
     std::promise<std::tuple<CommonAPI::CallStatus, std::vector<std::string>>>promise;
     auto future = promise.get_future();
 
-    auto callStatusFuture = dbusDaemonProxy_->listNamesAsync(
-                    [&](const CommonAPI::CallStatus& callStatus, std::vector<std::string> busNames) {
-                        promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
-                    });
+    auto func = [&](const CommonAPI::CallStatus& callStatus, std::vector<std::string> busNames) {
+        promise.set_value(std::tuple<CommonAPI::CallStatus, std::vector<std::string>>(callStatus, std::move(busNames)));
+    };
+
+    CommonAPI::DBus::DBusProxyAsyncCallbackHandler<CommonAPI::DBus::DBusDaemonProxy, std::vector<std::string>>::Delegate
+        delegate(dbusDaemonProxy_->shared_from_this(), func);
+
+    auto callStatusFuture = dbusDaemonProxy_->listNamesAsync<CommonAPI::DBus::DBusDaemonProxy>(delegate);
 
     auto status = future.wait_for(std::chrono::milliseconds(500));
     bool waitResult = CommonAPI::DBus::checkReady(status);
@@ -92,11 +97,16 @@ TEST_F(DBusDaemonProxyTest, NameHasOwnerAsync) {
     std::promise<std::tuple<CommonAPI::CallStatus, bool>> promise;
     auto future = promise.get_future();
 
-    auto callStatusFuture = dbusDaemonProxy_->nameHasOwnerAsync(
+    auto func = [&](const CommonAPI::CallStatus& callStatus, bool nameHasOwner) {
+        promise.set_value(std::tuple<CommonAPI::CallStatus, bool>(callStatus, std::move(nameHasOwner)));
+    };
+
+    CommonAPI::DBus::DBusProxyAsyncCallbackHandler<CommonAPI::DBus::DBusDaemonProxy, bool>::Delegate
+        delegate(dbusDaemonProxy_->shared_from_this(), func);
+
+    auto callStatusFuture = dbusDaemonProxy_->nameHasOwnerAsync<CommonAPI::DBus::DBusDaemonProxy>(
                     "org.freedesktop.DBus",
-                    [&](const CommonAPI::CallStatus& callStatus, bool nameHasOwner) {
-                        promise.set_value(std::tuple<CommonAPI::CallStatus, bool>(callStatus, std::move(nameHasOwner)));
-                    });
+                    delegate);
 
     auto status = future.wait_for(std::chrono::milliseconds(100));
     const bool waitResult = CommonAPI::DBus::checkReady(status);

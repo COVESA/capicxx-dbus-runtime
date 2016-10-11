@@ -57,18 +57,21 @@ class DBusProxyConnection {
        virtual void unlock() = 0;
     };
 
-    class DBusSignalHandler {
-     public:
-        virtual ~DBusSignalHandler() {}
-        virtual void onSignalDBusMessage(const DBusMessage&) = 0;
-        virtual void onInitialValueSignalDBusMessage(const DBusMessage&, const uint32_t) {};
-        virtual void onError(const CommonAPI::CallStatus status) { (void) status; };
-    };
+    class DBusSignalHandler;
 
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
     typedef std::tuple<std::string, std::string, std::string, std::string> DBusSignalHandlerPath;
     typedef std::unordered_map<DBusSignalHandlerPath, std::pair<std::shared_ptr<std::recursive_mutex>, std::set<DBusSignalHandler* >>> DBusSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
+
+    class DBusSignalHandler {
+     public:
+        virtual ~DBusSignalHandler() {}
+        virtual void onSignalDBusMessage(const DBusMessage&) = 0;
+        virtual void onInitialValueSignalDBusMessage(const DBusMessage&, const uint32_t) {};
+        virtual void onSpecificError(const CommonAPI::CallStatus, const uint32_t ) {};
+        virtual void setSubscriptionToken(const DBusSignalHandlerToken, const uint32_t) {};
+    };
 
     typedef Event<AvailabilityStatus> ConnectionStatusEvent;
 
@@ -98,13 +101,13 @@ class DBusProxyConnection {
             DBusSignalHandler* dbusSignalHandler,
             const bool justAddFilter = false) = 0;
 
-    virtual DBusSignalHandlerToken subscribeForSelectiveBroadcast(bool& subscriptionAccepted,
-                                                                  const std::string& objectPath,
+    virtual void subscribeForSelectiveBroadcast(const std::string& objectPath,
                                                                   const std::string& interfaceName,
                                                                   const std::string& interfaceMemberName,
                                                                   const std::string& interfaceMemberSignature,
                                                                   DBusSignalHandler* dbusSignalHandler,
-                                                                  DBusProxy* callingProxy) = 0;
+                                                                  DBusProxy* callingProxy,
+                                                                  uint32_t tag) = 0;
 
     virtual void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                                   DBusProxyConnection::DBusSignalHandlerToken subscription,
@@ -134,7 +137,11 @@ class DBusProxyConnection {
 
     virtual bool hasDispatchThread() = 0;
 
-    virtual bool sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName) = 0;
+    virtual void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName,
+            DBusSignalHandler* dbusSignalHandler, uint32_t tag) = 0;
+
+    virtual void pushDBusMessageReply(const DBusMessage& reply,
+                             std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler) = 0;
 };
 
 } // namespace DBus

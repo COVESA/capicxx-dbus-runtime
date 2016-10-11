@@ -29,7 +29,6 @@ class LibdbusTest: public ::testing::Test {
 class DBusConnectionTest: public ::testing::Test {
 protected:
     virtual void SetUp() {
-
         dbusConnection_ = CommonAPI::DBus::DBusConnection::getBus(CommonAPI::DBus::DBusType_t::SESSION, "connection1");
     }
 
@@ -127,14 +126,18 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
 
         CommonAPI::DBus::DBusOutputStream dbusOutputStream(dbusMessageCall);
 
+        auto func = [&clientReplyHandlerDBusMessageCount](CommonAPI::CallStatus status) {
+            ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
+            ++clientReplyHandlerDBusMessageCount;
+        };
+
+        CommonAPI::DBus::DBusProxyAsyncCallbackHandler<CommonAPI::DBus::DBusConnection>::Delegate
+            delegate(dbusConnection_->shared_from_this(), func);
+
         dbusConnection_->sendDBusMessageWithReplyAsync(
                         dbusMessageCall,
-                        CommonAPI::DBus::DBusProxyAsyncCallbackHandler<>::create(
-                                        [&clientReplyHandlerDBusMessageCount](CommonAPI::CallStatus status) {
-                                            ASSERT_EQ(CommonAPI::CallStatus::SUCCESS, status);
-                                            ++clientReplyHandlerDBusMessageCount;
-                                        }, std::tuple<>()),
-                                        &CommonAPI::DBus::defaultCallInfo);
+                        CommonAPI::DBus::DBusProxyAsyncCallbackHandler<CommonAPI::DBus::DBusConnection>::create(delegate, std::tuple<>()),
+                        &CommonAPI::DBus::defaultCallInfo);
 
         for (int i = 0; i < 100; i++) {
             usleep(10);
@@ -218,25 +221,33 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
     interfaceHandlerDBusConnection->disconnect();
 }*/
 
+std::mutex dispatchMutex;
+std::condition_variable dispatchCondition;
+bool dispatchReady = false;
 
 void dispatch(::DBusConnection* libdbusConnection) {
     dbus_bool_t success = TRUE;
+    std::unique_lock<std::mutex> lock(dispatchMutex);
+    dispatchReady = true;
+    dispatchCondition.wait(lock);
     while (success) {
         success = dbus_connection_read_write_dispatch(libdbusConnection, 1);
     }
 }
 
-std::promise<bool> promise;
-std::future<bool> future = promise.get_future();
+bool suicide = false;
 
 void notifyThunk(DBusPendingCall*, void* data) {
     ::DBusConnection* libdbusConnection = reinterpret_cast<DBusConnection*>(data);
     dbus_connection_close(libdbusConnection);
     dbus_connection_unref(libdbusConnection);
-    promise.set_value(true);
+    suicide = true;
 }
 
 TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
+    dispatchReady = false;
+    suicide = false;
+
     const ::DBusBusType libdbusType = ::DBusBusType::DBUS_BUS_SESSION;
     ::DBusError libdbusError;
     dbus_error_init(&libdbusError);
@@ -246,6 +257,15 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
     dbus_connection_set_exit_on_disconnect(libdbusConnection, false);
 
     auto dispatchThread = std::thread(&dispatch, libdbusConnection);
+
+    {
+        std::unique_lock<std::mutex> dispatchLock(dispatchMutex);
+        while(!dispatchReady) {
+            dispatchLock.unlock();
+            usleep(100000 * 5);
+            dispatchLock.lock();
+        }
+    }
 
     ::DBusMessage* libdbusMessageCall = dbus_message_new_method_call(
                     "org.freedesktop.DBus",
@@ -269,8 +289,10 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
                     libdbusConnection,
                     NULL);
 
-    ASSERT_EQ(true, future.get());
+    dispatchCondition.notify_one();
+
     dispatchThread.join();
+    ASSERT_TRUE(suicide);
 }
 
 #ifndef __NO_MAIN__

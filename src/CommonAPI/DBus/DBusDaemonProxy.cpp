@@ -39,7 +39,6 @@ static const char *DAEMON_DBUS_INTERFACE = DBusDaemonProxy::getInterfaceId();
 static const char *DAEMON_DBUS_OBJECT_PATH = "/org/freedesktop/DBus";
 static const char *DAEMON_DBUS_BUS = "org.freedesktop.DBus";
 static DBusAddress dbusProxyAddress(DAEMON_DBUS_INTERFACE, DAEMON_DBUS_OBJECT_PATH, DAEMON_DBUS_BUS);
-static CommonAPI::CallInfo daemonProxyInfo(30000);
 
 DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection):
                 DBusProxyBase(dbusProxyAddress, dbusConnection),
@@ -58,6 +57,12 @@ bool DBusDaemonProxy::isAvailable() const {
 
 bool DBusDaemonProxy::isAvailableBlocking() const {
     return isAvailable();
+}
+
+std::future<AvailabilityStatus> DBusDaemonProxy::isAvailableAsync(
+        isAvailableAsyncCallback _callback,
+        const CallInfo *_info) const {
+    return isAvailableAsync(_callback, _info);
 }
 
 ProxyStatusEvent& DBusDaemonProxy::getProxyStatusEvent() {
@@ -94,14 +99,6 @@ void DBusDaemonProxy::listNames(CommonAPI::CallStatus& callStatus, std::vector<s
     callStatus = CallStatus::SUCCESS;
 }
 
-std::future<CallStatus> DBusDaemonProxy::listNamesAsync(ListNamesAsyncCallback listNamesAsyncCallback) const {
-    DBusMessage dbusMessage = createMethodCall("ListNames", "");
-    return getDBusConnection()->sendDBusMessageWithReplyAsync(
-                    dbusMessage,
-                    DBusProxyAsyncCallbackHandler<std::vector<std::string>>::create(listNamesAsyncCallback, std::tuple<std::vector<std::string>>()),
-                    &daemonProxyInfo);
-}
-
 void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const {
     DBusMessage dbusMethodCall = createMethodCall("NameHasOwner", "s");
 
@@ -130,54 +127,6 @@ void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallSt
         return;
     }
     callStatus = CallStatus::SUCCESS;
-}
-
-std::future<CallStatus> DBusDaemonProxy::nameHasOwnerAsync(const std::string& busName, NameHasOwnerAsyncCallback nameHasOwnerAsyncCallback) const {
-    DBusMessage dbusMessage = createMethodCall("NameHasOwner", "s");
-
-    DBusOutputStream outputStream(dbusMessage);
-    const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
-    if (!success) {
-        std::promise<CallStatus> promise;
-        promise.set_value(CallStatus::OUT_OF_MEMORY);
-        return promise.get_future();
-    }
-    outputStream.flush();
-
-    return getDBusConnection()->sendDBusMessageWithReplyAsync(
-                    dbusMessage,
-                    DBusProxyAsyncCallbackHandler<bool>::create(nameHasOwnerAsyncCallback, std::tuple<bool>()),
-                    &daemonProxyInfo);
-}
-
-std::future<CallStatus> DBusDaemonProxy::getManagedObjectsAsync(const std::string& forDBusServiceName, GetManagedObjectsAsyncCallback callback) const {
-    static DBusAddress address(forDBusServiceName, "/", "org.freedesktop.DBus.ObjectManager");
-    auto dbusMethodCallMessage = DBusMessage::createMethodCall(address, "GetManagedObjects", "");
-
-    return getDBusConnection()->sendDBusMessageWithReplyAsync(
-                    dbusMethodCallMessage,
-                    DBusProxyAsyncCallbackHandler<DBusObjectToInterfaceDict>::create(
-                        callback, std::tuple<DBusObjectToInterfaceDict>()
-                    ),
-                    &daemonProxyInfo);
-}
-
-std::future<CallStatus> DBusDaemonProxy::getNameOwnerAsync(const std::string& busName, GetNameOwnerAsyncCallback getNameOwnerAsyncCallback) const {
-    DBusMessage dbusMessage = createMethodCall("GetNameOwner", "s");
-
-    DBusOutputStream outputStream(dbusMessage);
-    const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
-    if (!success) {
-        std::promise<CallStatus> promise;
-        promise.set_value(CallStatus::OUT_OF_MEMORY);
-        return promise.get_future();
-    }
-    outputStream.flush();
-
-    return getDBusConnection()->sendDBusMessageWithReplyAsync(
-                    dbusMessage,
-                    DBusProxyAsyncCallbackHandler<std::string>::create(getNameOwnerAsyncCallback, std::tuple<std::string>()),
-                    &daemonProxyInfo);
 }
 
 const char* DBusDaemonProxy::getInterfaceId() {

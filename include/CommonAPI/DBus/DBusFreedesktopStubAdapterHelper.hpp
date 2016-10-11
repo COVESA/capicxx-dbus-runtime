@@ -13,6 +13,16 @@
 #include <CommonAPI/Struct.hpp>
 #include <CommonAPI/DBus/DBusStubAdapterHelper.hpp>
 
+#  if _MSC_VER >= 1300
+/*
+* Diamond inheritance is used for the DBusSetAttributeStubDispatcher base class.
+* The Microsoft compiler put warning (C4250) using a desired c++ feature: "Delegating to a sister class"
+* A powerful technique that arises from using virtual inheritance is to delegate a method from a class in another class
+* by using a common abstract base class. This is also called cross delegation.
+*/
+#    pragma warning( disable : 4250 )
+#  endif
+
 namespace CommonAPI {
 namespace DBus {
 
@@ -139,46 +149,26 @@ struct DBusStubFreedesktopPropertiesSignalHelper;
 template<typename DataType_, typename DeplType_>
 struct DBusStubFreedesktopPropertiesSignalHelper {
 
-    template <typename ValueType_>
-    struct DBusPropertiesEntry
-            : public CommonAPI::Struct<std::string, CommonAPI::Variant<ValueType_>> {
-
-        DBusPropertiesEntry() = default;
-        DBusPropertiesEntry(const std::string &_propertyName,
-                            const ValueType_ &_propertyValue) {
-            std::get<0>(this->values_) = _propertyName;
-            std::get<1>(this->values_) = _propertyValue;
-        };
-
-        const std::string &getPropertyName() const { return std::get<0>(this->values_); }
-        void setPropertyName(const std::string &_value) { std::get<0>(this->values_) = _value; }
-
-        const ValueType_ getPropertyValue() const { return std::get<1>(this->values_); }
-        void setPropertyValue(const ValueType_ &_value) { std::get<1>(this->values_) = _value; }
-    };
-
-    typedef std::vector<DBusPropertiesEntry<DataType_>> PropertiesArray;
-    typedef CommonAPI::Deployment<CommonAPI::EmptyDeployment, VariantDeployment<DeplType_>> PropertyDeployment;
-    typedef CommonAPI::ArrayDeployment<PropertyDeployment> PropertiesDeployment;
-    typedef CommonAPI::Deployable<PropertiesArray, PropertiesDeployment> DeployedPropertiesArray;
+    typedef std::unordered_map<std::string, Variant<DataType_>> PropertyMap;
+    typedef MapDeployment<EmptyDeployment, VariantDeployment<DeplType_>> PropertyMapDeployment;
+    typedef Deployable<PropertyMap, PropertyMapDeployment> DeployedPropertyMap;
 
     template <typename StubClass_>
     static bool sendPropertiesChangedSignal(const StubClass_ &_stub, const std::string &_propertyName, const DataType_ &_inArg, DeplType_ *_depl) {
         const std::vector<std::string> invalidatedProperties;
-        PropertiesArray changedProperties;
-        DBusPropertiesEntry<DataType_> entry(_propertyName, _inArg);
-        changedProperties.push_back(entry);
+
+        // fill out property map
+        PropertyMap changedProperties;
+        changedProperties[_propertyName] = _inArg;
 
         VariantDeployment<DeplType_> actualDepl(true, _depl);
-        PropertyDeployment propertyDeployment(nullptr, &actualDepl);
-        PropertiesDeployment changedPropertiesDeployment(&propertyDeployment);
-
-        DeployedPropertiesArray deployedChangedProperties(changedProperties, &changedPropertiesDeployment);
+        PropertyMapDeployment changedPropertiesDeployment(nullptr, &actualDepl);
+        DeployedPropertyMap deployedChangedProperties(changedProperties, &changedPropertiesDeployment);
 
         return DBusStubSignalHelper<
                     DBusSerializableArguments<
                         const std::string,
-                        DeployedPropertiesArray,
+                        DeployedPropertyMap,
                         std::vector<std::string>
                     >
                >::sendSignal(

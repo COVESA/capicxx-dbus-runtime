@@ -3,9 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cassert>
 #include <vector>
-
+#include <algorithm>
 #include <CommonAPI/DBus/DBusObjectManagerStub.hpp>
 #include <CommonAPI/DBus/DBusOutputStream.hpp>
 #include <CommonAPI/DBus/DBusStubAdapter.hpp>
@@ -18,9 +17,15 @@ DBusObjectManagerStub::DBusObjectManagerStub(const std::string& dbusObjectPath,
                                              const std::shared_ptr<DBusProxyConnection>& dbusConnection) :
                         dbusObjectPath_(dbusObjectPath),
                         dbusConnection_(dbusConnection) {
-    assert(!dbusObjectPath.empty());
-    assert(dbusObjectPath[0] == '/');
-    assert(dbusConnection);
+    if (dbusObjectPath.empty()) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " empty _path");
+    }
+    if ('/' != dbusObjectPath[0]) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid _path ", dbusObjectPath);
+    }
+    if (!dbusConnection) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " invalid _connection");
+    }
 }
 
 DBusObjectManagerStub::~DBusObjectManagerStub() {
@@ -29,21 +34,33 @@ DBusObjectManagerStub::~DBusObjectManagerStub() {
 
         for (auto& dbusInterfaceIterator : registeredDBusInterfacesMap) {
             auto managedDBusStubAdapter = dbusInterfaceIterator.second;
-            auto managedDBusStubAdapterServiceAddress = managedDBusStubAdapter->getDBusAddress();
 #ifdef COMMONAPI_TODO
-            const bool isServiceUnregistered = DBusServicePublisher::getInstance()->unregisterManagedService(
-                            managedDBusStubAdapterServiceAddress);
-            assert(isServiceUnregistered);
+            for (auto& adapterIterator : dbusInterfaceIterator.second) {
+                auto managedDBusStubAdapterServiceAddress = adapterIterator->getDBusAddress();
+
+                const bool isServiceUnregistered = DBusServicePublisher::getInstance()->unregisterManagedService(
+                                managedDBusStubAdapterServiceAddress);
+                if (!isServiceUnregistered) {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " service still registered ", managedDBusStubAdapterServiceAddress.getService());
+                }
 #endif
         }
     }
 }
 
 bool DBusObjectManagerStub::exportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> managedDBusStubAdapter) {
-    assert(managedDBusStubAdapter);
+    if (!managedDBusStubAdapter) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), "managedDBusStubAdapter == nullptr");
+        return false;
+    }
+
+    // if already registered, return true.
+    const bool alreadyExported = isDBusStubAdapterExported(managedDBusStubAdapter);
+    if (alreadyExported) {
+        return true;
+    }
 
     std::lock_guard<std::mutex> dbusObjectManagerStubLock(dbusObjectManagerStubLock_);
-
     const bool isRegistrationSuccessful = registerDBusStubAdapter(managedDBusStubAdapter);
     if (!isRegistrationSuccessful) {
         return false;
@@ -63,7 +80,10 @@ bool DBusObjectManagerStub::exportManagedDBusStubAdapter(std::shared_ptr<DBusStu
 }
 
 bool DBusObjectManagerStub::unexportManagedDBusStubAdapter(std::shared_ptr<DBusStubAdapter> managedDBusStubAdapter) {
-    assert(managedDBusStubAdapter);
+    if (!managedDBusStubAdapter) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), "managedDBusStubAdapter == nullptr");
+        return false;
+    }
 
     std::lock_guard<std::mutex> dbusObjectManagerStubLock(dbusObjectManagerStubLock_);
 
@@ -86,7 +106,10 @@ bool DBusObjectManagerStub::unexportManagedDBusStubAdapter(std::shared_ptr<DBusS
 }
 
 bool DBusObjectManagerStub::isDBusStubAdapterExported(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
-    assert(dbusStubAdapter);
+    if (!dbusStubAdapter) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), "dbusStubAdapter == nullptr");
+        return false;
+    }
 
     const auto& dbusObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
     const auto& dbusInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
@@ -103,13 +126,15 @@ bool DBusObjectManagerStub::isDBusStubAdapterExported(std::shared_ptr<DBusStubAd
     auto& registeredDBusInterfacesMap = registeredDBusObjectPathIterator->second;
     const auto& registeredDBusInterfaceIterator = registeredDBusInterfacesMap.find(dbusInterfaceName);
     const bool isRegisteredDBusInterfaceName = (registeredDBusInterfaceIterator != registeredDBusInterfacesMap.end());
-
-    if (isRegisteredDBusInterfaceName) {
-        auto registeredDBusStubAdapter = registeredDBusInterfaceIterator->second;
-        assert(registeredDBusStubAdapter == dbusStubAdapter);
+    if (!isRegisteredDBusInterfaceName) {
+        return false;
     }
 
-    return isRegisteredDBusInterfaceName;
+    const auto& registeredDBusStubAdapterList = registeredDBusInterfaceIterator->second;
+    auto registeredDBusStubAdapter = find(registeredDBusStubAdapterList.begin(), registeredDBusStubAdapterList.end(), dbusStubAdapter);
+
+    return registeredDBusStubAdapter != registeredDBusStubAdapterList.end();
+
 }
 
 bool DBusObjectManagerStub::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
@@ -125,12 +150,27 @@ bool DBusObjectManagerStub::registerDBusStubAdapter(std::shared_ptr<DBusStubAdap
         const bool isDBusInterfaceAlreadyRegistered = (registeredDBusInterfaceIterator != registeredDBusInterfacesMap.end());
 
         if (!isDBusInterfaceAlreadyRegistered) {
-            const auto& insertResult = registeredDBusInterfacesMap.insert({ dbusInterfaceName, dbusStubAdapter });
+            const auto& insertResult = registeredDBusInterfacesMap.insert(
+                { dbusInterfaceName,
+                  std::vector<std::shared_ptr<DBusStubAdapter>>({dbusStubAdapter})});
             isRegisterationSuccessful = insertResult.second;
+        }
+        else {
+            // add to existing interface
+            auto adapterList = registeredDBusInterfaceIterator->second;
+            if (find(adapterList.begin(), adapterList.end(), dbusStubAdapter) == adapterList.end()) {
+                adapterList.push_back(dbusStubAdapter);
+                registeredDBusInterfaceIterator->second = adapterList;
+                isRegisterationSuccessful = true;
+            }
+            else {
+                // already registered
+                isRegisterationSuccessful = false;
+            }
         }
     } else {
         const auto& insertResult = registeredDBusObjectPathsMap_.insert({
-            dbusObjectPath, DBusInterfacesMap({{ dbusInterfaceName, dbusStubAdapter }})
+            dbusObjectPath, DBusInterfacesMap({{ dbusInterfaceName, std::vector<std::shared_ptr<DBusStubAdapter>>({dbusStubAdapter}) }})
         });
         isRegisterationSuccessful = insertResult.second;
     }
@@ -156,23 +196,37 @@ bool DBusObjectManagerStub::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAd
         return false;
     }
 
-    auto registeredDBusStubAdapter = registeredDBusInterfaceIterator->second;
-    assert(registeredDBusStubAdapter == dbusStubAdapter);
+    auto& registeredAdapterList = registeredDBusInterfaceIterator->second;
+    auto adapter = find (registeredAdapterList.begin(), registeredAdapterList.end(), dbusStubAdapter);
 
-    registeredDBusInterfacesMap.erase(registeredDBusInterfaceIterator);
-
-    if (registeredDBusInterfacesMap.empty()) {
-        registeredDBusObjectPathsMap_.erase(registeredDBusObjectPathIterator);
+    if (registeredAdapterList.end() == adapter) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " stub adapter not registered ", dbusObjectPath, " interface: ", dbusInterfaceName);
+        return false;
     }
 
+    registeredAdapterList.erase(adapter);
+
+    if (registeredAdapterList.empty()) {
+        registeredDBusInterfacesMap.erase(registeredDBusInterfaceIterator);
+
+        if (registeredDBusInterfacesMap.empty()) {
+            registeredDBusObjectPathsMap_.erase(registeredDBusObjectPathIterator);
+        }
+    }
     return true;
 }
 
 
 bool DBusObjectManagerStub::emitInterfacesAddedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                                       const std::shared_ptr<DBusProxyConnection>& dbusConnection) const {
-    assert(dbusConnection);
-    assert(dbusConnection->isConnected());
+    if (!dbusConnection) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbusConnection == nullptr");
+        return false;
+    }
+    if (!dbusConnection->isConnected()) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " not connected");
+        return false;
+    }
 
     const auto& dbusStubObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
     const auto& dbusStubInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
@@ -200,8 +254,14 @@ bool DBusObjectManagerStub::emitInterfacesAddedSignal(std::shared_ptr<DBusStubAd
 
 bool DBusObjectManagerStub::emitInterfacesRemovedSignal(std::shared_ptr<DBusStubAdapter> dbusStubAdapter,
                                                         const std::shared_ptr<DBusProxyConnection>& dbusConnection) const {
-    assert(dbusConnection);
-    assert(dbusConnection->isConnected());
+    if (!dbusConnection) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " dbusConnection == nullptr");
+        return false;
+    }
+    if (!dbusConnection->isConnected()) {
+        COMMONAPI_ERROR(std::string(__FUNCTION__), " not connected");
+        return false;
+    }
 
     const auto& dbusStubObjectPath = dbusStubAdapter->getDBusAddress().getObjectPath();
     const auto& dbusStubInterfaceName = dbusStubAdapter->getDBusAddress().getInterface();
@@ -254,23 +314,30 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
         const auto& registeredDBusInterfacesMap = registeredDBusObjectPathIterator.second;
         DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict;
 
-        assert(registeredDBusObjectPath.length() > 0);
-        assert(registeredDBusInterfacesMap.size() > 0);
-
-        for (const auto& registeredDBusInterfaceIterator : registeredDBusInterfacesMap) {
-            const std::string& registeredDBusInterfaceName = registeredDBusInterfaceIterator.first;
-            const auto& registeredDBusStubAdapter = registeredDBusInterfaceIterator.second;
-
-            assert(registeredDBusInterfaceName.length() > 0);
-
-            dbusInterfacesAndPropertiesDict.insert({ registeredDBusInterfaceName, DBusPropertiesChangedDict() });
-
-            if (registeredDBusStubAdapter->isManaging()) {
-                dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
+        if (0 == registeredDBusObjectPath.length()) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__), " empty object path");
+        } else {
+            if (0 == registeredDBusInterfacesMap.size()) {
+                COMMONAPI_ERROR(std::string(__FUNCTION__), " empty interfaces map for ", registeredDBusObjectPath);
             }
-        }
 
-        dbusObjectPathAndInterfacesDict.insert({ registeredDBusObjectPath, std::move(dbusInterfacesAndPropertiesDict) });
+            for (const auto& registeredDBusInterfaceIterator : registeredDBusInterfacesMap) {
+                const std::string& registeredDBusInterfaceName = registeredDBusInterfaceIterator.first;
+                const auto& registeredDBusStubAdapter = registeredDBusInterfaceIterator.second.begin();
+
+                if (0 == registeredDBusInterfaceName.length()) {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " empty interface name for ", registeredDBusObjectPath);
+                } else {
+                    dbusInterfacesAndPropertiesDict.insert({ registeredDBusInterfaceName, DBusPropertiesChangedDict() });
+                }
+
+                if ((*registeredDBusStubAdapter)->isManaging()) {
+                    dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
+                }
+            }
+
+            dbusObjectPathAndInterfacesDict.insert({ registeredDBusObjectPath, std::move(dbusInterfacesAndPropertiesDict) });
+        }
     }
 
     DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{oa{sa{sv}}}");

@@ -112,7 +112,7 @@ public:
     std::string dbusObjectPath_;
     std::weak_ptr<DBusProxyConnection> dbusConnection_;
 
-    typedef std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> DBusInterfacesMap;
+    typedef std::unordered_map<std::string, std::vector<std::shared_ptr<DBusStubAdapter>>> DBusInterfacesMap;
     typedef std::unordered_map<std::string, DBusInterfacesMap> DBusObjectPathsMap;
     DBusObjectPathsMap registeredDBusObjectPathsMap_;
 

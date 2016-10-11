@@ -26,7 +26,7 @@
 namespace CommonAPI {
 namespace DBus {
 
-class DBusProxyManager: public ProxyManager {
+class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusProxyManager: public ProxyManager {
 public:
     COMMONAPI_EXPORT DBusProxyManager(DBusProxy &_proxy,
                      const std::string &_interfaceName);

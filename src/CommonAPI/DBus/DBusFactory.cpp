@@ -27,10 +27,34 @@ Factory::get() {
     return theFactory;
 }
 
-Factory::Factory() {
+Factory::Factory() : isInitialized_(false) {
 }
 
 Factory::~Factory() {
+}
+
+void
+Factory::init() {
+#ifndef WIN32
+	std::lock_guard<std::mutex> itsLock(initializerMutex_);
+#endif
+	if (!isInitialized_) {
+		for (auto i : initializers_) i();
+		initializers_.clear(); // Not needed anymore
+		isInitialized_ = true;
+	}
+}
+
+void
+Factory::registerInterface(InterfaceInitFunction _function) {
+	std::lock_guard<std::mutex> itsLock(initializerMutex_);
+	if (isInitialized_) {
+		// We are already running --> initialize the interface library!
+		_function();
+	} else {
+		// We are not initialized --> save the initializer
+		initializers_.push_back(_function);
+	}
 }
 
 void
@@ -222,13 +246,14 @@ Factory::unregisterStubAdapter(std::shared_ptr<DBusStubAdapter> _adapter) {
 std::shared_ptr<DBusConnection>
 Factory::getConnection(const ConnectionId_t &_connectionId) {
 
+    std::lock_guard<std::mutex> itsGuard(connectionsMutex_);
     auto itsConnectionIterator = connections_.find(_connectionId);
     if (itsConnectionIterator != connections_.end()) {
         return itsConnectionIterator->second;
     }
 
     // No connection found, lets create and initialize one
-    DBusType_t dbusType = DBusAddressTranslator::get()->getDBusBusType(_connectionId);
+    const DBusType_t dbusType = DBusAddressTranslator::get()->getDBusBusType(_connectionId);
     std::shared_ptr<DBusConnection> itsConnection
         = std::make_shared<DBusConnection>(dbusType, _connectionId);
     connections_.insert({ _connectionId, itsConnection });
@@ -242,14 +267,16 @@ Factory::getConnection(std::shared_ptr<MainLoopContext> _context) {
     if (!_context)
         return getConnection(DEFAULT_CONNECTION_ID);
 
+    std::lock_guard<std::mutex> itsGuard(contextConnectionsMutex_);
     auto itsConnectionIterator = contextConnections_.find(_context.get());
     if (itsConnectionIterator != contextConnections_.end()) {
         return itsConnectionIterator->second;
     }
 
     // No connection found, lets create and initialize one
+    const DBusType_t dbusType = DBusAddressTranslator::get()->getDBusBusType(_context->getName());
     std::shared_ptr<DBusConnection> itsConnection
-        = std::make_shared<DBusConnection>(DBusType_t::SESSION, _context->getName());
+        = std::make_shared<DBusConnection>(dbusType, _context->getName());
     contextConnections_.insert({ _context.get(), itsConnection } );
 
     itsConnection->connect(false);
@@ -310,9 +337,9 @@ Factory::registerManagedService(const std::shared_ptr<DBusStubAdapter> &_stubAda
         const bool isAcquired = connection->requestServiceNameAndBlock(serviceName);
         if (!isAcquired) {
             const bool isDeregistered = objectManager->unregisterDBusStubAdapter(_stubAdapter);
-            assert(isDeregistered);
-            (void)isDeregistered;
-
+            if (!isDeregistered) {
+                COMMONAPI_ERROR(std::string(__FUNCTION__), " couldn't deregister ", serviceName);
+            }
             services_.erase(insertResult.first);
         }
 
@@ -346,6 +373,88 @@ Factory::unregisterManagedService(const ServicesMap::iterator &iterator) {
     }
     // TODO: log error
     return isUnregistered;
+}
+
+void Factory::incrementConnection(std::shared_ptr<DBusProxyConnection> _connection) {
+    std::shared_ptr<DBusConnection> connection;
+    {
+        std::lock_guard<std::mutex> itsConnectionGuard(connectionsMutex_);
+        for (auto itsConnectionIterator = connections_.begin(); itsConnectionIterator != connections_.end(); itsConnectionIterator++) {
+            if (itsConnectionIterator->second == _connection) {
+                connection = itsConnectionIterator->second;
+                break;
+            }
+        }
+    }
+
+    if(connection)
+        connection->incrementConnection();
+
+    std::shared_ptr<DBusConnection> contextConnection;
+    {
+        std::lock_guard<std::mutex> itsContextConnectionGuard(contextConnectionsMutex_);
+        for (auto itsConnectionIterator = contextConnections_.begin(); itsConnectionIterator != contextConnections_.end(); itsConnectionIterator++) {
+            if (itsConnectionIterator->second == _connection) {
+                contextConnection = itsConnectionIterator->second;
+                break;
+            }
+        }
+    }
+
+    if(contextConnection)
+        contextConnection->incrementConnection();
+}
+
+void Factory::decrementConnection(std::shared_ptr<DBusProxyConnection> _connection) {
+    std::shared_ptr<DBusConnection> connection;
+    {
+        std::lock_guard<std::mutex> itsConnectionGuard(connectionsMutex_);
+        for (auto itsConnectionIterator = connections_.begin(); itsConnectionIterator != connections_.end(); itsConnectionIterator++) {
+            if (itsConnectionIterator->second == _connection) {
+                connection = itsConnectionIterator->second;
+                break;
+            }
+        }
+    }
+
+    if(connection)
+        connection->decrementConnection();
+
+    std::shared_ptr<DBusConnection> contextConnection;
+    {
+        std::lock_guard<std::mutex> itsContextConnectionGuard(contextConnectionsMutex_);
+        for (auto itsConnectionIterator = contextConnections_.begin(); itsConnectionIterator != contextConnections_.end(); itsConnectionIterator++) {
+            if (itsConnectionIterator->second == _connection) {
+                contextConnection = itsConnectionIterator->second;
+                break;
+            }
+        }
+    }
+
+    if(contextConnection)
+        contextConnection->decrementConnection();
+}
+
+void Factory::releaseConnection(const ConnectionId_t& _connectionId, MainLoopContext* _mainloopContext) {
+    {
+        std::lock_guard<std::mutex> itsConnectionGuard(connectionsMutex_);
+        auto connection = connections_.find(_connectionId);
+
+        if (connection != connections_.end()) {
+            DBusServiceRegistry::remove(connection->second);
+            connections_.erase(_connectionId);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> itsContextConnectionGuard(contextConnectionsMutex_);
+        auto connectionContext = contextConnections_.find(_mainloopContext);
+
+        if (connectionContext != contextConnections_.end()) {
+            DBusServiceRegistry::remove(connectionContext->second);
+            contextConnections_.erase(_mainloopContext);
+        }
+    }
 }
 
 } // namespace DBus
