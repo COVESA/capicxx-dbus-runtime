@@ -15,11 +15,10 @@
 #include <string>
 #include <vector>
 
+#include <CommonAPI/Export.hpp>
 #include <CommonAPI/ProxyManager.hpp>
-#include <CommonAPI/DBus/DBusAddressTranslator.hpp>
 #include <CommonAPI/DBus/DBusProxy.hpp>
 #include <CommonAPI/DBus/DBusObjectManagerStub.hpp>
-#include <CommonAPI/DBus/DBusInstanceAvailabilityStatusChangedEvent.hpp>
 #include <CommonAPI/DBus/DBusTypes.hpp>
 
 namespace CommonAPI {
@@ -30,115 +29,61 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                 public ProxyManager::InstanceAvailabilityStatusChangedEvent,
                 public DBusProxyConnection::DBusSignalHandler {
  public:
-    DBusInstanceAvailabilityStatusChangedEvent(DBusProxy &_proxy, const std::string &_interfaceName) :
-                    proxy_(_proxy),
-                    observedInterfaceName_(_interfaceName) {
-    }
 
-    virtual ~DBusInstanceAvailabilityStatusChangedEvent() {
-        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
-        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
-    }
+    typedef std::function<void(const CallStatus &, const std::vector<DBusAddress> &)> GetAvailableServiceInstancesCallback;
 
-    virtual void onSignalDBusMessage(const DBusMessage& dbusMessage) {
-        if (dbusMessage.hasMemberName("InterfacesAdded")) {
-            onInterfacesAddedSignal(dbusMessage);
-        } else if (dbusMessage.hasMemberName("InterfacesRemoved")) {
-            onInterfacesRemovedSignal(dbusMessage);
-        }
-    }
+    COMMONAPI_EXPORT DBusInstanceAvailabilityStatusChangedEvent(DBusProxy &_proxy,
+                                               const std::string &_dbusInterfaceName,
+                                               const std::string &_capiInterfaceName);
+
+    COMMONAPI_EXPORT virtual ~DBusInstanceAvailabilityStatusChangedEvent();
+
+    COMMONAPI_EXPORT virtual void onSignalDBusMessage(const DBusMessage& dbusMessage);
+
+    COMMONAPI_EXPORT void getAvailableServiceInstances(CommonAPI::CallStatus &_status, std::vector<DBusAddress> &_availableServiceInstances);
+    COMMONAPI_EXPORT std::future<CallStatus> getAvailableServiceInstancesAsync(GetAvailableServiceInstancesCallback _callback);
+
+    COMMONAPI_EXPORT void getServiceInstanceAvailabilityStatus(const std::string &_instance,
+                                       CallStatus &_callStatus,
+                                       AvailabilityStatus &_availabilityStatus);
+    COMMONAPI_EXPORT std::future<CallStatus> getServiceInstanceAvailabilityStatusAsync(const std::string& _instance,
+            ProxyManager::GetInstanceAvailabilityStatusCallback _callback);
 
  protected:
-    virtual void onFirstListenerAdded(const Listener&) {
-        interfacesAddedSubscription_ = proxy_.addSignalMemberHandler(
-                        proxy_.getDBusAddress().getObjectPath(),
-                        DBusObjectManagerStub::getInterfaceName(),
-                        "InterfacesAdded",
-                        "oa{sa{sv}}",
-                        this,
-                        false);
-
-        interfacesRemovedSubscription_ = proxy_.addSignalMemberHandler(
-                        proxy_.getDBusAddress().getObjectPath(),
-                        DBusObjectManagerStub::getInterfaceName(),
-                        "InterfacesRemoved",
-                        "oas",
-                        this,
-                        false);
-    }
-
-    virtual void onLastListenerRemoved(const Listener&) {
-        proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
-        proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
-    }
+    virtual void onFirstListenerAdded(const Listener&);
+    virtual void onLastListenerRemoved(const Listener&);
 
  private:
-    inline void onInterfacesAddedSignal(const DBusMessage &_message) {
-        DBusInputStream dbusInputStream(_message);
-        std::string dbusObjectPath;
-        std::string dbusInterfaceName;
-        DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict;
 
-        dbusInputStream >> dbusObjectPath;
-        if (dbusInputStream.hasError()) {
-            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read object path");
-        }
+    void onInterfacesAddedSignal(const DBusMessage &_message);
 
-        dbusInputStream.beginReadMapOfSerializableStructs();
-        while (!dbusInputStream.readMapCompleted()) {
-            dbusInputStream.align(8);
-            dbusInputStream >> dbusInterfaceName;
-            dbusInputStream.skipMap();
-            if (dbusInputStream.hasError()) {
-                COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read interface name");
-            }
-            if(dbusInterfaceName == observedInterfaceName_) {
-                notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::AVAILABLE);
-            }
-        }
-        dbusInputStream.endReadMapOfSerializableStructs();
-    }
-
-    inline void onInterfacesRemovedSignal(const DBusMessage &_message) {
-        DBusInputStream dbusInputStream(_message);
-        std::string dbusObjectPath;
-        std::vector<std::string> dbusInterfaceNames;
-
-        dbusInputStream >> dbusObjectPath;
-        if (dbusInputStream.hasError()) {
-            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read object path");
-        }
-
-        dbusInputStream >> dbusInterfaceNames;
-        if (dbusInputStream.hasError()) {
-            COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read interface names");
-        }
-
-        for (const auto& dbusInterfaceName : dbusInterfaceNames) {
-            if(dbusInterfaceName == observedInterfaceName_) {
-                notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::NOT_AVAILABLE);
-            }
-        }
-    }
+    void onInterfacesRemovedSignal(const DBusMessage &_message);
 
     void notifyInterfaceStatusChanged(const std::string &_objectPath,
                                       const std::string &_interfaceName,
-                                      const AvailabilityStatus &_availability) {
-        CommonAPI::Address itsAddress;
-        DBusAddress itsDBusAddress(proxy_.getDBusAddress().getService(),
-                                   _objectPath,
-                                   _interfaceName);
+                                      const AvailabilityStatus &_availability);
 
-        DBusAddressTranslator::get()->translate(itsDBusAddress, itsAddress);
+    bool addInterface(const std::string &_dbusObjectPath,
+                      const std::string &_dbusInterfaceName);
+    bool removeInterface(const std::string &_dbusObjectPath,
+                         const std::string &_dbusInterfaceName);
 
-        notifyListeners(itsAddress.getAddress(), _availability);
-    }
+    void serviceInstancesAsyncCallback(std::shared_ptr<Proxy> _proxy,
+                                       const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict _dict,
+                                       GetAvailableServiceInstancesCallback &_call,
+                                       std::shared_ptr<std::promise<CallStatus> > &_promise);
 
+    void translate(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict &_dict,
+                                     std::vector<DBusAddress> &_serviceInstances);
 
     DBusProxy &proxy_;
-    std::string observedInterfaceName_;
+    std::string observedDbusInterfaceName_;
+    std::string observedCapiInterfaceName_;
     DBusProxyConnection::DBusSignalHandlerToken interfacesAddedSubscription_;
     DBusProxyConnection::DBusSignalHandlerToken interfacesRemovedSubscription_;
+    std::mutex interfacesMutex_;
+    std::map<std::string, std::set<std::string>> interfaces_;
+    const std::shared_ptr<DBusServiceRegistry> registry_;
 };
 
 } // namespace DBus

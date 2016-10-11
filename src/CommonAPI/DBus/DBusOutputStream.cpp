@@ -73,7 +73,7 @@ DBusOutputStream& DBusOutputStream::writeString(const char *_value, const uint32
     if (NULL == _value) {
         COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value == NULL");
     } else if (_value[_length] != '\0') {
-        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value is not zero-terminated")
+        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value is not zero-terminated");
     } else {
         _writeValue(_length);
         _writeRaw(_value, _length + 1);
@@ -84,7 +84,12 @@ DBusOutputStream& DBusOutputStream::writeString(const char *_value, const uint32
 DBusOutputStream& DBusOutputStream::writeByteBuffer(const uint8_t *_value,
                                                     const uint32_t &_length) {
     if (NULL == _value) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value == NULL");
+        if (0 != _length) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + " _value == NULL && _length != 0");
+        } else {
+            COMMONAPI_WARNING(std::string(__FUNCTION__) + " _value == NULL");
+            _writeValue(_length);
+        }
     } else {
         _writeValue(_length);
         _writeRaw(reinterpret_cast<const char*>(_value), _length);

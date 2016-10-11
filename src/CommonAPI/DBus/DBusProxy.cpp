@@ -9,6 +9,7 @@
 #include <CommonAPI/DBus/DBusProxy.hpp>
 #include <CommonAPI/DBus/DBusUtils.hpp>
 #include <CommonAPI/DBus/DBusProxyAsyncSignalMemberCallbackHandler.hpp>
+#include <CommonAPI/DBus/DBusConnection.hpp>
 #include <CommonAPI/Logger.hpp>
 
 namespace CommonAPI {
@@ -18,10 +19,36 @@ DBusProxyStatusEvent::DBusProxyStatusEvent(DBusProxy *_dbusProxy)
     : dbusProxy_(_dbusProxy) {
 }
 
-void DBusProxyStatusEvent::onListenerAdded(const Listener &_listener, const Subscription _subscription) {
-    (void)_subscription;
-    if (dbusProxy_->isAvailable())
-        _listener(AvailabilityStatus::AVAILABLE);
+void DBusProxyStatusEvent::onListenerAdded(const Listener &_listener,
+                                           const Subscription _subscription) {
+    std::lock_guard<std::recursive_mutex> listenersLock(listenersMutex_);
+
+    //notify listener about availability status -> push function to mainloop
+    std::weak_ptr<DBusProxy> itsdbusProxy = dbusProxy_->shared_from_this();
+    std::function<void(std::weak_ptr<DBusProxy>, Listener, Subscription)> notifySpecificListenerHandler =
+             std::bind(&DBusProxy::notifySpecificListener,
+                       dbusProxy_,
+                       std::placeholders::_1,
+                       std::placeholders::_2,
+                       std::placeholders::_3);
+    dbusProxy_->getDBusConnection()->proxyPushFunctionToMainLoop<DBusConnection>(
+            notifySpecificListenerHandler,
+            itsdbusProxy,
+            _listener,
+            _subscription);
+}
+
+void DBusProxyStatusEvent::onListenerRemoved(const Listener& _listener,
+                                             const Subscription _subscription) {
+    std::lock_guard<std::recursive_mutex> listenersLock(listenersMutex_);
+    (void)_listener;
+    auto listenerIt = listeners_.begin();
+    while(listenerIt != listeners_.end()) {
+        if(listenerIt->first == _subscription)
+            listenerIt = listeners_.erase(listenerIt);
+        else
+            ++listenerIt;
+    }
 }
 
 void DBusProxy::availabilityTimeoutThreadHandler() const {
@@ -36,7 +63,7 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
             isAvailableAsyncCallback,
             std::promise<AvailabilityStatus>,
             AvailabilityStatus,
-            std::chrono::time_point<std::chrono::high_resolution_clock>
+            std::chrono::steady_clock::time_point
             > CallbackData_t;
     std::list<CallbackData_t> callbacks;
 
@@ -46,14 +73,14 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
         timeoutsMutex_.lock();
 
         int timeout = std::numeric_limits<int>::max();
-        std::chrono::time_point<std::chrono::high_resolution_clock> minTimeout;
+        std::chrono::steady_clock::time_point minTimeout;
         if (timeouts_.size() > 0) {
             auto minTimeoutElement = std::min_element(timeouts_.begin(), timeouts_.end(),
                     [] (const AvailabilityTimeout_t& lhs, const AvailabilityTimeout_t& rhs) {
                         return std::get<0>(lhs) < std::get<0>(rhs);
             });
             minTimeout = std::get<0>(*minTimeoutElement);
-            std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+            std::chrono::steady_clock::time_point now = (std::chrono::steady_clock::time_point) std::chrono::steady_clock::now();
             timeout = (int)std::chrono::duration_cast<std::chrono::milliseconds>(minTimeout - now).count();
         }
         timeoutsMutex_.unlock();
@@ -66,21 +93,22 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
             //iterate through timeouts
             auto it = timeouts_.begin();
             while (it != timeouts_.end()) {
-                std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
+                std::chrono::steady_clock::time_point now = (std::chrono::steady_clock::time_point) std::chrono::steady_clock::now();
 
                 isAvailableAsyncCallback callback = std::get<1>(*it);
 
                 if (now > std::get<0>(*it)) {
                     //timeout
                     availabilityMutex_.lock();
+                    std::chrono::steady_clock::time_point timepoint_;
                     if(isAvailable())
                         callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
                                                             AvailabilityStatus::AVAILABLE,
-                                                            std::chrono::time_point<std::chrono::high_resolution_clock>()));
+                                                            timepoint_));
                     else
                         callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
                                                             AvailabilityStatus::NOT_AVAILABLE,
-                                                            std::chrono::time_point<std::chrono::high_resolution_clock>()));
+                                                            timepoint_));
                     it = timeouts_.erase(it);
                     availabilityMutex_.unlock();
                 } else {
@@ -131,7 +159,7 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
         isAvailableAsyncCallback callback;
         AvailabilityStatus avStatus;
         int remainingTimeout;
-        std::chrono::high_resolution_clock::time_point now;
+        std::chrono::steady_clock::time_point now;
 
         auto it = callbacks.begin();
         while(it != callbacks.end()) {
@@ -139,7 +167,7 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
             avStatus = std::get<2>(*it);
 
             // compute remaining timeout
-            now = std::chrono::high_resolution_clock::now();
+            now = (std::chrono::steady_clock::time_point) std::chrono::steady_clock::now();
             remainingTimeout = (int)std::chrono::duration_cast<std::chrono::milliseconds>(std::get<3>(*it) - now).count();
             if(remainingTimeout < 0)
                 remainingTimeout = 0;
@@ -170,10 +198,10 @@ DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
                 interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
                 dbusServiceRegistry_(DBusServiceRegistry::get(_connection))
 {
-    Factory::get()->incrementConnection(connection_);
 }
 
 void DBusProxy::init() {
+    selfReference_ = shared_from_this();
     dbusServiceRegistrySubscription_ = dbusServiceRegistry_->subscribeAvailabilityListener(
                     getAddress().getAddress(),
                     std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1));
@@ -216,7 +244,7 @@ std::future<AvailabilityStatus> DBusProxy::isAvailableAsync(
     std::future<AvailabilityStatus> future = promise.get_future();
 
     //set timeout point
-    auto timeoutPoint = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(_info->timeout_);
+    auto timeoutPoint = (std::chrono::steady_clock::time_point) std::chrono::steady_clock::now() + std::chrono::milliseconds(_info->timeout_);
 
     timeoutsMutex_.lock();
     if(timeouts_.size() == 0) {
@@ -258,6 +286,10 @@ std::future<AvailabilityStatus> DBusProxy::isAvailableAsync(
     return future;
 }
 
+AvailabilityStatus DBusProxy::getAvailabilityStatus() const {
+    return availabilityStatus_;
+}
+
 ProxyStatusEvent& DBusProxy::getProxyStatusEvent() {
     return dbusProxyStatusEvent_;
 }
@@ -286,7 +318,24 @@ void DBusProxy::signalInitialValueCallback(const CallStatus _status,
     }
 }
 
+void DBusProxy::notifySpecificListener(std::weak_ptr<DBusProxy> _dbusProxy,
+                                       const ProxyStatusEvent::Listener &_listener,
+                                       const ProxyStatusEvent::Subscription _subscription) {
+    if(_dbusProxy.lock()) {
+        std::lock_guard<std::recursive_mutex> listenersLock(dbusProxyStatusEvent_.listenersMutex_);
+
+        AvailabilityStatus itsStatus = availabilityStatus_;
+        if (itsStatus != AvailabilityStatus::UNKNOWN)
+            dbusProxyStatusEvent_.notifySpecificListener(_subscription, itsStatus);
+
+        //add listener to list so that it can be notified about a change of availability
+        dbusProxyStatusEvent_.listeners_.push_back(std::make_pair(_subscription, _listener));
+    }
+}
+
 void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
+    //ensure, proxy survives until notification is done
+    auto itsSelf = selfReference_.lock();
     if (availabilityStatus != availabilityStatus_) {
         availabilityMutex_.lock();
         availabilityStatus_ = availabilityStatus;
@@ -297,7 +346,11 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
         availabilityTimeoutCondition_.notify_all();
         availabilityTimeoutThreadMutex_.unlock();
 
-        dbusProxyStatusEvent_.notifyListeners(availabilityStatus);
+        {
+            std::lock_guard<std::recursive_mutex> subscribersLock(dbusProxyStatusEvent_.listenersMutex_);
+            for(auto listenerIt : dbusProxyStatusEvent_.listeners_)
+                dbusProxyStatusEvent_.notifySpecificListener(listenerIt.first, availabilityStatus_);
+        }
 
         if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
             std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
@@ -335,9 +388,11 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
             {
                 std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
                 for (auto selectiveBroadcasts : selectiveBroadcastHandlers) {
-                    std::string methodName = "subscribeFor" + selectiveBroadcasts.first + "Selective";
-                    connection_->sendPendingSelectiveSubscription(this, methodName, selectiveBroadcasts.second.first,
-                            selectiveBroadcasts.second.second);
+                    connection_->sendPendingSelectiveSubscription(this,
+                            selectiveBroadcasts.first,
+                            std::get<0>(selectiveBroadcasts.second),
+                            std::get<1>(selectiveBroadcasts.second),
+                            std::get<2>(selectiveBroadcasts.second));
                 }
             }
         } else {
@@ -365,9 +420,11 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
 }
 
 void DBusProxy::insertSelectiveSubscription(const std::string& interfaceMemberName,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag) {
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag,
+            std::string interfaceMemberSignature) {
     std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
-    selectiveBroadcastHandlers[interfaceMemberName] = std::make_pair(dbusSignalHandler, tag);
+    selectiveBroadcastHandlers[interfaceMemberName] = std::make_tuple(
+            dbusSignalHandler, tag, interfaceMemberSignature);
 }
 
 void DBusProxy::subscribeForSelectiveBroadcastOnConnection(
@@ -584,7 +641,6 @@ void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
         availabilityMutex_.unlock();
     }
 }
-
 
 } // namespace DBus
 } // namespace CommonAPI

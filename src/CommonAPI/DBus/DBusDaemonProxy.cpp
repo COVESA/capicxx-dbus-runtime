@@ -62,7 +62,15 @@ bool DBusDaemonProxy::isAvailableBlocking() const {
 std::future<AvailabilityStatus> DBusDaemonProxy::isAvailableAsync(
         isAvailableAsyncCallback _callback,
         const CallInfo *_info) const {
-    return isAvailableAsync(_callback, _info);
+    (void)_callback;
+    (void)_info;
+    std::promise<AvailabilityStatus> promise;
+    if(isAvailable()) {
+        promise.set_value(CommonAPI::AvailabilityStatus::AVAILABLE);
+    } else {
+        promise.set_value(CommonAPI::AvailabilityStatus::NOT_AVAILABLE);
+    }
+    return promise.get_future();
 }
 
 ProxyStatusEvent& DBusDaemonProxy::getProxyStatusEvent() {

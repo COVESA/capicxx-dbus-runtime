@@ -53,7 +53,10 @@ class DBusProxyAsyncCallbackHandler:
           timeoutOccurred_(false),
           hasToBeDeleted_(false) {
     }
-    virtual ~DBusProxyAsyncCallbackHandler() {}
+    virtual ~DBusProxyAsyncCallbackHandler() {
+        // free assigned std::function<> immediately
+        delegate_.function_ = [](CallStatus, ArgTypes_...) {};
+    }
 
     virtual std::future<CallStatus> getFuture() {
         return promise_.get_future();
@@ -76,8 +79,6 @@ class DBusProxyAsyncCallbackHandler:
 
     virtual void setExecutionFinished() {
         executionFinished_ = true;
-        // free assigned std::function<> immediately
-        delegate_.function_ = [](CallStatus, ArgTypes_...) {};
     }
 
     virtual bool getExecutionFinished() {

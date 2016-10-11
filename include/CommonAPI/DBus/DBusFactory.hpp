@@ -89,14 +89,14 @@ public:
     COMMONAPI_EXPORT bool registerManagedService(const std::shared_ptr<DBusStubAdapter> &_adapter);
     COMMONAPI_EXPORT bool unregisterManagedService(const std::string &_address);
 
-    COMMONAPI_EXPORT void incrementConnection(std::shared_ptr<DBusProxyConnection>);
     COMMONAPI_EXPORT void decrementConnection(std::shared_ptr<DBusProxyConnection>);
-    COMMONAPI_EXPORT void releaseConnection(const ConnectionId_t&, MainLoopContext*);
+    COMMONAPI_EXPORT void releaseConnection(const ConnectionId_t&);
 
     // Initialization
     COMMONAPI_EXPORT void registerInterface(InterfaceInitFunction _function);
 
 private:
+    COMMONAPI_EXPORT void incrementConnection(std::shared_ptr<DBusProxyConnection>);
     COMMONAPI_EXPORT std::shared_ptr<DBusConnection> getConnection(const ConnectionId_t &);
     COMMONAPI_EXPORT std::shared_ptr<DBusConnection> getConnection(std::shared_ptr<MainLoopContext>);
     COMMONAPI_EXPORT bool registerStubAdapter(std::shared_ptr<DBusStubAdapter>);
@@ -109,11 +109,8 @@ private:
 private:
     static std::shared_ptr<Factory> theFactory;
 
-    std::mutex connectionsMutex_;
+    std::recursive_mutex connectionsMutex_;
     std::map<ConnectionId_t, std::shared_ptr<DBusConnection>> connections_;
-
-    std::mutex contextConnectionsMutex_;
-    std::map<MainLoopContext *, std::shared_ptr<DBusConnection>> contextConnections_;
 
     std::map<std::string, ProxyCreateFunction> proxyCreateFunctions_;
     std::map<std::string, StubAdapterCreateFunction> stubAdapterCreateFunctions_;

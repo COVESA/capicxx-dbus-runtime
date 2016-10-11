@@ -454,7 +454,7 @@ public:
 
         char * raw = _readRaw(sizeof(double));
         if (!hasError()) {
-            _value = (float) (*(reinterpret_cast<double*>(raw)));
+            _value = float(*(reinterpret_cast<double*>(raw)));
         }
         return (*this);
     }

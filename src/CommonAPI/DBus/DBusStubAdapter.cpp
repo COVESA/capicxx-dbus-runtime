@@ -16,12 +16,11 @@ DBusStubAdapter::DBusStubAdapter(const DBusAddress &_dbusAddress,
     : dbusAddress_(_dbusAddress),
       connection_(_connection),
       isManaging_(_isManaging) {
-    Factory::get()->incrementConnection(connection_);
 }
 
 DBusStubAdapter::~DBusStubAdapter() {
     deinit();
-    Factory::get()->decrementConnection(connection_);
+    Factory::get()->unregisterStub(address_.getDomain(), address_.getInterface(), address_.getInstance());
 }
 
 void DBusStubAdapter::init(std::shared_ptr<DBusStubAdapter> _instance) {

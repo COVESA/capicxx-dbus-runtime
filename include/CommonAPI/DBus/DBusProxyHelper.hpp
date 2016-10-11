@@ -196,19 +196,33 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         typename DBusProxyAsyncCallbackHandler<
                                     DBusProxy, OutArgs_...
                                 >::Delegate delegate(_proxy.shared_from_this(), _function);
-        auto dbusMessageReplyAsyncHandler = DBusProxyAsyncCallbackHandler<
+        auto dbusMessageReplyAsyncHandler = std::move(DBusProxyAsyncCallbackHandler<
                                                                 DBusProxy, OutArgs_...
-                                                                >::create(delegate, _out).release();
+                                                                >::create(delegate, _out));
+
+        std::future<CallStatus> callStatusFuture;
+        try {
+            callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
+        } catch (std::exception& e) {
+            COMMONAPI_ERROR("MethodAsync(dbus): messageReplyAsyncHandler future failed(", e.what(), ")");
+        }
 
         if(_proxy.isAvailable()) {
-            return _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
+            if (_proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
                             _message,
-                            std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler),
-                            _info);
+                            std::move(dbusMessageReplyAsyncHandler),
+                            _info)){
+            COMMONAPI_VERBOSE("MethodAsync(dbus): Proxy available -> sendMessageWithReplyAsync");
+                return callStatusFuture;
+            } else {
+            	return std::future<CallStatus>();
+            }
         } else {
+            std::shared_ptr< std::unique_ptr< DBusProxyConnection::DBusMessageReplyAsyncHandler > > sharedDbusMessageReplyAsyncHandler(
+                    new std::unique_ptr< DBusProxyConnection::DBusMessageReplyAsyncHandler >(std::move(dbusMessageReplyAsyncHandler)));
             //async isAvailable call with timeout
-            _proxy.isAvailableAsync([&_proxy, _message, _info,
-                                     _out, dbusMessageReplyAsyncHandler, _function](
+            COMMONAPI_VERBOSE("MethodAsync(dbus): Proxy not available -> register calback");
+            _proxy.isAvailableAsync([&_proxy, _message, sharedDbusMessageReplyAsyncHandler](
                                              const AvailabilityStatus _status,
                                              const Timeout_t remaining) {
                 if(_status == AvailabilityStatus::AVAILABLE) {
@@ -217,20 +231,30 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     if(remaining < 100)
                         newTimeout = 100;
                     CallInfo newInfo(newTimeout);
+                    if(*sharedDbusMessageReplyAsyncHandler) {
                     _proxy.getDBusConnection()->sendDBusMessageWithReplyAsync(
                                     _message,
-                                    std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler),
+                                    std::move(*sharedDbusMessageReplyAsyncHandler),
                                     &newInfo);
+                    COMMONAPI_VERBOSE("MethodAsync(dbus): Proxy callback available -> sendMessageWithReplyAsync");
+                    } else {
+                        COMMONAPI_ERROR("MethodAsync(dbus): Proxy callback available but callback taken");
+                    }
                 } else {
                     //create error message and push it directly to the connection
                     unsigned int dummySerial = 999;
                     _message.setSerial(dummySerial);   //set dummy serial
+                    if (*sharedDbusMessageReplyAsyncHandler) {
                     DBusMessage errorMessage = _message.createMethodError(DBUS_ERROR_UNKNOWN_METHOD);
-                    _proxy.getDBusConnection()->pushDBusMessageReply(errorMessage,
-                            std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(dbusMessageReplyAsyncHandler));
+                    _proxy.getDBusConnection()->pushDBusMessageReplyToMainLoop(errorMessage,
+                            std::move(*sharedDbusMessageReplyAsyncHandler));
+                        COMMONAPI_VERBOSE("MethodAsync(dbus): Proxy callback not reachable -> sendMessageWithReplyAsync");
+                    } else {
+                        COMMONAPI_ERROR("MethodAsync(dbus): Proxy callback not reachable but callback taken");
+                    }
                 }
             }, _info);
-            return dbusMessageReplyAsyncHandler->getFuture();
+            return callStatusFuture;
         }
     }
 

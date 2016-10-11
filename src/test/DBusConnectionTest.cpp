@@ -13,7 +13,9 @@
 #include <gtest/gtest.h>
 #include <dbus/dbus.h>
 
+#include <chrono>
 #include <cstring>
+#include <thread>
 
 bool replyArrived;
 
@@ -62,19 +64,19 @@ TEST_F(DBusConnectionTest, ConnectionStatusEventWorks) {
                     std::placeholders::_1));
 
     ASSERT_FALSE(dbusConnection_->isConnected());
-    ASSERT_EQ(connectionStatusEventCount, 0);
+    ASSERT_EQ(connectionStatusEventCount, 0u);
 
     uint32_t expectedEventCount = 0;
     while (expectedEventCount < 10) {
         ASSERT_TRUE(dbusConnection_->connect());
         ASSERT_TRUE(dbusConnection_->isConnected());
-        usleep(20000);
+        std::this_thread::sleep_for(std::chrono::microseconds(20000));
         ASSERT_EQ(connectionStatusEventCount, ++expectedEventCount);
         ASSERT_EQ(connectionStatus, CommonAPI::AvailabilityStatus::AVAILABLE);
 
         dbusConnection_->disconnect();
         ASSERT_FALSE(dbusConnection_->isConnected());
-        usleep(20000);
+        std::this_thread::sleep_for(std::chrono::microseconds(20000));
         ASSERT_EQ(connectionStatusEventCount, ++expectedEventCount);
         ASSERT_EQ(connectionStatus, CommonAPI::AvailabilityStatus::NOT_AVAILABLE);
     }
@@ -140,7 +142,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
                         &CommonAPI::DBus::defaultCallInfo);
 
         for (int i = 0; i < 100; i++) {
-            usleep(10);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
 
         ASSERT_EQ(serviceHandlerDBusMessageCount, expectedDBusMessageCount);
@@ -262,7 +264,7 @@ TEST_F(DBusConnectionTest, LibdbusConnectionsMayCommitSuicide) {
         std::unique_lock<std::mutex> dispatchLock(dispatchMutex);
         while(!dispatchReady) {
             dispatchLock.unlock();
-            usleep(100000 * 5);
+            std::this_thread::sleep_for(std::chrono::microseconds((100000 * 5)));
             dispatchLock.lock();
         }
     }

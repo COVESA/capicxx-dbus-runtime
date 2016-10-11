@@ -67,9 +67,10 @@ DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_v
         _value = it->second;
     } else if (isDefault_) {
         std::string interfaceName(_key.getInterface());
+        std::replace(interfaceName.begin(), interfaceName.end(), ':', '.');
         std::string objectPath("/" + _key.getInstance());
         std::replace(objectPath.begin(), objectPath.end(), '.', '/');
-        std::string service(_key.getInterface() + "_" + _key.getInstance());
+        std::string service(interfaceName + "_" + _key.getInstance());
 
         if (isValid(service, '.', false, false, true)
          && isValid(objectPath, '/', true)
@@ -80,6 +81,11 @@ DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_v
 
             forwards_.insert({ _key, _value });
             backwards_.insert({ _value, _key });
+        }
+        else {
+            COMMONAPI_ERROR(
+                "Translation from CommonAPI address to DBus address failed!");
+            result = false;
         }
     } else {
         result = false;
@@ -101,6 +107,9 @@ DBusAddressTranslator::translate(const DBusAddress &_key, std::string &_value) {
 bool
 DBusAddressTranslator::translate(const DBusAddress &_key, CommonAPI::Address &_value) {
     bool result(true);
+    std::size_t itsInterfacePos;
+    std::string itsVersion;
+    bool isValidVersion(true);
     std::lock_guard<std::mutex> itsLock(mutex_);
 
     const auto it = backwards_.find(_key);
@@ -109,6 +118,34 @@ DBusAddressTranslator::translate(const DBusAddress &_key, CommonAPI::Address &_v
     } else if (isDefault_) {
         if (isValid(_key.getObjectPath(), '/', true) && isValid(_key.getInterface(), '.')) {
             std::string interfaceName(_key.getInterface());
+            itsInterfacePos = interfaceName.rfind('.');
+            itsInterfacePos++;
+            if( itsInterfacePos != std::string::npos
+                    && ( interfaceName.length() - itsInterfacePos >= 4) ) {
+                itsVersion = interfaceName.substr(itsInterfacePos);
+                if( itsVersion != "" ) {
+                    std::size_t itsSeparatorPos = itsVersion.find('_');
+                    if (itsSeparatorPos == std::string::npos) {
+                        isValidVersion = false;
+                    }
+                    if(isValidVersion) {
+                        if( *(itsVersion.begin()) != 'v') {
+                            isValidVersion = false;
+                        }
+                        if(isValidVersion) {
+                            for (auto it = itsVersion.begin()+1; it != itsVersion.end(); ++it) {
+                                if (!isdigit(*it) && *it != '_') {
+                                    isValidVersion = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if( isValidVersion ) {
+                            interfaceName.replace(itsInterfacePos - 1, 1, ":");
+                        }
+                    }
+                }
+            }
             std::string instance(_key.getObjectPath().substr(1));
             std::replace(instance.begin(), instance.end(), '/', '.');
 

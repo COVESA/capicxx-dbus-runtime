@@ -42,7 +42,7 @@ public:
 
     virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken _subscriptionToken, uint32_t tag) {
         this->subscription_ = _subscriptionToken;
-        static_cast<DBusProxy&>(this->proxy_).insertSelectiveSubscription(this->name_, this, tag);
+        static_cast<DBusProxy&>(this->proxy_).insertSelectiveSubscription(this->name_, this, tag, this->signature_);
     }
 
 protected:

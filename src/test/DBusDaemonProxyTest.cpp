@@ -41,10 +41,10 @@ TEST_F(DBusDaemonProxyTest, ListNames) {
     dbusDaemonProxy_->listNames(callStatus, busNames);
     ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
 
-    ASSERT_GT(busNames.size(), 0);
+    ASSERT_GT(busNames.size(), 0u);
     for (const std::string& busName : busNames) {
         ASSERT_FALSE(busName.empty());
-        ASSERT_GT(busName.length(), 1);
+        ASSERT_GT(busName.length(), 1u);
     }
 }
 
@@ -73,10 +73,10 @@ TEST_F(DBusDaemonProxyTest, ListNamesAsync) {
 
     ASSERT_EQ(callStatus, CommonAPI::CallStatus::SUCCESS);
 
-    ASSERT_GT(busNames.size(), 0);
+    ASSERT_GT(busNames.size(), 0u);
     for (const std::string& busName : busNames) {
         ASSERT_FALSE(busName.empty());
-        ASSERT_GT(busName.length(), 1);
+        ASSERT_GT(busName.length(), 1u);
     }
 }
 

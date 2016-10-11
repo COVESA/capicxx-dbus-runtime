@@ -41,36 +41,36 @@ bool DBusDispatchSource::dispatch() {
     return dbusConnection_->singleDispatch();
 }
 
-DBusMessageDispatchSource::DBusMessageDispatchSource(DBusMessageWatch* watch) :
+DBusQueueDispatchSource::DBusQueueDispatchSource(DBusQueueWatch* watch) :
     watch_(watch) {
     watch_->addDependentDispatchSource(this);
 }
 
-DBusMessageDispatchSource::~DBusMessageDispatchSource() {
+DBusQueueDispatchSource::~DBusQueueDispatchSource() {
     std::unique_lock<std::mutex> itsLock(watchMutex_);
     watch_->removeDependentDispatchSource(this);
 }
 
-bool DBusMessageDispatchSource::prepare(int64_t& timeout) {
+bool DBusQueueDispatchSource::prepare(int64_t& timeout) {
     std::unique_lock<std::mutex> itsLock(watchMutex_);
     timeout = -1;
-    return !watch_->emptyMsgQueue();
+    return !watch_->emptyQueue();
 }
 
-bool DBusMessageDispatchSource::check() {
+bool DBusQueueDispatchSource::check() {
     std::unique_lock<std::mutex> itsLock(watchMutex_);
-    return !watch_->emptyMsgQueue();
+    return !watch_->emptyQueue();
 }
 
-bool DBusMessageDispatchSource::dispatch() {
+bool DBusQueueDispatchSource::dispatch() {
     std::unique_lock<std::mutex> itsLock(watchMutex_);
-    if (!watch_->emptyMsgQueue()) {
-        auto queueEntry = watch_->frontMsgQueue();
-        watch_->popMsgQueue();
-        watch_->processMsgQueueEntry(queueEntry);
+    if (!watch_->emptyQueue()) {
+        auto queueEntry = watch_->frontQueue();
+        watch_->popQueue();
+        watch_->processQueueEntry(queueEntry);
     }
 
-    return !watch_->emptyMsgQueue();
+    return !watch_->emptyQueue();
 }
 
 DBusWatch::DBusWatch(::DBusWatch* libdbusWatch, std::weak_ptr<MainLoopContext>& mainLoopContext,
@@ -179,19 +179,7 @@ void DBusWatch::addDependentDispatchSource(DispatchSource* dispatchSource) {
     dependentDispatchSources_.push_back(dispatchSource);
 }
 
-void DBusMessageWatch::MsgReplyQueueEntry::process(std::shared_ptr<DBusConnection> _connection) {
-    _connection->dispatchDBusMessageReply(message_, replyAsyncHandler_);
-}
-
-void DBusMessageWatch::MsgReplyQueueEntry::clear() {
-    delete replyAsyncHandler_;
-}
-
-void DBusMessageWatch::MsgQueueEntry::clear() {
-
-}
-
-DBusMessageWatch::DBusMessageWatch(std::shared_ptr<DBusConnection> _connection) : pipeValue_(4) {
+DBusQueueWatch::DBusQueueWatch(std::shared_ptr<DBusConnection> _connection) : pipeValue_(4) {
 #ifdef WIN32
     std::string pipeName = "\\\\.\\pipe\\CommonAPI-DBus-";
 
@@ -280,7 +268,7 @@ DBusMessageWatch::DBusMessageWatch(std::shared_ptr<DBusConnection> _connection) 
     connection_ = _connection;
 }
 
-DBusMessageWatch::~DBusMessageWatch() {
+DBusQueueWatch::~DBusQueueWatch() {
 #ifdef WIN32
     BOOL retVal = DisconnectNamedPipe((HANDLE)pipeFileDescriptors_[0]);
 
@@ -304,36 +292,36 @@ DBusMessageWatch::~DBusMessageWatch() {
     close(pipeFileDescriptors_[1]);
 #endif
 
-    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
-    while(!msgQueue_.empty()) {
-        auto queueEntry = msgQueue_.front();
-        msgQueue_.pop();
+    std::unique_lock<std::mutex> itsLock(queueMutex_);
+    while(!queue_.empty()) {
+        auto queueEntry = queue_.front();
+        queue_.pop();
         queueEntry->clear();
     }
 }
 
-void DBusMessageWatch::dispatch(unsigned int) {
+void DBusQueueWatch::dispatch(unsigned int) {
 }
 
-const pollfd& DBusMessageWatch::getAssociatedFileDescriptor() {
+const pollfd& DBusQueueWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
 
 #ifdef WIN32
-const HANDLE& DBusMessageWatch::getAssociatedEvent() {
+const HANDLE& DBusQueueWatch::getAssociatedEvent() {
     return wsaEvent_;
 }
 #endif
 
-const std::vector<DispatchSource*>& DBusMessageWatch::getDependentDispatchSources() {
+const std::vector<DispatchSource*>& DBusQueueWatch::getDependentDispatchSources() {
     return dependentDispatchSources_;
 }
 
-void DBusMessageWatch::addDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+void DBusQueueWatch::addDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
     dependentDispatchSources_.push_back(_dispatchSource);
 }
 
-void DBusMessageWatch::removeDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+void DBusQueueWatch::removeDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
     std::vector<CommonAPI::DispatchSource*>::iterator it;
 
     for (it = dependentDispatchSources_.begin(); it != dependentDispatchSources_.end(); it++) {
@@ -344,9 +332,9 @@ void DBusMessageWatch::removeDependentDispatchSource(CommonAPI::DispatchSource* 
     }
 }
 
-void DBusMessageWatch::pushMsgQueue(std::shared_ptr<MsgQueueEntry> _queueEntry) {
-    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
-    msgQueue_.push(_queueEntry);
+void DBusQueueWatch::pushQueue(std::shared_ptr<QueueEntry> _queueEntry) {
+    std::unique_lock<std::mutex> itsLock(queueMutex_);
+    queue_.push(_queueEntry);
 
 #ifdef WIN32
     char writeValue[sizeof(pipeValue_)];
@@ -371,8 +359,8 @@ void DBusMessageWatch::pushMsgQueue(std::shared_ptr<MsgQueueEntry> _queueEntry) 
 #endif
 }
 
-void DBusMessageWatch::popMsgQueue() {
-    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+void DBusQueueWatch::popQueue() {
+    std::unique_lock<std::mutex> itsLock(queueMutex_);
 
 #ifdef WIN32
     char readValue[sizeof(pipeValue_)];
@@ -396,32 +384,42 @@ void DBusMessageWatch::popMsgQueue() {
     }
 #endif
 
-    msgQueue_.pop();
+    queue_.pop();
 }
 
-std::shared_ptr<DBusMessageWatch::MsgQueueEntry> DBusMessageWatch::frontMsgQueue() {
-    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+std::shared_ptr<QueueEntry> DBusQueueWatch::frontQueue() {
+    std::unique_lock<std::mutex> itsLock(queueMutex_);
 
-    return msgQueue_.front();
+    return queue_.front();
 }
 
-bool DBusMessageWatch::emptyMsgQueue() {
-    std::unique_lock<std::mutex> itsLock(msgQueueMutex_);
+bool DBusQueueWatch::emptyQueue() {
+    std::unique_lock<std::mutex> itsLock(queueMutex_);
 
-    return msgQueue_.empty();
+    return queue_.empty();
 }
 
-void DBusMessageWatch::processMsgQueueEntry(std::shared_ptr<DBusMessageWatch::MsgQueueEntry> _queueEntry) {
+void DBusQueueWatch::processQueueEntry(std::shared_ptr<QueueEntry> _queueEntry) {
     std::shared_ptr<DBusConnection> itsConnection = connection_.lock();
     if(itsConnection) {
         _queueEntry->process(itsConnection);
     }
 }
 
-DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext) :
+#ifdef WIN32
+__declspec(thread) DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
+#else
+thread_local DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
+#endif
+
+DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext,
+                         std::weak_ptr<DBusConnection>& dbusConnection) :
                 dueTimeInMs_(TIMEOUT_INFINITE),
                 libdbusTimeout_(libdbusTimeout),
-                mainLoopContext_(mainLoopContext) {
+                mainLoopContext_(mainLoopContext),
+                dbusConnection_(dbusConnection),
+                pendingCall_(NULL) {
+    currentTimeout_ = this;
 }
 
 bool DBusTimeout::isReadyToBeMonitored() {
@@ -447,9 +445,16 @@ void DBusTimeout::stopMonitoring() {
 }
 
 bool DBusTimeout::dispatch() {
-    recalculateDueTime();
-    dbus_timeout_handle(libdbusTimeout_);
-    return true;
+    std::shared_ptr<DBusConnection> itsConnection = dbusConnection_.lock();
+    if(itsConnection) {
+        if(itsConnection->setDispatching(true)) {
+            recalculateDueTime();
+            itsConnection->setPendingCallTimedOut(pendingCall_, libdbusTimeout_);
+            itsConnection->setDispatching(false);
+            return true;
+        }
+    }
+    return false;
 }
 
 int64_t DBusTimeout::getTimeoutInterval() const {
@@ -467,6 +472,10 @@ void DBusTimeout::recalculateDueTime() {
     } else {
         dueTimeInMs_ = TIMEOUT_INFINITE;
     }
+}
+
+void DBusTimeout::setPendingCall(DBusPendingCall* _pendingCall) {
+    pendingCall_ = _pendingCall;
 }
 
 } // namespace DBus

@@ -38,18 +38,18 @@ class DBusDispatchSource: public DispatchSource {
     DBusConnection* dbusConnection_;
 };
 
-class DBusMessageWatch;
-class DBusMessageDispatchSource: public DispatchSource {
+class DBusQueueWatch;
+class DBusQueueDispatchSource: public DispatchSource {
  public:
-    DBusMessageDispatchSource(DBusMessageWatch* watch);
-    virtual ~DBusMessageDispatchSource();
+    DBusQueueDispatchSource(DBusQueueWatch* watch);
+    virtual ~DBusQueueDispatchSource();
 
     bool prepare(int64_t& timeout);
     bool check();
     bool dispatch();
 
  private:
-    DBusMessageWatch* watch_;
+    DBusQueueWatch* watch_;
 
     std::mutex watchMutex_;
 };
@@ -88,32 +88,13 @@ class DBusWatch: public Watch {
 #endif
 };
 
-class DBusMessageWatch : public Watch {
+struct QueueEntry;
+
+class DBusQueueWatch : public Watch {
 public:
 
-    struct MsgQueueEntry {
-         MsgQueueEntry(DBusMessage _message) :
-                           message_(_message) { }
-         DBusMessage message_;
-
-         virtual void process(std::shared_ptr<DBusConnection> _connection) = 0;
-         virtual void clear();
-     };
-
-    struct MsgReplyQueueEntry : MsgQueueEntry {
-        MsgReplyQueueEntry(DBusProxyConnection::DBusMessageReplyAsyncHandler* _replyAsyncHandler,
-                       DBusMessage _reply) :
-                       MsgQueueEntry(_reply),
-                       replyAsyncHandler_(_replyAsyncHandler) { }
-
-        DBusProxyConnection::DBusMessageReplyAsyncHandler* replyAsyncHandler_;
-
-        void process(std::shared_ptr<DBusConnection> _connection);
-        void clear();
-    };
-
-    DBusMessageWatch(std::shared_ptr<DBusConnection> _connection);
-    virtual ~DBusMessageWatch();
+    DBusQueueWatch(std::shared_ptr<DBusConnection> _connection);
+    virtual ~DBusQueueWatch();
 
     void dispatch(unsigned int eventFlags);
 
@@ -129,24 +110,24 @@ public:
 
     void removeDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource);
 
-    void pushMsgQueue(std::shared_ptr<MsgQueueEntry> _queueEntry);
+    void pushQueue(std::shared_ptr<QueueEntry> _queueEntry);
 
-    void popMsgQueue();
+    void popQueue();
 
-    std::shared_ptr<MsgQueueEntry> frontMsgQueue();
+    std::shared_ptr<QueueEntry> frontQueue();
 
-    bool emptyMsgQueue();
+    bool emptyQueue();
 
-    void processMsgQueueEntry(std::shared_ptr<MsgQueueEntry> _queueEntry);
+    void processQueueEntry(std::shared_ptr<QueueEntry> _queueEntry);
 
 private:
     int pipeFileDescriptors_[2];
 
     pollfd pollFileDescriptor_;
     std::vector<CommonAPI::DispatchSource*> dependentDispatchSources_;
-    std::queue<std::shared_ptr<MsgQueueEntry>> msgQueue_;
+    std::queue<std::shared_ptr<QueueEntry>> queue_;
 
-    std::mutex msgQueueMutex_;
+    std::mutex queueMutex_;
 
     std::weak_ptr<DBusConnection> connection_;
 
@@ -161,7 +142,9 @@ private:
 
 class DBusTimeout: public Timeout {
  public:
-    DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext);
+    DBusTimeout(::DBusTimeout* libdbusTimeout,
+                std::weak_ptr<MainLoopContext>& mainLoopContext,
+                std::weak_ptr<DBusConnection>& dbusConnection);
 
     bool isReadyToBeMonitored();
     void startMonitoring();
@@ -171,12 +154,23 @@ class DBusTimeout: public Timeout {
 
     int64_t getTimeoutInterval() const;
     int64_t getReadyTime() const;
+
+    void setPendingCall(DBusPendingCall* _pendingCall);
+
+#ifdef WIN32
+    __declspec(thread) static DBusTimeout *currentTimeout_;
+#else
+    thread_local static DBusTimeout *currentTimeout_;
+#endif
+
  private:
     void recalculateDueTime();
 
     int64_t dueTimeInMs_;
     ::DBusTimeout* libdbusTimeout_;
     std::weak_ptr<MainLoopContext> mainLoopContext_;
+    std::weak_ptr<DBusConnection> dbusConnection_;
+    DBusPendingCall *pendingCall_;
 };
 
 

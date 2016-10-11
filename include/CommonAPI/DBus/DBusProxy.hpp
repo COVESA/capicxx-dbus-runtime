@@ -30,9 +30,13 @@ class DBusProxyStatusEvent
     virtual ~DBusProxyStatusEvent() {}
 
  protected:
-    virtual void onListenerAdded(const Listener& listener, const Subscription subscription);
+    virtual void onListenerAdded(const Listener& _listener, const Subscription _subscription);
+    virtual void onListenerRemoved(const Listener &_listener, const Subscription _subscription);
 
     DBusProxy* dbusProxy_;
+
+    std::recursive_mutex listenersMutex_;
+    std::vector<std::pair<ProxyStatusEvent::Subscription, ProxyStatusEvent::Listener>> listeners_;
 };
 
 
@@ -43,6 +47,8 @@ public:
     COMMONAPI_EXPORT DBusProxy(const DBusAddress &_address,
               const std::shared_ptr<DBusProxyConnection> &_connection);
     COMMONAPI_EXPORT virtual ~DBusProxy();
+
+    COMMONAPI_EXPORT AvailabilityStatus getAvailabilityStatus() const;
 
     COMMONAPI_EXPORT virtual ProxyStatusEvent& getProxyStatusEvent();
     COMMONAPI_EXPORT virtual InterfaceVersionAttribute& getInterfaceVersionAttribute();
@@ -61,8 +67,10 @@ public:
               DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
 			  uint32_t tag);
 
-    COMMONAPI_EXPORT void insertSelectiveSubscription(const std::string& interfaceMemberName,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag);
+    COMMONAPI_EXPORT void insertSelectiveSubscription(
+            const std::string& interfaceMemberName,
+            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+            uint32_t tag, std::string interfaceMemberSignature);
     COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                            DBusProxyConnection::DBusSignalHandlerToken subscription,
                                            const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler);
@@ -100,6 +108,10 @@ public:
             const uint32_t subscription,
             const std::string &interfaceName,
             const std::string &propertyName);
+
+    COMMONAPI_EXPORT virtual void notifySpecificListener(std::weak_ptr<DBusProxy> _dbusProxy,
+                                                         const ProxyStatusEvent::Listener &_listener,
+                                                         const ProxyStatusEvent::Subscription _subscription);
 
 private:
     typedef std::tuple<
@@ -142,7 +154,9 @@ private:
     std::list<SignalMemberHandlerTuple> signalMemberHandlerQueue_;
     mutable std::mutex signalMemberHandlerQueueMutex_;
 
-    std::map<std::string, std::pair<DBusProxyConnection::DBusSignalHandler*, uint32_t>> selectiveBroadcastHandlers;
+    std::map<std::string,
+            std::tuple<DBusProxyConnection::DBusSignalHandler*, uint32_t,
+                    std::string>> selectiveBroadcastHandlers;
     mutable std::mutex selectiveBroadcastHandlersMutex_;
 
     mutable std::shared_ptr<std::thread> availabilityTimeoutThread_;
@@ -151,11 +165,13 @@ private:
     mutable std::condition_variable availabilityTimeoutCondition_;
 
     typedef std::tuple<
-                std::chrono::time_point<std::chrono::high_resolution_clock>,
+                std::chrono::steady_clock::time_point,
                 isAvailableAsyncCallback,
                 std::promise<AvailabilityStatus>
                 > AvailabilityTimeout_t;
     mutable std::list<AvailabilityTimeout_t> timeouts_;
+
+    std::weak_ptr<DBusProxy> selfReference_;
 };
 
 

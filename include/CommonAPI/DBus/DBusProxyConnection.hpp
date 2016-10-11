@@ -83,7 +83,7 @@ class DBusProxyConnection {
 
     virtual bool sendDBusMessage(const DBusMessage& dbusMessage) const = 0;
 
-    virtual std::future<CallStatus> sendDBusMessageWithReplyAsync(
+    virtual bool sendDBusMessageWithReplyAsync(
             const DBusMessage& dbusMessage,
             std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
             const CommonAPI::CallInfo *_info) const = 0;
@@ -137,11 +137,18 @@ class DBusProxyConnection {
 
     virtual bool hasDispatchThread() = 0;
 
-    virtual void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName,
-            DBusSignalHandler* dbusSignalHandler, uint32_t tag) = 0;
+    virtual void sendPendingSelectiveSubscription(
+            DBusProxy* proxy, std::string interfaceMemberName,
+            DBusSignalHandler* dbusSignalHandler, uint32_t tag,
+            std::string interfaceMemberSignature) = 0;
 
-    virtual void pushDBusMessageReply(const DBusMessage& reply,
+    virtual void pushDBusMessageReplyToMainLoop(const DBusMessage& reply,
                              std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler) = 0;
+
+    template<class DBusConnection, class Function, class... Arguments>
+    void proxyPushFunctionToMainLoop(Function&& _function, Arguments&& ... _args) {
+        static_cast<DBusConnection*>(this)->proxyPushFunctionToMainLoop(std::forward<Function>(_function), std::forward<Arguments>(_args) ...);
+    }
 };
 
 } // namespace DBus

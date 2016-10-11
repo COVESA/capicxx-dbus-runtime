@@ -29,41 +29,39 @@ namespace DBus {
 class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusProxyManager: public ProxyManager {
 public:
     COMMONAPI_EXPORT DBusProxyManager(DBusProxy &_proxy,
-                     const std::string &_interfaceName);
+                     const std::string &_dbusInterfaceName,
+                     const std::string &_capiInterfaceName);
 
     COMMONAPI_EXPORT const std::string &getDomain() const;
     COMMONAPI_EXPORT const std::string &getInterface() const;
     COMMONAPI_EXPORT const ConnectionId_t &getConnectionId() const;
 
-    COMMONAPI_EXPORT virtual void getAvailableInstances(CommonAPI::CallStatus &, std::vector<std::string> &_instances);
+    COMMONAPI_EXPORT virtual void getAvailableInstances(CommonAPI::CallStatus &_status, std::vector<std::string> &_instances);
     COMMONAPI_EXPORT virtual std::future<CallStatus> getAvailableInstancesAsync(GetAvailableInstancesCallback _callback);
 
-    COMMONAPI_EXPORT virtual void getInstanceAvailabilityStatus(const std::string &_address,
+    COMMONAPI_EXPORT virtual void getInstanceAvailabilityStatus(const std::string &_instance,
                                                CallStatus &_callStatus,
                                                AvailabilityStatus &_availabilityStatus);
 
     COMMONAPI_EXPORT  virtual std::future<CallStatus> getInstanceAvailabilityStatusAsync(
-                                        const std::string&,
-                                        GetInstanceAvailabilityStatusCallback callback);
+                                        const std::string& _instance,
+                                        GetInstanceAvailabilityStatusCallback _callback);
 
     COMMONAPI_EXPORT virtual InstanceAvailabilityStatusChangedEvent& getInstanceAvailabilityStatusChangedEvent();
 
 private:
-    COMMONAPI_EXPORT void instancesAsyncCallback(const CommonAPI::CallStatus& status,
-                                const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict& dict,
-                                GetAvailableInstancesCallback& call);
+    COMMONAPI_EXPORT void instancesAsyncCallback(std::shared_ptr<Proxy> _proxy,
+                                                 const CommonAPI::CallStatus &_status,
+                                                 const std::vector<DBusAddress> &_availableServiceInstances,
+                                                 GetAvailableInstancesCallback &_call);
 
-    COMMONAPI_EXPORT void instanceAliveAsyncCallback(const AvailabilityStatus &_alive,
-                                    GetInstanceAvailabilityStatusCallback &_call,
-                                    std::shared_ptr<std::promise<CallStatus>> &_status);
-
-    COMMONAPI_EXPORT void translateCommonApiAddresses(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict &_dict,
+    COMMONAPI_EXPORT void translate(const std::vector<DBusAddress> &_serviceInstances,
                                      std::vector<std::string> &_instances);
 
     DBusProxy &proxy_;
     DBusInstanceAvailabilityStatusChangedEvent instanceAvailabilityStatusEvent_;
-    const std::string interfaceId_;
-    const std::shared_ptr<DBusServiceRegistry> registry_;
+    const std::string dbusInterfaceId_;
+    const std::string capiInterfaceId_;
     ConnectionId_t connectionId_;
 };
 

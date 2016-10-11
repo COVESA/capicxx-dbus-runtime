@@ -79,10 +79,25 @@ class DBusDaemonProxy : public DBusProxyBase,
     COMMONAPI_EXPORT std::future<CallStatus> listNamesAsync(typename DBusProxyAsyncCallbackHandler<DelegateObjectType,
                                                             std::vector<std::string>>::Delegate& delegate) const {
         DBusMessage dbusMessage = createMethodCall("ListNames", "");
-        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+
+        auto dbusMessageReplyAsyncHandler = std::move(DBusProxyAsyncCallbackHandler<
+                DelegateObjectType, std::vector< std::string > >::create(delegate, std::tuple<std::vector<std::string>>()));
+
+        std::future<CallStatus> callStatusFuture;
+        try {
+            callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
+        } catch (std::exception& e) {
+            COMMONAPI_ERROR("getNameOwnerAsync: messageReplyAsyncHandler future failed(", e.what(), ")");
+        }
+
+        if(getDBusConnection()->sendDBusMessageWithReplyAsync(
                         dbusMessage,
-                        DBusProxyAsyncCallbackHandler<DelegateObjectType, std::vector<std::string>>::create(delegate, std::tuple<std::vector<std::string>>()),
-                        &daemonProxyInfo);
+                        std::move(dbusMessageReplyAsyncHandler),
+                        &daemonProxyInfo)) {
+            return callStatusFuture;
+        } else  {
+            return std::future<CallStatus>();
+        }
     }
 
     COMMONAPI_EXPORT void nameHasOwner(const std::string& busName, CommonAPI::CallStatus& callStatus, bool& hasOwner) const;
@@ -102,10 +117,24 @@ class DBusDaemonProxy : public DBusProxyBase,
         }
         outputStream.flush();
 
-        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+        auto dbusMessageReplyAsyncHandler = std::move(DBusProxyAsyncCallbackHandler<
+                DelegateObjectType, bool >::create(delegate, std::tuple< bool >()));
+
+        std::future<CallStatus> callStatusFuture;
+        try {
+            callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
+        } catch (std::exception& e) {
+            COMMONAPI_ERROR("getNameOwnerAsync: messageReplyAsyncHandler future failed(", e.what(), ")");
+        }
+
+        if (getDBusConnection()->sendDBusMessageWithReplyAsync(
                         dbusMessage,
-                        DBusProxyAsyncCallbackHandler<DelegateObjectType, bool>::create(delegate, std::tuple<bool>()),
-                        &daemonProxyInfo);
+                        std::move(dbusMessageReplyAsyncHandler),
+                        &daemonProxyInfo)) {
+            return callStatusFuture;
+        } else {
+            return std::future<CallStatus>();
+        }
     }
 
     template <typename DelegateObjectType>
@@ -146,10 +175,24 @@ class DBusDaemonProxy : public DBusProxyBase,
         }
         outputStream.flush();
 
-        return getDBusConnection()->sendDBusMessageWithReplyAsync(
+        auto dbusMessageReplyAsyncHandler = std::move(DBusProxyAsyncCallbackHandler<
+               DelegateObjectType, std::string>::create(delegate, std::tuple<std::string>()));
+
+        std::future<CallStatus> callStatusFuture;
+        try {
+            callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
+        } catch (std::exception& e) {
+            COMMONAPI_ERROR("getNameOwnerAsync: messageReplyAsyncHandler future failed(", e.what(), ")");
+        }
+
+        if (getDBusConnection()->sendDBusMessageWithReplyAsync(
                         dbusMessage,
-                        DBusProxyAsyncCallbackHandler<DelegateObjectType, std::string>::create(delegate, std::tuple<std::string>()),
-                        &daemonProxyInfo);
+                        std::move(dbusMessageReplyAsyncHandler),
+                        &daemonProxyInfo)) {
+            return callStatusFuture;
+        } else {
+            return std::future<CallStatus>();
+        }
     }
 
  private:

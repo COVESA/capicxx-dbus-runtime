@@ -26,6 +26,54 @@
 namespace CommonAPI {
 namespace DBus {
 
+class DBusConnection;
+
+struct QueueEntry {
+    QueueEntry() { }
+    virtual ~QueueEntry() { }
+
+    virtual void process(std::shared_ptr<DBusConnection> _connection) = 0;
+    virtual void clear() = 0;
+};
+
+struct MsgQueueEntry : QueueEntry {
+     MsgQueueEntry(DBusMessage _message) :
+                       message_(_message) { }
+     virtual ~MsgQueueEntry() { }
+     DBusMessage message_;
+
+     virtual void process(std::shared_ptr<DBusConnection> _connection);
+     virtual void clear();
+ };
+
+struct MsgReplyQueueEntry : MsgQueueEntry {
+    MsgReplyQueueEntry(DBusProxyConnection::DBusMessageReplyAsyncHandler* _replyAsyncHandler,
+                   DBusMessage _reply) :
+                   MsgQueueEntry(_reply),
+                   replyAsyncHandler_(_replyAsyncHandler) { }
+    virtual ~MsgReplyQueueEntry() { }
+
+    DBusProxyConnection::DBusMessageReplyAsyncHandler* replyAsyncHandler_;
+
+    void process(std::shared_ptr<DBusConnection> _connection);
+    void clear();
+};
+
+template<class Function, class... Arguments>
+struct FunctionQueueEntry : QueueEntry {
+
+    using bindType = decltype(std::bind(std::declval<Function>(),std::declval<Arguments>()...));
+
+    FunctionQueueEntry(Function&& _function,
+                       Arguments&& ... _args):
+                           bind_(std::forward<Function>(_function), std::forward<Arguments>(_args)...) { }
+
+    bindType bind_;
+
+    void process(std::shared_ptr<DBusConnection> _connection);
+    void clear();
+};
+
 class DBusMainLoop;
 class DBusObjectManager;
 
@@ -52,6 +100,16 @@ struct WatchContext {
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
     DispatchSource* dispatchSource_;
+    std::weak_ptr<DBusConnection> dbusConnection_;
+};
+
+struct TimeoutContext {
+    TimeoutContext(std::weak_ptr<MainLoopContext> mainLoopContext,
+                   std::weak_ptr<DBusConnection> dbusConnection) :
+            mainLoopContext_(mainLoopContext), dbusConnection_(dbusConnection) {
+    }
+
+    std::weak_ptr<MainLoopContext> mainLoopContext_;
     std::weak_ptr<DBusConnection> dbusConnection_;
 };
 
@@ -88,7 +146,7 @@ public:
 
     COMMONAPI_EXPORT bool sendDBusMessage(const DBusMessage& dbusMessage/*, uint32_t* allocatedSerial = NULL*/) const;
 
-    COMMONAPI_EXPORT std::future<CallStatus> sendDBusMessageWithReplyAsync(
+    COMMONAPI_EXPORT bool sendDBusMessageWithReplyAsync(
             const DBusMessage& dbusMessage,
             std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
             const CommonAPI::CallInfo *_info) const;
@@ -150,8 +208,16 @@ public:
 
     COMMONAPI_EXPORT bool setDispatching(bool isDispatching);
 
-    COMMONAPI_EXPORT void pushDBusMessageReply(const DBusMessage& _reply,
+    template<class Function, class... Arguments>
+    COMMONAPI_EXPORT void processFunctionQueueEntry(FunctionQueueEntry<Function, Arguments ...> &_functionQueueEntry);
+
+    COMMONAPI_EXPORT void pushDBusMessageReplyToMainLoop(const DBusMessage& _reply,
                                       std::unique_ptr<DBusMessageReplyAsyncHandler> _dbusMessageReplyAsyncHandler);
+
+    template<class Function, class... Arguments>
+    COMMONAPI_EXPORT void proxyPushFunctionToMainLoop(Function&& _function, Arguments&& ... _args);
+
+    COMMONAPI_EXPORT void setPendingCallTimedOut(DBusPendingCall* _pendingCall, ::DBusTimeout* _timeout) const;
 
 #ifdef COMMONAPI_DBUS_TEST
     inline std::weak_ptr<DBusMainloop> getLoop() { return loop_; }
@@ -179,10 +245,11 @@ public:
     std::thread* dispatchThread_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
-    DBusMessageWatch* msgWatch_;
-    DBusMessageDispatchSource* msgDispatchSource_;
+    DBusQueueWatch* queueWatch_;
+    DBusQueueDispatchSource* queueDispatchSource_;
     DispatchSource* dispatchSource_;
     WatchContext* watchContext_;
+    TimeoutContext* timeoutContext_;
 
     COMMONAPI_EXPORT void addLibdbusSignalMatchRule(const std::string& objectPath,
             const std::string& interfaceName,
@@ -227,8 +294,8 @@ public:
     COMMONAPI_EXPORT void enforceAsynchronousTimeouts() const;
     COMMONAPI_EXPORT static const DBusObjectPathVTable* getDBusObjectPathVTable();
 
-    COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string methodName,
-            DBusSignalHandler* dbusSignalHandler, uint32_t tag);
+    COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string interfaceMemberName,
+            DBusSignalHandler* dbusSignalHandler, uint32_t tag, std::string interfaceMemberSignature);
 
     ::DBusConnection* connection_;
     mutable std::mutex connectionGuard_;
@@ -270,7 +337,7 @@ public:
     typedef std::pair<
             DBusPendingCall*,
             std::tuple<
-                std::chrono::time_point<std::chrono::high_resolution_clock>,
+                std::chrono::steady_clock::time_point,
                 DBusMessageReplyAsyncHandler*,
                 DBusMessage
             >
@@ -278,7 +345,7 @@ public:
     mutable std::map<
             DBusPendingCall*,
             std::tuple<
-                std::chrono::time_point<std::chrono::high_resolution_clock>,
+                std::chrono::steady_clock::time_point,
                 DBusMessageReplyAsyncHandler*,
                 DBusMessage
             >
@@ -318,6 +385,30 @@ public:
     std::mutex dispatchMutex_;
     std::condition_variable dispatchCondition_;
 };
+
+
+template<class Function, class... Arguments>
+void FunctionQueueEntry<Function, Arguments ...>::process(std::shared_ptr<DBusConnection> _connection) {
+    _connection->processFunctionQueueEntry(*this);
+}
+
+template<class Function, class... Arguments>
+void FunctionQueueEntry<Function, Arguments ...>::clear() {
+}
+
+template<class Function, class... Arguments>
+void DBusConnection::processFunctionQueueEntry(FunctionQueueEntry<Function, Arguments ...> &_functionQueueEntry) {
+    _functionQueueEntry.bind_();
+}
+
+template<class Function, class... Arguments>
+void DBusConnection::proxyPushFunctionToMainLoop(Function&& _function, Arguments&& ... _args) {
+    if (auto lockedContext = mainLoopContext_.lock()) {
+        std::shared_ptr<FunctionQueueEntry<Function, Arguments ...>> functionQueueEntry = std::make_shared<FunctionQueueEntry<Function, Arguments ...>>(
+                std::forward<Function>(_function), std::forward<Arguments>(_args) ...);
+        queueWatch_->pushQueue(functionQueueEntry);
+    }
+}
 
 
 } // namespace DBus
