@@ -61,7 +61,10 @@ class DBusProxyConnection {
 
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
     typedef std::tuple<std::string, std::string, std::string, std::string> DBusSignalHandlerPath;
-    typedef std::unordered_map<DBusSignalHandlerPath, std::pair<std::shared_ptr<std::recursive_mutex>, std::set<DBusSignalHandler* >>> DBusSignalHandlerTable;
+    typedef std::unordered_map<DBusSignalHandlerPath,
+                                std::pair<std::shared_ptr<std::recursive_mutex>,
+                                    std::map<DBusSignalHandler*,
+                                        std::weak_ptr<DBusProxyConnection::DBusSignalHandler>>>> DBusSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
     class DBusSignalHandler {
@@ -98,14 +101,14 @@ class DBusProxyConnection {
             const std::string& interfaceName,
             const std::string& interfaceMemberName,
             const std::string& interfaceMemberSignature,
-            DBusSignalHandler* dbusSignalHandler,
+            std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
             const bool justAddFilter = false) = 0;
 
     virtual void subscribeForSelectiveBroadcast(const std::string& objectPath,
                                                                   const std::string& interfaceName,
                                                                   const std::string& interfaceMemberName,
                                                                   const std::string& interfaceMemberSignature,
-                                                                  DBusSignalHandler* dbusSignalHandler,
+                                                                  std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                                                                   DBusProxy* callingProxy,
                                                                   uint32_t tag) = 0;
 
@@ -118,7 +121,7 @@ class DBusProxyConnection {
                                            const DBusSignalHandler* dbusSignalHandler = NULL) = 0;
 
     virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                     DBusSignalHandler* dbusSignalHandler) = 0;
+                                                     std::weak_ptr<DBusSignalHandler> dbusSignalHandler) = 0;
     virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
                                                         DBusSignalHandler* dbusSignalHandler) = 0;
 
@@ -139,7 +142,7 @@ class DBusProxyConnection {
 
     virtual void sendPendingSelectiveSubscription(
             DBusProxy* proxy, std::string interfaceMemberName,
-            DBusSignalHandler* dbusSignalHandler, uint32_t tag,
+            std::weak_ptr<DBusSignalHandler> dbusSignalHandler, uint32_t tag,
             std::string interfaceMemberSignature) = 0;
 
     virtual void pushDBusMessageReplyToMainLoop(const DBusMessage& reply,

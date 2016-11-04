@@ -56,7 +56,7 @@ public:
 
     DBusMessage createMethodReturn(const std::string &_signature) const;
 
-    DBusMessage createMethodError(const std::string &_name, const std::string &_reason = "") const;
+    DBusMessage createMethodError(const std::string &_name, const std::string &_signature = "s", const std::string &_reason = "") const;
 
     static DBusMessage createSignal(const std::string& objectPath,
                                     const std::string& interfaceName,

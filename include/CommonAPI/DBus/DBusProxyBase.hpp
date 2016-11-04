@@ -49,7 +49,7 @@ public:
             const std::string &interfaceName,
             const std::string &signalName,
             const std::string &signalSignature,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const bool justAddFilter);
 
     COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
@@ -58,16 +58,16 @@ public:
             const std::string &signalName,
             const std::string &signalSignature,
             const std::string &getMethodName,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const bool justAddFilter);
 
     COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
             const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+            const DBusProxyConnection::DBusSignalHandler* dbusSignalHandler = NULL);
 
     COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
             const std::string &_getMethodName,
-            DBusProxyConnection::DBusSignalHandler *_handler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
             const uint32_t _subscription) {
         (void)_getMethodName;
         (void)_handler;

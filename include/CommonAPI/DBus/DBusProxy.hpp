@@ -64,12 +64,12 @@ public:
               const std::string& interfaceName,
               const std::string& interfaceMemberName,
               const std::string& interfaceMemberSignature,
-              DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+              std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
 			  uint32_t tag);
 
     COMMONAPI_EXPORT void insertSelectiveSubscription(
             const std::string& interfaceMemberName,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             uint32_t tag, std::string interfaceMemberSignature);
     COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
                                            DBusProxyConnection::DBusSignalHandlerToken subscription,
@@ -82,7 +82,7 @@ public:
             const std::string &interfaceName,
             const std::string &signalName,
             const std::string &signalSignature,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const bool justAddFilter);
 
     COMMONAPI_EXPORT virtual DBusProxyConnection::DBusSignalHandlerToken addSignalMemberHandler(
@@ -91,25 +91,25 @@ public:
             const std::string &signalName,
             const std::string &signalSignature,
             const std::string &getMethodName,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const bool justAddFilter);
 
     COMMONAPI_EXPORT virtual bool removeSignalMemberHandler(
             const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler = NULL);
+            const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler = NULL);
 
     COMMONAPI_EXPORT virtual void getCurrentValueForSignalListener(
             const std::string &getMethodName,
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const uint32_t subscription);
 
     COMMONAPI_EXPORT virtual void freeDesktopGetCurrentValueForSignalListener(
-            DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const uint32_t subscription,
             const std::string &interfaceName,
             const std::string &propertyName);
 
-    COMMONAPI_EXPORT virtual void notifySpecificListener(std::weak_ptr<DBusProxy> _dbusProxy,
+    COMMONAPI_EXPORT static void notifySpecificListener(std::weak_ptr<DBusProxy> _dbusProxy,
                                                          const ProxyStatusEvent::Listener &_listener,
                                                          const ProxyStatusEvent::Subscription _subscription);
 
@@ -120,21 +120,22 @@ private:
         const std::string,
         const std::string,
         const std::string,
-        DBusProxyConnection::DBusSignalHandler*,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler>,
         const bool,
         bool
         > SignalMemberHandlerTuple;
 
     COMMONAPI_EXPORT DBusProxy(const DBusProxy &) = delete;
 
-    COMMONAPI_EXPORT void onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus);
+    COMMONAPI_EXPORT void onDBusServiceInstanceStatus(std::shared_ptr<DBusProxy> _proxy,
+                                                      const AvailabilityStatus& availabilityStatus);
     COMMONAPI_EXPORT void signalMemberCallback(const CallStatus dbusMessageCallStatus,
             const DBusMessage& dbusMessage,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandlers,
             const uint32_t tag);
     COMMONAPI_EXPORT void signalInitialValueCallback(const CallStatus dbusMessageCallStatus,
             const DBusMessage& dbusMessage,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandlers,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandlers,
             const uint32_t tag);
     COMMONAPI_EXPORT void addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalMemberHandler);
 
@@ -155,7 +156,7 @@ private:
     mutable std::mutex signalMemberHandlerQueueMutex_;
 
     std::map<std::string,
-            std::tuple<DBusProxyConnection::DBusSignalHandler*, uint32_t,
+            std::tuple<std::weak_ptr<DBusProxyConnection::DBusSignalHandler>, uint32_t,
                     std::string>> selectiveBroadcastHandlers;
     mutable std::mutex selectiveBroadcastHandlersMutex_;
 
@@ -170,8 +171,6 @@ private:
                 std::promise<AvailabilityStatus>
                 > AvailabilityTimeout_t;
     mutable std::list<AvailabilityTimeout_t> timeouts_;
-
-    std::weak_ptr<DBusProxy> selfReference_;
 };
 
 

@@ -22,7 +22,7 @@ namespace CommonAPI {
 namespace DBus {
 
 template <typename Event_, typename... Arguments_>
-class DBusEvent: public Event_, public DBusProxyConnection::DBusSignalHandler {
+class DBusEvent: public Event_ {
 public:
     typedef typename Event_::Subscription Subscription;
     typedef typename Event_::Listener Listener;
@@ -31,6 +31,7 @@ public:
               const std::string &_name, const std::string &_signature,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
+          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
           name_(_name), signature_(_signature),
           getMethodName_(""),
           arguments_(_arguments) {
@@ -44,6 +45,7 @@ public:
               const std::string &_path, const std::string &_interface,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
+          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
           name_(_name), signature_(_signature),
           path_(_path), interface_(_interface),
           getMethodName_(""),
@@ -56,6 +58,7 @@ public:
               const std::string &_getMethodName,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
+          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
           name_(_name),
           signature_(_signature),
           getMethodName_(_getMethodName),
@@ -66,37 +69,71 @@ public:
     }
 
     virtual ~DBusEvent() {
-        proxy_.removeSignalMemberHandler(subscription_, this);
-    }
-
-    virtual void onSignalDBusMessage(const DBusMessage &_message) {
-        handleSignalDBusMessage(_message, typename make_sequence<sizeof...(Arguments_)>::type());
-    }
-
-    virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
-        handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
+        proxy_.removeSignalMemberHandler(subscription_, signalHandler_.get());
     }
 
     virtual void onError(const CommonAPI::CallStatus status) {
-        (void) status;
+        (void)status;
+    }
+
+    virtual void onSpecificError(const CommonAPI::CallStatus status, const uint32_t tag) {
+        (void)status;
+        (void)tag;
+    }
+
+    virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken token, const uint32_t tag) {
+        (void)token;
+        (void)tag;
     }
 
  protected:
+
+    class SignalHandler : public DBusProxyConnection::DBusSignalHandler,
+                    public std::enable_shared_from_this<SignalHandler> {
+    public:
+        SignalHandler(DBusProxyBase&_proxy,
+                DBusEvent<Event_, Arguments_ ...>* _dbusEvent) :
+            proxy_(_proxy),
+            dbusEvent_(_dbusEvent) {
+
+        }
+
+        virtual void onSignalDBusMessage(const DBusMessage &_message) {
+            dbusEvent_->handleSignalDBusMessage(_message, typename make_sequence<sizeof...(Arguments_)>::type());
+        }
+
+        virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
+            dbusEvent_->handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
+        }
+
+        virtual void onSpecificError(const CommonAPI::CallStatus status, const uint32_t tag) {
+            dbusEvent_->onSpecificError(status, tag);
+        }
+
+        virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken token, const uint32_t tag) {
+            dbusEvent_->setSubscriptionToken(token, tag);
+        }
+
+    private :
+        DBusProxyBase& proxy_;
+        DBusEvent<Event_, Arguments_ ...>* dbusEvent_;
+    };
+
     virtual void onFirstListenerAdded(const Listener &_listener) {
         (void)_listener;
         subscription_ = proxy_.addSignalMemberHandler(
-                            path_, interface_, name_, signature_, getMethodName_, this, false);
+                            path_, interface_, name_, signature_, getMethodName_, signalHandler_, false);
     }
 
     virtual void onListenerAdded(const Listener &_listener, const Subscription subscription) {
         (void)_listener;
         if ("" != getMethodName_) {
-            proxy_.getCurrentValueForSignalListener(getMethodName_, this, subscription);
+            proxy_.getCurrentValueForSignalListener(getMethodName_, signalHandler_, subscription);
         }
     }
 
     virtual void onLastListenerRemoved(const Listener&) {
-        proxy_.removeSignalMemberHandler(subscription_, this);
+        proxy_.removeSignalMemberHandler(subscription_, signalHandler_.get());
         std::get<0>(subscription_) = "";
         std::get<1>(subscription_) = "";
         std::get<2>(subscription_) = "";
@@ -124,6 +161,7 @@ public:
     }
 
     DBusProxyBase &proxy_;
+    std::shared_ptr<SignalHandler> signalHandler_;
 
     std::string name_;
     std::string signature_;

@@ -151,8 +151,7 @@ class DBusFreedesktopAttribute
 template<class, class, class>
 class LegacyEvent;
 template <template <class...> class Type_, class Types_, class DataType_, class DataDeplType_>
-class LegacyEvent<Type_<Types_>, DataType_, DataDeplType_>: public Type_<Types_>,
-    public DBusProxyConnection::DBusSignalHandler {
+class LegacyEvent<Type_<Types_>, DataType_, DataDeplType_>: public Type_<Types_> {
 public:
     typedef Types_ ValueType;
     typedef typename Type_<ValueType>::Listener Listener;
@@ -170,6 +169,7 @@ public:
           mapDepl_(nullptr, &variantDepl_),
           deployedMap_(&mapDepl_),
           proxy_(_proxy),
+          signalHandler_(std::make_shared<SignalHandler>(_proxy, this, &variantDepl_)),
           isSubcriptionSet_(false),
           internalEvent_(_proxy,
                          "PropertiesChanged",
@@ -179,7 +179,47 @@ public:
                          std::make_tuple("", deployedMap_, InvalidArray())) {
     }
 
+    virtual ~LegacyEvent() {}
+
 protected:
+
+    class SignalHandler : public DBusProxyConnection::DBusSignalHandler,
+                    public std::enable_shared_from_this<SignalHandler> {
+    public:
+        SignalHandler(DBusProxy& _proxy,
+                      LegacyEvent<Type_<Types_>, DataType_, DataDeplType_>* _legacyEvent,
+                      VariantDeployment<DataDeplType_>* _variantDepl) :
+            proxy_(_proxy),
+            legacyEvent_(_legacyEvent),
+            variantDepl_(_variantDepl) {
+
+        }
+
+        virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
+            CommonAPI::Deployable<Variant<DataType_>, VariantDeployment<DataDeplType_>> deployedValue(variantDepl_);
+            DBusInputStream input(_message);
+            if (DBusSerializableArguments<
+                 CommonAPI::Deployable<
+                  Variant<DataType_>,
+                  VariantDeployment<DataDeplType_>
+                 >
+                >::deserialize(input, deployedValue)) {
+                    Variant<DataType_> v = deployedValue.getValue();
+                const DataType_ &value = v.template get<DataType_>();
+                legacyEvent_->notifySpecificListener(tag, value);
+            }
+        }
+
+        virtual void onSignalDBusMessage(const DBusMessage&) {
+            // ignore
+        }
+
+    private:
+        DBusProxy& proxy_;
+        LegacyEvent<Type_<Types_>, DataType_, DataDeplType_>* legacyEvent_;
+        VariantDeployment<DataDeplType_>* variantDepl_;
+    };
+
     void onFirstListenerAdded(const Listener &) {
         if (!isSubcriptionSet_) {
             subscription_ = internalEvent_.subscribe(
@@ -202,26 +242,9 @@ protected:
 
     virtual void onListenerAdded(const Listener& listener, const Subscription subscription) {
         (void)listener;
-        proxy_.freeDesktopGetCurrentValueForSignalListener(this, subscription, interfaceName_, propertyName_);
+        proxy_.freeDesktopGetCurrentValueForSignalListener(signalHandler_, subscription, interfaceName_, propertyName_);
     }
 
-    virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
-        CommonAPI::Deployable<Variant<DataType_>, VariantDeployment<DataDeplType_>> deployedValue(&variantDepl_);
-        DBusInputStream input(_message);
-        if (DBusSerializableArguments<
-             CommonAPI::Deployable<
-              Variant<DataType_>,
-              VariantDeployment<DataDeplType_>
-             >
-            >::deserialize(input, deployedValue)) {
-                Variant<DataType_> v = deployedValue.getValue();
-            const DataType_ &value = v.template get<DataType_>();
-            this->notifySpecificListener(tag, value);
-        }
-    }
-    virtual void onSignalDBusMessage(const DBusMessage&) {
-        // ignore
-    }
     void onLastListenerRemoved(const Listener &) {
         if (isSubcriptionSet_) {
             internalEvent_.unsubscribe(subscription_);
@@ -235,6 +258,7 @@ protected:
     PropertyMapDeployment mapDepl_;
     DeployedPropertyMap deployedMap_;
     DBusProxy &proxy_;
+    std::shared_ptr<SignalHandler> signalHandler_;
 
     typename DBusEvent<SignalEvent, std::string, DeployedPropertyMap, InvalidArray>::Subscription subscription_;
     bool isSubcriptionSet_;

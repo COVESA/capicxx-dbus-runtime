@@ -40,7 +40,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 const std::string& interfaceName,
                 const std::string& signalName,
                 const std::string& signalSignature,
-                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
                 const bool justAddFilter) {
     return connection_->addSignalMemberHandler(
                 objectPath,
@@ -57,7 +57,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 const std::string &signalName,
                 const std::string &signalSignature,
                 const std::string &getMethodName,
-                DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+                std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
                 const bool justAddFilter) {
     (void)getMethodName;
     return addSignalMemberHandler(
@@ -69,7 +69,8 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxyBase::addSignalMemberHandle
                 justAddFilter);
 }
 
-bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& _dbusSignalHandlerToken, const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler) {
+bool DBusProxyBase::removeSignalMemberHandler(const DBusProxyConnection::DBusSignalHandlerToken& _dbusSignalHandlerToken,
+                                              const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler) {
     return connection_->removeSignalMemberHandler(_dbusSignalHandlerToken, _dbusSignalHandler);
 }
 

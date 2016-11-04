@@ -26,8 +26,7 @@ namespace DBus {
 
 // TODO Check to move logic to DBusServiceRegistry, now every proxy will deserialize the messages!
 class DBusInstanceAvailabilityStatusChangedEvent:
-                public ProxyManager::InstanceAvailabilityStatusChangedEvent,
-                public DBusProxyConnection::DBusSignalHandler {
+                public ProxyManager::InstanceAvailabilityStatusChangedEvent {
  public:
 
     typedef std::function<void(const CallStatus &, const std::vector<DBusAddress> &)> GetAvailableServiceInstancesCallback;
@@ -37,8 +36,6 @@ class DBusInstanceAvailabilityStatusChangedEvent:
                                                const std::string &_capiInterfaceName);
 
     COMMONAPI_EXPORT virtual ~DBusInstanceAvailabilityStatusChangedEvent();
-
-    COMMONAPI_EXPORT virtual void onSignalDBusMessage(const DBusMessage& dbusMessage);
 
     COMMONAPI_EXPORT void getAvailableServiceInstances(CommonAPI::CallStatus &_status, std::vector<DBusAddress> &_availableServiceInstances);
     COMMONAPI_EXPORT std::future<CallStatus> getAvailableServiceInstancesAsync(GetAvailableServiceInstancesCallback _callback);
@@ -50,6 +47,15 @@ class DBusInstanceAvailabilityStatusChangedEvent:
             ProxyManager::GetInstanceAvailabilityStatusCallback _callback);
 
  protected:
+
+    class SignalHandler : public DBusProxyConnection::DBusSignalHandler {
+    public:
+        COMMONAPI_EXPORT SignalHandler(DBusInstanceAvailabilityStatusChangedEvent* _instanceAvblStatusEvent);
+        COMMONAPI_EXPORT virtual void onSignalDBusMessage(const DBusMessage& dbusMessage);
+    private:
+        DBusInstanceAvailabilityStatusChangedEvent* instanceAvblStatusEvent_;
+    };
+
     virtual void onFirstListenerAdded(const Listener&);
     virtual void onLastListenerRemoved(const Listener&);
 
@@ -76,7 +82,9 @@ class DBusInstanceAvailabilityStatusChangedEvent:
     void translate(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict &_dict,
                                      std::vector<DBusAddress> &_serviceInstances);
 
+    std::shared_ptr<SignalHandler> signalHandler_;
     DBusProxy &proxy_;
+    std::weak_ptr<DBusProxy> proxyWeakPtr_;
     std::string observedDbusInterfaceName_;
     std::string observedCapiInterfaceName_;
     DBusProxyConnection::DBusSignalHandlerToken interfacesAddedSubscription_;

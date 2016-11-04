@@ -115,13 +115,15 @@ DBusMessage::createMethodReturn(const std::string &_signature) const {
 
 DBusMessage
 DBusMessage::createMethodError(
-    const std::string &_code, const std::string &_info) const {
+    const std::string &_code, const std::string &_signature, const std::string &_info) const {
 
     ::DBusMessage *methodError
           = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
     if (NULL == methodError) {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " dbus_message_new_error() returned NULL");
     }
+
+    dbus_message_set_signature(methodError, _signature.c_str());
 
     return DBusMessage(methodError, false);
 }

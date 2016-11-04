@@ -17,22 +17,22 @@
 namespace CommonAPI {
 namespace DBus {
 
-DBusServiceRegistry::RegistryMap_t DBusServiceRegistry::registries_;
 std::mutex DBusServiceRegistry::registriesMutex_;
 static CommonAPI::CallInfo serviceRegistryInfo(10000);
 
 std::shared_ptr<DBusServiceRegistry>
 DBusServiceRegistry::get(std::shared_ptr<DBusProxyConnection> _connection) {
     std::lock_guard<std::mutex> itsGuard(registriesMutex_);
-    auto registryIterator = registries_.find(_connection);
-    if (registryIterator != registries_.end())
+    auto registries = getRegistryMap();
+    auto registryIterator = registries->find(_connection);
+    if (registryIterator != registries->end())
         return registryIterator->second;
 
     std::shared_ptr<DBusServiceRegistry> registry
         = std::make_shared<DBusServiceRegistry>(_connection);
     if (registry) {
         registry->init();
-        registries_.insert( { _connection, registry } );
+        registries->insert( { _connection, registry } );
     }
     return registry;
 }
@@ -40,13 +40,15 @@ DBusServiceRegistry::get(std::shared_ptr<DBusProxyConnection> _connection) {
 void
 DBusServiceRegistry::remove(std::shared_ptr<DBusProxyConnection> _connection) {
     std::lock_guard<std::mutex> itsGuard(registriesMutex_);
-    registries_.erase(_connection);
+    auto registries = getRegistryMap();
+    registries->erase(_connection);
 }
 
 DBusServiceRegistry::DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection) :
                 dbusDaemonProxy_(std::make_shared<CommonAPI::DBus::DBusDaemonProxy>(dbusProxyConnection)),
                 initialized_(false),
-                notificationThread_() {
+                notificationThread_(),
+                registries_(getRegistryMap()) {
 }
 
 DBusServiceRegistry::~DBusServiceRegistry() {
@@ -61,7 +63,9 @@ DBusServiceRegistry::~DBusServiceRegistry() {
         auto& dbusServiceListenersRecord = dbusServiceListenersIterator.second;
 
         if (dbusServiceListenersRecord.uniqueBusNameState == DBusRecordState::RESOLVED) {
+            dbusServicesMutex_.lock();
             onDBusServiceNotAvailable(dbusServiceListenersRecord);
+            dbusServicesMutex_.unlock();
         }
     }
 
@@ -80,6 +84,7 @@ DBusServiceRegistry::~DBusServiceRegistry() {
 }
 
 void DBusServiceRegistry::init() {
+    selfReference_ = shared_from_this();
     translator_ = DBusAddressTranslator::get();
 
     dbusDaemonProxyNameOwnerChangedEventSubscription_ =
@@ -97,7 +102,9 @@ void DBusServiceRegistry::init() {
 
 DBusServiceRegistry::DBusServiceSubscription
 DBusServiceRegistry::subscribeAvailabilityListener(
-        const std::string &_address, DBusServiceListener serviceListener) {
+        const std::string &_address,
+        DBusServiceListener serviceListener,
+        std::weak_ptr<DBusProxy> _proxy) {
     DBusAddress dbusAddress;
     translator_->translate(_address, dbusAddress);
 
@@ -161,11 +168,13 @@ DBusServiceRegistry::subscribeAvailabilityListener(
     // LB TODO: check this as it looks STRANGE!!!
     if (availabilityStatus != AvailabilityStatus::UNKNOWN) {
         notificationThread_ = std::this_thread::get_id();
-        serviceListener(availabilityStatus);
+        if(auto itsProxy = _proxy.lock())
+            serviceListener(itsProxy, availabilityStatus);
         notificationThread_ = std::thread::id();
     }
 
     dbusInterfaceNameListenersRecord.listenerList.push_front(std::move(serviceListener));
+    dbusInterfaceNameListenersRecord.proxy = _proxy;
     dbusInterfaceNameListenersRecord.listenersToRemove.remove(
             dbusInterfaceNameListenersRecord.listenerList.begin());
 
@@ -510,7 +519,7 @@ void DBusServiceRegistry::resolveDBusServiceName(const std::string& dbusServiceN
 
         auto func = std::bind(
             &DBusServiceRegistry::onGetNameOwnerCallback,
-            this->shared_from_this(),
+            shared_from_this(),
             std::placeholders::_1,
             std::placeholders::_2,
             dbusServiceName);
@@ -611,7 +620,7 @@ DBusServiceRegistry::getDBusObjectPathCacheReference(
         auto dbusProxyConnection = dbusDaemonProxy_->getDBusConnection();
         const bool isSubscriptionSuccessful = dbusProxyConnection->addObjectManagerSignalMemberHandler(
             dbusServiceUniqueName,
-            this);
+            selfReference_);
         if (!isSubscriptionSuccessful) {
             COMMONAPI_ERROR(std::string(__FUNCTION__), " cannot subscribe too ", dbusServiceUniqueName);
         }
@@ -682,7 +691,7 @@ bool DBusServiceRegistry::resolveObjectPathWithObjectManager(const std::string& 
     // get managed objects from root object manager
     auto getManagedObjectsCallback = std::bind(
             &DBusServiceRegistry::onGetManagedObjectsCallbackResolve,
-            this->shared_from_this(),
+            shared_from_this(),
             std::placeholders::_1,
             std::placeholders::_2,
             dbusServiceUniqueName,
@@ -788,16 +797,37 @@ void DBusServiceRegistry::onGetManagedObjectsCallbackResolve(const CallStatus& c
         }
 
         if(!objectPathFound) {
-            // object path is managed. Try to resolve object path with the help of the manager
-            auto getManagedObjectsCallback = std::bind(
-                    &DBusServiceRegistry::onGetManagedObjectsCallbackResolve,
-                    this->shared_from_this(),
-                    std::placeholders::_1,
-                    std::placeholders::_2,
-                    dbusServiceUniqueName,
-                    dbusObjectPath);
+            // check if the main part of the object path is in the list.
+            // if it is, the object path could be managed.
+            // else, it maybe existed a while back but is now gone, in which case just ignore.
+
             std::string objectPathManager = dbusObjectPath.substr(0, dbusObjectPath.find_last_of("\\/"));
-            getManagedObjectsAsync(dbusServiceUniqueName, objectPathManager, getManagedObjectsCallback);
+            for(auto objectPathDict : availableServiceInstances)
+            {
+
+                std::string objectPath = objectPathDict.first;
+
+                if (dbusObjectPath.substr(0, objectPath.size()) != objectPath)
+                    continue;
+
+                // also check that the next character in dbusObject path is a slash or a backslash,
+                // so that we can make sure that we have compared against a full path element
+                auto delimiter = dbusObjectPath.at(objectPath.size());
+                if (delimiter != '\\' && delimiter != '/')
+                    continue;
+
+                // object path is managed. Try to resolve object path with the help of the manager
+                auto getManagedObjectsCallback = std::bind(
+                        &DBusServiceRegistry::onGetManagedObjectsCallbackResolve,
+                        shared_from_this(),
+                        std::placeholders::_1,
+                        std::placeholders::_2,
+                        dbusServiceUniqueName,
+                        dbusObjectPath);
+                getManagedObjectsAsync(dbusServiceUniqueName, objectPathManager, getManagedObjectsCallback);
+
+            }
+
         }
     } else {
         COMMONAPI_ERROR("There is no Object Manager that manages " + dbusObjectPath + ". Resolving failed!");
@@ -1070,7 +1100,8 @@ void DBusServiceRegistry::notifyDBusInterfaceNameListeners(DBusInterfaceNameList
             dbusInterfaceNameListenersRecord.listenersToRemove.remove(dbusServiceListenerIterator);
             dbusServiceListenerIterator = dbusInterfaceNameListenersRecord.listenerList.erase(dbusServiceListenerIterator);
         } else {
-            (*dbusServiceListenerIterator)(availabilityStatus);
+            if(auto itsProxy = dbusInterfaceNameListenersRecord.proxy.lock())
+                (*dbusServiceListenerIterator)(itsProxy, availabilityStatus);
             ++dbusServiceListenerIterator;
         }
     }

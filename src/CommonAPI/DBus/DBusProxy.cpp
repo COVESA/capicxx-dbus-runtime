@@ -25,14 +25,8 @@ void DBusProxyStatusEvent::onListenerAdded(const Listener &_listener,
 
     //notify listener about availability status -> push function to mainloop
     std::weak_ptr<DBusProxy> itsdbusProxy = dbusProxy_->shared_from_this();
-    std::function<void(std::weak_ptr<DBusProxy>, Listener, Subscription)> notifySpecificListenerHandler =
-             std::bind(&DBusProxy::notifySpecificListener,
-                       dbusProxy_,
-                       std::placeholders::_1,
-                       std::placeholders::_2,
-                       std::placeholders::_3);
     dbusProxy_->getDBusConnection()->proxyPushFunctionToMainLoop<DBusConnection>(
-            notifySpecificListenerHandler,
+            DBusProxy::notifySpecificListener,
             itsdbusProxy,
             _listener,
             _subscription);
@@ -201,10 +195,11 @@ DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
 }
 
 void DBusProxy::init() {
-    selfReference_ = shared_from_this();
+    std::weak_ptr<DBusProxy> itsProxy = shared_from_this();
     dbusServiceRegistrySubscription_ = dbusServiceRegistry_->subscribeAvailabilityListener(
                     getAddress().getAddress(),
-                    std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1));
+                    std::bind(&DBusProxy::onDBusServiceInstanceStatus, this, std::placeholders::_1, std::placeholders::_2),
+                    itsProxy);
 }
 
 DBusProxy::~DBusProxy() {
@@ -300,42 +295,44 @@ InterfaceVersionAttribute& DBusProxy::getInterfaceVersionAttribute() {
 
 void DBusProxy::signalMemberCallback(const CallStatus _status,
         const DBusMessage& dbusMessage,
-        DBusProxyConnection::DBusSignalHandler *_handler,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
         const uint32_t _tag) {
     (void)_status;
     (void)_tag;
-    _handler->onSignalDBusMessage(dbusMessage);
+    if(auto itsHandler = _handler.lock())
+        itsHandler->onSignalDBusMessage(dbusMessage);
 }
 
 void DBusProxy::signalInitialValueCallback(const CallStatus _status,
         const DBusMessage &_message,
-        DBusProxyConnection::DBusSignalHandler *_handler,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
         const uint32_t _tag) {
     if (_status != CallStatus::SUCCESS) {
         COMMONAPI_ERROR("Error when receiving initial value of an attribute");
     } else {
-        _handler->onInitialValueSignalDBusMessage(_message, _tag);
+        if(auto itsHandler = _handler.lock())
+            itsHandler->onInitialValueSignalDBusMessage(_message, _tag);
     }
 }
 
 void DBusProxy::notifySpecificListener(std::weak_ptr<DBusProxy> _dbusProxy,
                                        const ProxyStatusEvent::Listener &_listener,
                                        const ProxyStatusEvent::Subscription _subscription) {
-    if(_dbusProxy.lock()) {
-        std::lock_guard<std::recursive_mutex> listenersLock(dbusProxyStatusEvent_.listenersMutex_);
+    if(auto itsDbusProxy = _dbusProxy.lock()) {
+        std::lock_guard<std::recursive_mutex> listenersLock(itsDbusProxy->dbusProxyStatusEvent_.listenersMutex_);
 
-        AvailabilityStatus itsStatus = availabilityStatus_;
+        AvailabilityStatus itsStatus = itsDbusProxy->availabilityStatus_;
         if (itsStatus != AvailabilityStatus::UNKNOWN)
-            dbusProxyStatusEvent_.notifySpecificListener(_subscription, itsStatus);
+            itsDbusProxy->dbusProxyStatusEvent_.notifySpecificListener(_subscription, itsStatus);
 
         //add listener to list so that it can be notified about a change of availability
-        dbusProxyStatusEvent_.listeners_.push_back(std::make_pair(_subscription, _listener));
+        itsDbusProxy->dbusProxyStatusEvent_.listeners_.push_back(std::make_pair(_subscription, _listener));
     }
 }
 
-void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabilityStatus) {
-    //ensure, proxy survives until notification is done
-    auto itsSelf = selfReference_.lock();
+void DBusProxy::onDBusServiceInstanceStatus(std::shared_ptr<DBusProxy> _proxy,
+                                            const AvailabilityStatus& availabilityStatus) {
+    (void)_proxy;
     if (availabilityStatus != availabilityStatus_) {
         availabilityMutex_.lock();
         availabilityStatus_ = availabilityStatus;
@@ -402,13 +399,14 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
                     signalMemberHandlerIterator != signalMemberHandlerQueue_.end();
                     signalMemberHandlerIterator++) {
 
-                if (std::get<7>(*signalMemberHandlerIterator)) {
+                auto itsHandler = std::get<5>(*signalMemberHandlerIterator).lock();
+                if (itsHandler && std::get<7>(*signalMemberHandlerIterator)) {
                     DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
                             std::get<0>(*signalMemberHandlerIterator),
                             std::get<1>(*signalMemberHandlerIterator),
                             std::get<2>(*signalMemberHandlerIterator),
                             std::get<3>(*signalMemberHandlerIterator));
-                    connection_->removeSignalMemberHandler(signalHandlerToken, std::get<5>(*signalMemberHandlerIterator));
+                    connection_->removeSignalMemberHandler(signalHandlerToken, itsHandler.get());
                     std::get<7>(*signalMemberHandlerIterator) = false;
                 }
             }
@@ -420,7 +418,8 @@ void DBusProxy::onDBusServiceInstanceStatus(const AvailabilityStatus& availabili
 }
 
 void DBusProxy::insertSelectiveSubscription(const std::string& interfaceMemberName,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler, uint32_t tag,
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
+            uint32_t tag,
             std::string interfaceMemberSignature) {
     std::lock_guard < std::mutex > queueLock(selectiveBroadcastHandlersMutex_);
     selectiveBroadcastHandlers[interfaceMemberName] = std::make_tuple(
@@ -432,7 +431,7 @@ void DBusProxy::subscribeForSelectiveBroadcastOnConnection(
                                                       const std::string& interfaceName,
                                                       const std::string& interfaceMemberName,
                                                       const std::string& interfaceMemberSignature,
-                                                      DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                                                      std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
                                                       uint32_t tag) {
 
     getDBusConnection()->subscribeForSelectiveBroadcast(
@@ -464,7 +463,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(
                 const std::string& interfaceName,
                 const std::string& signalName,
                 const std::string& signalSignature,
-                DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+                std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
                 const bool justAddFilter) {
     return DBusProxyBase::addSignalMemberHandler(
                 objectPath,
@@ -481,7 +480,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusProxy::addSignalMemberHandler(
         const std::string &signalName,
         const std::string &signalSignature,
         const std::string &getMethodName,
-        DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
         const bool justAddFilter) {
 
     DBusProxyConnection::DBusSignalHandlerToken signalHandlerToken (
@@ -555,7 +554,7 @@ void DBusProxy::addSignalMemberHandlerToQueue(SignalMemberHandlerTuple& _signalM
 
 bool DBusProxy::removeSignalMemberHandler(
             const DBusProxyConnection::DBusSignalHandlerToken &_dbusSignalHandlerToken,
-            const DBusProxyConnection::DBusSignalHandler *_dbusSignalHandler) {
+            const DBusProxyConnection::DBusSignalHandler* _dbusSignalHandler) {
 
     {
         std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
@@ -581,7 +580,7 @@ bool DBusProxy::removeSignalMemberHandler(
 
 void DBusProxy::getCurrentValueForSignalListener(
         const std::string &getMethodName,
-        DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
         const uint32_t subscription) {
 
     availabilityMutex_.lock();
@@ -607,7 +606,7 @@ void DBusProxy::getCurrentValueForSignalListener(
 }
 
 void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
-    DBusProxyConnection::DBusSignalHandler *dbusSignalHandler,
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
     const uint32_t subscription,
     const std::string &interfaceName,
     const std::string &propertyName) {

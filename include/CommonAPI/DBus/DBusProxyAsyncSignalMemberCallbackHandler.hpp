@@ -26,7 +26,7 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
  public:
 
     struct Delegate {
-        typedef std::function<void(CallStatus, DBusMessage, DBusProxyConnection::DBusSignalHandler*, uint32_t)> FunctionType;
+        typedef std::function<void(CallStatus, DBusMessage, std::weak_ptr<DBusProxyConnection::DBusSignalHandler>, uint32_t)> FunctionType;
 
         Delegate(std::shared_ptr<DelegateObjectType_> object, FunctionType function) :
             function_(std::move(function)) {
@@ -37,7 +37,7 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
     };
 
     static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
-            Delegate& delegate, DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
+            Delegate& delegate, std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
             const uint32_t tag) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
                 new DBusProxyAsyncSignalMemberCallbackHandler<DelegateObjectType_>(std::move(delegate), dbusSignalHandler, tag));
@@ -45,8 +45,8 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
 
     DBusProxyAsyncSignalMemberCallbackHandler() = delete;
     DBusProxyAsyncSignalMemberCallbackHandler(Delegate&& delegate,
-            DBusProxyConnection::DBusSignalHandler* dbusSignalHandler,
-            const uint32_t tag):
+                                              std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
+                                              const uint32_t tag):
         delegate_(std::move(delegate)), dbusSignalHandler_(dbusSignalHandler), tag_(tag),
         executionStarted_(false), executionFinished_(false),
         timeoutOccurred_(false), hasToBeDeleted_(false) {
@@ -114,7 +114,7 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
 
     std::promise<CallStatus> promise_;
     const Delegate delegate_;
-    DBusProxyConnection::DBusSignalHandler* dbusSignalHandler_;
+    std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler_;
     const uint32_t tag_;
     bool executionStarted_;
     bool executionFinished_;

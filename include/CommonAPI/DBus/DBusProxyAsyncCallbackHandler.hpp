@@ -18,36 +18,40 @@
 #include <CommonAPI/DBus/DBusMessage.hpp>
 #include <CommonAPI/DBus/DBusProxyConnection.hpp>
 #include <CommonAPI/DBus/DBusSerializableArguments.hpp>
+#include <CommonAPI/DBus/DBusErrorEvent.hpp>
 
 namespace CommonAPI {
 namespace DBus {
 
-template<typename DelegateObjectType_, typename ... ArgTypes_>
-class DBusProxyAsyncCallbackHandler:
+template <class, class...>
+class DBusProxyAsyncCallbackHandler;
+
+template <class DelegateObjectType_, class ... ArgTypes_>
+class DBusProxyAsyncCallbackHandler :
         public DBusProxyConnection::DBusMessageReplyAsyncHandler {
  public:
 
     struct Delegate {
         typedef std::function<void(CallStatus, ArgTypes_...)> FunctionType;
 
-        Delegate(std::shared_ptr<DelegateObjectType_> object, FunctionType function) :
-            function_(std::move(function)) {
-            object_ = object;
+        Delegate(std::shared_ptr<DelegateObjectType_> _object, FunctionType _function) :
+            function_(std::move(_function)) {
+            object_ = _object;
         }
         std::weak_ptr<DelegateObjectType_> object_;
         FunctionType function_;
     };
 
     static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
-            Delegate& delegate, std::tuple<ArgTypes_...> args) {
+            Delegate& _delegate, const std::tuple<ArgTypes_...>& _args) {
         return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
-                new DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>(std::move(delegate), args));
+                new DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>(std::move(_delegate), _args));
     }
 
     DBusProxyAsyncCallbackHandler() = delete;
-    DBusProxyAsyncCallbackHandler(Delegate&& delegate, std::tuple<ArgTypes_...> args)
-        : delegate_(std::move(delegate)),
-          args_(args),
+    DBusProxyAsyncCallbackHandler(Delegate&& _delegate, const std::tuple<ArgTypes_...>& _args)
+        : delegate_(std::move(_delegate)),
+          args_(_args),
           executionStarted_(false),
           executionFinished_(false),
           timeoutOccurred_(false),
@@ -62,10 +66,10 @@ class DBusProxyAsyncCallbackHandler:
         return promise_.get_future();
     }
 
-    virtual void onDBusMessageReply(const CallStatus& dbusMessageCallStatus,
-            const DBusMessage& dbusMessage) {
-        promise_.set_value(handleDBusMessageReply(dbusMessageCallStatus,
-                dbusMessage,
+    virtual void onDBusMessageReply(const CallStatus& _dbusMessageCallStatus,
+            const DBusMessage& _dbusMessage) {
+        promise_.set_value(handleDBusMessageReply(_dbusMessageCallStatus,
+                _dbusMessage,
                 typename make_sequence<sizeof...(ArgTypes_)>::type(), args_));
     }
 
@@ -109,48 +113,126 @@ class DBusProxyAsyncCallbackHandler:
         asyncHandlerMutex_.unlock();
     }
 
+ protected:
+    Delegate delegate_;
+    std::promise<CallStatus> promise_;
+    std::tuple<ArgTypes_...> args_;
+
  private:
     template <int... ArgIndices_>
     inline CallStatus handleDBusMessageReply(
-            const CallStatus dbusMessageCallStatus,
-            const DBusMessage& dbusMessage,
+            const CallStatus _dbusMessageCallStatus,
+            const DBusMessage& _dbusMessage,
             index_sequence<ArgIndices_...>,
-            std::tuple<ArgTypes_...> argTuple) const {
-        (void)argTuple; // this suppresses warning "set but not used" in case of empty _ArgTypes
+            std::tuple<ArgTypes_...>& _argTuple) const {
+        (void)_argTuple; // this suppresses warning "set but not used" in case of empty _ArgTypes
                         // Looks like: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57560 - Bug 57650
 
-        CallStatus callStatus = dbusMessageCallStatus;
+        CallStatus callStatus = _dbusMessageCallStatus;
 
-        if (dbusMessageCallStatus == CallStatus::SUCCESS) {
-            if (!dbusMessage.isErrorType()) {
-                DBusInputStream dbusInputStream(dbusMessage);
-                const bool success
-                    = DBusSerializableArguments<ArgTypes_...>::deserialize(
-                            dbusInputStream,
-                            std::get<ArgIndices_>(argTuple)...);
-                if (!success)
-                    callStatus = CallStatus::REMOTE_ERROR;
+        if (_dbusMessageCallStatus == CallStatus::SUCCESS) {
+            DBusInputStream dbusInputStream(_dbusMessage);
+            if(DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
+                    std::get<ArgIndices_>(_argTuple)...)) {
             } else {
                 callStatus = CallStatus::REMOTE_ERROR;
             }
         }
 
-        //check if object is expired
-        if(!delegate_.object_.expired())
-            delegate_.function_(callStatus, std::move(std::get<ArgIndices_>(argTuple))...);
+        //ensure that delegate object (e.g. Proxy) survives
+        if(auto itsDelegateObject = delegate_.object_.lock())
+            delegate_.function_(callStatus, std::move(std::get<ArgIndices_>(_argTuple))...);
 
         return callStatus;
     }
 
-    std::promise<CallStatus> promise_;
-    Delegate delegate_;
-    std::tuple<ArgTypes_...> args_;
     bool executionStarted_;
     bool executionFinished_;
     bool timeoutOccurred_;
     bool hasToBeDeleted_;
 
     std::mutex asyncHandlerMutex_;
+};
+
+template<
+    template <class...> class ErrorEventsTuple_, class... ErrorEvents_,
+    class DelegateObjectType_, class... ArgTypes_>
+class DBusProxyAsyncCallbackHandler<
+    ErrorEventsTuple_<ErrorEvents_...>,
+    DelegateObjectType_,
+    ArgTypes_...>:
+        public DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...> {
+
+public:
+
+    static std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler> create(
+            typename DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>::Delegate& _delegate,
+            const std::tuple<ArgTypes_...>& _args,
+            const ErrorEventsTuple_<ErrorEvents_...> &_errorEvents) {
+        return std::unique_ptr<DBusProxyConnection::DBusMessageReplyAsyncHandler>(
+                new DBusProxyAsyncCallbackHandler<ErrorEventsTuple_<ErrorEvents_...>, DelegateObjectType_, ArgTypes_...>(std::move(_delegate), _args, _errorEvents));
+    }
+
+    DBusProxyAsyncCallbackHandler() = delete;
+    DBusProxyAsyncCallbackHandler(typename DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>::Delegate&& _delegate,
+                                  const std::tuple<ArgTypes_...>& _args,
+                                  const ErrorEventsTuple_<ErrorEvents_...> &_errorEvents) :
+                                      DBusProxyAsyncCallbackHandler<DelegateObjectType_, ArgTypes_...>(std::move(_delegate), _args),
+                                      errorEvents_(_errorEvents) {}
+
+    virtual ~DBusProxyAsyncCallbackHandler() {
+        // free assigned std::function<> immediately
+        this->delegate_.function_ = [](CallStatus, ArgTypes_...) {};
+    }
+
+    virtual void onDBusMessageReply(const CallStatus& _dbusMessageCallStatus,
+            const DBusMessage& _dbusMessage) {
+        this->promise_.set_value(handleDBusMessageReply(
+                _dbusMessageCallStatus,
+                _dbusMessage,
+                typename make_sequence<sizeof...(ArgTypes_)>::type(), this->args_));
+    }
+
+private:
+
+    template <int... ArgIndices_>
+    inline CallStatus handleDBusMessageReply(
+            const CallStatus _dbusMessageCallStatus,
+            const DBusMessage& _dbusMessage,
+            index_sequence<ArgIndices_...>,
+            std::tuple<ArgTypes_...>& _argTuple) const {
+        (void)_argTuple; // this suppresses warning "set but not used" in case of empty _ArgTypes
+                        // Looks like: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57560 - Bug 57650
+
+        CallStatus callStatus = _dbusMessageCallStatus;
+
+        if (_dbusMessageCallStatus == CallStatus::SUCCESS) {
+            DBusInputStream dbusInputStream(_dbusMessage);
+            if(DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
+                    std::get<ArgIndices_>(_argTuple)...)) {
+            } else {
+                callStatus = CallStatus::REMOTE_ERROR;
+            }
+        } else {
+            if(_dbusMessage.isErrorType()) {
+                //ensure that delegate object (e.g. Proxy and its error events) survives
+                if(auto itsDelegateObject = this->delegate_.object_.lock()) {
+                    DBusErrorEventHelper::notifyListeners(_dbusMessage,
+                                                          _dbusMessage.getError(),
+                                                          typename make_sequence_range<sizeof...(ErrorEvents_), 0>::type(),
+                                                          errorEvents_);
+                }
+            }
+        }
+
+        //ensure that delegate object (e.g. Proxy) survives
+        if(auto itsDelegateObject = this->delegate_.object_.lock())
+            this->delegate_.function_(callStatus, std::move(std::get<ArgIndices_>(_argTuple))...);
+
+        return callStatus;
+    }
+
+    ErrorEventsTuple_<ErrorEvents_...> errorEvents_;
 };
 
 } // namespace DBus

@@ -124,6 +124,7 @@ private:
     int pipeFileDescriptors_[2];
 
     pollfd pollFileDescriptor_;
+
     std::vector<CommonAPI::DispatchSource*> dependentDispatchSources_;
     std::queue<std::shared_ptr<QueueEntry>> queue_;
 
@@ -134,7 +135,6 @@ private:
     const int pipeValue_;
 #ifdef WIN32
     HANDLE wsaEvent_;
-    OVERLAPPED ov;
 #endif
 
 };

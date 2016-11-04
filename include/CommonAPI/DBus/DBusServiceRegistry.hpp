@@ -58,7 +58,7 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     };
 
     // template class DBusServiceListener<> { typedef functor; typedef list; typedef subscription }
-    typedef std::function<void(const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
+    typedef std::function<void(std::shared_ptr<DBusProxy>, const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
     typedef std::list<DBusServiceListener> DBusServiceListenerList;
     typedef DBusServiceListenerList::iterator DBusServiceSubscription;
 
@@ -82,7 +82,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
     void init();
 
     DBusServiceSubscription subscribeAvailabilityListener(const std::string &_address,
-                                                          DBusServiceListener _listener);
+                                                          DBusServiceListener _listener,
+                                                          std::weak_ptr<DBusProxy> _proxy);
 
     void unsubscribeAvailabilityListener(const std::string &_address,
                                          DBusServiceSubscription &_listener);
@@ -114,12 +115,14 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
         DBusInterfaceNameListenersRecord(DBusInterfaceNameListenersRecord &&_other)
             : state(_other.state),
               listenerList(std::move(_other.listenerList)),
-              listenersToRemove(std::move(_other.listenersToRemove)) {
+              listenersToRemove(std::move(_other.listenersToRemove)),
+              proxy(_other.proxy){
         }
 
         DBusRecordState state;
         DBusServiceListenerList listenerList;
         std::list<DBusServiceSubscription> listenersToRemove;
+        std::weak_ptr<DBusProxy> proxy;
     };
 
     typedef std::unordered_map<std::string, DBusInterfaceNameListenersRecord> DBusInterfaceNameListenersMap;
@@ -307,9 +310,14 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
 private:
     typedef std::map<std::shared_ptr<DBusProxyConnection>, std::shared_ptr<DBusServiceRegistry>> RegistryMap_t;
-    static RegistryMap_t registries_;
+    static std::shared_ptr<RegistryMap_t> getRegistryMap() {
+        static std::shared_ptr<RegistryMap_t> registries(new RegistryMap_t);
+        return registries;
+    }
     static std::mutex registriesMutex_;
+    std::shared_ptr<RegistryMap_t> registries_;
     std::shared_ptr<DBusAddressTranslator> translator_;
+    std::weak_ptr<DBusServiceRegistry> selfReference_;
 };
 
 

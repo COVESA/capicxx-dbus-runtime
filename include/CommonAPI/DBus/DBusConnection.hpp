@@ -156,27 +156,27 @@ public:
                                                  const CommonAPI::CallInfo *_info) const;
 
     COMMONAPI_EXPORT virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                     DBusSignalHandler* dbusSignalHandler);
+                                                                      std::weak_ptr<DBusSignalHandler> dbusSignalHandler);
     COMMONAPI_EXPORT virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                        DBusSignalHandler* dbusSignalHandler);
+                                                                         DBusSignalHandler* dbusSignalHandler);
 
     COMMONAPI_EXPORT DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
                                                   const std::string& interfaceName,
                                                   const std::string& interfaceMemberName,
                                                   const std::string& inuint32_tterfaceMemberSignature,
-                                                  DBusSignalHandler* dbusSignalHandler,
+                                                  std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                                                   const bool justAddFilter = false);
 
     COMMONAPI_EXPORT void subscribeForSelectiveBroadcast(const std::string& objectPath,
                                                    const std::string& interfaceName,
                                                    const std::string& interfaceMemberName,
                                                    const std::string& interfaceMemberSignature,
-                                                   DBusSignalHandler* dbusSignalHandler,
+                                                   std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                                                    DBusProxy* callingProxy,
                                                    uint32_t tag);
 
     COMMONAPI_EXPORT void unsubscribeFromSelectiveBroadcast(const std::string& eventName,
-                                          DBusProxyConnection::DBusSignalHandlerToken subscription,
+                                          DBusSignalHandlerToken subscription,
                                           DBusProxy* callingProxy,
                                           const DBusSignalHandler* dbusSignalHandler);
 
@@ -184,7 +184,7 @@ public:
     COMMONAPI_EXPORT void unregisterObjectPath(const std::string& objectPath);
 
     COMMONAPI_EXPORT bool removeSignalMemberHandler(const DBusSignalHandlerToken& dbusSignalHandlerToken,
-                                   const DBusSignalHandler* dbusSignalHandler = NULL);
+                                                    const DBusSignalHandler* dbusSignalHandler = NULL);
     COMMONAPI_EXPORT bool readWriteDispatch(int timeoutMilliseconds = -1);
 
     COMMONAPI_EXPORT virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager();
@@ -294,8 +294,11 @@ public:
     COMMONAPI_EXPORT void enforceAsynchronousTimeouts() const;
     COMMONAPI_EXPORT static const DBusObjectPathVTable* getDBusObjectPathVTable();
 
-    COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy, std::string interfaceMemberName,
-            DBusSignalHandler* dbusSignalHandler, uint32_t tag, std::string interfaceMemberSignature);
+    COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy,
+                                                           std::string interfaceMemberName,
+                                                           std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
+                                                           uint32_t tag,
+                                                           std::string interfaceMemberSignature);
 
     ::DBusConnection* connection_;
     mutable std::mutex connectionGuard_;
@@ -315,7 +318,8 @@ public:
     DBusSignalHandlerTable dbusSignalHandlerTable_;
 
     std::unordered_map<std::string, size_t> dbusObjectManagerSignalMatchRulesMap_;
-    std::unordered_multimap<std::string, DBusSignalHandler*> dbusObjectManagerSignalHandlerTable_;
+    std::unordered_multimap<std::string, std::pair<DBusSignalHandler*,
+                                            std::weak_ptr<DBusSignalHandler>>> dbusObjectManagerSignalHandlerTable_;
     std::mutex dbusObjectManagerSignalGuard_;
 
     COMMONAPI_EXPORT bool addObjectManagerSignalMatchRule(const std::string& dbusBusName);
@@ -374,7 +378,7 @@ public:
     mutable std::set<DBusMessageReplyAsyncHandler*> timeoutInfiniteAsyncHandlers_;
     mutable std::mutex timeoutInfiniteAsyncHandlersMutex_;
 
-    uint32_t activeConnections_;
+    int activeConnections_;
     mutable std::mutex activeConnectionsMutex_;
 
     bool isDisconnecting_;

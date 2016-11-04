@@ -220,7 +220,9 @@ void DBusMainLoop::stop() {
 
 void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
     {
-        std::lock_guard<std::mutex> itsLock(dispatchSourcesMutex_);
+        std::lock_guard<std::mutex> itsDispatchSourcesLock(dispatchSourcesMutex_);
+        std::lock_guard<std::mutex> itsWatchesLock(watchesMutex_);
+
         for (auto dispatchSourceIterator = registeredDispatchSources_.begin();
             dispatchSourceIterator != registeredDispatchSources_.end();
             dispatchSourceIterator++) {
@@ -255,6 +257,43 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
             }
             else {
                 (dispatchSourceIterator->second)->mutex_->unlock();
+            }
+        }
+
+        for (auto watchesIterator = registeredWatches_.begin();
+            watchesIterator != registeredWatches_.end();
+            watchesIterator++) {
+
+            (watchesIterator->second)->mutex_->lock();
+            if ((watchesIterator->second)->deleteObject_) {
+                if (!(watchesIterator->second)->isExecuted_) {
+                    (watchesIterator->second)->mutex_->unlock();
+                    bool contained = false;
+                    for (auto watchesIteratorInner = watchesToDispatch_.begin();
+                        watchesIteratorInner != watchesToDispatch_.end(); watchesIteratorInner++) {
+                        if (std::get<1>(*watchesIteratorInner)->watch_ == (watchesIterator->second)->watch_) {
+                            contained = true;
+                            break;
+                        }
+                    }
+                    if (!contained) {
+                        delete (watchesIterator->second)->watch_;
+                        (watchesIterator->second)->watch_ = NULL;
+                        delete (watchesIterator->second)->mutex_;
+                        (watchesIterator->second)->mutex_ = NULL;
+                        delete watchesIterator->second;
+                        watchesIterator = registeredWatches_.erase(watchesIterator);
+                    }
+                    if (watchesIterator == registeredWatches_.end()) {
+                        break;
+                    }
+                }
+                else {
+                    (watchesIterator->second)->mutex_->unlock();
+                }
+            }
+            else {
+                (watchesIterator->second)->mutex_->unlock();
             }
         }
     }
@@ -295,46 +334,6 @@ void DBusMainLoop::doSingleIteration(const int64_t& timeout) {
             }
             else {
                 (timeoutIterator->second)->mutex_->unlock();
-            }
-        }
-    }
-
-    {
-        std::lock_guard<std::mutex> itsLock(watchesMutex_);
-        for (auto watchesIterator = registeredWatches_.begin();
-            watchesIterator != registeredWatches_.end();
-            watchesIterator++) {
-
-            (watchesIterator->second)->mutex_->lock();
-            if ((watchesIterator->second)->deleteObject_) {
-                if (!(watchesIterator->second)->isExecuted_) {
-                    (watchesIterator->second)->mutex_->unlock();
-                    bool contained = false;
-                    for (auto watchesIteratorInner = watchesToDispatch_.begin();
-                        watchesIteratorInner != watchesToDispatch_.end(); watchesIteratorInner++) {
-                        if (std::get<1>(*watchesIteratorInner)->watch_ == (watchesIterator->second)->watch_) {
-                            contained = true;
-                            break;
-                        }
-                    }
-                    if (!contained) {
-                        delete (watchesIterator->second)->watch_;
-                        (watchesIterator->second)->watch_ = NULL;
-                        delete (watchesIterator->second)->mutex_;
-                        (watchesIterator->second)->mutex_ = NULL;
-                        delete watchesIterator->second;
-                        watchesIterator = registeredWatches_.erase(watchesIterator);
-                    }
-                    if (watchesIterator == registeredWatches_.end()) {
-                        break;
-                    }
-                }
-                else {
-                    (watchesIterator->second)->mutex_->unlock();
-                }
-            }
-            else {
-                (watchesIterator->second)->mutex_->unlock();
             }
         }
     }
@@ -456,7 +455,6 @@ void DBusMainLoop::poll() {
 }
 
 bool DBusMainLoop::check() {
-    //The first file descriptor always is the loop's wakeup-descriptor (but not for windows anymore). All others need to be linked to a watch.
     int managedFileDescriptorOffset = 1;
     {
         std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
@@ -701,10 +699,10 @@ void DBusMainLoop::unregisterDispatchSource(DispatchSource* dispatchSource) {
 void DBusMainLoop::registerWatch(Watch* watch,
         const DispatchPriority dispatchPriority) {
 
-    std::lock_guard<std::mutex> itsLock(watchesMutex_);
     DBusMainLoopPollFd fdToRegister = watch->getAssociatedFileDescriptor();
-
     registerFileDescriptor(fdToRegister);
+
+    std::lock_guard<std::mutex> itsLock(watchesMutex_);
     std::mutex* mtx = new std::mutex;
 #ifdef WIN32
     std::atomic_signal_fence(std::memory_order_acq_rel);

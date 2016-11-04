@@ -42,7 +42,7 @@ public:
 
     virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken _subscriptionToken, uint32_t tag) {
         this->subscription_ = _subscriptionToken;
-        static_cast<DBusProxy&>(this->proxy_).insertSelectiveSubscription(this->name_, this, tag, this->signature_);
+        static_cast<DBusProxy&>(this->proxy_).insertSelectiveSubscription(this->name_, this->signalHandler_, tag, this->signature_);
     }
 
 protected:
@@ -53,12 +53,12 @@ protected:
     void onListenerAdded(const Listener &_listener, const uint32_t subscription) {
         (void) _listener;
         static_cast<DBusProxy&>(this->proxy_).subscribeForSelectiveBroadcastOnConnection(
-                this->path_, this->interface_, this->name_, this->signature_, this, subscription);
+                this->path_, this->interface_, this->name_, this->signature_, this->signalHandler_, subscription);
     }
 
     void onLastListenerRemoved(const Listener &) {
         static_cast<DBusProxy&>(this->proxy_).unsubscribeFromSelectiveBroadcast(
-                        this->name_, this->subscription_, this);
+                        this->name_, this->subscription_, this->signalHandler_.get());
     }
 };
 

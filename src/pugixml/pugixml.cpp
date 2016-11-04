@@ -879,21 +879,21 @@ PUGI__NS_BEGIN
 				// 110xxxxx -> U+0080..U+07FF
 				else if (static_cast<unsigned int>(lead - 0xC0) < 0x20 && size >= 2 && (data[1] & 0xc0) == 0x80)
 				{
-					result = Traits::low(result, ((lead & ~0xC0) << 6) | (data[1] & utf8_byte_mask));
+					result = Traits::low(result, unsigned((lead & ~0xC0) << 6) | (data[1] & utf8_byte_mask));
 					data += 2;
 					size -= 2;
 				}
 				// 1110xxxx -> U+0800-U+FFFF
 				else if (static_cast<unsigned int>(lead - 0xE0) < 0x10 && size >= 3 && (data[1] & 0xc0) == 0x80 && (data[2] & 0xc0) == 0x80)
 				{
-					result = Traits::low(result, ((lead & ~0xE0) << 12) | ((data[1] & utf8_byte_mask) << 6) | (data[2] & utf8_byte_mask));
+					result = Traits::low(result, unsigned((lead & ~0xE0) << 12) | unsigned((data[1] & utf8_byte_mask) << 6) | (data[2] & utf8_byte_mask));
 					data += 3;
 					size -= 3;
 				}
 				// 11110xxx -> U+10000..U+10FFFF
 				else if (static_cast<unsigned int>(lead - 0xF0) < 0x08 && size >= 4 && (data[1] & 0xc0) == 0x80 && (data[2] & 0xc0) == 0x80 && (data[3] & 0xc0) == 0x80)
 				{
-					result = Traits::high(result, ((lead & ~0xF0) << 18) | ((data[1] & utf8_byte_mask) << 12) | ((data[2] & utf8_byte_mask) << 6) | (data[3] & utf8_byte_mask));
+					result = Traits::high(result, unsigned((lead & ~0xF0) << 18) | unsigned((data[1] & utf8_byte_mask) << 12) | unsigned((data[2] & utf8_byte_mask) << 6) | (data[3] & utf8_byte_mask));
 					data += 4;
 					size -= 4;
 				}
@@ -935,7 +935,7 @@ PUGI__NS_BEGIN
 
 					if (static_cast<unsigned int>(next - 0xDC00) < 0x400)
 					{
-						result = Traits::high(result, 0x10000 + ((lead & 0x3ff) << 10) + (next & 0x3ff));
+						result = Traits::high(result, 0x10000 + unsigned((lead & 0x3ff) << 10) + (next & 0x3ff));
 						data += 2;
 					}
 					else
@@ -1328,7 +1328,7 @@ PUGI__NS_BEGIN
 		// source encoding is latin1
 		if (encoding == encoding_latin1) return convert_buffer_latin1(out_buffer, out_length, contents, size);
 
-		assert(!"Invalid encoding");
+		assert(0 && "Invalid encoding");
 		return false;
 	}
 #else
@@ -1446,7 +1446,7 @@ PUGI__NS_BEGIN
 		// source encoding is latin1
 		if (encoding == encoding_latin1) return convert_buffer_latin1(out_buffer, out_length, contents, size, is_mutable);
 
-		assert(!"Invalid encoding");
+		assert(false && "Invalid encoding");
 		return false;
 	}
 #endif
@@ -1588,7 +1588,7 @@ PUGI__NS_BEGIN
 			{
 				// Move [old_gap_end, new_gap_start) to [old_gap_start, ...)
 				assert(s >= end);
-				memmove(end - size, end, reinterpret_cast<char*>(s) - reinterpret_cast<char*>(end));
+				memmove(end - size, end, size_t(reinterpret_cast<char*>(s) - reinterpret_cast<char*>(end)));
 			}
 				
 			s += count; // end of current gap
@@ -1605,7 +1605,7 @@ PUGI__NS_BEGIN
 			{
 				// Move [old_gap_end, current_pos) to [old_gap_start, ...)
 				assert(s >= end);
-				memmove(end - size, end, reinterpret_cast<char*>(s) - reinterpret_cast<char*>(end));
+				memmove(end - size, end, size_t(reinterpret_cast<char*>(s) - reinterpret_cast<char*>(end)));
 
 				return s - size;
 			}
@@ -1634,9 +1634,9 @@ PUGI__NS_BEGIN
 					for (;;)
 					{
 						if (static_cast<unsigned int>(ch - '0') <= 9)
-							ucsc = 16 * ucsc + (ch - '0');
+							ucsc = 16 * ucsc + (unsigned int)(ch - '0');
 						else if (static_cast<unsigned int>((ch | ' ') - 'a') <= 5)
-							ucsc = 16 * ucsc + ((ch | ' ') - 'a' + 10);
+							ucsc = 16 * ucsc + ((unsigned int)(ch | ' ') - 'a' + 10);
 						else if (ch == ';')
 							break;
 						else // cancel
@@ -1656,7 +1656,7 @@ PUGI__NS_BEGIN
 					for (;;)
 					{
 						if (static_cast<unsigned int>(ch - '0') <= 9)
-							ucsc = 10 * ucsc + (ch - '0');
+							ucsc = 10 * ucsc + (unsigned int)(ch - '0');
 						else if (ch == ';')
 							break;
 						else // cancel
@@ -1674,7 +1674,7 @@ PUGI__NS_BEGIN
 				s = reinterpret_cast<char_t*>(utf8_writer::any(reinterpret_cast<uint8_t*>(s), ucsc));
 			#endif
 					
-				g.push(s, stre - s);
+				g.push(s, size_t(stre - s));
 				return stre;
 			}
 
@@ -1689,7 +1689,7 @@ PUGI__NS_BEGIN
 						*s++ = '&';
 						++stre;
 							
-						g.push(s, stre - s);
+						g.push(s, size_t(stre - s));
 						return stre;
 					}
 				}
@@ -1700,7 +1700,7 @@ PUGI__NS_BEGIN
 						*s++ = '\'';
 						++stre;
 
-						g.push(s, stre - s);
+						g.push(s, size_t(stre - s));
 						return stre;
 					}
 				}
@@ -1714,7 +1714,7 @@ PUGI__NS_BEGIN
 					*s++ = '>';
 					++stre;
 					
-					g.push(s, stre - s);
+					g.push(s, size_t(stre - s));
 					return stre;
 				}
 				break;
@@ -1727,7 +1727,7 @@ PUGI__NS_BEGIN
 					*s++ = '<';
 					++stre;
 						
-					g.push(s, stre - s);
+					g.push(s, size_t(stre - s));
 					return stre;
 				}
 				break;
@@ -1740,7 +1740,7 @@ PUGI__NS_BEGIN
 					*s++ = '"';
 					++stre;
 					
-					g.push(s, stre - s);
+					g.push(s, size_t(stre - s));
 					return stre;
 				}
 				break;
@@ -1879,7 +1879,7 @@ PUGI__NS_BEGIN
 				do ++str;
 				while (PUGI__IS_CHARTYPE(*str, ct_space));
 				
-				g.push(s, str - s);
+				g.push(s, size_t(str - s));
 			}
 
 			while (true)
@@ -1904,7 +1904,7 @@ PUGI__NS_BEGIN
 						char_t* str = s + 1;
 						while (PUGI__IS_CHARTYPE(*str, ct_space)) ++str;
 						
-						g.push(s, str - s);
+						g.push(s, size_t(str - s));
 					}
 				}
 				else if (opt_escape::value && *s == '&')
@@ -2643,7 +2643,7 @@ PUGI__NS_BEGIN
 			if (result && endch == '<')
 			{
 				// there's no possible well-formed document with < at the end
-				return make_parse_result(status_unrecognized_tag, length);
+				return make_parse_result(status_unrecognized_tag, (ptrdiff_t)length);
 			}
 
 			return result;
@@ -2747,7 +2747,7 @@ PUGI__NS_BEGIN
 			return static_cast<size_t>(end - dest);
 		}
 
-		assert(!"Invalid encoding");
+		assert(0 && "Invalid encoding");
 		return 0;
 	}
 #else
@@ -2807,7 +2807,7 @@ PUGI__NS_BEGIN
 			return static_cast<size_t>(end - dest);
 		}
 
-		assert(!"Invalid encoding");
+		assert(0 && "Invalid encoding");
 		return 0;
 	}
 #endif
@@ -3203,7 +3203,7 @@ PUGI__NS_BEGIN
 			break;
 
 		default:
-			assert(!"Invalid node type");
+			assert(0 && "Invalid node type");
 		}
 	}
 
@@ -3278,7 +3278,7 @@ PUGI__NS_BEGIN
 		}
 
 		default:
-			assert(!"Invalid node type");
+			assert(0 && "Invalid node type");
 		}
 	}
 
@@ -5609,7 +5609,7 @@ PUGI__NS_BEGIN
 		else
 		{
 			// median of nine
-			size_t step = (last - first + 1) / 8;
+			size_t step = size_t(last - first + 1) / 8;
 
 			median3(first, first + step, first + 2 * step, pred);
 			median3(middle - step, middle, middle + step, pred);
@@ -6729,7 +6729,7 @@ PUGI__NS_BEGIN
 			break;
 
 		default:
-			assert(!"Invalid variable type");
+			assert(0 && "Invalid variable type");
 		}
 	}
 
@@ -6794,7 +6794,7 @@ PUGI__NS_BEGIN
 			return *min_element(begin, end, document_order_comparator());
 
 		default:
-			assert(!"Invalid node set type");
+			assert(0 && "Invalid node set type");
 			return xpath_node();
 		}
 	}
@@ -7492,7 +7492,7 @@ PUGI__NS_BEGIN
 				}
 			}
 
-			assert(!"Wrong types");
+			assert(0 && "Wrong types");
 			return false;
 		}
 
@@ -7562,7 +7562,7 @@ PUGI__NS_BEGIN
 			}
 			else
 			{
-				assert(!"Wrong types");
+				assert(0 && "Wrong types");
 				return false;
 			}
 		}
@@ -7679,7 +7679,7 @@ PUGI__NS_BEGIN
 				break;
 
 			default:
-				assert(!"Unknown axis");
+				assert(0 && "Unknown axis");
 			} 
 		}
 
@@ -7849,7 +7849,7 @@ PUGI__NS_BEGIN
 			}
 				
 			default:
-				assert(!"Unimplemented axis");
+				assert(0 && "Unimplemented axis");
 			}
 		}
 		
@@ -7925,7 +7925,7 @@ PUGI__NS_BEGIN
 			}
 			
 			default:
-				assert(!"Unimplemented axis");
+				assert(0 && "Unimplemented axis");
 			}
 		}
 		
@@ -8142,7 +8142,7 @@ PUGI__NS_BEGIN
 				}
 
 				default:
-					assert(!"Wrong expression for return type boolean");
+					assert(0 && "Wrong expression for return type boolean");
 					return false;
 				}
 			}
@@ -8278,7 +8278,7 @@ PUGI__NS_BEGIN
 				}
 					
 				default:
-					assert(!"Wrong expression for return type number");
+					assert(0 && "Wrong expression for return type number");
 					return 0;
 				}
 				
@@ -8546,7 +8546,7 @@ PUGI__NS_BEGIN
 				}
 				
 				default:
-					assert(!"Wrong expression for return type string");
+					assert(0 && "Wrong expression for return type string");
 					return xpath_string();
 				}
 			}
@@ -8636,7 +8636,7 @@ PUGI__NS_BEGIN
 					return step_do(c, stack, axis_to_type<axis_self>());
 
 				default:
-					assert(!"Unknown axis");
+					assert(0 && "Unknown axis");
 					return xpath_node_set_raw();
 				}
 			}
@@ -8675,7 +8675,7 @@ PUGI__NS_BEGIN
 			}
 
 			default:
-				assert(!"Wrong expression for return type node set");
+				assert(0 && "Wrong expression for return type node set");
 				return xpath_node_set_raw();
 			}
 		}
@@ -9784,7 +9784,7 @@ namespace pugi
 		
 	PUGI__FN size_t xpath_node_set::size() const
 	{
-		return _end - _begin;
+		return size_t(_end - _begin);
 	}
 		
 	PUGI__FN bool xpath_node_set::empty() const
@@ -9853,7 +9853,7 @@ namespace pugi
 			return static_cast<const impl::xpath_variable_boolean*>(this)->name;
 
 		default:
-			assert(!"Invalid variable type");
+			assert(0 && "Invalid variable type");
 			return 0;
 		}
 	}

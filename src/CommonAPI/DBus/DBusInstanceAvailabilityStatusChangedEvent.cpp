@@ -10,10 +10,24 @@
 namespace CommonAPI {
 namespace DBus {
 
+DBusInstanceAvailabilityStatusChangedEvent::SignalHandler::SignalHandler(DBusInstanceAvailabilityStatusChangedEvent* _instanceAvblStatusEvent) :
+        instanceAvblStatusEvent_(_instanceAvblStatusEvent) {
+
+}
+
+void DBusInstanceAvailabilityStatusChangedEvent::SignalHandler::onSignalDBusMessage(const DBusMessage& dbusMessage) {
+    if (dbusMessage.hasMemberName("InterfacesAdded")) {
+        instanceAvblStatusEvent_->onInterfacesAddedSignal(dbusMessage);
+    } else if (dbusMessage.hasMemberName("InterfacesRemoved")) {
+        instanceAvblStatusEvent_->onInterfacesRemovedSignal(dbusMessage);
+   }
+}
+
 DBusInstanceAvailabilityStatusChangedEvent::DBusInstanceAvailabilityStatusChangedEvent(
         DBusProxy &_proxy,
         const std::string &_dbusInterfaceName,
         const std::string &_capiInterfaceName) :
+                signalHandler_(std::make_shared<SignalHandler>(this)),
                 proxy_(_proxy),
                 observedCapiInterfaceName_(_capiInterfaceName),
                 registry_(DBusServiceRegistry::get(_proxy.getDBusConnection())) {
@@ -25,16 +39,8 @@ DBusInstanceAvailabilityStatusChangedEvent::DBusInstanceAvailabilityStatusChange
 }
 
 DBusInstanceAvailabilityStatusChangedEvent::~DBusInstanceAvailabilityStatusChangedEvent() {
-    proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
-    proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
-}
-
-void DBusInstanceAvailabilityStatusChangedEvent::onSignalDBusMessage(const DBusMessage& dbusMessage) {
-    if (dbusMessage.hasMemberName("InterfacesAdded")) {
-       onInterfacesAddedSignal(dbusMessage);
-    } else if (dbusMessage.hasMemberName("InterfacesRemoved")) {
-       onInterfacesRemovedSignal(dbusMessage);
-   }
+    proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, signalHandler_.get());
+    proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, signalHandler_.get());
 }
 
 void DBusInstanceAvailabilityStatusChangedEvent::getAvailableServiceInstances(
@@ -105,12 +111,14 @@ std::future<CallStatus> DBusInstanceAvailabilityStatusChangedEvent::getServiceIn
 
 void DBusInstanceAvailabilityStatusChangedEvent::onFirstListenerAdded(const Listener&) {
 
+    proxyWeakPtr_ = proxy_.shared_from_this();
+
     interfacesAddedSubscription_ = proxy_.addSignalMemberHandler(
                      proxy_.getDBusAddress().getObjectPath(),
                      DBusObjectManagerStub::getInterfaceName(),
                      "InterfacesAdded",
                      "oa{sa{sv}}",
-                     this,
+                     signalHandler_,
                      false);
 
      interfacesRemovedSubscription_ = proxy_.addSignalMemberHandler(
@@ -118,7 +126,7 @@ void DBusInstanceAvailabilityStatusChangedEvent::onFirstListenerAdded(const List
                      DBusObjectManagerStub::getInterfaceName(),
                      "InterfacesRemoved",
                      "oas",
-                     this,
+                     signalHandler_,
                      false);
 
      getAvailableServiceInstancesAsync([&](const CallStatus &_status,
@@ -135,8 +143,8 @@ void DBusInstanceAvailabilityStatusChangedEvent::onFirstListenerAdded(const List
 }
 
 void DBusInstanceAvailabilityStatusChangedEvent::onLastListenerRemoved(const Listener&) {
-   proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, this);
-   proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, this);
+   proxy_.removeSignalMemberHandler(interfacesAddedSubscription_, signalHandler_.get());
+   proxy_.removeSignalMemberHandler(interfacesRemovedSubscription_, signalHandler_.get());
 }
 
 void DBusInstanceAvailabilityStatusChangedEvent::onInterfacesAddedSignal(const DBusMessage &_message) {
@@ -158,7 +166,10 @@ void DBusInstanceAvailabilityStatusChangedEvent::onInterfacesAddedSignal(const D
         if (dbusInputStream.hasError()) {
             COMMONAPI_ERROR(std::string(__FUNCTION__) + " failed to read interface name");
         }
-        if(dbusInterfaceName == observedDbusInterfaceName_ && addInterface(dbusObjectPath, dbusInterfaceName)) {
+        if(auto itsProxy = proxyWeakPtr_.lock() &&
+                dbusInterfaceName == observedDbusInterfaceName_ &&
+                addInterface(dbusObjectPath, dbusInterfaceName)) {
+            (void)itsProxy;
             notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::AVAILABLE);
         }
     }
@@ -181,7 +192,10 @@ void DBusInstanceAvailabilityStatusChangedEvent::onInterfacesRemovedSignal(const
     }
 
     for (const auto& dbusInterfaceName : dbusInterfaceNames) {
-        if(dbusInterfaceName == observedDbusInterfaceName_ && removeInterface(dbusObjectPath, dbusInterfaceName)) {
+        if(auto itsProxy = proxyWeakPtr_.lock() &&
+                dbusInterfaceName == observedDbusInterfaceName_ &&
+                removeInterface(dbusObjectPath, dbusInterfaceName)) {
+            (void)itsProxy;
             notifyInterfaceStatusChanged(dbusObjectPath, dbusInterfaceName, AvailabilityStatus::NOT_AVAILABLE);
         }
     }
@@ -197,9 +211,6 @@ void DBusInstanceAvailabilityStatusChangedEvent::notifyInterfaceStatusChanged(
                                _interfaceName);
 
     DBusAddressTranslator::get()->translate(itsDBusAddress, itsAddress);
-
-    // ensure, the proxy and the event survives until notification is done
-    auto itsProxy = proxy_.shared_from_this();
 
     notifyListeners(itsAddress.getAddress(), _availability);
 }

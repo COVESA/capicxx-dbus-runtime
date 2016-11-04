@@ -124,18 +124,12 @@ DBusConnection::~DBusConnection() {
             dbus_connection_set_timeout_functions(connection_, NULL, NULL, NULL, NULL, NULL);
         }
 
-        lockedContext->deregisterWatch(queueWatch_);
         lockedContext->deregisterDispatchSource(queueDispatchSource_);
         lockedContext->deregisterDispatchSource(dispatchSource_);
+        lockedContext->deregisterWatch(queueWatch_);
         delete watchContext_;
         delete timeoutContext_;
     }
-
-    // ensure, the registry survives until disconnecting is done...
-    //std::shared_ptr<DBusServiceRegistry> itsRegistry = DBusServiceRegistry::get(shared_from_this());
-
-    // Disconnecting not possible because of circular dependency, the destructor will be called AFTER disconnect anyway.
-    //disconnect();
 
     //Assert that the enforcerThread_ is in a position to finish itself correctly even after destruction
     //of the DBusConnection. Also assert all resources are cleaned up.
@@ -916,11 +910,6 @@ DBusMessage DBusConnection::sendDBusMessageWithReplyAndBlock(const DBusMessage& 
         COMMONAPI_DEBUG("Message sent: SenderID: ", _info->sender_, " - Serial number: ", dbusMessage.getSerial());
     }
 
-    if (dbusError) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__), "dbusError set");
-        return DBusMessage();
-    }
-
     const bool increaseLibdbusMessageReferenceCount = false;
     return DBusMessage(libdbusMessageReply, increaseLibdbusMessageReferenceCount);
 }
@@ -1020,8 +1009,11 @@ bool DBusConnection::setDispatching(bool _isDispatching) {
     }
 }
 
-void DBusConnection::sendPendingSelectiveSubscription(DBusProxy* callingProxy, std::string interfaceMemberName,
-		DBusSignalHandler* dbusSignalHandler, uint32_t tag, std::string interfaceMemberSignature) {
+void DBusConnection::sendPendingSelectiveSubscription(DBusProxy* callingProxy,
+                                                      std::string interfaceMemberName,
+                                                      std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
+                                                      uint32_t tag,
+                                                      std::string interfaceMemberSignature) {
     bool outarg;
     std::string methodName = "subscribeFor" + interfaceMemberName + "Selective";
     DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
@@ -1032,14 +1024,17 @@ void DBusConnection::sendPendingSelectiveSubscription(DBusProxy* callingProxy, s
                      (const CommonAPI::CallStatus& callStatus, const bool& accepted) {
 
         if (callStatus == CommonAPI::CallStatus::SUCCESS && accepted) {
-            dbusSignalHandler->onSpecificError(CommonAPI::CallStatus::SUCCESS, tag);
+            if(auto itsHandler = dbusSignalHandler.lock())
+                itsHandler->onSpecificError(CommonAPI::CallStatus::SUCCESS, tag);
         } else {
             const DBusSignalHandlerPath itsToken(callingProxy->getDBusAddress().getObjectPath(),
                                                 callingProxy->getDBusAddress().getInterface(),
                                                 interfaceMemberName,
                                                 interfaceMemberSignature);
-            removeSignalMemberHandler(itsToken, dbusSignalHandler);
-            dbusSignalHandler->onSpecificError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED, tag);
+            if(auto itsHandler = dbusSignalHandler.lock()) {
+                removeSignalMemberHandler(itsToken, itsHandler.get());
+                itsHandler->onSpecificError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED, tag);
+            }
         }
     }, std::make_tuple(outarg));
 }
@@ -1049,43 +1044,50 @@ void DBusConnection::subscribeForSelectiveBroadcast(
                     const std::string& interfaceName,
                     const std::string& interfaceMemberName,
                     const std::string& interfaceMemberSignature,
-                    DBusSignalHandler* dbusSignalHandler,
+                    std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                     DBusProxy* callingProxy,
                     uint32_t tag) {
 
-    std::string methodName = "subscribeFor" + interfaceMemberName + "Selective";
+    if(auto itsHandler = dbusSignalHandler.lock()) {
 
-    DBusProxyConnection::DBusSignalHandlerToken token = addSignalMemberHandler(
-                            objectPath,
-                            interfaceName,
-                            interfaceMemberName,
-                            interfaceMemberSignature,
-                            dbusSignalHandler,
-                            true
-                        );
-    dbusSignalHandler->setSubscriptionToken(token, tag);
+        std::string methodName = "subscribeFor" + interfaceMemberName + "Selective";
 
-    bool outarg;
-    if(callingProxy->isAvailable()) {
-        DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
-                        CommonAPI::DBus::DBusSerializableArguments<bool>>::callMethodAsync(
-                        *callingProxy, methodName.c_str(), "",
-                        &CommonAPI::DBus::defaultCallInfo,
-                        [this, objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature, dbusSignalHandler, callingProxy, tag, token]
-                         (const CommonAPI::CallStatus& callStatus, const bool& accepted) {
-            (void)callStatus;
-            if (accepted) {
-                dbusSignalHandler->onSpecificError(CommonAPI::CallStatus::SUCCESS, tag);
-            } else {
-                removeSignalMemberHandler(token, dbusSignalHandler);
-                dbusSignalHandler->onSpecificError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED, tag);
-            }
-        }, std::make_tuple(outarg));
+        DBusSignalHandlerToken token = addSignalMemberHandler(
+                                objectPath,
+                                interfaceName,
+                                interfaceMemberName,
+                                interfaceMemberSignature,
+                                dbusSignalHandler,
+                                true
+                            );
+
+        itsHandler->setSubscriptionToken(token, tag);
+
+        bool outarg;
+        if(callingProxy->isAvailable()) {
+            DBusProxyHelper<CommonAPI::DBus::DBusSerializableArguments<>,
+                            CommonAPI::DBus::DBusSerializableArguments<bool>>::callMethodAsync(
+                            *callingProxy, methodName.c_str(), "",
+                            &CommonAPI::DBus::defaultCallInfo,
+                            [this, objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature, dbusSignalHandler, callingProxy, tag, token]
+                             (const CommonAPI::CallStatus& callStatus, const bool& accepted) {
+                (void)callStatus;
+                if (accepted) {
+                    if(auto itsHandler = dbusSignalHandler.lock())
+                        itsHandler->onSpecificError(CommonAPI::CallStatus::SUCCESS, tag);
+                } else {
+                    if(auto itsHandler = dbusSignalHandler.lock()) {
+                        removeSignalMemberHandler(token, itsHandler.get());
+                        itsHandler->onSpecificError(CommonAPI::CallStatus::SUBSCRIPTION_REFUSED, tag);
+                    }
+                }
+            }, std::make_tuple(outarg));
+        }
     }
 }
 
 void DBusConnection::unsubscribeFromSelectiveBroadcast(const std::string& eventName,
-                                                      DBusProxyConnection::DBusSignalHandlerToken subscription,
+                                                      DBusSignalHandlerToken subscription,
                                                       DBusProxy* callingProxy,
                                                       const DBusSignalHandler* dbusSignalHandler) {
     bool lastListenerOnConnectionRemoved = removeSignalMemberHandler(subscription, dbusSignalHandler);
@@ -1104,7 +1106,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
                                                                                    const std::string& interfaceName,
                                                                                    const std::string& interfaceMemberName,
                                                                                    const std::string& interfaceMemberSignature,
-                                                                                   DBusSignalHandler* dbusSignalHandler,
+                                                                                   std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                                                                                    const bool justAddFilter) {
     DBusSignalHandlerPath dbusSignalHandlerPath(
                     objectPath,
@@ -1115,18 +1117,20 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 
     auto signalEntry = dbusSignalHandlerTable_.find(dbusSignalHandlerPath);
     const bool isFirstSignalMemberHandler = (signalEntry == dbusSignalHandlerTable_.end());
-    if (isFirstSignalMemberHandler) {
+    auto itsHandler = dbusSignalHandler.lock();
+    if (itsHandler && isFirstSignalMemberHandler) {
         addLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName, justAddFilter);
-        std::set<DBusSignalHandler*> handlerList;
-        handlerList.insert(dbusSignalHandler);
+
+        std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
+        handlerList[itsHandler.get()] = dbusSignalHandler;
 
         dbusSignalHandlerTable_.insert( {
             dbusSignalHandlerPath,
             std::make_pair(std::make_shared<std::recursive_mutex>(), std::move(handlerList))
         } );
-    } else {
+    } else if (itsHandler && !isFirstSignalMemberHandler) {
         signalEntry->second.first->lock();
-        signalEntry->second.second.insert(dbusSignalHandler);
+        signalEntry->second.second[itsHandler.get()] = dbusSignalHandler;
         signalEntry->second.first->unlock();
     }
 
@@ -1134,7 +1138,7 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 }
 
 bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken &dbusSignalHandlerToken,
-                                               const DBusSignalHandler *dbusSignalHandler) {
+                                               const DBusSignalHandler* dbusSignalHandler) {
     bool lastHandlerRemoved = false;
     std::lock_guard < std::mutex > dbusSignalLock(signalGuard_);
 
@@ -1161,40 +1165,42 @@ bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken &dbu
 }
 
 bool DBusConnection::addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                         DBusSignalHandler* dbusSignalHandler) {
+                                                         std::weak_ptr<DBusSignalHandler> dbusSignalHandler) {
     if (dbusBusName.length() < 2) {
         return false;
     }
 
-    std::lock_guard<std::mutex> dbusSignalLock(dbusObjectManagerSignalGuard_);
+    if(auto itsHandler = dbusSignalHandler.lock()) {
+        std::lock_guard<std::mutex> dbusSignalLock(dbusObjectManagerSignalGuard_);
 
-    auto dbusSignalMatchRuleIterator = dbusObjectManagerSignalMatchRulesMap_.find(dbusBusName);
-    const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusObjectManagerSignalMatchRulesMap_.end());
+        auto dbusSignalMatchRuleIterator = dbusObjectManagerSignalMatchRulesMap_.find(dbusBusName);
+        const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusObjectManagerSignalMatchRulesMap_.end());
 
-    if (!isDBusSignalMatchRuleFound) {
-        if (isConnected() && !addObjectManagerSignalMatchRule(dbusBusName)) {
-            return false;
-        }
-
-        auto insertResult = dbusObjectManagerSignalMatchRulesMap_.insert({ dbusBusName, 0 });
-        const bool isInsertSuccessful = insertResult.second;
-
-        if (!isInsertSuccessful) {
-            if (isConnected()) {
-                const bool isRemoveSignalMatchRuleSuccessful = removeObjectManagerSignalMatchRule(dbusBusName);
-                if (!isRemoveSignalMatchRuleSuccessful) {
-                    COMMONAPI_ERROR(std::string(__FUNCTION__), " removeObjectManagerSignalMatchRule", dbusBusName, " failed");
-                }
+        if (!isDBusSignalMatchRuleFound) {
+            if (isConnected() && !addObjectManagerSignalMatchRule(dbusBusName)) {
+                return false;
             }
-            return false;
+
+            auto insertResult = dbusObjectManagerSignalMatchRulesMap_.insert({ dbusBusName, 0 });
+            const bool isInsertSuccessful = insertResult.second;
+
+            if (!isInsertSuccessful) {
+                if (isConnected()) {
+                    const bool isRemoveSignalMatchRuleSuccessful = removeObjectManagerSignalMatchRule(dbusBusName);
+                    if (!isRemoveSignalMatchRuleSuccessful) {
+                        COMMONAPI_ERROR(std::string(__FUNCTION__), " removeObjectManagerSignalMatchRule", dbusBusName, " failed");
+                    }
+                }
+                return false;
+            }
+
+            dbusSignalMatchRuleIterator = insertResult.first;
         }
 
-        dbusSignalMatchRuleIterator = insertResult.first;
+        size_t &dbusSignalMatchRuleReferenceCount = dbusSignalMatchRuleIterator->second;
+        dbusSignalMatchRuleReferenceCount++;
+        dbusObjectManagerSignalHandlerTable_.insert( { dbusBusName, std::make_pair(itsHandler.get(), dbusSignalHandler) } );
     }
-
-    size_t &dbusSignalMatchRuleReferenceCount = dbusSignalMatchRuleIterator->second;
-    dbusSignalMatchRuleReferenceCount++;
-    dbusObjectManagerSignalHandlerTable_.insert( { dbusBusName, dbusSignalHandler } );
 
     return true;
 }
@@ -1219,7 +1225,7 @@ bool DBusConnection::removeObjectManagerSignalMemberHandler(const std::string& d
     auto dbusObjectManagerSignalHandlerIterator = std::find_if(
         dbusObjectManagerSignalHandlerRange.first,
         dbusObjectManagerSignalHandlerRange.second,
-        [&](decltype(*dbusObjectManagerSignalHandlerRange.first)& it) { return it.second == dbusSignalHandler; });
+        [&](decltype(*dbusObjectManagerSignalHandlerRange.first)& it) { return it.second.first == dbusSignalHandler; });
     const bool isDBusSignalHandlerFound = (dbusObjectManagerSignalHandlerIterator != dbusObjectManagerSignalHandlerRange.second);
     if (!isDBusSignalHandlerFound) {
         return false;
@@ -1574,8 +1580,9 @@ void notifyDBusSignalHandlers(DBusSignalHandlersTable& dbusSignalHandlerstable,
 
     auto handlerEntry = signalEntry->second.second.begin();
     while (handlerEntry != signalEntry->second.second.end()) {
-        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler = *handlerEntry;
-        dbusSignalHandler->onSignalDBusMessage(dbusMessage);
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler = handlerEntry->second;
+        if(auto itsHandler = dbusSignalHandler.lock())
+            itsHandler->onSignalDBusMessage(dbusMessage);
         handlerEntry++;
     }
     dbusHandlerResult = DBUS_HANDLER_RESULT_HANDLED;
@@ -1593,8 +1600,9 @@ void notifyDBusOMSignalHandlers(DBusSignalHandlersTable& dbusSignalHandlerstable
         dbusHandlerResult = DBUS_HANDLER_RESULT_HANDLED;
     }
     while (equalRange.first != equalRange.second) {
-        DBusProxyConnection::DBusSignalHandler* dbusSignalHandler = equalRange.first->second;
-        dbusSignalHandler->onSignalDBusMessage(dbusMessage);
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler = equalRange.first->second.second;
+        if(auto itsHandler = dbusSignalHandler.lock())
+            itsHandler->onSignalDBusMessage(dbusMessage);
         equalRange.first++;
     }
 }
