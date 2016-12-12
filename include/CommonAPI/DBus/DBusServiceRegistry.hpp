@@ -59,8 +59,12 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
     // template class DBusServiceListener<> { typedef functor; typedef list; typedef subscription }
     typedef std::function<void(std::shared_ptr<DBusProxy>, const AvailabilityStatus& availabilityStatus)> DBusServiceListener;
-    typedef std::list<DBusServiceListener> DBusServiceListenerList;
-    typedef DBusServiceListenerList::iterator DBusServiceSubscription;
+    typedef long int DBusServiceSubscription;
+    struct DBusServiceListenerInfo {
+        DBusServiceListener listener;
+        std::weak_ptr<DBusProxy> proxy;
+    };
+    typedef std::map<DBusServiceSubscription, std::shared_ptr<DBusServiceListenerInfo>> DBusServiceListenerList;
 
     typedef std::function<void(const std::vector<std::string>& interfaces,
                                const AvailabilityStatus& availabilityStatus)> DBusManagedInterfaceListener;
@@ -109,20 +113,21 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
  private:
     struct DBusInterfaceNameListenersRecord {
         DBusInterfaceNameListenersRecord()
-            : state(DBusRecordState::UNKNOWN) {
+            : state(DBusRecordState::UNKNOWN),
+              nextSubscriptionKey(0) {
         }
 
         DBusInterfaceNameListenersRecord(DBusInterfaceNameListenersRecord &&_other)
             : state(_other.state),
               listenerList(std::move(_other.listenerList)),
               listenersToRemove(std::move(_other.listenersToRemove)),
-              proxy(_other.proxy){
+              nextSubscriptionKey(_other.nextSubscriptionKey){
         }
 
         DBusRecordState state;
         DBusServiceListenerList listenerList;
         std::list<DBusServiceSubscription> listenersToRemove;
-        std::weak_ptr<DBusProxy> proxy;
+        DBusServiceSubscription nextSubscriptionKey;
     };
 
     typedef std::unordered_map<std::string, DBusInterfaceNameListenersRecord> DBusInterfaceNameListenersMap;

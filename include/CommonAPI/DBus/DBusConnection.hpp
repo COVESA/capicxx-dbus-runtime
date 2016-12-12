@@ -386,7 +386,6 @@ public:
     bool isWaitingOnFinishedDispatching_;
 
     std::set<std::thread::id> dispatchThreads_;
-    std::mutex dispatchMutex_;
     std::condition_variable dispatchCondition_;
 };
 

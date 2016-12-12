@@ -286,7 +286,8 @@ Factory::getConnection(const ConnectionId_t &_connectionId) {
         }
     }
 
-    incrementConnection(itsConnection);
+    if(itsConnection)
+        incrementConnection(itsConnection);
 
     return itsConnection;
 }

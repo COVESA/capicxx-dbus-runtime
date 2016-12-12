@@ -1,6 +1,11 @@
 Changes
 =======
 
+v3.1.10.1
+- Fix deadlock in connection: If data is currently dispatched and disconnecting tooks place it waits until disconnecting is finished. The problem is that the 'connectionGuard_' mutex is locked which is tried to be locked in 'sendDBusMessageWithReplyAsync' as well. This leads to deadlock and is fixed by removing the 'dispatchMutex' and instead of this the 'connectionGuard_' mutex is now used.
+- Fix availability listeners: Use an incrementing index as an identifier for subscriptions instead of iterators to a list that will get modified. Store the receiver proxy with each listener, instead of assuming that all proxies that connect to an interface are the same.
+- Avoid seg fault when creating a connection failed.
+
 v3.1.10
 - If an 'DBusInstanceAvailabilityStatusChangedEvent' occurs and the manager proxy was deleted, a bad_weak_ptr occurs. This is now avoided by introducing a weak_ptr. If the weak_ptr can be locked, the manager proxy was not deleted yet.
 - Moved mutex lock in 'DBusMainLoop::registerWatch' to avoid deadlock.
@@ -13,8 +18,3 @@ v3.1.10
 - Fixed THMainloopIndependence and THMainloopIntegration segfault. The problem is that a 'DBusQueueDispatchSource' has a pointer to its related 'DBusQueueWatch' as member variable and in the destructor of the dispatch source the watch is accessed. So a segfault can occur when the watch is deleted before the dispatch source.
 - Replaced polling mechanism in 'DBusMainLoop' from sockets to WSAEvents in combination with named pipes.
 - Added support for the DBus message type 'Error'. This needed the introduction of a new class ('DBusErrorEvent'), adaptions on proxy side ('DBusProxyHelper') and on stub side ('DBusStubAdapterHelper') and a libdbus patch that avoids the deletion of a message reply when an error occured / when an error reply was sent. This is necessary to deserialize the arguments of the error reply.
-
-
-
-
-

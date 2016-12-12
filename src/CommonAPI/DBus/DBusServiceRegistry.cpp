@@ -166,6 +166,7 @@ DBusServiceRegistry::subscribeAvailabilityListener(
     }
 
     // LB TODO: check this as it looks STRANGE!!!
+
     if (availabilityStatus != AvailabilityStatus::UNKNOWN) {
         notificationThread_ = std::this_thread::get_id();
         if(auto itsProxy = _proxy.lock())
@@ -173,14 +174,16 @@ DBusServiceRegistry::subscribeAvailabilityListener(
         notificationThread_ = std::thread::id();
     }
 
-    dbusInterfaceNameListenersRecord.listenerList.push_front(std::move(serviceListener));
-    dbusInterfaceNameListenersRecord.proxy = _proxy;
-    dbusInterfaceNameListenersRecord.listenersToRemove.remove(
-            dbusInterfaceNameListenersRecord.listenerList.begin());
 
+    DBusServiceSubscription subscriptionKey = dbusInterfaceNameListenersRecord.nextSubscriptionKey++;
+    std::shared_ptr<DBusServiceListenerInfo> info = std::make_shared<DBusServiceListenerInfo>();
+    info->listener = std::move(serviceListener);
+    info->proxy = _proxy;
+    dbusInterfaceNameListenersRecord.listenerList.insert(std::make_pair(subscriptionKey, info));
+    dbusInterfaceNameListenersRecord.listenersToRemove.remove(subscriptionKey);
     dbusServicesMutex_.unlock();
 
-    return dbusInterfaceNameListenersRecord.listenerList.begin();
+    return subscriptionKey;
 }
 
 void
@@ -978,7 +981,6 @@ void DBusServiceRegistry::onDBusServiceNotAvailable(DBusServiceListenersRecord& 
     for (auto dbusObjectPathListenersIterator = dbusServiceListenersRecord.dbusObjectPathListenersMap.begin();
                     dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end(); ) {
         auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
-
         notifyDBusObjectPathResolved(dbusInterfaceNameListenersMap, dbusInterfaceNamesCache);
 
         if (dbusInterfaceNameListenersMap.empty()) {
@@ -1041,7 +1043,6 @@ void DBusServiceRegistry::notifyDBusObjectPathResolved(DBusInterfaceNameListener
 
         const auto& dbusInterfaceNameIterator = dbusInterfaceNames.find(listenersDBusInterfaceName);
         const bool isDBusInterfaceNameAvailable = (dbusInterfaceNameIterator != dbusInterfaceNames.end());
-
         notifyDBusInterfaceNameListeners(dbusInterfaceNameListenersRecord, isDBusInterfaceNameAvailable);
 
         if (dbusInterfaceNameListenersRecord.listenerList.empty()) {
@@ -1068,7 +1069,6 @@ void DBusServiceRegistry::notifyDBusObjectPathChanged(DBusInterfaceNameListeners
 
         if (isDBusInterfaceNameObserved) {
             auto& dbusInterfaceNameListenersRecord = dbusInterfaceNameListenersIterator->second;
-
             notifyDBusInterfaceNameListeners(dbusInterfaceNameListenersRecord, isDBusInterfaceNameAvailable);
 
             if (dbusInterfaceNameListenersRecord.listenerList.empty())
@@ -1094,14 +1094,14 @@ void DBusServiceRegistry::notifyDBusInterfaceNameListeners(DBusInterfaceNameList
 
         auto itsRemoveListenerIt = std::find(dbusInterfaceNameListenersRecord.listenersToRemove.begin(),
                   dbusInterfaceNameListenersRecord.listenersToRemove.end(),
-                  dbusServiceListenerIterator);
+                  dbusServiceListenerIterator->first);
 
         if(itsRemoveListenerIt != dbusInterfaceNameListenersRecord.listenersToRemove.end()) {
-            dbusInterfaceNameListenersRecord.listenersToRemove.remove(dbusServiceListenerIterator);
+            dbusInterfaceNameListenersRecord.listenersToRemove.remove(dbusServiceListenerIterator->first);
             dbusServiceListenerIterator = dbusInterfaceNameListenersRecord.listenerList.erase(dbusServiceListenerIterator);
         } else {
-            if(auto itsProxy = dbusInterfaceNameListenersRecord.proxy.lock())
-                (*dbusServiceListenerIterator)(itsProxy, availabilityStatus);
+            if(auto itsProxy = dbusServiceListenerIterator->second->proxy.lock())
+                (dbusServiceListenerIterator->second->listener)(itsProxy, availabilityStatus);
             ++dbusServiceListenerIterator;
         }
     }

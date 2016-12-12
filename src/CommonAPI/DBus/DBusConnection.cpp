@@ -419,9 +419,7 @@ bool DBusConnection::connect(DBusError &dbusError, bool startDispatchThread) {
 }
 
 void DBusConnection::disconnect() {
-    std::lock_guard<std::mutex> dbusConnectionLock(connectionGuard_);
-
-    std::unique_lock<std::mutex> dispatchLock(dispatchMutex_);
+    std::unique_lock<std::mutex> dbusConnectionLock(connectionGuard_);
 
     std::shared_ptr<DBusServiceRegistry> itsRegistry = DBusServiceRegistry::get(shared_from_this());
 
@@ -446,11 +444,11 @@ void DBusConnection::disconnect() {
         if(it == dispatchThreads_.end()) { //wait only if disconnect is NOT triggered by main loop
             while(isDispatching_) {
                 isWaitingOnFinishedDispatching_ = true;
-                dispatchCondition_.wait(dispatchLock);
+                dispatchCondition_.wait(dbusConnectionLock);
                 isWaitingOnFinishedDispatching_ = false;
             }
         }
-        dispatchLock.unlock();
+        dbusConnectionLock.unlock();
 
         dbus_connection_close(connection_);
 
@@ -988,7 +986,7 @@ void DBusConnection::decrementConnection() {
 }
 
 bool DBusConnection::setDispatching(bool _isDispatching) {
-    std::lock_guard<std::mutex> dispatchLock(dispatchMutex_);
+    std::lock_guard<std::mutex> dispatchLock(connectionGuard_);
 
     if(isDispatching_ == _isDispatching)
         return true;
