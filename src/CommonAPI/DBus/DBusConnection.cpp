@@ -474,6 +474,8 @@ void DBusConnection::disconnect() {
         if (enforcerThread_->joinable() &&
                 std::this_thread::get_id() != enforcerThread_->get_id()) {
             enforcerThread_->join();
+        } else {
+            enforcerThread_->detach();
         }
 
         // remote mainloop watchers

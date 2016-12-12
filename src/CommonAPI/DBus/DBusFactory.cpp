@@ -17,12 +17,17 @@
 namespace CommonAPI {
 namespace DBus {
 
+static std::weak_ptr<CommonAPI::Runtime> runtime__;
+
 INITIALIZER(FactoryInit) {
+    runtime__ = Runtime::get();
     Runtime::get()->registerFactory("dbus", Factory::get());
 }
 
 DEINITIALIZER(FactoryDeinit) {
-    Runtime::get()->unregisterFactory("dbus");
+    if (auto rt = runtime__.lock()) {
+        rt->unregisterFactory("dbus");
+    }
 }
 
 std::shared_ptr<CommonAPI::DBus::Factory>

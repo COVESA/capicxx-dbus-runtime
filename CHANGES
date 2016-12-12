@@ -1,6 +1,10 @@
 Changes
 =======
 
+v3.1.10.4
+- Prevent crash (double free) on destruction of static objects
+- Fixed 'terminate called without an active exception' on verification test exit
+
 v3.1.10.3
 - Fixed crash on dlclose()
 
