@@ -70,13 +70,13 @@ TEST_F(DBusConnectionTest, ConnectionStatusEventWorks) {
     while (expectedEventCount < 10) {
         ASSERT_TRUE(dbusConnection_->connect());
         ASSERT_TRUE(dbusConnection_->isConnected());
-        std::this_thread::sleep_for(std::chrono::microseconds(20000));
+        std::this_thread::sleep_for(std::chrono::microseconds(40000));
         ASSERT_EQ(connectionStatusEventCount, ++expectedEventCount);
         ASSERT_EQ(connectionStatus, CommonAPI::AvailabilityStatus::AVAILABLE);
 
         dbusConnection_->disconnect();
         ASSERT_FALSE(dbusConnection_->isConnected());
-        std::this_thread::sleep_for(std::chrono::microseconds(20000));
+        std::this_thread::sleep_for(std::chrono::microseconds(40000));
         ASSERT_EQ(connectionStatusEventCount, ++expectedEventCount);
         ASSERT_EQ(connectionStatus, CommonAPI::AvailabilityStatus::NOT_AVAILABLE);
     }
@@ -142,7 +142,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
                         &CommonAPI::DBus::defaultCallInfo);
 
         for (int i = 0; i < 100; i++) {
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
+            std::this_thread::sleep_for(std::chrono::microseconds(1000));
         }
 
         ASSERT_EQ(serviceHandlerDBusMessageCount, expectedDBusMessageCount);

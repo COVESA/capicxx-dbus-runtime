@@ -1,6 +1,9 @@
 Changes
 =======
 
+v3.1.10.3
+- Fixed crash on dlclose()
+
 v3.1.10.2
 - Fix of calling unregisterStub() sometimes freezes
 - Fix deadlock by changing 'std::mutex connectionGuard_' to 'std::recursive_mutex' in D-Bus connection

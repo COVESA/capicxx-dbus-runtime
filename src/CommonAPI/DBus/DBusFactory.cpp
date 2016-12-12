@@ -21,6 +21,10 @@ INITIALIZER(FactoryInit) {
     Runtime::get()->registerFactory("dbus", Factory::get());
 }
 
+DEINITIALIZER(FactoryDeinit) {
+    Runtime::get()->unregisterFactory("dbus");
+}
+
 std::shared_ptr<CommonAPI::DBus::Factory>
 Factory::get() {
     static std::shared_ptr<Factory> theFactory = std::make_shared<Factory>();
