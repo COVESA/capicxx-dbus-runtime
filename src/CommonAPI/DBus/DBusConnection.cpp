@@ -419,7 +419,7 @@ bool DBusConnection::connect(DBusError &dbusError, bool startDispatchThread) {
 }
 
 void DBusConnection::disconnect() {
-    std::unique_lock<std::mutex> dbusConnectionLock(connectionGuard_);
+    std::unique_lock<std::recursive_mutex> dbusConnectionLock(connectionGuard_);
 
     std::shared_ptr<DBusServiceRegistry> itsRegistry = DBusServiceRegistry::get(shared_from_this());
 
@@ -465,13 +465,16 @@ void DBusConnection::disconnect() {
             dispatchThread_ = NULL;
         }
 
-        enforcerThreadCancelled_ = true;
-        enforceTimeoutCondition_.notify_one();
+        {
+            std::lock_guard<std::recursive_mutex> enforcerLock(enforcerThreadMutex_);
+            enforcerThreadCancelled_ = true;
+            enforceTimeoutCondition_.notify_one();
+        }
+
         if (enforcerThread_->joinable() &&
                 std::this_thread::get_id() != enforcerThread_->get_id()) {
             enforcerThread_->join();
         }
-        enforcerThreadCancelled_ = false;
 
         // remote mainloop watchers
         dbus_connection_set_watch_functions(connection_, NULL, NULL, NULL, NULL, NULL);
@@ -506,7 +509,7 @@ bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) 
     DBusError dbusError;
     bool isServiceNameAcquired = false;
 
-    std::lock_guard<std::mutex> dbusConnectionLock(connectionGuard_);
+    std::lock_guard<std::recursive_mutex> dbusConnectionLock(connectionGuard_);
     auto conIter = connectionNameCount_.find(serviceName);
     if (conIter == connectionNameCount_.end()) {
         const int libdbusStatus = dbus_bus_request_name(connection_,
@@ -542,7 +545,7 @@ bool DBusConnection::requestServiceNameAndBlock(const std::string& serviceName) 
 bool DBusConnection::releaseServiceName(const std::string& serviceName) const {
     DBusError dbusError;
     bool isServiceNameReleased = false;
-    std::lock_guard<std::mutex> dbusConnectionLock(connectionGuard_);
+    std::lock_guard<std::recursive_mutex> dbusConnectionLock(connectionGuard_);
     auto conIter = connectionNameCount_.find(serviceName);
     if (conIter != connectionNameCount_.end()) {
         if (conIter->second == 1) {
@@ -652,7 +655,7 @@ void DBusConnection::onLibdbusDataCleanup(void *_data) {
 
 //Would not be needed if libdbus would actually handle its timeouts for pending calls.
 void DBusConnection::enforceAsynchronousTimeouts() const {
-    std::unique_lock<std::mutex> itsLock(enforcerThreadMutex_);
+    std::unique_lock<std::recursive_mutex> itsLock(enforcerThreadMutex_);
 
     while (!enforcerThreadCancelled_) {
         enforceTimeoutMutex_.lock();
@@ -792,7 +795,7 @@ bool DBusConnection::sendDBusMessageWithReplyAsync(
         std::unique_ptr<DBusMessageReplyAsyncHandler> dbusMessageReplyAsyncHandler,
         const CommonAPI::CallInfo *_info) const {
 
-    std::lock_guard<std::mutex> dbusConnectionLock(connectionGuard_);
+    std::lock_guard<std::recursive_mutex> dbusConnectionLock(connectionGuard_);
 
     if (!dbusMessage) {
         COMMONAPI_ERROR(std::string(__FUNCTION__), "message == NULL");
@@ -876,7 +879,7 @@ bool DBusConnection::sendDBusMessageWithReplyAsync(
         enforceTimeoutMutex_.unlock();
 
         enforcerThreadMutex_.lock();
-        enforceTimeoutCondition_.notify_all();
+        enforceTimeoutCondition_.notify_one();
         enforcerThreadMutex_.unlock();
     } else {
         // add asyncHandler with infinite timeout to corresponding list
@@ -986,7 +989,7 @@ void DBusConnection::decrementConnection() {
 }
 
 bool DBusConnection::setDispatching(bool _isDispatching) {
-    std::lock_guard<std::mutex> dispatchLock(connectionGuard_);
+    std::lock_guard<std::recursive_mutex> dispatchLock(connectionGuard_);
 
     if(isDispatching_ == _isDispatching)
         return true;

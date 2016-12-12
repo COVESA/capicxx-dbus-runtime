@@ -301,7 +301,7 @@ public:
                                                            std::string interfaceMemberSignature);
 
     ::DBusConnection* connection_;
-    mutable std::mutex connectionGuard_;
+    mutable std::recursive_mutex connectionGuard_;
 
     std::mutex signalGuard_;
     std::mutex objectManagerGuard_;
@@ -365,10 +365,10 @@ public:
     mutable std::mutex mainloopTimeoutsMutex_;
 
     mutable std::mutex enforceTimeoutMutex_;
-    mutable std::condition_variable enforceTimeoutCondition_;
+    mutable std::condition_variable_any enforceTimeoutCondition_;
 
     mutable std::shared_ptr<std::thread> enforcerThread_;
-    mutable std::mutex enforcerThreadMutex_;
+    mutable std::recursive_mutex enforcerThreadMutex_;
     bool enforcerThreadCancelled_;
     ConnectionId_t connectionId_;
 
@@ -386,7 +386,7 @@ public:
     bool isWaitingOnFinishedDispatching_;
 
     std::set<std::thread::id> dispatchThreads_;
-    std::condition_variable dispatchCondition_;
+    std::condition_variable_any dispatchCondition_;
 };
 
 

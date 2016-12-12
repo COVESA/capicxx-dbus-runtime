@@ -1,6 +1,10 @@
 Changes
 =======
 
+v3.1.10.2
+- Fix of calling unregisterStub() sometimes freezes
+- Fix deadlock by changing 'std::mutex connectionGuard_' to 'std::recursive_mutex' in D-Bus connection
+
 v3.1.10.1
 - Fix deadlock in connection: If data is currently dispatched and disconnecting tooks place it waits until disconnecting is finished. The problem is that the 'connectionGuard_' mutex is locked which is tried to be locked in 'sendDBusMessageWithReplyAsync' as well. This leads to deadlock and is fixed by removing the 'dispatchMutex' and instead of this the 'connectionGuard_' mutex is now used.
 - Fix availability listeners: Use an incrementing index as an identifier for subscriptions instead of iterators to a list that will get modified. Store the receiver proxy with each listener, instead of assuming that all proxies that connect to an interface are the same.
