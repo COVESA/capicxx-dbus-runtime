@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,6 +13,7 @@
 #include <list>
 #include <memory>
 #include <queue>
+#include <atomic>
 
 #include <dbus/dbus.h>
 
@@ -50,8 +51,6 @@ class DBusQueueDispatchSource: public DispatchSource {
 
  private:
     DBusQueueWatch* watch_;
-
-    std::mutex watchMutex_;
 };
 
 class DBusWatch: public Watch {
@@ -67,7 +66,7 @@ class DBusWatch: public Watch {
 
     const pollfd& getAssociatedFileDescriptor();
 
-#ifdef WIN32
+#ifdef _WIN32
     const HANDLE& getAssociatedEvent();
 #endif
 
@@ -79,11 +78,12 @@ class DBusWatch: public Watch {
     ::DBusWatch* libdbusWatch_;
     pollfd pollFileDescriptor_;
     std::vector<DispatchSource*> dependentDispatchSources_;
+    std::mutex dependentDispatchSourcesMutex_;
 
     std::weak_ptr<MainLoopContext> mainLoopContext_;
     std::weak_ptr<DBusConnection> dbusConnection_;
 
-#ifdef WIN32
+#ifdef _WIN32
     HANDLE wsaEvent_;
 #endif
 };
@@ -100,7 +100,7 @@ public:
 
     const pollfd& getAssociatedFileDescriptor();
 
-#ifdef WIN32
+#ifdef _WIN32
     const HANDLE& getAssociatedEvent();
 #endif
 
@@ -129,11 +129,12 @@ private:
     std::queue<std::shared_ptr<QueueEntry>> queue_;
 
     std::mutex queueMutex_;
+    std::mutex dependentDispatchSourcesMutex_;
 
     std::weak_ptr<DBusConnection> connection_;
 
     const int pipeValue_;
-#ifdef WIN32
+#ifdef _WIN32
     HANDLE wsaEvent_;
 #endif
 
@@ -157,7 +158,7 @@ class DBusTimeout: public Timeout {
 
     void setPendingCall(DBusPendingCall* _pendingCall);
 
-#ifdef WIN32
+#ifdef _WIN32
     __declspec(thread) static DBusTimeout *currentTimeout_;
 #else
     thread_local static DBusTimeout *currentTimeout_;
@@ -166,7 +167,7 @@ class DBusTimeout: public Timeout {
  private:
     void recalculateDueTime();
 
-    int64_t dueTimeInMs_;
+    std::atomic<int64_t> dueTimeInMs_;
     ::DBusTimeout* libdbusTimeout_;
     std::weak_ptr<MainLoopContext> mainLoopContext_;
     std::weak_ptr<DBusConnection> dbusConnection_;

@@ -1,4 +1,4 @@
-// Copyright (C) 2014-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2014-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -45,7 +45,7 @@ struct ApplyTypeCompareVisitor<Visitor_, Variant_, Deployment_, Type_, Types_...
             output.writeType(current, static_cast<CommonAPI::EmptyDeployment*>(nullptr));
         }
 
-#ifdef WIN32
+#ifdef _WIN32
         if (_visitor.operator()<Type_>(output.getSignature())) {
 #else
         if (_visitor.template operator()<Type_>(output.getSignature())) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -291,7 +291,7 @@ public:
 
     COMMONAPI_EXPORT static void onWakeupMainContext(void* data);
 
-    COMMONAPI_EXPORT void enforceAsynchronousTimeouts() const;
+    COMMONAPI_EXPORT void enforceAsynchronousTimeouts();
     COMMONAPI_EXPORT static const DBusObjectPathVTable* getDBusObjectPathVTable();
 
     COMMONAPI_EXPORT void sendPendingSelectiveSubscription(DBusProxy* proxy,
@@ -299,6 +299,16 @@ public:
                                                            std::weak_ptr<DBusSignalHandler> dbusSignalHandler,
                                                            uint32_t tag,
                                                            std::string interfaceMemberSignature);
+
+    void notifyDBusSignalHandlers(DBusSignalHandlerPath handlerPath,
+                                  const DBusMessage& dbusMessage,
+                                  ::DBusHandlerResult& dbusHandlerResult);
+
+    void notifyDBusOMSignalHandlers(const char* dbusSenderName,
+                                    const DBusMessage& dbusMessage,
+                                    ::DBusHandlerResult& dbusHandlerResult);
+
+    void deleteAsyncHandlers();
 
     ::DBusConnection* connection_;
     mutable std::recursive_mutex connectionGuard_;
@@ -387,8 +397,10 @@ public:
 
     std::set<std::thread::id> dispatchThreads_;
     std::condition_variable_any dispatchCondition_;
-};
 
+    std::vector<DBusMessageReplyAsyncHandler*> asyncHandlersToDelete_;
+    std::mutex asyncHandlersToDeleteMutex_;
+};
 
 template<class Function, class... Arguments>
 void FunctionQueueEntry<Function, Arguments ...>::process(std::shared_ptr<DBusConnection> _connection) {

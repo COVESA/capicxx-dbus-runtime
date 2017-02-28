@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2015-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -105,9 +105,9 @@ class DBusProxyAsyncSignalMemberCallbackHandler: public DBusProxyConnection::DBu
     inline CallStatus handleDBusMessageReply(const CallStatus dbusMessageCallStatus, const DBusMessage& dbusMessage) const {
         CallStatus callStatus = dbusMessageCallStatus;
 
-        //check if object is expired
-        if(!delegate_.object_.expired())
-            delegate_.function_(callStatus, dbusMessage, dbusSignalHandler_, tag_);
+        //ensure that delegate object (i.e Proxy) is not destroyed while callback function is invoked
+        if(auto itsDelegateObject = this->delegate_.object_.lock())
+            this->delegate_.function_(callStatus, dbusMessage, dbusSignalHandler_, tag_);
 
         return callStatus;
     }

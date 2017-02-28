@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -93,7 +93,6 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
 
                 if (now > std::get<0>(*it)) {
                     //timeout
-                    availabilityMutex_.lock();
                     std::chrono::steady_clock::time_point timepoint_;
                     if(isAvailable())
                         callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
@@ -104,10 +103,8 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
                                                             AvailabilityStatus::NOT_AVAILABLE,
                                                             timepoint_));
                     it = timeouts_.erase(it);
-                    availabilityMutex_.unlock();
                 } else {
                     //timeout not expired
-                    availabilityMutex_.lock();
                     if(isAvailable()) {
                         callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
                                                             AvailabilityStatus::AVAILABLE,
@@ -116,7 +113,6 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
                     } else {
                         ++it;
                     }
-                    availabilityMutex_.unlock();
                 }
             }
 
@@ -134,7 +130,6 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
             while (it != timeouts_.end()) {
                 isAvailableAsyncCallback callback = std::get<1>(*it);
 
-                availabilityMutex_.lock();
                 if(isAvailable()) {
                     callbacks.push_back(std::make_tuple(callback, std::move(std::get<2>(*it)),
                                                         AvailabilityStatus::AVAILABLE,
@@ -143,7 +138,6 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
                 } else {
                     ++it;
                 }
-                availabilityMutex_.unlock();
             }
 
             timeoutsMutex_.unlock();
@@ -214,6 +208,7 @@ DBusProxy::~DBusProxy() {
 }
 
 bool DBusProxy::isAvailable() const {
+    std::lock_guard<std::mutex>itsLock(availabilityMutex_);
     return (availabilityStatus_ == AvailabilityStatus::AVAILABLE);
 }
 
@@ -221,7 +216,7 @@ bool DBusProxy::isAvailableBlocking() const {
     std::unique_lock<std::mutex> lock(availabilityMutex_);
 
     if(!getDBusConnection()->hasDispatchThread()) {
-        return isAvailable();
+        return (availabilityStatus_ == AvailabilityStatus::AVAILABLE);
     }
 
     while (availabilityStatus_ != AvailabilityStatus::AVAILABLE) {

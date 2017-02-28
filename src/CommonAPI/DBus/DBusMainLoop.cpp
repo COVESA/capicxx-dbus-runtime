@@ -1,9 +1,9 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <atomic>
@@ -28,7 +28,7 @@ DBusMainLoop::DBusMainLoop(std::shared_ptr<MainLoopContext> context)
           currentMinimalTimeoutInterval_(TIMEOUT_INFINITE),
           hasToStop_(false),
           isBroken_(false) {
-#ifdef WIN32
+#ifdef _WIN32
     WSADATA wsaData;
     int iResult;
 
@@ -188,7 +188,7 @@ DBusMainLoop::~DBusMainLoop() {
     context_->unsubscribeForTimeouts(timeoutSourceListenerSubscription_);
     context_->unsubscribeForWakeupEvents(wakeupListenerSubscription_);
 
-#ifdef WIN32
+#ifdef _WIN32
     // shutdown the connection since no more data will be sent
     int iResult = shutdown(wakeFd_.fd, SD_SEND);
     if (iResult == SOCKET_ERROR) {
@@ -403,20 +403,44 @@ bool DBusMainLoop::prepare(const int64_t& timeout) {
 }
 
 void DBusMainLoop::poll() {
-    int managedFileDescriptorOffset = 0;
+
+    // copy file descriptors
+    std::vector<DBusMainLoopPollFd> fileDescriptors;
     {
         std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
-        for (auto fileDescriptor = managedFileDescriptors_.begin() + managedFileDescriptorOffset; fileDescriptor != managedFileDescriptors_.end(); ++fileDescriptor) {
+        for (auto fileDescriptor = managedFileDescriptors_.begin();
+                fileDescriptor != managedFileDescriptors_.end();
+                ++fileDescriptor) {
             (*fileDescriptor).revents = 0;
+            fileDescriptors.push_back(*fileDescriptor);
         }
     }
 
-#ifdef WIN32
-    int numReadyFileDescriptors = WSAPoll(&managedFileDescriptors_[0], managedFileDescriptors_.size(), int(currentMinimalTimeoutInterval_));
+#ifdef _WIN32
+    int numReadyFileDescriptors = WSAPoll(&fileDescriptors[0], fileDescriptors.size(), int(currentMinimalTimeoutInterval_));
 #else
-    int numReadyFileDescriptors = ::poll(&(managedFileDescriptors_[0]),
-            managedFileDescriptors_.size(), int(currentMinimalTimeoutInterval_));
+    int numReadyFileDescriptors = ::poll(&(fileDescriptors[0]),
+            fileDescriptors.size(), int(currentMinimalTimeoutInterval_));
 #endif
+
+    // update file descriptors
+    {
+        std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
+        for (auto itFds = fileDescriptors.begin();
+                itFds != fileDescriptors.end();
+                itFds++) {
+            for(auto itManagedFds = managedFileDescriptors_.begin();
+                    itManagedFds != managedFileDescriptors_.end();
+                    ++itManagedFds) {
+                if((*itFds).fd == (*itManagedFds).fd &&
+                        (*itFds).events == (*itManagedFds).events) {
+                    (*itManagedFds).revents = (*itFds).revents;
+                    continue;
+                }
+            }
+        }
+    }
+
     if (!numReadyFileDescriptors) {
         int64_t currentContextTime = getCurrentTimeInMs();
 
@@ -449,6 +473,7 @@ void DBusMainLoop::poll() {
     }
 
     // If the wakeup descriptor woke us up, we must acknowledge
+    std::lock_guard<std::mutex> itsLock(fileDescriptorsMutex_);
     if (managedFileDescriptors_[0].revents) {
         wakeupAck();
     }
@@ -564,7 +589,7 @@ void DBusMainLoop::dispatch() {
 }
 
 void DBusMainLoop::wakeup() {
-#ifdef WIN32
+#ifdef _WIN32
     // Send an initial buffer
     char *sendbuf = "1";
 
@@ -585,7 +610,7 @@ void DBusMainLoop::wakeup() {
 }
 
 void DBusMainLoop::wakeupAck() {
-#ifdef WIN32
+#ifdef _WIN32
     // Receive until the peer closes the connection
     int iResult;    
     char recvbuf[DEFAULT_BUFLEN];
@@ -704,7 +729,7 @@ void DBusMainLoop::registerWatch(Watch* watch,
 
     std::lock_guard<std::mutex> itsLock(watchesMutex_);
     std::mutex* mtx = new std::mutex;
-#ifdef WIN32
+#ifdef _WIN32
     std::atomic_signal_fence(std::memory_order_acq_rel);
 #else
     asm volatile ("":::"memory");

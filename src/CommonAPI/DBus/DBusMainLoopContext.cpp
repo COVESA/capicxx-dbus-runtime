@@ -1,9 +1,9 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #else
@@ -48,25 +48,20 @@ DBusQueueDispatchSource::DBusQueueDispatchSource(DBusQueueWatch* watch) :
 }
 
 DBusQueueDispatchSource::~DBusQueueDispatchSource() {
-    std::unique_lock<std::mutex> itsLock(watchMutex_);
     watch_->removeDependentDispatchSource(this);
 }
 
 bool DBusQueueDispatchSource::prepare(int64_t& timeout) {
-    std::unique_lock<std::mutex> itsLock(watchMutex_);
     timeout = -1;
     return !watch_->emptyQueue();
 }
 
 bool DBusQueueDispatchSource::check() {
-    std::unique_lock<std::mutex> itsLock(watchMutex_);
     return !watch_->emptyQueue();
 }
 
 bool DBusQueueDispatchSource::dispatch() {
-    std::unique_lock<std::mutex> itsLock(watchMutex_);
-    if (!watch_->emptyQueue()) {
-        auto queueEntry = watch_->frontQueue();
+    if (auto queueEntry = watch_->frontQueue()) {
         watch_->popQueue();
         watch_->processQueueEntry(queueEntry);
     }
@@ -101,7 +96,7 @@ void DBusWatch::startWatching() {
         pollFlags |= POLLOUT;
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     pollFileDescriptor_.fd = dbus_watch_get_socket(libdbusWatch_);
     wsaEvent_ = WSACreateEvent();
     WSAEventSelect(pollFileDescriptor_.fd, wsaEvent_, FD_READ);
@@ -131,14 +126,14 @@ const pollfd& DBusWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 const HANDLE& DBusWatch::getAssociatedEvent() {
     return wsaEvent_;
 }
 #endif
 
 void DBusWatch::dispatch(unsigned int eventFlags) {
-#ifdef WIN32
+#ifdef _WIN32
     unsigned int dbusWatchFlags = 0;
 
     if (eventFlags & (POLLRDBAND | POLLRDNORM)) {
@@ -173,15 +168,17 @@ void DBusWatch::dispatch(unsigned int eventFlags) {
 }
 
 const std::vector<DispatchSource*>& DBusWatch::getDependentDispatchSources() {
+    std::lock_guard<std::mutex> itsLock(dependentDispatchSourcesMutex_);
     return dependentDispatchSources_;
 }
 
 void DBusWatch::addDependentDispatchSource(DispatchSource* dispatchSource) {
+    std::lock_guard<std::mutex> itsLock(dependentDispatchSourcesMutex_);
     dependentDispatchSources_.push_back(dispatchSource);
 }
 
 DBusQueueWatch::DBusQueueWatch(std::shared_ptr<DBusConnection> _connection) : pipeValue_(4) {
-#ifdef WIN32
+#ifdef _WIN32
     WSADATA wsaData;
     int iResult;
 
@@ -316,7 +313,7 @@ DBusQueueWatch::DBusQueueWatch(std::shared_ptr<DBusConnection> _connection) : pi
 }
 
 DBusQueueWatch::~DBusQueueWatch() {
-#ifdef WIN32
+#ifdef _WIN32
     // shutdown the connection since no more data will be sent
     int iResult = shutdown(pipeFileDescriptors_[0], SD_SEND);
     if (iResult == SOCKET_ERROR) {
@@ -348,21 +345,24 @@ const pollfd& DBusQueueWatch::getAssociatedFileDescriptor() {
     return pollFileDescriptor_;
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 const HANDLE& DBusQueueWatch::getAssociatedEvent() {
     return wsaEvent_;
 }
 #endif
 
 const std::vector<DispatchSource*>& DBusQueueWatch::getDependentDispatchSources() {
+    std::lock_guard<std::mutex> itsLock(dependentDispatchSourcesMutex_);
     return dependentDispatchSources_;
 }
 
 void DBusQueueWatch::addDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+    std::lock_guard<std::mutex> itsLock(dependentDispatchSourcesMutex_);
     dependentDispatchSources_.push_back(_dispatchSource);
 }
 
 void DBusQueueWatch::removeDependentDispatchSource(CommonAPI::DispatchSource* _dispatchSource) {
+    std::lock_guard<std::mutex> itsLock(dependentDispatchSourcesMutex_);
     std::vector<CommonAPI::DispatchSource*>::iterator it;
 
     for (it = dependentDispatchSources_.begin(); it != dependentDispatchSources_.end(); it++) {
@@ -377,7 +377,7 @@ void DBusQueueWatch::pushQueue(std::shared_ptr<QueueEntry> _queueEntry) {
     std::unique_lock<std::mutex> itsLock(queueMutex_);
     queue_.push(_queueEntry);
 
-#ifdef WIN32
+#ifdef _WIN32
     // Send an initial buffer
     char *sendbuf = "1";
 
@@ -399,7 +399,7 @@ void DBusQueueWatch::pushQueue(std::shared_ptr<QueueEntry> _queueEntry) {
 void DBusQueueWatch::popQueue() {
     std::unique_lock<std::mutex> itsLock(queueMutex_);
 
-#ifdef WIN32
+#ifdef _WIN32
     // Receive until the peer closes the connection
     int iResult;
     char recvbuf[1];
@@ -428,7 +428,11 @@ void DBusQueueWatch::popQueue() {
 std::shared_ptr<QueueEntry> DBusQueueWatch::frontQueue() {
     std::unique_lock<std::mutex> itsLock(queueMutex_);
 
-    return queue_.front();
+    if(queue_.empty()) {
+        return NULL;
+    } else {
+        return queue_.front();
+    }
 }
 
 bool DBusQueueWatch::emptyQueue() {
@@ -444,7 +448,7 @@ void DBusQueueWatch::processQueueEntry(std::shared_ptr<QueueEntry> _queueEntry) 
     }
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 __declspec(thread) DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
 #else
 thread_local DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
