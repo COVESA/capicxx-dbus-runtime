@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -31,7 +31,7 @@ class DBusProxy;
 template< class, class... >
 struct DBusProxyHelper;
 
-#ifdef WIN32
+#ifdef _WIN32
 // Visual Studio 2013 does not support 'magic statics' yet.
 // Change back when switched to Visual Studio 2015 or higher.
 static std::mutex callMethod_mutex_;
@@ -51,13 +51,14 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                            const std::string &_signature,
                            const InArgs_&... _in,
                            CommonAPI::CallStatus &_status) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethod_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethod_mutex_);
 
         if (_proxy.isAvailable()) {
             DBusMessage message = _proxy.createMethodCall(_method, _signature);
+            message.setNoReplyExpected(TRUE);
             if (sizeof...(InArgs_) > 0) {
                 DBusOutputStream output(message);
                 if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
@@ -119,7 +120,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                 const InArgs_&... _in,
                 CommonAPI::CallStatus &_status,
                 OutArgs_&... _out) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodWithReply_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodWithReply_mutex_);
@@ -160,7 +161,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     const InArgs_&... _in,
                     CommonAPI::CallStatus &_status,
                     OutArgs_&... _out) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodWithReply_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodWithReply_mutex_);
@@ -269,7 +270,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                         const InArgs_&... _in,
                         DelegateFunction_ _function,
                         std::tuple<OutArgs_...> _out) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodAsync_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
@@ -307,7 +308,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     const InArgs_&... _in,
                     DelegateFunction_ _function,
                     std::tuple<OutArgs_...> _out) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodAsync_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);
@@ -384,7 +385,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     CommonAPI::CallStatus &_status,
                     OutArgs_&... _out,
                     const std::tuple<ErrorEvents_*...> &_errorEvents){
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodWithReply_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodWithReply_mutex_);
@@ -494,7 +495,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     DelegateFunction_ _function,
                     std::tuple<OutArgs_...> _out,
                     const std::tuple<ErrorEvents_*...> &_errorEvents) {
-#ifndef WIN32
+#ifndef _WIN32
         static std::mutex callMethodAsync_mutex_;
 #endif
         std::lock_guard<std::mutex> lock(callMethodAsync_mutex_);

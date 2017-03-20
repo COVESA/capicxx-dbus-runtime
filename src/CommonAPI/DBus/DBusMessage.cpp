@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -290,6 +290,10 @@ bool DBusMessage::isErrorType() const {
 
 bool DBusMessage::isSignalType() const {
     return (getType() == Type::Signal);
+}
+
+void DBusMessage::setNoReplyExpected(bool replyNotExpected) {
+    dbus_message_set_no_reply (message_, (0 != replyNotExpected) ? TRUE : FALSE);
 }
 
 } // namespace DBus
