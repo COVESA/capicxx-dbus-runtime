@@ -94,7 +94,6 @@ public:
     bool setDestination(const char* destination);
 
     void setSerial(const unsigned int serial) const;
-    void setNoReplyExpected(bool replyNotExpected);
 
 private:
     ::DBusMessage *message_;

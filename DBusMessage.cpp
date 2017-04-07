@@ -292,9 +292,5 @@ bool DBusMessage::isSignalType() const {
     return (getType() == Type::Signal);
 }
 
-void DBusMessage::setNoReplyExpected(bool replyNotExpected) {
-    dbus_message_set_no_reply (message_, (0 != replyNotExpected) ? TRUE : FALSE);
-}
-
 } // namespace DBus
 } // namespace CommonAPI
