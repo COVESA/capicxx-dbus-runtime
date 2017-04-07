@@ -1,0 +1,9 @@
+diff --git a/dbus-1.pc.in b/dbus-1.pc.in
+index f93d156..2e137cf 100644
+--- a/dbus-1.pc.in
++++ b/dbus-1.pc.in
+@@ -18,3 +18,4 @@ Version: @VERSION@
+ Libs: -L${libdir} -ldbus-1
+ Libs.private: @LIBDBUS_LIBS@
+ Cflags: -I${includedir}/dbus-1.0 -I${libdir}/dbus-1.0/include @DBUS_STATIC_BUILD_CPPFLAGS@
++Ldflags: -L${libdir}

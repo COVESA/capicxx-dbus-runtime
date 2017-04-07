@@ -62,9 +62,10 @@ class DBusProxyConnection {
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
     typedef std::tuple<std::string, std::string, std::string, std::string> DBusSignalHandlerPath;
     typedef std::unordered_map<DBusSignalHandlerPath,
-                                std::pair<std::shared_ptr<std::recursive_mutex>,
-                                    std::map<DBusSignalHandler*,
-                                        std::weak_ptr<DBusProxyConnection::DBusSignalHandler>>>> DBusSignalHandlerTable;
+                                std::map<DBusSignalHandler*,
+                                    std::weak_ptr<DBusProxyConnection::DBusSignalHandler>>> DBusSignalHandlerTable;
+    typedef std::unordered_multimap<std::string, std::pair<DBusSignalHandler*,
+                                        std::weak_ptr<DBusSignalHandler>>> DBusOMSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
     class DBusSignalHandler {

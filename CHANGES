@@ -1,5 +1,8 @@
 Changes
 =======
+v3.1.11.1
+- Support deployment for anonymous arrays
+- Fixed concurrency problem / segfault in unregisterStub()
 
 v3.1.11
 - Fixed availability problem of proxies that connect to legacy managed services by changing the way of resolving object paths and available interfaces

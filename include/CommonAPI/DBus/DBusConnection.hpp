@@ -226,6 +226,7 @@ public:
     typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
     typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
     typedef std::unordered_map<DBusSignalMatchRuleTuple, DBusSignalMatchRuleMapping> DBusSignalMatchRulesMap;
+    typedef std::unordered_map<std::string, size_t> DBusOMSignalMatchRulesMap;
  private:
 
     struct PendingCallNotificationData {
@@ -310,10 +311,13 @@ public:
 
     void deleteAsyncHandlers();
 
+    uint32_t getNumberOfSignalMemberHandlers(DBusSignalHandlerPath handlerPath);
+
     ::DBusConnection* connection_;
     mutable std::recursive_mutex connectionGuard_;
 
-    std::mutex signalGuard_;
+    std::mutex signalHandlersGuard_;
+
     std::mutex objectManagerGuard_;
     std::mutex serviceRegistryGuard_;
 
@@ -325,12 +329,17 @@ public:
 
     DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
-    DBusSignalHandlerTable dbusSignalHandlerTable_;
+    DBusSignalHandlerTable dbusSignalHandlers_;
+    DBusSignalHandlerTable dbusSignalHandlersToAdd_;
+    DBusSignalHandlerTable dbusSignalHandlersToRemove_;
 
-    std::unordered_map<std::string, size_t> dbusObjectManagerSignalMatchRulesMap_;
-    std::unordered_multimap<std::string, std::pair<DBusSignalHandler*,
-                                            std::weak_ptr<DBusSignalHandler>>> dbusObjectManagerSignalHandlerTable_;
-    std::mutex dbusObjectManagerSignalGuard_;
+    std::mutex dbusOMSignalHandlersGuard_;
+
+    DBusOMSignalMatchRulesMap dbusOMSignalMatchRulesMap_;
+
+    DBusOMSignalHandlerTable dbusOMSignalHandlers_;
+    DBusOMSignalHandlerTable dbusOMSignalHandlersToAdd_;
+    DBusOMSignalHandlerTable dbusOMSignalHandlersToRemove_;
 
     COMMONAPI_EXPORT bool addObjectManagerSignalMatchRule(const std::string& dbusBusName);
     COMMONAPI_EXPORT bool removeObjectManagerSignalMatchRule(const std::string& dbusBusName);

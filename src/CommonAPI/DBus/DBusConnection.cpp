@@ -1143,49 +1143,58 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
                     interfaceMemberName,
                     interfaceMemberSignature);
 
-    std::unique_lock<std::mutex> dbusSignalLock(signalGuard_);
+    std::lock_guard<std::mutex> dbusSignalHandlersLock(signalHandlersGuard_);
 
-    auto signalEntry = dbusSignalHandlerTable_.find(dbusSignalHandlerPath);
-    const bool isFirstSignalMemberHandler = (signalEntry == dbusSignalHandlerTable_.end());
+    if(auto itsHandler = dbusSignalHandler.lock()) {
 
-    auto itsHandler = dbusSignalHandler.lock();
+        uint32_t lastNumOfSignalMemberHandlers = getNumberOfSignalMemberHandlers(dbusSignalHandlerPath);
 
-    if (itsHandler && isFirstSignalMemberHandler) {
-        addLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName, justAddFilter);
+        //check if signal handler is already added
+        auto signalHandlerPathIt = dbusSignalHandlers_.find(dbusSignalHandlerPath);
+        if(signalHandlerPathIt == dbusSignalHandlers_.end() || 
+            signalHandlerPathIt->second.find(itsHandler.get()) == signalHandlerPathIt->second.end()) {
 
-        std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
-        handlerList[itsHandler.get()] = dbusSignalHandler;
+            // the signal handler is not added yet for the 'dbusSignalHandlerPath' --> needs to be added
+            auto signalHandlerPathToAddIt = dbusSignalHandlersToAdd_.find(dbusSignalHandlerPath);
+            if(signalHandlerPathToAddIt == dbusSignalHandlersToAdd_.end()) {
 
-        dbusSignalHandlerTable_.insert( {
-            dbusSignalHandlerPath,
-            std::make_pair(std::make_shared<std::recursive_mutex>(), std::move(handlerList))
-        } );
-    } else if (itsHandler && !isFirstSignalMemberHandler) {
+                // is first signal member handler for this 'dbusSignalHandlerPath' --> add
+                std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
+                handlerList[itsHandler.get()] = dbusSignalHandler;
 
-        //get mutex for signal entry
-        auto signalEntryMutex = signalEntry->second.first;
+                dbusSignalHandlersToAdd_.insert( {
+                    dbusSignalHandlerPath,
+                    std::move(handlerList)
+                } );
+            } else {
+                // add further signal handler
+                signalHandlerPathToAddIt->second[itsHandler.get()] = dbusSignalHandler;
+            }
 
-        // mutex of signal entry must be locked first to avoid potential deadlock
-        dbusSignalLock.unlock();
-        signalEntryMutex->lock();
-
-        dbusSignalLock.lock();
-        signalEntry = dbusSignalHandlerTable_.find(dbusSignalHandlerPath);
-        if(signalEntry != dbusSignalHandlerTable_.end()) {
-            signalEntry->second.second[itsHandler.get()] = dbusSignalHandler;
         } else {
-            //is first signal member handler again
-            addLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName, justAddFilter);
+            // signal handler is already added
+            // check if handler is going to be removed
+            auto signalHandlerPathToRemoveIt = dbusSignalHandlersToRemove_.find(dbusSignalHandlerPath);
+            if(signalHandlerPathToRemoveIt != dbusSignalHandlersToRemove_.end()) {
 
-            std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
-            handlerList[itsHandler.get()] = dbusSignalHandler;
+                auto handlerToRemoveEntry = signalHandlerPathToRemoveIt->second.find(itsHandler.get());
+                if(handlerToRemoveEntry != signalHandlerPathToRemoveIt->second.end()) {
 
-            dbusSignalHandlerTable_.insert( {
-                dbusSignalHandlerPath,
-                std::make_pair(std::make_shared<std::recursive_mutex>(), std::move(handlerList))
-            } );
+                    // signal handler is going to be removed --> erase
+                    signalHandlerPathToRemoveIt->second.erase(handlerToRemoveEntry);
+                    if(signalHandlerPathToRemoveIt->second.empty()) {
+                        dbusSignalHandlersToRemove_.erase(signalHandlerPathToRemoveIt);
+                    }
+                }
+            }
         }
-        signalEntryMutex->unlock();
+
+        uint32_t numOfSignalMemberHandlers = getNumberOfSignalMemberHandlers(dbusSignalHandlerPath);
+
+        if(lastNumOfSignalMemberHandlers == 0 && numOfSignalMemberHandlers == 1) {
+            // a new signal handler for the 'dbusSignalHandlerPath' was added --> add match rule
+            addLibdbusSignalMatchRule(objectPath, interfaceName, interfaceMemberName, justAddFilter);
+        }
     }
 
     return dbusSignalHandlerPath;
@@ -1193,38 +1202,72 @@ DBusProxyConnection::DBusSignalHandlerToken DBusConnection::addSignalMemberHandl
 
 bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken &dbusSignalHandlerToken,
                                                const DBusSignalHandler* dbusSignalHandler) {
-    bool lastHandlerRemoved = false;
 
-    std::unique_lock<std::mutex> itsLock(signalGuard_);
-    auto signalEntry = dbusSignalHandlerTable_.find(dbusSignalHandlerToken);
-    if (signalEntry != dbusSignalHandlerTable_.end()) {
+    std::lock_guard<std::mutex> itsLock(signalHandlersGuard_);
 
-        auto signalEntryMutex = signalEntry->second.first;
+    uint32_t lastNumOfSignalMemberHandlers = getNumberOfSignalMemberHandlers(dbusSignalHandlerToken);
 
-        // mutex of signal entry must be locked first to avoid potential deadlock
-        itsLock.unlock();
-        signalEntryMutex->lock();
+    //check if signal handler is already added
+    auto signalHandlerPathIt = dbusSignalHandlers_.find(dbusSignalHandlerToken);
+    if(signalHandlerPathIt != dbusSignalHandlers_.end() &&
+            signalHandlerPathIt->second.find(const_cast<DBusSignalHandler*>(dbusSignalHandler)) !=
+                    signalHandlerPathIt->second.end()) {
 
-        itsLock.lock();
-        signalEntry = dbusSignalHandlerTable_.find(dbusSignalHandlerToken);
-        if(signalEntry != dbusSignalHandlerTable_.end()) {
-            auto selectedHandler = signalEntry->second.second.find(const_cast<DBusSignalHandler*>(dbusSignalHandler));
-            if (selectedHandler != signalEntry->second.second.end()) {
-                signalEntry->second.second.erase(selectedHandler);
-                lastHandlerRemoved = (signalEntry->second.second.empty());
+        // signal handler is already added
+        // check if handler is going to be removed
+        auto signalHandlerPathToRemoveIt = dbusSignalHandlersToRemove_.find(dbusSignalHandlerToken);
+        if(signalHandlerPathToRemoveIt != dbusSignalHandlersToRemove_.end()) {
+
+            auto it = signalHandlerPathToRemoveIt->second.find(const_cast<DBusSignalHandler*>(dbusSignalHandler));
+
+            if(it == signalHandlerPathToRemoveIt->second.end()) {
+
+                // handler is not going to be removed yet --> remove
+                signalHandlerPathToRemoveIt->second[const_cast<DBusSignalHandler*>(dbusSignalHandler)] =
+                        std::weak_ptr<DBusSignalHandler>();
+            } 
+
+        } else {
+            // handler is not going to be removed yet. No dbus signal handler token found --> insert with handler to remove
+            std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
+            handlerList[const_cast<DBusSignalHandler*>(dbusSignalHandler)] =
+                    std::weak_ptr<DBusSignalHandler>();
+
+            dbusSignalHandlersToRemove_.insert( {
+                dbusSignalHandlerToken,
+                std::move(handlerList)
+            } );
+        }
+
+    } else {
+        // signal handler not added yet
+        // check if handler is going to be added
+        auto signalHandlerPathToAddIt = dbusSignalHandlersToAdd_.find(dbusSignalHandlerToken);
+        if(signalHandlerPathToAddIt != dbusSignalHandlersToAdd_.end()) {
+
+            auto handlersToAddEntry = signalHandlerPathToAddIt->second.find(const_cast<DBusSignalHandler*>(dbusSignalHandler));
+            if(handlersToAddEntry != signalHandlerPathToAddIt->second.end()) {
+
+                // handler is planned to be added --> erase
+                signalHandlerPathToAddIt->second.erase(handlersToAddEntry);
+                if(signalHandlerPathToAddIt->second.empty()) {
+                    dbusSignalHandlersToAdd_.erase(signalHandlerPathToAddIt);
+                }
             }
         }
-        signalEntryMutex->unlock();
     }
 
-    if (lastHandlerRemoved) {
-        dbusSignalHandlerTable_.erase(signalEntry);
+    uint32_t numOfSignalMemberHandlers = getNumberOfSignalMemberHandlers(dbusSignalHandlerToken);
+
+    if(lastNumOfSignalMemberHandlers == 1 && numOfSignalMemberHandlers == 0) {
+        // the last signal handler for the 'dbusSignalHandlerToken' was removed --> remove match rule
         removeLibdbusSignalMatchRule(std::get<0>(dbusSignalHandlerToken),
-                std::get<1>(dbusSignalHandlerToken),
-                std::get<2>(dbusSignalHandlerToken));
+                                 std::get<1>(dbusSignalHandlerToken),
+                                 std::get<2>(dbusSignalHandlerToken));
+        return true;
     }
 
-    return lastHandlerRemoved;
+    return false;
 }
 
 bool DBusConnection::addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
@@ -1234,37 +1277,46 @@ bool DBusConnection::addObjectManagerSignalMemberHandler(const std::string& dbus
     }
 
     if(auto itsHandler = dbusSignalHandler.lock()) {
-        std::lock_guard<std::mutex> dbusSignalLock(dbusObjectManagerSignalGuard_);
+        std::lock_guard<std::mutex> dbusSignalLock(dbusOMSignalHandlersGuard_);
 
-        auto dbusSignalMatchRuleIterator = dbusObjectManagerSignalMatchRulesMap_.find(dbusBusName);
-        const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusObjectManagerSignalMatchRulesMap_.end());
+        auto signalHandlerPathIt = dbusOMSignalHandlers_.find(dbusBusName);
+        if(signalHandlerPathIt == dbusOMSignalHandlers_.end()) {
 
-        if (!isDBusSignalMatchRuleFound) {
-            if (isConnected() && !addObjectManagerSignalMatchRule(dbusBusName)) {
-                return false;
-            }
+            // the signal handler is not added yet --> add
+            auto signalHandlerPathToAddIt = dbusOMSignalHandlersToAdd_.find(dbusBusName);
+            if(signalHandlerPathToAddIt == dbusOMSignalHandlersToAdd_.end()) {
 
-            auto insertResult = dbusObjectManagerSignalMatchRulesMap_.insert({ dbusBusName, 0 });
-            const bool isInsertSuccessful = insertResult.second;
+                // is first signal member handler --> add to list and add match rule
+                std::pair<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handler =
+                        std::make_pair(itsHandler.get(), dbusSignalHandler);
 
-            if (!isInsertSuccessful) {
-                if (isConnected()) {
-                    const bool isRemoveSignalMatchRuleSuccessful = removeObjectManagerSignalMatchRule(dbusBusName);
-                    if (!isRemoveSignalMatchRuleSuccessful) {
-                        COMMONAPI_ERROR(std::string(__FUNCTION__), " removeObjectManagerSignalMatchRule", dbusBusName, " failed");
-                    }
+                dbusOMSignalHandlersToAdd_.insert( {
+                    dbusBusName,
+                    std::move(handler)
+                } );
+
+                if (!addObjectManagerSignalMatchRule(dbusBusName)) {
+                    return false;
                 }
-                return false;
+            } else {
+                // signal handler is already going to be added
+                COMMONAPI_WARNING(std::string(__FUNCTION__), " a signal handler is already added for ", dbusBusName);
+                return true;
             }
+        } else {
+            // signal handler is added
+            // check if handler is going to be removed
+            auto signalHandlerPathToRemoveIt= dbusOMSignalHandlersToRemove_.find(dbusBusName);
+            if(signalHandlerPathToRemoveIt != dbusOMSignalHandlersToRemove_.end()) {
 
-            dbusSignalMatchRuleIterator = insertResult.first;
+                // signal handler is going to be removed --> erase
+                dbusOMSignalHandlersToRemove_.erase(signalHandlerPathToRemoveIt);
+                if(isConnected() && !addObjectManagerSignalMatchRule(dbusBusName)) {
+                    return false;
+                }
+            }
         }
-
-        size_t &dbusSignalMatchRuleReferenceCount = dbusSignalMatchRuleIterator->second;
-        dbusSignalMatchRuleReferenceCount++;
-        dbusObjectManagerSignalHandlerTable_.insert( { dbusBusName, std::make_pair(itsHandler.get(), dbusSignalHandler) } );
     }
-
     return true;
 }
 
@@ -1275,23 +1327,106 @@ bool DBusConnection::removeObjectManagerSignalMemberHandler(const std::string& d
         return false;
     }
 
-    std::lock_guard<std::mutex> dbusSignalLock(dbusObjectManagerSignalGuard_);
+    std::lock_guard<std::mutex> itsLock(signalHandlersGuard_);
 
-    auto dbusSignalMatchRuleIterator = dbusObjectManagerSignalMatchRulesMap_.find(dbusBusName);
-    const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusObjectManagerSignalMatchRulesMap_.end());
+    auto signalHandlerPathIt = dbusOMSignalHandlers_.find(dbusBusName);
+    if(signalHandlerPathIt != dbusOMSignalHandlers_.end()) {
+
+        // signal handler is added
+        // check if handler is already going to be removed
+        auto signalHandlerPathToRemoveIt = dbusOMSignalHandlersToRemove_.find(dbusBusName);
+        if(signalHandlerPathToRemoveIt != dbusOMSignalHandlersToRemove_.end()) {
+
+            if(signalHandlerPathToRemoveIt->second.first == dbusSignalHandler) {
+                COMMONAPI_WARNING(std::string(__FUNCTION__), " the signal handler is already removed for ", dbusBusName);
+                return true;
+            } else {
+                COMMONAPI_ERROR(std::string(__FUNCTION__), " the signal handler is not found for ", dbusBusName);
+                return false;
+            }
+        } else {
+            // no dbus signal handler found for 'dbusBusName' --> insert with handler
+            std::pair<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handler =
+                    std::make_pair(dbusSignalHandler, std::weak_ptr<DBusSignalHandler>());
+
+            dbusOMSignalHandlersToRemove_.insert( {
+                dbusBusName,
+                std::move(handler)
+            } );
+
+            if (isConnected() && !removeObjectManagerSignalMatchRule(dbusBusName)) {
+                return false;
+            }
+        }
+    } else {
+        // signal handler not added
+        // check if handler is going to be added
+        auto signalHandlerPathToAddIt = dbusOMSignalHandlersToAdd_.find(dbusBusName);
+        if(signalHandlerPathToAddIt != dbusOMSignalHandlersToAdd_.end()) {
+
+            if(signalHandlerPathToAddIt->second.first == dbusSignalHandler) {
+                // handler is planned to be added --> erase
+                dbusOMSignalHandlersToAdd_.erase(signalHandlerPathToAddIt);
+                if (isConnected() && !removeObjectManagerSignalMatchRule(dbusBusName)) {
+                    return false;
+                }
+            } else {
+                COMMONAPI_ERROR(std::string(__FUNCTION__), " the signal handler is not found for ", dbusBusName);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool DBusConnection::addObjectManagerSignalMatchRule(const std::string& dbusBusName) {
+
+    std::ostringstream dbusMatchRuleStringStream;
+    dbusMatchRuleStringStream << "type='signal'"
+                                << ",sender='" << dbusBusName << "'"
+                                << ",interface='org.freedesktop.DBus.ObjectManager'";
+
+    auto dbusSignalMatchRuleIterator = dbusOMSignalMatchRulesMap_.find(dbusBusName);
+    const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusOMSignalMatchRulesMap_.end());
+
+    if (!isDBusSignalMatchRuleFound) {
+
+        if(isConnected() && !addLibdbusSignalMatchRule(dbusMatchRuleStringStream.str())) {
+            return false;
+        }
+
+        auto insertResult = dbusOMSignalMatchRulesMap_.insert({ dbusBusName, 0 });
+        const bool isInsertSuccessful = insertResult.second;
+
+        if (!isInsertSuccessful) {
+            if (isConnected()) {
+                if (!removeObjectManagerSignalMatchRule(dbusBusName)) {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " removeObjectManagerSignalMatchRule", dbusBusName, " failed");
+                }
+            }
+            return false;
+        }
+
+        dbusSignalMatchRuleIterator = insertResult.first;
+    }
+
+    size_t &dbusSignalMatchRuleReferenceCount = dbusSignalMatchRuleIterator->second;
+    dbusSignalMatchRuleReferenceCount++;
+
+    return true;
+}
+
+bool DBusConnection::removeObjectManagerSignalMatchRule(const std::string& dbusBusName) {
+    std::ostringstream dbusMatchRuleStringStream;
+    dbusMatchRuleStringStream << "type='signal'"
+                                << ",sender='" << dbusBusName << "'"
+                                << ",interface='org.freedesktop.DBus.ObjectManager'";
+
+    auto dbusSignalMatchRuleIterator = dbusOMSignalMatchRulesMap_.find(dbusBusName);
+    const bool isDBusSignalMatchRuleFound = (dbusSignalMatchRuleIterator != dbusOMSignalMatchRulesMap_.end());
 
     if (!isDBusSignalMatchRuleFound) {
         return true;
-    }
-
-    auto dbusObjectManagerSignalHandlerRange = dbusObjectManagerSignalHandlerTable_.equal_range(dbusBusName);
-    auto dbusObjectManagerSignalHandlerIterator = std::find_if(
-        dbusObjectManagerSignalHandlerRange.first,
-        dbusObjectManagerSignalHandlerRange.second,
-        [&](decltype(*dbusObjectManagerSignalHandlerRange.first)& it) { return it.second.first == dbusSignalHandler; });
-    const bool isDBusSignalHandlerFound = (dbusObjectManagerSignalHandlerIterator != dbusObjectManagerSignalHandlerRange.second);
-    if (!isDBusSignalHandlerFound) {
-        return false;
     }
 
     size_t& dbusSignalMatchRuleReferenceCount = dbusSignalMatchRuleIterator->second;
@@ -1304,32 +1439,12 @@ bool DBusConnection::removeObjectManagerSignalMemberHandler(const std::string& d
 
     const bool isLastDBusSignalMatchRuleReference = (dbusSignalMatchRuleReferenceCount == 0);
     if (isLastDBusSignalMatchRuleReference) {
-        if (isConnected() && !removeObjectManagerSignalMatchRule(dbusBusName)) {
+        if (isConnected() && !removeLibdbusSignalMatchRule(dbusBusName)) {
             return false;
         }
-
-        dbusObjectManagerSignalMatchRulesMap_.erase(dbusSignalMatchRuleIterator);
+        dbusOMSignalMatchRulesMap_.erase(dbusSignalMatchRuleIterator);
     }
-
-    dbusObjectManagerSignalHandlerTable_.erase(dbusObjectManagerSignalHandlerIterator);
-
     return true;
-}
-
-bool DBusConnection::addObjectManagerSignalMatchRule(const std::string& dbusBusName) {
-    std::ostringstream dbusMatchRuleStringStream;
-    dbusMatchRuleStringStream << "type='signal'"
-                                << ",sender='" << dbusBusName << "'"
-                                << ",interface='org.freedesktop.DBus.ObjectManager'";
-    return addLibdbusSignalMatchRule(dbusMatchRuleStringStream.str());
-}
-
-bool DBusConnection::removeObjectManagerSignalMatchRule(const std::string& dbusBusName) {
-    std::ostringstream dbusMatchRuleStringStream;
-    dbusMatchRuleStringStream << "type='signal'"
-                                << ",sender='" << dbusBusName << "'"
-                                << ",interface='org.freedesktop.DBus.ObjectManager'";
-    return removeLibdbusSignalMatchRule(dbusMatchRuleStringStream.str());
 }
 
 /**
@@ -1607,7 +1722,7 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
     }
 
     // object manager match rules (see DBusServiceRegistry)
-    for (const auto& dbusObjectManagerSignalMatchRuleIterator : dbusObjectManagerSignalMatchRulesMap_) {
+    for (const auto& dbusObjectManagerSignalMatchRuleIterator : dbusOMSignalMatchRulesMap_) {
         const std::string& dbusBusName = dbusObjectManagerSignalMatchRuleIterator.first;
         const bool libdbusSuccess = addObjectManagerSignalMatchRule(dbusBusName);
         if (!libdbusSuccess) {
@@ -1634,44 +1749,72 @@ void DBusConnection::initLibdbusSignalFilterAfterConnect() {
 void DBusConnection::notifyDBusSignalHandlers(DBusSignalHandlerPath handlerPath,
                                               const DBusMessage& dbusMessage,
                                               ::DBusHandlerResult& dbusHandlerResult) {
-
-    // mutex of signal entry must be locked first to avoid potential deadlock
-    DBusSignalHandlerTable::iterator signalEntry;
-    bool entryFound = false;
-    std::shared_ptr<std::recursive_mutex> signalEntryMutex;
     {
-        std::lock_guard<std::mutex> itsLock(signalGuard_);
-        signalEntry = dbusSignalHandlerTable_.find(handlerPath);
+        std::lock_guard<std::mutex> dbusSignalHandlersLock(signalHandlersGuard_);
 
-        if(signalEntry != dbusSignalHandlerTable_.end()) {
-            signalEntryMutex = signalEntry->second.first;
-            entryFound = true;
+        // remove signal handlers
+        auto signalHandlerPathToRemoveIt = dbusSignalHandlersToRemove_.find(handlerPath);
+        if(signalHandlerPathToRemoveIt != dbusSignalHandlersToRemove_.end()) {
+
+            for(auto handlerToRemoveIt = signalHandlerPathToRemoveIt->second.begin();
+                    handlerToRemoveIt != signalHandlerPathToRemoveIt->second.end();
+                    ++handlerToRemoveIt) {
+
+                auto signalHandlerPathIt = dbusSignalHandlers_.find(handlerPath);
+                if(signalHandlerPathIt != dbusSignalHandlers_.end()) {
+                    auto signalHandlerIt = signalHandlerPathIt->second.find(handlerToRemoveIt->first);
+                    if(signalHandlerIt != signalHandlerPathIt->second.end()) {
+                        signalHandlerPathIt->second.erase(signalHandlerIt);
+                    }
+                }
+            }
+            auto signalHandlerPathIt = dbusSignalHandlers_.find(handlerPath);
+            if(signalHandlerPathIt != dbusSignalHandlers_.end() &&
+                    signalHandlerPathIt->second.empty()) {
+                dbusSignalHandlers_.erase(handlerPath);
+            }
+            dbusSignalHandlersToRemove_.erase(signalHandlerPathToRemoveIt);
         }
-    }
 
-    if(entryFound) {
-        signalEntryMutex->lock();
-        std::lock_guard<std::mutex> itsLock(signalGuard_);
-        signalEntry = dbusSignalHandlerTable_.find(handlerPath);
+        // add signal handlers
+        auto signalHandlerPathToAddIt = dbusSignalHandlersToAdd_.find(handlerPath);
+        if(signalHandlerPathToAddIt != dbusSignalHandlersToAdd_.end()) {
+
+            for(auto handlerToAddIt = signalHandlerPathToAddIt->second.begin();
+                    handlerToAddIt != signalHandlerPathToAddIt->second.end();
+                    ++handlerToAddIt) {
+
+                auto signalHandlerPathIt = dbusSignalHandlers_.find(handlerPath);
+                if(signalHandlerPathIt == dbusSignalHandlers_.end()) {
+
+                    std::map<DBusSignalHandler*, std::weak_ptr<DBusSignalHandler>> handlerList;
+                    handlerList[handlerToAddIt->first] = handlerToAddIt->second;
+
+                    dbusSignalHandlers_.insert( {
+                        handlerPath,
+                        std::move(handlerList)
+                    } );
+                } else {
+                    signalHandlerPathIt->second[handlerToAddIt->first] = handlerToAddIt->second;
+                }
+            }
+            dbusSignalHandlersToAdd_.erase(signalHandlerPathToAddIt);
+        }
     }
 
     // ensure, the registry survives
     std::shared_ptr<DBusServiceRegistry> itsRegistry_ = DBusServiceRegistry::get(shared_from_this());
 
-    if(entryFound &&
-            signalEntry != dbusSignalHandlerTable_.end() &&
-            !signalEntry->second.second.empty()) {
-
-        // copy signal handlers
-        auto dbusSignalhandlers = signalEntry->second.second;
-        signalEntryMutex->unlock();
-
-        auto handlerEntry = dbusSignalhandlers.begin();
-        while (handlerEntry != dbusSignalhandlers.end()) {
-            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler = handlerEntry->second;
-            if(auto itsHandler = dbusSignalHandler.lock())
+    // notify
+    auto signalHandlerPathIt = dbusSignalHandlers_.find(handlerPath);
+    if(signalHandlerPathIt != dbusSignalHandlers_.end()) {
+        for(auto handlerIt = signalHandlerPathIt->second.begin();
+                handlerIt != signalHandlerPathIt->second.end();
+                ++handlerIt) {
+            std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler = handlerIt->second;
+            if(auto itsHandler = dbusSignalHandler.lock()) {
                 itsHandler->onSignalDBusMessage(dbusMessage);
-            handlerEntry++;
+            }
         }
     }
     dbusHandlerResult = DBUS_HANDLER_RESULT_HANDLED;
@@ -1680,23 +1823,63 @@ void DBusConnection::notifyDBusSignalHandlers(DBusSignalHandlerPath handlerPath,
 void DBusConnection::notifyDBusOMSignalHandlers(const char* dbusSenderName,
                                                 const DBusMessage& dbusMessage,
                                                 ::DBusHandlerResult& dbusHandlerResult) {
-    std::vector<std::weak_ptr<DBusProxyConnection::DBusSignalHandler>> dbusOMSignalHandlers;
     {
-        std::lock_guard<std::mutex> itsLock(dbusObjectManagerSignalGuard_);
-        auto equalRange = dbusObjectManagerSignalHandlerTable_.equal_range(dbusSenderName);
+        std::lock_guard<std::mutex> dbusOMSignalHandlersLock(dbusOMSignalHandlersGuard_);
 
-        if (equalRange.first != equalRange.second) {
-            dbusHandlerResult = DBUS_HANDLER_RESULT_HANDLED;
+        // remove signal handlers
+        auto signalHandlerPathToRemoveIt = dbusOMSignalHandlersToRemove_.find(dbusSenderName);
+        if(signalHandlerPathToRemoveIt != dbusOMSignalHandlersToRemove_.end()) {
+
+            auto signalHandlerPathIt = dbusOMSignalHandlers_.find(dbusSenderName);
+            if(signalHandlerPathIt != dbusOMSignalHandlers_.end()) {
+
+                if(signalHandlerPathToRemoveIt->second.first ==
+                        signalHandlerPathIt->second.first) {
+                    dbusOMSignalHandlers_.erase(signalHandlerPathIt);
+                    dbusOMSignalHandlersToRemove_.erase(signalHandlerPathToRemoveIt);
+                } else {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " signal handler can not be removed ", dbusSenderName);
+                    return;
+                }
+            }
         }
-        while (equalRange.first != equalRange.second) {
-            dbusOMSignalHandlers.push_back(equalRange.first->second.second);
-            equalRange.first++;
+
+        // add signal handlers
+        auto signalHandlerPathToAddIt = dbusOMSignalHandlersToAdd_.find(dbusSenderName);
+        if(signalHandlerPathToAddIt != dbusOMSignalHandlersToAdd_.end()) {
+
+            auto signalHandlerPathIt = dbusOMSignalHandlers_.find(dbusSenderName);
+            if(signalHandlerPathIt == dbusOMSignalHandlers_.end()) {
+
+                dbusOMSignalHandlers_.insert( {
+                    dbusSenderName,
+                    std::move(signalHandlerPathToAddIt->second)
+                } );
+
+            } else {
+                if(signalHandlerPathToAddIt->second.first ==
+                        signalHandlerPathIt->second.first) {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " signal handler already added for ", dbusSenderName);
+                    return;
+                } else {
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), " signal handler is trying to be added but "
+                            "a signal handler is already added for", dbusSenderName);
+                    return;
+                }
+            }
+            dbusOMSignalHandlersToAdd_.erase(signalHandlerPathToAddIt);
         }
     }
 
-    for(auto it = dbusOMSignalHandlers.begin(); it != dbusOMSignalHandlers.end(); ++it) {
-        if(auto itsHandler = it->lock())
+    dbusHandlerResult = DBUS_HANDLER_RESULT_HANDLED;
+
+    // notify
+    auto signalHandlerPathIt = dbusOMSignalHandlers_.find(dbusSenderName);
+    if(signalHandlerPathIt != dbusOMSignalHandlers_.end()) {
+        std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler = signalHandlerPathIt->second.second;
+        if(auto itsHandler = dbusSignalHandler.lock()) {
             itsHandler->onSignalDBusMessage(dbusMessage);
+        }
     }
 }
 
@@ -1842,6 +2025,20 @@ void DBusConnection::deleteAsyncHandlers() {
         delete *it;
         it = asyncHandlers.erase(it);
     }
+}
+
+uint32_t DBusConnection::getNumberOfSignalMemberHandlers(DBusSignalHandlerPath handlerPath) {
+    uint32_t handlers, handlersToAdd, handlersToRemove;
+
+    auto signalHandlerPathIt = dbusSignalHandlers_.find(handlerPath);
+    auto signalHandlerPathToAddIt = dbusSignalHandlersToAdd_.find(handlerPath);
+    auto signalHandlerPathToRemoveIt = dbusSignalHandlersToRemove_.find(handlerPath);
+
+    (signalHandlerPathIt != dbusSignalHandlers_.end()) ? handlers = (uint32_t)signalHandlerPathIt->second.size() : handlers = 0;
+    (signalHandlerPathToAddIt != dbusSignalHandlersToAdd_.end()) ? handlersToAdd = (uint32_t)signalHandlerPathToAddIt->second.size() : handlersToAdd = 0;
+    (signalHandlerPathToRemoveIt != dbusSignalHandlersToRemove_.end()) ? handlersToRemove = (uint32_t)signalHandlerPathToRemoveIt->second.size() : handlersToRemove = 0;
+
+    return handlers - handlersToRemove + handlersToAdd;
 }
 
 } // namespace DBus

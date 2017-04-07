@@ -177,8 +177,12 @@ include_directories(
     ${DBus_INCLUDE_DIRS}
 )
 
-if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
-	set (DBus_LIBRARIES dbus-1)
+if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
+    link_directories(
+        ${DBus_LIBRARY_DIRS}
+    )
+else()
+    set (DBus_LIBRARIES dbus-1)
     link_directories(
         ${DBus_INCLUDE_DIRS}/dbus/.libs
     )

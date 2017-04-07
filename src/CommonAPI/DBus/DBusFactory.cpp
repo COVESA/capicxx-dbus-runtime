@@ -182,6 +182,7 @@ Factory::registerStub(
 bool
 Factory::unregisterStub(const std::string &_domain, const std::string &_interface, const std::string &_instance) {
     CommonAPI::Address address(_domain, _interface, _instance);
+    std::unique_lock<std::recursive_mutex> itsLock(servicesMutex_);
     const auto &adapterResult = services_.find(address.getAddress());
     if (adapterResult != services_.end()) {
         const auto _adapter = adapterResult->second;
@@ -202,6 +203,8 @@ Factory::unregisterStub(const std::string &_domain, const std::string &_interfac
 
         services_.erase(adapterResult->first);
 
+        itsLock.unlock();
+
         decrementConnection(connection);
 
         return true;
@@ -215,6 +218,7 @@ Factory::registerStubAdapter(std::shared_ptr<DBusStubAdapter> _adapter) {
     CommonAPI::Address address;
     DBusAddress dbusAddress = _adapter->getDBusAddress();
     if (DBusAddressTranslator::get()->translate(dbusAddress, address)) {
+        std::lock_guard<std::recursive_mutex> itsLock(servicesMutex_);
         const auto &insertResult = services_.insert( { address.getAddress(), _adapter } );
 
         const auto &connection = _adapter->getDBusConnection();
@@ -338,6 +342,7 @@ Factory::getConnection(std::shared_ptr<MainLoopContext> _context) {
 ///////////////////////////////////////////////////////////////////////////////
 std::shared_ptr<DBusStubAdapter>
 Factory::getRegisteredService(const std::string &_address)  {
+    std::lock_guard<std::recursive_mutex> itsLock(servicesMutex_);
     auto serviceIterator = services_.find(_address);
     if (serviceIterator != services_.end()) {
         return serviceIterator->second;
@@ -370,6 +375,7 @@ bool
 Factory::registerManagedService(const std::shared_ptr<DBusStubAdapter> &_stubAdapter) {
     auto itsAddress = _stubAdapter->getAddress().getAddress();
 
+    std::lock_guard<std::recursive_mutex> itsLock(servicesMutex_);
     const auto &insertResult = services_.insert( { itsAddress, _stubAdapter} );
     if (insertResult.second) {
         const auto &connection = _stubAdapter->getDBusConnection();
@@ -401,11 +407,8 @@ Factory::registerManagedService(const std::shared_ptr<DBusStubAdapter> &_stubAda
 
 bool
 Factory::unregisterManagedService(const std::string &_address) {
-    return unregisterManagedService(services_.find(_address));
-}
-
-bool
-Factory::unregisterManagedService(const ServicesMap::iterator &iterator) {
+    std::unique_lock<std::recursive_mutex> itsLock(servicesMutex_);
+    const ServicesMap::iterator iterator = services_.find(_address);
     if (iterator == services_.end())
         return true;
 
@@ -419,6 +422,7 @@ Factory::unregisterManagedService(const ServicesMap::iterator &iterator) {
     if (isUnregistered) {
         connection->releaseServiceName(serviceName);
         services_.erase(iterator);
+        itsLock.unlock();
         decrementConnection(connection);
     }
     // TODO: log error

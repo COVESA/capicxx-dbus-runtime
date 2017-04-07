@@ -109,7 +109,6 @@ private:
 
     // Managed services
     typedef std::unordered_map<std::string, std::shared_ptr<DBusStubAdapter>> ServicesMap;
-    COMMONAPI_EXPORT bool unregisterManagedService(const ServicesMap::iterator &);
 
 private:
     static std::shared_ptr<Factory> theFactory;
@@ -121,6 +120,7 @@ private:
     std::map<std::string, StubAdapterCreateFunction> stubAdapterCreateFunctions_;
 
     ServicesMap services_;
+    std::recursive_mutex servicesMutex_;
 
     std::list<InterfaceInitFunction> initializers_;
     std::mutex initializerMutex_;
