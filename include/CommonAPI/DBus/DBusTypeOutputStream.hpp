@@ -34,7 +34,14 @@ public:
         signature_.append("i");
         return (*this);
     }
-
+    TypeOutputStream &writeType(const int32_t &, const IntegerDeployment *_depl) {
+        if ((_depl != nullptr) && _depl->isUnixFD_) {
+            signature_.append("h");
+        } else {
+            signature_.append("i");
+        }
+        return (*this);
+    }
     TypeOutputStream &writeType(const  int64_t &, const EmptyDeployment *) {
         signature_.append("x");
         return (*this);
@@ -54,7 +61,14 @@ public:
         signature_.append("u");
         return (*this);
     }
-
+    TypeOutputStream &writeType(const uint32_t &, const IntegerDeployment *_depl) {
+        if ((_depl != nullptr) && _depl->isUnixFD_) {
+            signature_.append("h");
+        } else {
+            signature_.append("u");
+        }
+        return (*this);
+    }
     TypeOutputStream &writeType(const uint64_t &, const EmptyDeployment *) {
         signature_.append("t");
         return (*this);
@@ -154,7 +168,7 @@ public:
         (void)_value;
         signature_.append("a");
         ElementType_ dummyElement;
-        writeType(dummyElement, (_depl ? _depl->elementDepl_ : nullptr)); 
+        writeType(dummyElement, (_depl ? _depl->elementDepl_ : nullptr));
         return (*this);
     }
 
@@ -175,7 +189,7 @@ public:
         (void)_value;
         signature_.append("a{");
         KeyType_ dummyKey;
-        writeType(dummyKey, (_depl ? _depl->key_ : nullptr)); 
+        writeType(dummyKey, (_depl ? _depl->key_ : nullptr));
         ValueType_ dummyValue;
         writeType(dummyValue, (_depl ? _depl->value_ : nullptr));
         signature_.append("}");
@@ -194,4 +208,3 @@ private:
 } // namespace CommonAPI
 
 #endif // COMMONAPI_DBUS_DBUSTYPEOUTPUTSTREAM_HPP_
-

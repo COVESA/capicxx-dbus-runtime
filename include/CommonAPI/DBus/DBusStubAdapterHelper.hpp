@@ -903,6 +903,7 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
 
         dbusOutputStream << CommonAPI::Deployable<AttributeType_, AttributeDepl_>((stub.get()->*getStubFunctor_)(clientId), depl_);
+        
         dbusOutputStream.flush();
         if (std::shared_ptr<DBusProxyConnection> connection = connection_.lock()) {
             bool isSuccessful = connection->sendDBusMessage(dbusMessageReply);

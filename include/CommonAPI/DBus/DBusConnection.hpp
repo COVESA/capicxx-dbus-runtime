@@ -158,7 +158,7 @@ public:
     COMMONAPI_EXPORT virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
                                                                       std::weak_ptr<DBusSignalHandler> dbusSignalHandler);
     COMMONAPI_EXPORT virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                                         DBusSignalHandler* dbusSignalHandler);
+                                                                         const DBusSignalHandler* dbusSignalHandler);
 
     COMMONAPI_EXPORT DBusSignalHandlerToken addSignalMemberHandler(const std::string& objectPath,
                                                   const std::string& interfaceName,
@@ -222,6 +222,16 @@ public:
 #ifdef COMMONAPI_DBUS_TEST
     inline std::weak_ptr<DBusMainloop> getLoop() { return loop_; }
 #endif
+
+    COMMONAPI_EXPORT virtual void addSignalStateHandler(
+            std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+            const uint32_t _subscription);
+
+    COMMONAPI_EXPORT virtual void removeSignalStateHandler(
+                std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+                const uint32_t _tag, bool _remove_all);
+
+    COMMONAPI_EXPORT virtual void handleSignalStates();
 
     typedef std::tuple<std::string, std::string, std::string> DBusSignalMatchRuleTuple;
     typedef std::pair<uint32_t, std::string> DBusSignalMatchRuleMapping;
@@ -386,7 +396,7 @@ public:
     mutable std::mutex enforceTimeoutMutex_;
     mutable std::condition_variable_any enforceTimeoutCondition_;
 
-    mutable std::shared_ptr<std::thread> enforcerThread_;
+    mutable std::thread* enforcerThread_;
     mutable std::recursive_mutex enforcerThreadMutex_;
     bool enforcerThreadCancelled_;
     ConnectionId_t connectionId_;
@@ -409,6 +419,9 @@ public:
 
     std::vector<DBusMessageReplyAsyncHandler*> asyncHandlersToDelete_;
     std::mutex asyncHandlersToDeleteMutex_;
+
+    std::map<std::shared_ptr<DBusProxyConnection::DBusSignalHandler>, std::set<uint32_t>> signalStateHandlers_;
+    std::mutex signalStateHandlersMutex_;
 };
 
 template<class Function, class... Arguments>

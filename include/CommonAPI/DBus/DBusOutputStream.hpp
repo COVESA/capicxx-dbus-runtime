@@ -81,12 +81,14 @@ public:
         (void)_depl;
         return _writeValue(_value);
     }
-
+    COMMONAPI_EXPORT OutputStream &writeValue(const int32_t &_value, const CommonAPI::DBus::IntegerDeployment* _depl) {
+        (void)_depl;
+        return _writeValue(_value);
+    }
     COMMONAPI_EXPORT OutputStream &writeValue(const int64_t &_value, const EmptyDeployment *_depl) {
         (void)_depl;
         return _writeValue(_value);
     }
-
     COMMONAPI_EXPORT OutputStream &writeValue(const uint8_t &_value, const EmptyDeployment *_depl) {
         (void)_depl;
         return _writeValue(_value);
@@ -101,12 +103,14 @@ public:
         (void)_depl;
         return _writeValue(_value);
     }
-
+    COMMONAPI_EXPORT OutputStream &writeValue(const uint32_t &_value, const CommonAPI::DBus::IntegerDeployment* _depl) {
+        (void)_depl;
+        return _writeValue(_value);
+    }
     COMMONAPI_EXPORT OutputStream &writeValue(const uint64_t &_value, const EmptyDeployment *_depl) {
         (void)_depl;
         return _writeValue(_value);
     }
-
     COMMONAPI_EXPORT OutputStream &writeValue(const float &_value, const EmptyDeployment *_depl) {
         (void)_depl;
         return _writeValue(static_cast<double>(_value));
@@ -458,7 +462,7 @@ private:
     DBusError dbusError_;
     DBusMessage dbusMessage_;
 
-    std::stack<size_t> positions_;
+    std::vector<size_t> positions_;
 };
 
 } // namespace DBus

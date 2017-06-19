@@ -25,12 +25,12 @@ size_t DBusOutputStream::getPosition() {
 }
 
 void DBusOutputStream::pushPosition() {
-    positions_.push(payload_.size());
+    positions_.push_back(payload_.size());
 }
 
 size_t DBusOutputStream::popPosition() {
-    size_t itsPosition = positions_.top();
-    positions_.pop();
+    size_t itsPosition = positions_.back();
+    positions_.pop_back();
     return itsPosition;
 }
 

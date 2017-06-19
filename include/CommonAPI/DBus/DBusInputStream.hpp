@@ -69,7 +69,14 @@ public:
         (void)_depl;
         return readValue(_value, static_cast<EmptyDeployment *>(nullptr));
     }
-
+    COMMONAPI_EXPORT InputStream &readValue(int32_t &_value, const CommonAPI::DBus::IntegerDeployment* _depl) {
+        (void)_depl;
+        return readValue(_value, static_cast<EmptyDeployment *>(nullptr));
+    }
+    COMMONAPI_EXPORT InputStream &readValue(uint32_t &_value, const CommonAPI::DBus::IntegerDeployment* _depl) {
+        (void)_depl;
+        return readValue(_value, static_cast<EmptyDeployment *>(nullptr));
+    }
     COMMONAPI_EXPORT InputStream &readValue(Version &_value, const EmptyDeployment *_depl);
 
     COMMONAPI_EXPORT void beginReadMapOfSerializableStructs() {
@@ -81,7 +88,7 @@ public:
     }
 
     COMMONAPI_EXPORT bool readMapCompleted() {
-        return (sizes_.top() <= (current_ - positions_.top()));
+        return (sizes_.back() <= (current_ - positions_.back()));
     }
 
     COMMONAPI_EXPORT void endReadMapOfSerializableStructs() {
@@ -93,8 +100,8 @@ public:
         uint32_t itsSize(0);
         _readValue(itsSize);
         align(8); /* skip padding (if any) */
-        if (itsSize > (sizes_.top() + positions_.top() - current_)) {
-            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": size ", itsSize, " exceeds remaining ", (sizes_.top() + positions_.top() - current_));
+        if (itsSize > (sizes_.back() + positions_.back() - current_)) {
+            COMMONAPI_ERROR(std::string(__FUNCTION__) + ": size ", itsSize, " exceeds remaining ", (sizes_.back() + positions_.back() - current_));
         }
         _readRaw(itsSize);
         return (*this);
@@ -177,7 +184,7 @@ public:
 
         if (_depl != nullptr && _depl->isDBus_) {
             // Read signature
-            uint8_t signatureLength;
+            uint8_t signatureLength(0);
             readValue(signatureLength, static_cast<EmptyDeployment *>(nullptr));
             char * raw = _readRaw(signatureLength+1);
             if (hasError()) {
@@ -233,7 +240,7 @@ public:
         pushPosition();
 
         _value.clear();
-        while (sizes_.top() > current_ - positions_.top()) {
+        while (sizes_.back() > current_ - positions_.back()) {
             ElementType_ itsElement;
             readValue(itsElement, static_cast<EmptyDeployment *>(nullptr));
 
@@ -279,7 +286,7 @@ public:
         pushPosition();
 
         _value.clear();
-        while (sizes_.top() > current_ - positions_.top()) {
+        while (sizes_.back() > current_ - positions_.back()) {
             ElementType_ itsElement;
             readValue(itsElement, (_depl ? _depl->elementDepl_ : nullptr));
 
@@ -310,7 +317,7 @@ public:
         pushPosition();
 
         _value.clear();
-        while (sizes_.top() > current_ - positions_.top()) {
+        while (sizes_.back() > current_ - positions_.back()) {
             KeyType_ itsKey;
             ValueType_ itsValue;
 
@@ -345,7 +352,7 @@ public:
         pushPosition();
 
         _value.clear();
-        while (sizes_.top() > current_ - positions_.top()) {
+        while (sizes_.back() > current_ - positions_.back()) {
             KeyType_ itsKey;
             ValueType_ itsValue;
 
@@ -514,8 +521,8 @@ private:
     CommonAPI::DBus::DBusError* exception_;
     CommonAPI::DBus::DBusMessage message_;
 
-    std::stack<uint32_t> sizes_;
-    std::stack<size_t> positions_;
+    std::vector<uint32_t> sizes_;
+    std::vector<size_t> positions_;
 };
 
 } // namespace DBus

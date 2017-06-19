@@ -43,6 +43,11 @@ DBusAddressTranslator::init() {
     const char *config = getenv("COMMONAPI_DBUS_CONFIG");
     if (config) {
         defaultConfig_ = config;
+        struct stat s;
+        if (stat(defaultConfig_.c_str(), &s) != 0) {
+            COMMONAPI_ERROR("Failed to load ini file passed via "
+                    "COMMONAPI_DBUS_CONFIG environment: ", defaultConfig_);
+        }
     } else {
         defaultConfig_ = COMMONAPI_DBUS_DEFAULT_CONFIG_FOLDER;
         defaultConfig_ += "/";
@@ -96,8 +101,10 @@ DBusAddressTranslator::translate(const CommonAPI::Address &_key, DBusAddress &_v
             // check if interface needs to be compatible to newer/older version
             auto it = compatibility_.find(_key.getInterface());
             if(it != compatibility_.end()) {
-                _value.setInterface(it->second);
-                _value.setService(it->second + "_" + _key.getInstance());
+                interfaceName = it->second;
+                std::replace(interfaceName.begin(), interfaceName.end(), ':', '.');
+                _value.setInterface(interfaceName);
+                _value.setService(interfaceName + "_" + _key.getInstance());
             } else {
                 _value.setInterface(interfaceName);
                 _value.setService(service);
@@ -222,6 +229,7 @@ bool
 DBusAddressTranslator::readConfiguration() {
 #define MAX_PATH_LEN 255
     std::string config;
+    bool tryLoadConfig(true);
     char currentDirectory[MAX_PATH_LEN];
 #ifdef _WIN32
     if (GetCurrentDirectory(MAX_PATH_LEN, currentDirectory)) {
@@ -235,11 +243,14 @@ DBusAddressTranslator::readConfiguration() {
         struct stat s;
         if (stat(config.c_str(), &s) != 0) {
             config = defaultConfig_;
+            if (stat(config.c_str(), &s) != 0) {
+                tryLoadConfig = false;
+            }
         }
     }
 
     IniFileReader reader;
-    if (!reader.load(config))
+    if (tryLoadConfig && !reader.load(config))
         return false;
 
     for (auto itsMapping : reader.getSections()) {
@@ -428,7 +439,7 @@ bool DBusAddressTranslator::isValidVersion(const std::string& _version) const {
         return false;
 
     for (auto it = _version.begin()+1; it != _version.end(); ++it) {
-        if (!isdigit(*it) && *it != '_')
+        if (!isdigit(static_cast<unsigned char>(*it)) && *it != '_')
             return false;
     }
     return true;

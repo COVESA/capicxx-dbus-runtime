@@ -95,6 +95,8 @@ public:
 
     void setSerial(const unsigned int serial) const;
 
+    void setNoReplyExpected(const uint32_t replyNotExpected) const;
+
 private:
     ::DBusMessage *message_;
 

@@ -62,9 +62,9 @@ class DBusProxyConnection {
     // objectPath, interfaceName, interfaceMemberName, interfaceMemberSignature
     typedef std::tuple<std::string, std::string, std::string, std::string> DBusSignalHandlerPath;
     typedef std::unordered_map<DBusSignalHandlerPath,
-                                std::map<DBusSignalHandler*,
+                                std::map<const DBusSignalHandler*,
                                     std::weak_ptr<DBusProxyConnection::DBusSignalHandler>>> DBusSignalHandlerTable;
-    typedef std::unordered_multimap<std::string, std::pair<DBusSignalHandler*,
+    typedef std::unordered_multimap<std::string, std::pair<const DBusSignalHandler*,
                                         std::weak_ptr<DBusSignalHandler>>> DBusOMSignalHandlerTable;
     typedef DBusSignalHandlerPath DBusSignalHandlerToken;
 
@@ -124,7 +124,7 @@ class DBusProxyConnection {
     virtual bool addObjectManagerSignalMemberHandler(const std::string& dbusBusName,
                                                      std::weak_ptr<DBusSignalHandler> dbusSignalHandler) = 0;
     virtual bool removeObjectManagerSignalMemberHandler(const std::string& dbusBusName,
-                                                        DBusSignalHandler* dbusSignalHandler) = 0;
+                                                        const DBusSignalHandler* dbusSignalHandler) = 0;
 
     virtual const std::shared_ptr<DBusObjectManager> getDBusObjectManager() = 0;
 
@@ -153,6 +153,16 @@ class DBusProxyConnection {
     void proxyPushFunctionToMainLoop(Function&& _function, Arguments&& ... _args) {
         static_cast<DBusConnection*>(this)->proxyPushFunctionToMainLoop(std::forward<Function>(_function), std::forward<Arguments>(_args) ...);
     }
+
+    virtual void addSignalStateHandler(
+            std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+            const uint32_t _subscription) = 0;
+
+    virtual void removeSignalStateHandler(
+                std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+                const uint32_t _tag, bool _remove_all) = 0;
+
+    virtual void handleSignalStates() = 0;
 };
 
 } // namespace DBus

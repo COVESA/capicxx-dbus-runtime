@@ -3,8 +3,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include <cstring>
-
 #include <CommonAPI/Logger.hpp>
 #include <CommonAPI/DBus/DBusAddress.hpp>
 #include <CommonAPI/DBus/DBusMessage.hpp>
@@ -197,7 +195,7 @@ DBusMessage::hasObjectPath(const char *_path) const {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " path == NULL");
     }
 
-    return (((NULL != path) && (NULL != _path))? !strcmp(path, _path) : false);
+    return (((NULL != path) && (NULL != _path))? (std::string(path) == std::string(_path)) : false);
 }
 
 bool DBusMessage::hasInterfaceName(const char *_interface) const {
@@ -210,7 +208,7 @@ bool DBusMessage::hasInterfaceName(const char *_interface) const {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " interface == NULL");
     }
 
-    return (((NULL != interface) && (NULL != _interface))? !strcmp(interface, _interface) : false);
+    return (((NULL != interface) && (NULL != _interface))? (std::string(interface) == std::string(_interface)) : false);
 }
 
 bool DBusMessage::hasMemberName(const char *_member) const {
@@ -223,7 +221,7 @@ bool DBusMessage::hasMemberName(const char *_member) const {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " member == NULL");
     }
 
-    return (((NULL != member) && (NULL != _member))? !strcmp(member, _member) : false);
+    return (((NULL != member) && (NULL != _member))? (std::string(member) == std::string(_member)) : false);
 }
 
 bool DBusMessage::hasSignature(const char *_signature) const {
@@ -236,7 +234,7 @@ bool DBusMessage::hasSignature(const char *_signature) const {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " signature == NULL");
     }
 
-    return (((NULL != signature) && (NULL != _signature))? !strcmp(signature, _signature) : false);
+    return (((NULL != signature) && (NULL != _signature))? (std::string(signature) == std::string(_signature)) : false);
 }
 
 DBusMessage::Type DBusMessage::getType() const {
@@ -290,6 +288,10 @@ bool DBusMessage::isErrorType() const {
 
 bool DBusMessage::isSignalType() const {
     return (getType() == Type::Signal);
+}
+
+void DBusMessage::setNoReplyExpected(const uint32_t replyNotExpected) const {
+    dbus_message_set_no_reply(message_, replyNotExpected);
 }
 
 } // namespace DBus

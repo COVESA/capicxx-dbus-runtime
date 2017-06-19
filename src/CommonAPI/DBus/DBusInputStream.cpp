@@ -53,27 +53,27 @@ void DBusInputStream::setError() {
 }
 
 void DBusInputStream::pushPosition() {
-    positions_.push(current_);
+    positions_.push_back(current_);
 }
 
 size_t DBusInputStream::popPosition() {
-    size_t itsPosition = positions_.top();
-    positions_.pop();
+    size_t itsPosition = positions_.back();
+    positions_.pop_back();
     return itsPosition;
 }
 
 void DBusInputStream::pushSize(size_t _size) {
-    sizes_.push(static_cast<unsigned int>(_size));
+    sizes_.push_back(static_cast<unsigned int>(_size));
 }
 
 size_t DBusInputStream::popSize() {
-    size_t itsSize = sizes_.top();
-    sizes_.pop();
+    size_t itsSize = sizes_.back();
+    sizes_.pop_back();
     return itsSize;
 }
 
 InputStream<DBusInputStream> &DBusInputStream::readValue(bool &_value, const EmptyDeployment *_depl) {
-    uint32_t tmp;
+    uint32_t tmp(2);
     readValue(tmp, _depl);
     if (tmp > 1)
         setError();

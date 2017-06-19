@@ -76,6 +76,16 @@ public:
 
     COMMONAPI_EXPORT virtual void init() = 0;
 
+    COMMONAPI_EXPORT void addSignalStateHandler(
+            std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+            const uint32_t _subscription);
+
+    COMMONAPI_EXPORT void removeSignalStateHandler(
+                std::shared_ptr<DBusProxyConnection::DBusSignalHandler> _handler,
+                const uint32_t _tag, bool _remove_all = false);
+
+    COMMONAPI_EXPORT std::weak_ptr<DBusProxyBase> getWeakPtr();
+
  protected:
     COMMONAPI_EXPORT DBusProxyBase(const DBusProxyBase &) = delete;
 

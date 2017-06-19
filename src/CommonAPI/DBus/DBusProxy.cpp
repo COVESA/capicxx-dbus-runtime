@@ -15,6 +15,8 @@
 namespace CommonAPI {
 namespace DBus {
 
+static std::weak_ptr<Factory> factory__(Factory::get());
+
 DBusProxyStatusEvent::DBusProxyStatusEvent(DBusProxy *_dbusProxy)
     : dbusProxy_(_dbusProxy) {
 }
@@ -184,7 +186,8 @@ DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
                 dbusProxyStatusEvent_(this),
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
                 interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
-                dbusServiceRegistry_(DBusServiceRegistry::get(_connection))
+                dbusServiceRegistry_(DBusServiceRegistry::get(_connection)),
+                everAvailable_(false)
 {
 }
 
@@ -204,7 +207,9 @@ DBusProxy::~DBusProxy() {
     dbusServiceRegistry_->unsubscribeAvailabilityListener(
                     getAddress().getAddress(),
                     dbusServiceRegistrySubscription_);
-    Factory::get()->decrementConnection(connection_);
+    if (auto ptr = factory__.lock()) {
+        ptr->decrementConnection(connection_);
+    }
 }
 
 bool DBusProxy::isAvailable() const {
@@ -344,7 +349,12 @@ void DBusProxy::onDBusServiceInstanceStatus(std::shared_ptr<DBusProxy> _proxy,
                 dbusProxyStatusEvent_.notifySpecificListener(listenerIt.first, availabilityStatus_);
         }
 
+        bool handleSignalState(false);
         if (availabilityStatus == AvailabilityStatus::AVAILABLE) {
+            if (everAvailable_) {
+                handleSignalState = true;
+            }
+            everAvailable_ = true;
             std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
 
             for(auto signalMemberHandlerIterator = signalMemberHandlerQueue_.begin();
@@ -386,6 +396,9 @@ void DBusProxy::onDBusServiceInstanceStatus(std::shared_ptr<DBusProxy> _proxy,
                             std::get<1>(selectiveBroadcasts.second),
                             std::get<2>(selectiveBroadcasts.second));
                 }
+            }
+            if (handleSignalState) {
+                connection_->proxyPushFunctionToMainLoop<DBusConnection>(std::bind(&DBusProxyConnection::handleSignalStates, connection_));
             }
         } else {
             std::lock_guard < std::mutex > queueLock(signalMemberHandlerQueueMutex_);
@@ -635,6 +648,5 @@ void DBusProxy::freeDesktopGetCurrentValueForSignalListener(
         availabilityMutex_.unlock();
     }
 }
-
 } // namespace DBus
 } // namespace CommonAPI

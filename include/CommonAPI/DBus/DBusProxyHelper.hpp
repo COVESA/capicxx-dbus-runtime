@@ -58,6 +58,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
 
         if (_proxy.isAvailable()) {
             DBusMessage message = _proxy.createMethodCall(_method, _signature);
+            message.setNoReplyExpected(1);
             if (sizeof...(InArgs_) > 0) {
                 DBusOutputStream output(message);
                 if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {

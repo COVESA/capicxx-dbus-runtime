@@ -35,6 +35,13 @@ struct StringDeployment : CommonAPI::Deployment<> {
     bool isObjectPath_;
 };
 
+struct IntegerDeployment : CommonAPI::Deployment<> {
+    IntegerDeployment(bool _isUnixFD)
+    : isUnixFD_(_isUnixFD) {};
+
+    bool isUnixFD_;
+};
+
 template<typename... Types_>
 struct StructDeployment : CommonAPI::Deployment<Types_...> {
     StructDeployment(Types_*... t)

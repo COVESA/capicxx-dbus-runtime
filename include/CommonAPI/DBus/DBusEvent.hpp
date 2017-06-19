@@ -31,7 +31,7 @@ public:
               const std::string &_name, const std::string &_signature,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
-          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
+          signalHandler_(),
           name_(_name), signature_(_signature),
           getMethodName_(""),
           arguments_(_arguments) {
@@ -45,7 +45,7 @@ public:
               const std::string &_path, const std::string &_interface,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
-          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
+          signalHandler_(),
           name_(_name), signature_(_signature),
           path_(_path), interface_(_interface),
           getMethodName_(""),
@@ -58,7 +58,7 @@ public:
               const std::string &_getMethodName,
               std::tuple<Arguments_...> _arguments)
         : proxy_(_proxy),
-          signalHandler_(std::make_shared<SignalHandler>(_proxy, this)),
+          signalHandler_(),
           name_(_name),
           signature_(_signature),
           getMethodName_(_getMethodName),
@@ -69,6 +69,7 @@ public:
     }
 
     virtual ~DBusEvent() {
+        proxy_.removeSignalStateHandler(signalHandler_, 0, true);
         proxy_.removeSignalMemberHandler(subscription_, signalHandler_.get());
     }
 
@@ -77,8 +78,7 @@ public:
     }
 
     virtual void onSpecificError(const CommonAPI::CallStatus status, const uint32_t tag) {
-        (void)status;
-        (void)tag;
+        this->notifySpecificError(tag, status);
     }
 
     virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken token, const uint32_t tag) {
@@ -93,34 +93,43 @@ public:
     public:
         SignalHandler(DBusProxyBase&_proxy,
                 DBusEvent<Event_, Arguments_ ...>* _dbusEvent) :
-            proxy_(_proxy),
+            proxy_(_proxy.getWeakPtr()),
             dbusEvent_(_dbusEvent) {
 
         }
 
         virtual void onSignalDBusMessage(const DBusMessage &_message) {
-            dbusEvent_->handleSignalDBusMessage(_message, typename make_sequence<sizeof...(Arguments_)>::type());
+            if(auto itsProxy = proxy_.lock()) {
+                dbusEvent_->handleSignalDBusMessage(_message, typename make_sequence<sizeof...(Arguments_)>::type());
+            }
         }
 
         virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
-            dbusEvent_->handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
+            if(auto itsProxy = proxy_.lock()) {
+                dbusEvent_->handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
+            }
         }
 
         virtual void onSpecificError(const CommonAPI::CallStatus status, const uint32_t tag) {
-            dbusEvent_->onSpecificError(status, tag);
+            if(auto itsProxy = proxy_.lock()) {
+                dbusEvent_->onSpecificError(status, tag);
+            }
         }
 
         virtual void setSubscriptionToken(const DBusProxyConnection::DBusSignalHandlerToken token, const uint32_t tag) {
-            dbusEvent_->setSubscriptionToken(token, tag);
+            if(auto itsProxy = proxy_.lock()) {
+                dbusEvent_->setSubscriptionToken(token, tag);
+            }
         }
 
     private :
-        DBusProxyBase& proxy_;
+        std::weak_ptr<DBusProxyBase> proxy_;
         DBusEvent<Event_, Arguments_ ...>* dbusEvent_;
     };
 
     virtual void onFirstListenerAdded(const Listener &_listener) {
         (void)_listener;
+        init();
         subscription_ = proxy_.addSignalMemberHandler(
                             path_, interface_, name_, signature_, getMethodName_, signalHandler_, false);
     }
@@ -130,6 +139,12 @@ public:
         if ("" != getMethodName_) {
             proxy_.getCurrentValueForSignalListener(getMethodName_, signalHandler_, subscription);
         }
+        proxy_.addSignalStateHandler(signalHandler_, subscription);
+    }
+
+    virtual void onListenerRemoved(const Listener &_listener, const Subscription _subscription) {
+        (void)_listener;
+        proxy_.removeSignalStateHandler(signalHandler_, _subscription);
     }
 
     virtual void onLastListenerRemoved(const Listener&) {
@@ -157,6 +172,12 @@ public:
                 Arguments_...
             >::deserialize(input, std::get<Indices_>(arguments_)...)) {
             this->notifySpecificListener(tag, std::get<Indices_>(arguments_)...);
+        }
+    }
+
+    virtual void init() {
+        if (!signalHandler_) {
+            signalHandler_ = std::make_shared<SignalHandler>(proxy_, this);
         }
     }
 

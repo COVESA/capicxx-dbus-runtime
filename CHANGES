@@ -1,5 +1,12 @@
 Changes
 =======
+v3.1.12
+- Support DBus type DBUS_TYPE_UNIX_FD as deployment for ints
+- DBus deployment: IsObjectPath for all string locations
+
+v3.1.11.2
+- Fixed availability problems when deleting and recreating proxies multiple times
+
 v3.1.11.1
 - Support deployment for anonymous arrays
 - Fixed concurrency problem / segfault in unregisterStub()

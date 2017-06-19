@@ -171,6 +171,8 @@ private:
                 std::promise<AvailabilityStatus>
                 > AvailabilityTimeout_t;
     mutable std::list<AvailabilityTimeout_t> timeouts_;
+
+    std::atomic<bool> everAvailable_;
 };
 
 

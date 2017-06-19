@@ -47,7 +47,7 @@ public:
 
 protected:
     void onFirstListenerAdded(const Listener &) {
-
+        this->init();
     }
 
     void onListenerAdded(const Listener &_listener, const uint32_t subscription) {
