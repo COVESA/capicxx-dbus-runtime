@@ -16,23 +16,23 @@
 namespace CommonAPI {
 namespace DBus {
 
-template <int ...>
+template <std::size_t ...>
 struct index_sequence {};
 
 
-template <int N_, int ...S_>
+template <std::size_t N_, std::size_t ...S_>
 struct make_sequence : make_sequence<N_-1, N_-1, S_...> {};
 
-template <int ...S_>
+template <std::size_t ...S_>
 struct make_sequence<0, S_...> {
     typedef index_sequence<S_...> type;
 };
 
 
-template <int N_, int Offset_, int ...S_>
+template <std::size_t N_, std::size_t Offset_, std::size_t ...S_>
 struct make_sequence_range : make_sequence_range<N_-1, Offset_, N_-1+Offset_, S_...> {};
 
-template <int Offset_, int ...S_>
+template <std::size_t Offset_, std::size_t ...S_>
 struct make_sequence_range<0, Offset_, S_...> {
     typedef index_sequence<S_...> type;
 };

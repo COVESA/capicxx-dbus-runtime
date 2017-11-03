@@ -155,7 +155,7 @@ public:
         std::get<3>(subscription_) = "";
     }
 
-    template<int ... Indices_>
+    template<std::size_t ... Indices_>
     inline void handleSignalDBusMessage(const DBusMessage &_message, index_sequence<Indices_...>) {
         DBusInputStream input(_message);
         if (DBusSerializableArguments<
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    template<int ... Indices_>
+    template<std::size_t ... Indices_>
     inline void handleSignalDBusMessage(const uint32_t tag, const DBusMessage &_message, index_sequence<Indices_...>) {
         DBusInputStream input(_message);
         if (DBusSerializableArguments<

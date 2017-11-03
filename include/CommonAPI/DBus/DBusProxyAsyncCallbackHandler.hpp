@@ -119,7 +119,7 @@ class DBusProxyAsyncCallbackHandler :
     std::tuple<ArgTypes_...> args_;
 
  private:
-    template <int... ArgIndices_>
+    template <std::size_t... ArgIndices_>
     inline CallStatus handleDBusMessageReply(
             const CallStatus _dbusMessageCallStatus,
             const DBusMessage& _dbusMessage,
