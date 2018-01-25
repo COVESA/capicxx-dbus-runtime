@@ -169,7 +169,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")
 
-message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}") 
+message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}")
 
 include_directories(
     include
@@ -325,7 +325,7 @@ else()
                            COMMAND asciidoc
                                    -a version=${PACKAGE_VERSION}
                                    -b html
-                                   -o doc/html/README.html 
+                                   -o doc/html/README.html
                                    ${PROJECT_BINARY_DIR}/../README)
     endif()
 endif()
@@ -360,6 +360,10 @@ if ("${BUILD_SHARED_LIBS}" STREQUAL "ON")
     set(BUILD_SHARED_LIBS OFF)
     set(BUILD_SHARED_LIBS_AUTOMATIC_OFF 1)
 endif()
+# ...but visual studio needs a shared CRT for gtest, otherwise the linker won't work correctly with the testcases.
+if (MSVC)
+   set( gtest_force_shared_crt ON CACHE BOOL "Always use msvcrt.dll" )
+endif()
 add_subdirectory(${GTEST_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
 if ("${BUILD_SHARED_LIBS_AUTOMATIC_OFF}" STREQUAL "1")
     set(BUILD_SHARED_LIBS ON)
@@ -382,4 +386,3 @@ add_dependencies(check build_tests)
 # add test directory
 
 add_subdirectory( src/test EXCLUDE_FROM_ALL )
-

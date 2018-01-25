@@ -70,10 +70,11 @@ set(ExtendedInterfaceDBusSources ${ExtendedInterfaceSources}
                                  src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
                                  src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp)
 
-
-set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
-
-set(TEST_LINK_LIBRARIES_WITHOUT_COMMONAPI_DBUS CommonAPI gtest ${PTHREAD_LIBRARY})
+if (MSVC)
+ set(TEST_LINK_LIBRARIES ${DBus_LDFLAGS} CommonAPI-DBus CommonAPI gtest )
+else()
+ set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
+endif()
 
 ##############################################################################
 # DBusConnectionTest
@@ -145,4 +146,3 @@ add_test(NAME DBusVariantOutputStreamTest COMMAND DBusVariantOutputStreamTest)
 add_test(NAME DBusDaemonProxyTest COMMAND DBusDaemonProxyTest)
 add_test(NAME DBusVariantTest COMMAND DBusVariantTest)
 add_test(NAME DBusClientIdTest COMMAND DBusClientIdTest)
-

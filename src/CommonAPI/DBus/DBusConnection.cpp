@@ -67,13 +67,20 @@ public:
         }
 
         bool forceDetach(false);
-        if (0u != activeConnections) {
-            std::future<bool> ready = readyToCleanup_.get_future();
-            if (ready.valid()) {
-                const std::future_status status = ready.wait_for(std::chrono::seconds(1));
-                forceDetach = (std::future_status::ready != status);
+        #if defined (_MSC_VER) && (_MSC_VER < 1900)
+            // MSVC compiler RTL is buggy until fixed in Visual Studio 2015
+            // The code crashes when doing a wait_for() in a static destructor
+            // So, skip the check if we have an older version of MSVC
+            forceDetach = true;
+        #else
+            if (0u != activeConnections) {
+                std::future<bool> ready = readyToCleanup_.get_future();
+                if (ready.valid()) {
+                    const std::future_status status = ready.wait_for(std::chrono::seconds(1));
+                    forceDetach = (std::future_status::ready != status);
+                }
             }
-        }
+        #endif
 
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -465,6 +472,7 @@ void DBusConnection::disconnect() {
     isDisconnecting_ = true;
 
     if (std::shared_ptr<CommonAPI::MainLoopContext> mainLoopContext = mainLoopContext_.lock()) {
+        DBusServiceRegistry::remove(shared_from_this());
         Factory::get()->releaseConnection(connectionId_);
     }
 
@@ -1264,7 +1272,7 @@ bool DBusConnection::removeSignalMemberHandler(const DBusSignalHandlerToken &dbu
     bool lastHandlerRemoved = false;
 
     std::lock_guard<std::mutex> dbusSignalHandlersLock(signalHandlersGuard_);
-    
+
     auto signalHandlerPathIt = dbusSignalHandlers_.find(dbusSignalHandlerToken);
     if (signalHandlerPathIt != dbusSignalHandlers_.end()) {
 

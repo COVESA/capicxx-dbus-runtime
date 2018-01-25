@@ -1,5 +1,9 @@
 Changes
 =======
+v3.1.12.2
+- Fixed hang-up in proxy destruction when async method call was done and proxy is not available
+- DBus connections are now released even if they were not created with the Factory interface
+
 v3.1.12.1
 - Fixed race condition for managed services. When a managed services was removed, an appropriate
 availability status changed event was received (service became unavailable) and afterwards a 'getAvailablStatusAsync' call for the removed service instance was done, the response could be that

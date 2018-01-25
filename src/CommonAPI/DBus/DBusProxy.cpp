@@ -50,7 +50,7 @@ void DBusProxyStatusEvent::onListenerRemoved(const Listener& _listener,
 void DBusProxy::availabilityTimeoutThreadHandler() const {
     std::unique_lock<std::mutex> threadLock(availabilityTimeoutThreadMutex_);
 
-    bool cancel = false;
+    bool finish = false;
     bool firstIteration = true;
 
     // the callbacks that have to be done are stored with
@@ -63,7 +63,7 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
             > CallbackData_t;
     std::list<CallbackData_t> callbacks;
 
-    while(!cancel) {
+    while(!cancelAvailabilityTimeoutThread_ && !finish) {
 
         //get min timeout
         timeoutsMutex_.lock();
@@ -175,7 +175,7 @@ void DBusProxy::availabilityTimeoutThreadHandler() const {
         //cancel thread
         timeoutsMutex_.lock();
         if(timeouts_.size() == 0 && callbacks.size() == 0)
-            cancel = true;
+            finish = true;
         timeoutsMutex_.unlock();
     }
 }
@@ -187,7 +187,8 @@ DBusProxy::DBusProxy(const DBusAddress &_dbusAddress,
                 availabilityStatus_(AvailabilityStatus::UNKNOWN),
                 interfaceVersionAttribute_(*this, "uu", "getInterfaceVersion"),
                 dbusServiceRegistry_(DBusServiceRegistry::get(_connection)),
-                everAvailable_(false)
+                everAvailable_(false),
+                cancelAvailabilityTimeoutThread_(false)
 {
 }
 
@@ -200,6 +201,11 @@ void DBusProxy::init() {
 }
 
 DBusProxy::~DBusProxy() {
+    cancelAvailabilityTimeoutThread_ = true;
+    {
+        std::lock_guard<std::mutex> itsTimeoutThreadLock(availabilityTimeoutThreadMutex_);
+        availabilityTimeoutCondition_.notify_all();
+    }
     if(availabilityTimeoutThread_) {
         if(availabilityTimeoutThread_->joinable())
             availabilityTimeoutThread_->join();

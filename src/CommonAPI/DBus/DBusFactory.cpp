@@ -88,7 +88,7 @@ Factory::createProxy(
     if (proxyCreateFunctionsIterator != proxyCreateFunctions_.end()) {
         CommonAPI::Address address(_domain, _interface, _instance);
         DBusAddress dbusAddress;
-        
+
         if (DBusAddressTranslator::get()->translate(address, dbusAddress)) {
             std::shared_ptr<DBusConnection> connection
                 = getConnection(_connectionId);
@@ -113,7 +113,7 @@ Factory::createProxy(
     if (proxyCreateFunctionsIterator != proxyCreateFunctions_.end()) {
         CommonAPI::Address address(_domain, _interface, _instance);
         DBusAddress dbusAddress;
-        
+
         if (DBusAddressTranslator::get()->translate(address, dbusAddress)) {
             std::shared_ptr<DBusConnection> connection
                 = getConnection(_context);
@@ -188,7 +188,7 @@ Factory::unregisterStub(const std::string &_domain, const std::string &_interfac
         const auto _adapter = adapterResult->second;
         const auto &connection = _adapter->getDBusConnection();
         const auto objectManager = connection->getDBusObjectManager();
-        
+
         if (!objectManager->unregisterDBusStubAdapter(_adapter)) {
             return false;
         }
@@ -462,7 +462,6 @@ void Factory::releaseConnection(const ConnectionId_t& _connectionId) {
     auto itsConnection = connections_.find(_connectionId);
 
     if (itsConnection != connections_.end()) {
-        DBusServiceRegistry::remove(itsConnection->second);
         connections_.erase(_connectionId);
     }
 }

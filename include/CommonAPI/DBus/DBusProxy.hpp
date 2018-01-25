@@ -173,6 +173,7 @@ private:
     mutable std::list<AvailabilityTimeout_t> timeouts_;
 
     std::atomic<bool> everAvailable_;
+    mutable std::atomic<bool> cancelAvailabilityTimeoutThread_;
 };
 
 
