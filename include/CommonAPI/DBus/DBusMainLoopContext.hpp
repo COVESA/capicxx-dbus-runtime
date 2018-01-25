@@ -121,7 +121,11 @@ public:
     void processQueueEntry(std::shared_ptr<QueueEntry> _queueEntry);
 
 private:
+#ifdef _WIN32
     int pipeFileDescriptors_[2];
+#else
+    int eventFd_;
+#endif
 
     pollfd pollFileDescriptor_;
 
@@ -133,9 +137,11 @@ private:
 
     std::weak_ptr<DBusConnection> connection_;
 
-    const int pipeValue_;
 #ifdef _WIN32
     HANDLE wsaEvent_;
+    const int pipeValue_;
+#else
+    const std::uint64_t eventFdValue_;
 #endif
 
 };

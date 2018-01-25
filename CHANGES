@@ -1,5 +1,9 @@
 Changes
 =======
+v3.1.12.3
+- Fixed data race in generated StubDefault when using attributes
+- use eventfd instead of pipe in Watch
+
 v3.1.12.2
 - Fixed hang-up in proxy destruction when async method call was done and proxy is not available
 - DBus connections are now released even if they were not created with the Factory interface

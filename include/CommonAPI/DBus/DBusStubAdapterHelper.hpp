@@ -871,6 +871,8 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
  public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef const AttributeType_& (StubClass_::*GetStubFunctor)(std::shared_ptr<CommonAPI::ClientId>);
+    typedef typename StubClass_::StubAdapterType StubAdapterType;
+    typedef typename CommonAPI::Stub<StubAdapterType, typename StubClass_::RemoteEventType> StubType;
 
     DBusGetAttributeStubDispatcher(GetStubFunctor _getStubFunctor, const char *_signature, AttributeDepl_ *_depl = nullptr):
         getStubFunctor_(_getStubFunctor),
@@ -891,7 +893,13 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
         auto varDepl = CommonAPI::DBus::VariantDeployment<AttributeDepl_>(true, depl_); // presuming FreeDesktop variant deployment, as support for "legacy" service only
-        _output << CommonAPI::Deployable<CommonAPI::Variant<AttributeType_>, CommonAPI::DBus::VariantDeployment<AttributeDepl_>>((stub.get()->*getStubFunctor_)(clientId), &varDepl);
+
+        auto stubAdapter = stub->StubType::getStubAdapter();
+        stubAdapter->lockAttributes();
+        auto deployable = CommonAPI::Deployable<CommonAPI::Variant<AttributeType_>, CommonAPI::DBus::VariantDeployment<AttributeDepl_>>((stub.get()->*getStubFunctor_)(clientId), &varDepl);
+        stubAdapter->unlockAttributes();
+
+        _output << deployable;
         _output.flush();
     }
 
@@ -902,8 +910,12 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
 
-        dbusOutputStream << CommonAPI::Deployable<AttributeType_, AttributeDepl_>((stub.get()->*getStubFunctor_)(clientId), depl_);
-        
+        auto stubAdapter = stub->StubType::getStubAdapter();
+        stubAdapter->lockAttributes();
+        auto deployable = CommonAPI::Deployable<AttributeType_, AttributeDepl_>((stub.get()->*getStubFunctor_)(clientId), depl_);
+        stubAdapter->unlockAttributes();
+
+        dbusOutputStream << deployable;
         dbusOutputStream.flush();
         if (std::shared_ptr<DBusProxyConnection> connection = connection_.lock()) {
             bool isSuccessful = connection->sendDBusMessage(dbusMessageReply);
@@ -1047,7 +1059,11 @@ protected:
                                            RemoteEventHandlerType* _remoteEventHandler,
                                            const std::shared_ptr<StubClass_> _stub) {
         (void)_remoteEventHandler;
-        (_stub->StubType::getStubAdapter().get()->*fireChangedFunctor_)(this->getAttributeValue(_client, _stub));
+
+        auto stubAdapter = _stub->StubType::getStubAdapter();
+        stubAdapter->lockAttributes();
+        (stubAdapter.get()->*fireChangedFunctor_)(this->getAttributeValue(_client, _stub));
+        stubAdapter->unlockAttributes();
     }
 
     const FireChangedFunctor fireChangedFunctor_;
