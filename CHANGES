@@ -1,5 +1,10 @@
 Changes
 =======
+v3.1.12.1
+- Fixed race condition for managed services. When a managed services was removed, an appropriate
+availability status changed event was received (service became unavailable) and afterwards a 'getAvailablStatusAsync' call for the removed service instance was done, the response could be that
+the service instance is still available.
+
 v3.1.12
 - Support DBus type DBUS_TYPE_UNIX_FD as deployment for ints
 - DBus deployment: IsObjectPath for all string locations

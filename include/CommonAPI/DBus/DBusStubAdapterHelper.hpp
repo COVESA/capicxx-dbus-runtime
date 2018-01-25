@@ -350,7 +350,7 @@ protected:
 
          dbusOutputStream.beginWriteMap();
          appendGetAllReply(dbusMessage, dbusOutputStream);
- 		     dbusOutputStream.endWriteMap();
+         dbusOutputStream.endWriteMap();
          dbusOutputStream.flush();
 
          return getDBusConnection()->sendDBusMessage(dbusMessageReply);

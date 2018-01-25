@@ -45,27 +45,27 @@ Factory::~Factory() {
 void
 Factory::init() {
 #ifndef _WIN32
-	std::lock_guard<std::mutex> itsLock(initializerMutex_);
+    std::lock_guard<std::mutex> itsLock(initializerMutex_);
 #endif
-	if (!isInitialized_) {
-		for (auto i : initializers_) i();
-		initializers_.clear(); // Not needed anymore
-		isInitialized_ = true;
-	}
+    if (!isInitialized_) {
+        for (auto i : initializers_) i();
+        initializers_.clear(); // Not needed anymore
+        isInitialized_ = true;
+    }
 }
 
 void
 Factory::registerInterface(InterfaceInitFunction _function) {
 #ifndef _WIN32
-	std::lock_guard<std::mutex> itsLock(initializerMutex_);
+    std::lock_guard<std::mutex> itsLock(initializerMutex_);
 #endif
-	if (isInitialized_) {
-		// We are already running --> initialize the interface library!
-		_function();
-	} else {
-		// We are not initialized --> save the initializer
-		initializers_.push_back(_function);
-	}
+    if (isInitialized_) {
+        // We are already running --> initialize the interface library!
+        _function();
+    } else {
+        // We are not initialized --> save the initializer
+        initializers_.push_back(_function);
+    }
 }
 
 void

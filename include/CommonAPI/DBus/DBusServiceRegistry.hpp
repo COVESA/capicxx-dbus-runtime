@@ -132,7 +132,10 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
               mutexOnResolve() {
         }
 
-        ~DBusServiceListenersRecord() {};
+        ~DBusServiceListenersRecord() { 
+            if(uniqueBusNameState == DBusRecordState::RESOLVING && futureOnResolve.valid())
+                promiseOnResolve->set_value(DBusRecordState::NOT_AVAILABLE);
+        };
 
         DBusRecordState uniqueBusNameState;
         std::string uniqueBusName;
@@ -155,7 +158,10 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
               pendingObjectManagerCalls(0) {
         }
 
-        ~DBusObjectPathCache() {}
+        ~DBusObjectPathCache() {
+            if(state == DBusRecordState::RESOLVING && futureOnResolve.valid())
+                promiseOnResolve->set_value(DBusRecordState::NOT_AVAILABLE);
+        }
 
         size_t referenceCount;
         DBusRecordState state;

@@ -217,7 +217,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
             COMMONAPI_VERBOSE("MethodAsync(dbus): Proxy available -> sendMessageWithReplyAsync");
                 return callStatusFuture;
             } else {
-            	return std::future<CallStatus>();
+                return std::future<CallStatus>();
             }
         } else {
             std::shared_ptr< std::unique_ptr< DBusProxyConnection::DBusMessageReplyAsyncHandler > > sharedDbusMessageReplyAsyncHandler(

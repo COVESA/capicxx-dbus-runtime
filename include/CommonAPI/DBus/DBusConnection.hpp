@@ -321,8 +321,6 @@ public:
 
     void deleteAsyncHandlers();
 
-    uint32_t getNumberOfSignalMemberHandlers(DBusSignalHandlerPath handlerPath);
-
     ::DBusConnection* connection_;
     mutable std::recursive_mutex connectionGuard_;
 
@@ -340,16 +338,12 @@ public:
     DBusSignalMatchRulesMap dbusSignalMatchRulesMap_;
 
     DBusSignalHandlerTable dbusSignalHandlers_;
-    DBusSignalHandlerTable dbusSignalHandlersToAdd_;
-    DBusSignalHandlerTable dbusSignalHandlersToRemove_;
 
     std::mutex dbusOMSignalHandlersGuard_;
 
     DBusOMSignalMatchRulesMap dbusOMSignalMatchRulesMap_;
 
     DBusOMSignalHandlerTable dbusOMSignalHandlers_;
-    DBusOMSignalHandlerTable dbusOMSignalHandlersToAdd_;
-    DBusOMSignalHandlerTable dbusOMSignalHandlersToRemove_;
 
     COMMONAPI_EXPORT bool addObjectManagerSignalMatchRule(const std::string& dbusBusName);
     COMMONAPI_EXPORT bool removeObjectManagerSignalMatchRule(const std::string& dbusBusName);

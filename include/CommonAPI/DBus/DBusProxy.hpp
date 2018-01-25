@@ -65,7 +65,7 @@ public:
               const std::string& interfaceMemberName,
               const std::string& interfaceMemberSignature,
               std::weak_ptr<DBusProxyConnection::DBusSignalHandler> dbusSignalHandler,
-			  uint32_t tag);
+              uint32_t tag);
 
     COMMONAPI_EXPORT void insertSelectiveSubscription(
             const std::string& interfaceMemberName,
