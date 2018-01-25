@@ -41,10 +41,11 @@ class DBusGetFreedesktopAttributeStubDispatcher
         : public virtual DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>,
           public virtual DBusGetFreedesktopAttributeStubDispatcherBase<StubClass_> {
 public:
+    typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
 
-    DBusGetFreedesktopAttributeStubDispatcher(GetStubFunctor _getStubFunctor, AttributeDepl_ *_depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, "v", _depl) {
+    DBusGetFreedesktopAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, AttributeDepl_ *_depl = nullptr)
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl) {
     }
 
     virtual ~DBusGetFreedesktopAttributeStubDispatcher() {};
@@ -86,19 +87,21 @@ class DBusSetFreedesktopAttributeStubDispatcher
         : public virtual DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>,
           public virtual DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_> {
 public:
+    typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, AttributeType_);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
 
     DBusSetFreedesktopAttributeStubDispatcher(
+            LockStubFunctor _lockStubFunctor,
             GetStubFunctor _getStubFunctor,
             OnRemoteSetFunctor _onRemoteSetFunctor,
             OnRemoteChangedFunctor _onRemoteChangedFunctor,
             AttributeDepl_ * _depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, "v", _depl),
-          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _depl),
-          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl) {
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _depl),
+          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl) {
     }
 
     virtual ~DBusSetFreedesktopAttributeStubDispatcher() {};
@@ -123,6 +126,7 @@ class DBusSetFreedesktopObservableAttributeStubDispatcher
         : public virtual DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>,
           public virtual DBusSetObservableAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_> {
 public:
+    typedef typename DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
     typedef typename DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::OnRemoteSetFunctor OnRemoteSetFunctor;
     typedef typename DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
@@ -130,16 +134,17 @@ public:
     typedef void (StubAdapterType::*FireChangedFunctor)(const AttributeType_&);
 
     DBusSetFreedesktopObservableAttributeStubDispatcher(
+            LockStubFunctor _lockStubFunctor,
             GetStubFunctor _getStubFunctor,
             OnRemoteSetFunctor _onRemoteSetFunctor,
             OnRemoteChangedFunctor _onRemoteChangedFunctor,
             FireChangedFunctor _fireChangedFunctor,
             AttributeDepl_ *_depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, "v", _depl),
-          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _depl),
-          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl),
-          DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _depl),
-          DBusSetObservableAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v", _depl) {
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _depl),
+          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl),
+          DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _depl),
+          DBusSetObservableAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v", _depl) {
     }
 };
 

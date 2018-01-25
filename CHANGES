@@ -1,5 +1,8 @@
 Changes
 =======
+v3.1.12.4
+- support 'lock functors' in AttributeDispatcher(s)
+
 v3.1.12.3
 - Fixed data race in generated StubDefault when using attributes
 - use eventfd instead of pipe in Watch

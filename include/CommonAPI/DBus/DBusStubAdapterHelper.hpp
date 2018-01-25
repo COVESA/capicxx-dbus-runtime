@@ -870,11 +870,13 @@ template <typename StubClass_, typename AttributeType_, typename AttributeDepl_ 
 class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> {
  public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
+    typedef void (StubClass_::*LockStubFunctor)(bool);
     typedef const AttributeType_& (StubClass_::*GetStubFunctor)(std::shared_ptr<CommonAPI::ClientId>);
     typedef typename StubClass_::StubAdapterType StubAdapterType;
     typedef typename CommonAPI::Stub<StubAdapterType, typename StubClass_::RemoteEventType> StubType;
 
-    DBusGetAttributeStubDispatcher(GetStubFunctor _getStubFunctor, const char *_signature, AttributeDepl_ *_depl = nullptr):
+    DBusGetAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, const char *_signature, AttributeDepl_ *_depl = nullptr):
+        lockStubFunctor_(_lockStubFunctor),
         getStubFunctor_(_getStubFunctor),
         signature_(_signature),
         depl_(_depl) {
@@ -894,10 +896,9 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
         auto varDepl = CommonAPI::DBus::VariantDeployment<AttributeDepl_>(true, depl_); // presuming FreeDesktop variant deployment, as support for "legacy" service only
 
-        auto stubAdapter = stub->StubType::getStubAdapter();
-        stubAdapter->lockAttributes();
+        (stub.get()->*lockStubFunctor_)(true);
         auto deployable = CommonAPI::Deployable<CommonAPI::Variant<AttributeType_>, CommonAPI::DBus::VariantDeployment<AttributeDepl_>>((stub.get()->*getStubFunctor_)(clientId), &varDepl);
-        stubAdapter->unlockAttributes();
+        (stub.get()->*lockStubFunctor_)(false);
 
         _output << deployable;
         _output.flush();
@@ -910,10 +911,9 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
 
-        auto stubAdapter = stub->StubType::getStubAdapter();
-        stubAdapter->lockAttributes();
+        (stub.get()->*lockStubFunctor_)(true);
         auto deployable = CommonAPI::Deployable<AttributeType_, AttributeDepl_>((stub.get()->*getStubFunctor_)(clientId), depl_);
-        stubAdapter->unlockAttributes();
+        (stub.get()->*lockStubFunctor_)(false);
 
         dbusOutputStream << deployable;
         dbusOutputStream.flush();
@@ -926,7 +926,7 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
         }
     }
 
-
+    LockStubFunctor lockStubFunctor_;
     GetStubFunctor getStubFunctor_;
     const char* signature_;
     AttributeDepl_ *depl_;
@@ -937,16 +937,18 @@ class DBusSetAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatc
  public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
 
+    typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
     typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, AttributeType_);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
 
-    DBusSetAttributeStubDispatcher(GetStubFunctor getStubFunctor,
+    DBusSetAttributeStubDispatcher(LockStubFunctor lockStubFunctor,
+                                   GetStubFunctor getStubFunctor,
                                    OnRemoteSetFunctor onRemoteSetFunctor,
                                    OnRemoteChangedFunctor onRemoteChangedFunctor,
                                    const char* dbusSignature,
                                    AttributeDepl_ *_depl = nullptr) :
-                    DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(getStubFunctor, dbusSignature, _depl),
+                    DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(lockStubFunctor, getStubFunctor, dbusSignature, _depl),
                     onRemoteSetFunctor_(onRemoteSetFunctor),
                     onRemoteChangedFunctor_(onRemoteChangedFunctor) {
     }
@@ -1019,22 +1021,24 @@ class DBusSetObservableAttributeStubDispatcher: public virtual DBusSetAttributeS
  public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef typename StubClass_::StubAdapterType StubAdapterType;
+    typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
     typedef typename DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::OnRemoteSetFunctor OnRemoteSetFunctor;
     typedef typename DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::OnRemoteChangedFunctor OnRemoteChangedFunctor;
     typedef typename CommonAPI::Stub<StubAdapterType, typename StubClass_::RemoteEventType> StubType;
     typedef void (StubAdapterType::*FireChangedFunctor)(const AttributeType_&);
 
-    DBusSetObservableAttributeStubDispatcher(GetStubFunctor getStubFunctor,
+    DBusSetObservableAttributeStubDispatcher(LockStubFunctor lockStubFunctor,
+                                             GetStubFunctor getStubFunctor,
                                              OnRemoteSetFunctor onRemoteSetFunctor,
                                              OnRemoteChangedFunctor onRemoteChangedFunctor,
                                              FireChangedFunctor fireChangedFunctor,
                                              const char* dbusSignature,
                                              AttributeDepl_ *_depl = nullptr)
         : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(
-                getStubFunctor, dbusSignature, _depl),
+                lockStubFunctor, getStubFunctor, dbusSignature, _depl),
           DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(
-                getStubFunctor, onRemoteSetFunctor, onRemoteChangedFunctor, dbusSignature, _depl),
+                lockStubFunctor, getStubFunctor, onRemoteSetFunctor, onRemoteChangedFunctor, dbusSignature, _depl),
           fireChangedFunctor_(fireChangedFunctor) {
     }
 
@@ -1060,10 +1064,11 @@ protected:
                                            const std::shared_ptr<StubClass_> _stub) {
         (void)_remoteEventHandler;
 
+
         auto stubAdapter = _stub->StubType::getStubAdapter();
-        stubAdapter->lockAttributes();
+        (_stub.get()->*DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::lockStubFunctor_)(true);
         (stubAdapter.get()->*fireChangedFunctor_)(this->getAttributeValue(_client, _stub));
-        stubAdapter->unlockAttributes();
+        (_stub.get()->*DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::lockStubFunctor_)(false);
     }
 
     const FireChangedFunctor fireChangedFunctor_;
