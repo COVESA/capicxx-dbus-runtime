@@ -257,6 +257,54 @@ DBusServiceRegistry::unsubscribeAvailabilityListener(
     // mark listener to remove
     dbusInterfaceNameListenersRecord.listenersToRemove.push_back(listenerSubscription);
 
+    // remove listener from lists in mainloop context to make sure that in case
+    // of no availability change or in case of unsubscribing in availability callback
+    // the lists will be cleared / the lists grow infinitely.
+    auto dbusProxyConnection = dbusDaemonProxy_->getDBusConnection();
+    auto removeListener = [&](std::weak_ptr<DBusServiceRegistry> _registry,
+        DBusAddress dbusAddress, DBusServiceSubscription _subscription) {
+
+        if(auto itsServiceRegistry = _registry.lock()) {
+            std::lock_guard<std::recursive_mutex> itsLock(dbusServicesMutex_);
+
+            auto dbusServiceListenersIterator = dbusServiceListenersMap.find(dbusAddress.getService());
+            if(dbusServiceListenersIterator != dbusServiceListenersMap.end()) {
+                auto& dbusServiceListenersRecord = dbusServiceListenersIterator->second;
+                auto dbusObjectPathListenersIterator =
+                    dbusServiceListenersRecord.dbusObjectPathListenersMap.find(dbusAddress.getObjectPath());
+
+                if(dbusObjectPathListenersIterator != dbusServiceListenersRecord.dbusObjectPathListenersMap.end()) {
+                    auto& dbusInterfaceNameListenersMap = dbusObjectPathListenersIterator->second;
+                    auto dbusInterfaceNameListenersIterator = dbusInterfaceNameListenersMap.find(dbusAddress.getInterface());
+
+                    if(dbusInterfaceNameListenersIterator != dbusInterfaceNameListenersMap.end()) {
+                        auto& dbusInterfaceNameListenersRecord = dbusInterfaceNameListenersIterator->second;
+
+                        auto itsRemoveListenerIt = std::find(dbusInterfaceNameListenersRecord.listenersToRemove.begin(),
+                                  dbusInterfaceNameListenersRecord.listenersToRemove.end(),
+                                  _subscription);
+
+                        if(itsRemoveListenerIt != dbusInterfaceNameListenersRecord.listenersToRemove.end()) {
+                            dbusInterfaceNameListenersRecord.listenersToRemove.remove(_subscription);
+                            dbusInterfaceNameListenersRecord.listenerList.erase(_subscription);
+
+                            if (dbusInterfaceNameListenersRecord.listenerList.empty()) {
+                                dbusInterfaceNameListenersMap.erase(dbusInterfaceNameListenersIterator);
+                                if (dbusInterfaceNameListenersMap.empty()) {
+                                    dbusServiceListenersRecord.dbusObjectPathListenersMap.erase(dbusObjectPathListenersIterator);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    std::weak_ptr<DBusServiceRegistry> itsRegistry = shared_from_this();
+    dbusProxyConnection->proxyPushFunctionToMainLoop<DBusConnection>(removeListener, itsRegistry,
+        dbusAddress, listenerSubscription);
+
     dbusServicesMutex_.unlock();
 }
 

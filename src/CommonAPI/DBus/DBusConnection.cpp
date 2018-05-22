@@ -161,7 +161,6 @@ DBusConnection::DBusConnection(DBusType_t busType,
                 dispatchThread_(NULL),
                 dispatchSource_(),
                 watchContext_(NULL),
-                timeoutContext_(NULL),
                 connection_(NULL),
                 busType_(busType),
                 dbusConnectionStatusEvent_(this),
@@ -184,7 +183,6 @@ DBusConnection::DBusConnection(::DBusConnection *_connection,
                 dispatchThread_(NULL),
                 dispatchSource_(),
                 watchContext_(NULL),
-                timeoutContext_(NULL),
                 connection_(_connection),
                 busType_(DBusType_t::WRAPPED),
                 dbusConnectionStatusEvent_(this),
@@ -214,14 +212,12 @@ DBusConnection::~DBusConnection() {
     if (auto lockedContext = mainLoopContext_.lock()) {
         if (isConnected()) {
             dbus_connection_set_watch_functions(connection_, NULL, NULL, NULL, NULL, NULL);
-            dbus_connection_set_timeout_functions(connection_, NULL, NULL, NULL, NULL, NULL);
         }
 
         lockedContext->deregisterDispatchSource(queueDispatchSource_);
         lockedContext->deregisterDispatchSource(dispatchSource_);
         lockedContext->deregisterWatch(queueWatch_);
         delete watchContext_;
-        delete timeoutContext_;
     }
 }
 
@@ -237,7 +233,6 @@ bool DBusConnection::attachMainLoopContext(std::weak_ptr<MainLoopContext> mainLo
 
         dispatchSource_ = new DBusDispatchSource(this);
         watchContext_ = new WatchContext(mainLoopContext_, dispatchSource_, shared_from_this());
-        timeoutContext_ = new TimeoutContext(mainLoopContext_, shared_from_this());
         lockedContext->registerDispatchSource(dispatchSource_);
 
         if (!isConnected()) {
@@ -260,19 +255,6 @@ bool DBusConnection::attachMainLoopContext(std::weak_ptr<MainLoopContext> mainLo
                 NULL);
 
         if (!success) {
-            return false;
-        }
-
-        success = 0 != dbus_connection_set_timeout_functions(
-                connection_,
-                &DBusConnection::onAddTimeout,
-                &DBusConnection::onRemoveTimeout,
-                &DBusConnection::onToggleTimeout,
-                timeoutContext_,
-                NULL);
-
-        if (!success) {
-            dbus_connection_set_watch_functions(connection_, NULL, NULL, NULL, NULL, NULL);
             return false;
         }
 
@@ -352,53 +334,6 @@ void DBusConnection::onToggleWatch(::DBusWatch* libdbusWatch, void* data) {
         } else {
             dbusWatch->startWatching();
         }
-    }
-}
-
-
-dbus_bool_t DBusConnection::onAddTimeout(::DBusTimeout* libdbusTimeout, void* data) {
-    TimeoutContext* timeoutContext = static_cast<TimeoutContext*>(data);
-    if (NULL == timeoutContext) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__), "timeoutContext == NULL");
-        return FALSE;
-    }
-
-    DBusTimeout* dbusTimeout = new DBusTimeout(libdbusTimeout, timeoutContext->mainLoopContext_, timeoutContext->dbusConnection_);
-    dbus_timeout_set_data(libdbusTimeout, dbusTimeout, NULL);
-
-    if (dbusTimeout->isReadyToBeMonitored()) {
-        dbusTimeout->startMonitoring();
-    } else {
-        delete dbusTimeout;
-        dbus_timeout_set_data(libdbusTimeout, NULL, NULL);
-    }
-
-    return TRUE;
-}
-
-void DBusConnection::onRemoveTimeout(::DBusTimeout* libdbusTimeout, void* data) {
-    if (NULL == static_cast<std::weak_ptr<MainLoopContext>*>(data)) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__), "MainLoopContext == NULL");
-    }
-
-    DBusTimeout* dbusTimeout = static_cast<DBusTimeout*>(dbus_timeout_get_data(libdbusTimeout));
-    if (dbusTimeout) {
-        dbusTimeout->stopMonitoring();
-    }
-    dbus_timeout_set_data(libdbusTimeout, NULL, NULL);
-    // DBusTimeout will be deleted in Mainloop
-}
-
-void DBusConnection::onToggleTimeout(::DBusTimeout* dbustimeout, void* data) {
-    if (NULL == static_cast<std::weak_ptr<MainLoopContext>*>(data)) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__), "MainLoopContext == NULL");
-    }
-
-    DBusTimeout* timeout = static_cast<DBusTimeout*>(dbus_timeout_get_data(dbustimeout));
-    if (timeout->isReadyToBeMonitored()) {
-        timeout->startMonitoring();
-    } else {
-        timeout->stopMonitoring();
     }
 }
 
@@ -539,7 +474,6 @@ void DBusConnection::disconnect() {
 
         // remote mainloop watchers
         dbus_connection_set_watch_functions(connection_, NULL, NULL, NULL, NULL, NULL);
-        dbus_connection_set_timeout_functions(connection_, NULL, NULL, NULL, NULL, NULL);
 
         dbus_connection_unref(connection_);
         connection_ = nullptr;
@@ -937,7 +871,6 @@ bool DBusConnection::sendDBusMessageWithReplyAsync(
         replyAsyncHandler = dbusMessageReplyAsyncHandler.release();
 
         PendingCallNotificationData* userData = new PendingCallNotificationData(this, replyAsyncHandler);
-        DBusTimeout::currentTimeout_ = NULL;
 
         libdbusSuccess = dbus_connection_send_with_reply_set_notify(connection_,
                 dbusMessage.message_,
@@ -984,9 +917,6 @@ bool DBusConnection::sendDBusMessageWithReplyAsync(
                 replyAsyncHandler,
                 dbusMessage
             };
-
-        if(DBusTimeout::currentTimeout_)
-            DBusTimeout::currentTimeout_->setPendingCall(libdbusPendingCall);
 
         DBusMessageReplyAsyncHandler* asyncHandler = nullptr;
         {

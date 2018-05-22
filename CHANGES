@@ -1,5 +1,15 @@
 Changes
 =======
+v3.1.12.7
+- Adapted 'capi-dbus-add-support-for-custom-marshalling.patch' to be compatible with dbus version 1.12.x
+
+v3.1.12.6
+- Removed concurrent timeout handling
+
+v3.1.12.5
+- Ensure availability listeners are unregistered properly (to free memory) when
+  proxies are being destroyed in callback invoking the availability listener(s)
+
 v3.1.12.4
 - support 'lock functors' in AttributeDispatcher(s)
 

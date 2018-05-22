@@ -260,7 +260,6 @@ public:
     DBusQueueDispatchSource* queueDispatchSource_;
     DispatchSource* dispatchSource_;
     WatchContext* watchContext_;
-    TimeoutContext* timeoutContext_;
 
     COMMONAPI_EXPORT void addLibdbusSignalMatchRule(const std::string& objectPath,
             const std::string& interfaceName,
@@ -295,10 +294,6 @@ public:
     COMMONAPI_EXPORT static dbus_bool_t onAddWatch(::DBusWatch* libdbusWatch, void* data);
     COMMONAPI_EXPORT static void onRemoveWatch(::DBusWatch* libdbusWatch, void* data);
     COMMONAPI_EXPORT static void onToggleWatch(::DBusWatch* libdbusWatch, void* data);
-
-    COMMONAPI_EXPORT static dbus_bool_t onAddTimeout(::DBusTimeout* dbus_timeout, void* data);
-    COMMONAPI_EXPORT static void onRemoveTimeout(::DBusTimeout* dbus_timeout, void* data);
-    COMMONAPI_EXPORT static void onToggleTimeout(::DBusTimeout* dbus_timeout, void* data);
 
     COMMONAPI_EXPORT static void onWakeupMainContext(void* data);
 
