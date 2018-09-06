@@ -22,7 +22,7 @@ DBusMessage::DBusMessage(::DBusMessage *_message, bool reference) {
     if (NULL == _message) {
         COMMONAPI_ERROR(std::string(__FUNCTION__), " NULL _message");
     }
-    message_ = (_message != nullptr ? (reference ? dbus_message_ref(message_) : _message) : nullptr);
+    message_ = (_message != nullptr ? (reference ? dbus_message_ref(_message) : _message) : nullptr);
 }
 
 DBusMessage::DBusMessage(const DBusMessage &_source) {
