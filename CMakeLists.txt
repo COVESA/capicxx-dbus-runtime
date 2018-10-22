@@ -132,27 +132,10 @@ message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
 message(STATUS "COMMONAPI_INCLUDE_DIRS: ${COMMONAPI_INCLUDE_DIRS}")
 message(STATUS "CommonAPI Version: ${CommonAPI_VERSION}")
 
-###############################################################################
-# find DBus by using the 'pkg-config' tool
-if (MSVC)
-    #Not beautiful, but it works
-    if (DBus_DIR)
-        if (DBus_BUILD_DIR)
-            set(DBus_INCLUDE_DIRS "${DBus_DIR};${DBus_BUILD_DIR};")
-            set(DBus_LIBRARY_RELEASE "${DBus_BUILD_DIR}/bin/Release/dbus-1.lib")
-            set(DBus_LIBRARY_DEBUG "${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib")
-        endif()
-    endif()
-
-    if (NOT DBus_LIBRARIES)
-        include(SelectLibraryConfigurations)
-        select_library_configurations(DBus)
-    endif()
-    if (NOT DBus_INCLUDE_DIRS OR NOT DBus_LIBRARIES)
-      message(SEND_ERROR "Set DBus_INCLUDE_DIRS and DBus_LIBRARIES to your D-Bus installation (e.g. cmake -DDBus_INCLUDE_DIRS=C:\\D-Bus\\include -DDBus_LIBRARIES=C:\\DBus\\lib\\dbus-1.lib")
-    endif()
+if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
+    FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    pkg_check_modules(DBus REQUIRED dbus-1>=1.4)
+    FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 ##############################################################################
@@ -174,19 +157,7 @@ message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}")
 include_directories(
     include
     ${COMMONAPI_INCLUDE_DIRS}
-    ${DBus_INCLUDE_DIRS}
 )
-
-if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
-    link_directories(
-        ${DBus_LIBRARY_DIRS}
-    )
-else()
-    set (DBus_LIBRARIES dbus-1)
-    link_directories(
-        ${DBus_INCLUDE_DIRS}/dbus/.libs
-    )
-endif()
 
 # DBus source files
 file(GLOB CAPIDB_SRCS "src/CommonAPI/DBus/*.cpp")
@@ -202,14 +173,19 @@ list(SORT MMHASH_SRCS)
 
 # CommonAPI-DBus library
 add_library(CommonAPI-DBus SHARED ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
-
-target_link_libraries(CommonAPI-DBus CommonAPI ${DBus_LIBRARIES})
+target_include_directories(CommonAPI-DBus INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>)
+target_link_libraries(CommonAPI-DBus PUBLIC CommonAPI dbus-1)
 
 if (MSVC)
     target_link_libraries(CommonAPI-DBus ws2_32 Rpcrt4)
 endif()
 
-set_target_properties(CommonAPI-DBus PROPERTIES VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} LINKER_LANGUAGE C)
+set_target_properties(CommonAPI-DBus PROPERTIES
+    VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION}
+    SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION}
+    LINKER_LANGUAGE C)
 
 ##############################################################################
 
@@ -250,25 +226,14 @@ export(TARGETS CommonAPI-DBus
 export(PACKAGE CommonAPI-DBus)
 
 # Create the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion files ...
-file(RELATIVE_PATH REL_INCLUDE_DIR "${ABSOLUTE_INSTALL_CMAKE_DIR}" "${ABSOLUTE_INSTALL_INCLUDE_DIR}")
-
-# ... for the build tree
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfig.cmake" @ONLY)
-
-# ... for the install tree
-set(CONF_INCLUDE_DIRS "\${COMMONAPI_DBUS_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake" @ONLY)
-
-# ... for both
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfigVersion.cmake.in
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake" @ONLY)
 
 # Install the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion.cmake
 install(FILES
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake"
+  "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfig.cmake"
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake"
   DESTINATION "${INSTALL_CMAKE_DIR}")
 

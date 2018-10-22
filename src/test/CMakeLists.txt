@@ -11,17 +11,9 @@ include_directories(.
        ./src-gen/core
        ./src-gen/dbus
        ${COMMONAPI_INCLUDE_DIRS}
-       ${DBus_INCLUDE_DIRS}
        ${gtest_SOURCE_DIR}/include
        ${GLIB_INCLUDE_DIRS}
 )
-
-if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
-    set(DBus_LDFLAGS dbus-1)
-    link_directories(
-        ${DBus_INCLUDE_DIRS}/dbus/.libs
-    )
-endif()
 
 set(VERSION "v1")
 
@@ -71,9 +63,9 @@ set(ExtendedInterfaceDBusSources ${ExtendedInterfaceSources}
                                  src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp)
 
 if (MSVC)
- set(TEST_LINK_LIBRARIES ${DBus_LDFLAGS} CommonAPI-DBus CommonAPI gtest )
+ set(TEST_LINK_LIBRARIES CommonAPI-DBus CommonAPI gtest )
 else()
- set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
+ set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
 endif()
 
 ##############################################################################
