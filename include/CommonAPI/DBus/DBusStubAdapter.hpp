@@ -16,6 +16,7 @@
 #include <CommonAPI/Stub.hpp>
 #include <CommonAPI/DBus/DBusAddress.hpp>
 #include <CommonAPI/DBus/DBusInterfaceHandler.hpp>
+#include <CommonAPI/DBus/DBusOutputStream.hpp>
 
 namespace CommonAPI {
 namespace DBus {
@@ -46,6 +47,8 @@ class COMMONAPI_EXPORT_CLASS_EXPLICIT DBusStubAdapter
      COMMONAPI_EXPORT virtual void deactivateManagedInstances() = 0;
      COMMONAPI_EXPORT virtual bool hasFreedesktopProperties();
      COMMONAPI_EXPORT virtual bool onInterfaceDBusFreedesktopPropertiesMessage(const DBusMessage &_message) = 0;
+
+     COMMONAPI_EXPORT virtual bool appendGetAllReply(const DBusMessage& dbusMessage, DBusOutputStream& dbusOutputStream) = 0;
 
  protected:
     DBusAddress dbusAddress_;
