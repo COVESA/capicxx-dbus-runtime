@@ -153,6 +153,7 @@ TEST_F(DBusConnectionTest, SendingAsyncDBusMessagesWorks) {
     dbusConnection_->disconnect();
 
     interfaceHandlerDBusConnection->unregisterObjectPath(objectPath);
+    interfaceHandlerDBusConnection->setObjectPathMessageHandler(CommonAPI::DBus::DBusProxyConnection::DBusObjectPathMessageHandler());
 
     ASSERT_TRUE(interfaceHandlerDBusConnection->releaseServiceName(service));
     interfaceHandlerDBusConnection->disconnect();

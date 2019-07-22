@@ -10,6 +10,7 @@
 #include <CommonAPI/DBus/DBusUtils.hpp>
 #include <CommonAPI/DBus/DBusProxyAsyncSignalMemberCallbackHandler.hpp>
 #include <CommonAPI/DBus/DBusConnection.hpp>
+#include <CommonAPI/DBus/DBusAddressTranslator.hpp>
 #include <CommonAPI/Logger.hpp>
 
 namespace CommonAPI {
@@ -216,6 +217,7 @@ DBusProxy::~DBusProxy() {
     if (auto ptr = factory__.lock()) {
         ptr->decrementConnection(connection_);
     }
+    DBusAddressTranslator::get()->remove(getAddress());
 }
 
 bool DBusProxy::isAvailable() const {

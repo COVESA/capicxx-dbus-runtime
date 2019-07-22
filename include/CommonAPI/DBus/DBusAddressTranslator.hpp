@@ -47,6 +47,8 @@ public:
      */
     COMMONAPI_EXPORT bool isOrgFreedesktopDBusPeerMapped() const;
 
+    COMMONAPI_EXPORT void remove(const CommonAPI::Address &_address);
+
 private:
     COMMONAPI_EXPORT bool readConfiguration();
 
@@ -65,6 +67,7 @@ private:
     std::map<DBusAddress, CommonAPI::Address> backwards_;
     std::map<std::string, std::string> compatibility_;
     std::map<CommonAPI::Address, std::tuple<std::string, std::string, std::string>> unversioned_;
+    std::map<CommonAPI::Address, DBusAddress> persistentAddresses_;
 
     std::mutex mutex_;
 

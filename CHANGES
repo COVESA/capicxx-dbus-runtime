@@ -1,5 +1,12 @@
 Changes
 =======
+v3.1.12.9
+- Unregister mappings in DBusAddressTranslator (to free memory again) when
+  proxies are destroyed
+
+v3.1.12.8
+- Fixed crash in DBusConnectionTest
+
 v3.1.12.7
 - Adapted 'capi-dbus-add-support-for-custom-marshalling.patch' to be compatible with dbus version 1.12.x
 

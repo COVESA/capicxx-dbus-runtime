@@ -200,6 +200,9 @@ DBusAddressTranslator::insert(
         DBusAddress dbusAddress(_service, _path, _interface);
 
         std::lock_guard<std::mutex> itsLock(mutex_);
+
+        persistentAddresses_[address] = dbusAddress;
+
         auto fw = forwards_.find(address);
         auto bw = backwards_.find(dbusAddress);
         if (fw == forwards_.end() && bw == backwards_.end()) {
@@ -443,6 +446,29 @@ bool DBusAddressTranslator::isValidVersion(const std::string& _version) const {
             return false;
     }
     return true;
+}
+
+void DBusAddressTranslator::remove(const CommonAPI::Address &_address) {
+    std::lock_guard<std::mutex> itsLock(mutex_);
+
+    DBusAddress dbusAddress;
+
+    // don't remove persisent addresses
+    auto persistent_it = persistentAddresses_.find(_address);
+    if(persistent_it != persistentAddresses_.end()) {
+        return;
+    }
+
+    auto forwards_it = forwards_.find(_address);
+    if (forwards_it != forwards_.end()) {
+        dbusAddress = forwards_it->second;
+        forwards_.erase(forwards_it->first);
+    }
+
+    auto backwards_it = backwards_.find(dbusAddress);
+    if (backwards_it != backwards_.end()) {
+        backwards_.erase(backwards_it->first);
+    }
 }
 
 } // namespace DBus
