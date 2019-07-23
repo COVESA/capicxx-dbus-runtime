@@ -203,6 +203,8 @@ Factory::unregisterStub(const std::string &_domain, const std::string &_interfac
 
         services_.erase(adapterResult->first);
 
+        DBusAddressTranslator::get()->remove(address);
+
         itsLock.unlock();
 
         decrementConnection(connection);

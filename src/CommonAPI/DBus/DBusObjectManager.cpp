@@ -49,7 +49,8 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
     bool isRegistrationSuccessful = false;
 
-    objectPathLock_.lock();
+    std::lock_guard<std::recursive_mutex> itsLock(objectPathLock_);
+
     isRegistrationSuccessful = addDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
     if (isRegistrationSuccessful && dbusStubAdapter->hasFreedesktopProperties()) {
@@ -109,7 +110,6 @@ bool DBusObjectManager::registerDBusStubAdapter(std::shared_ptr<DBusStubAdapter>
             dbusConnection->registerObjectPath(dbusStubAdapterObjectPath);
         }
     }
-    objectPathLock_.unlock();
 
     return isRegistrationSuccessful;
 }
@@ -121,7 +121,8 @@ bool DBusObjectManager::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapte
     DBusInterfaceHandlerPath dbusStubAdapterHandlerPath(dbusStubAdapterObjectPath, dbusStubAdapterInterfaceName);
     bool isDeregistrationSuccessful = false;
 
-    objectPathLock_.lock();
+    std::lock_guard<std::recursive_mutex> itsLock(objectPathLock_);
+
     isDeregistrationSuccessful = removeDBusInterfaceHandler(dbusStubAdapterHandlerPath, dbusStubAdapter);
 
     if (isDeregistrationSuccessful && dbusStubAdapter->isManaging()) {
@@ -162,13 +163,13 @@ bool DBusObjectManager::unregisterDBusStubAdapter(std::shared_ptr<DBusStubAdapte
         }
     }
 
-    objectPathLock_.unlock();
-
     return isDeregistrationSuccessful;
 }
 
 
 bool DBusObjectManager::exportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
+    std::lock_guard<std::recursive_mutex> itsLock(objectPathLock_);
+
     auto foundManagerStubIterator = managerStubs_.find(parentObjectPath);
 
     if (managerStubs_.end() == foundManagerStubIterator) {
@@ -182,6 +183,8 @@ bool DBusObjectManager::exportManagedDBusStubAdapter(const std::string& parentOb
 
 
 bool DBusObjectManager::unexportManagedDBusStubAdapter(const std::string& parentObjectPath, std::shared_ptr<DBusStubAdapter> dbusStubAdapter) {
+    std::lock_guard<std::recursive_mutex> itsLock(objectPathLock_);
+
     auto foundManagerStubIterator = managerStubs_.find(parentObjectPath);
 
     if (foundManagerStubIterator != managerStubs_.end()) {
@@ -208,20 +211,20 @@ bool DBusObjectManager::handleMessage(const DBusMessage& dbusMessage) {
 
     DBusInterfaceHandlerPath handlerPath(objectPath, interfaceName);
 
-    objectPathLock_.lock();
+    std::unique_lock<std::recursive_mutex> itsLock(objectPathLock_);
+
     auto handlerIterator = dbusRegisteredObjectsTable_.find(handlerPath);
     const bool foundDBusInterfaceHandler = handlerIterator != dbusRegisteredObjectsTable_.end();
     bool dbusMessageHandled = false;
 
     if (foundDBusInterfaceHandler) {
         std::shared_ptr<DBusInterfaceHandler> dbusStubAdapterBase = handlerIterator->second.front();
-        objectPathLock_.unlock();
+        itsLock.unlock();
         dbusMessageHandled = dbusStubAdapterBase->onInterfaceDBusMessage(dbusMessage);
         return dbusMessageHandled;
     } else if (dbusMessage.hasInterfaceName("org.freedesktop.DBus.Introspectable")) {
         dbusMessageHandled = onIntrospectableInterfaceDBusMessage(dbusMessage);
     }
-    objectPathLock_.unlock();
 
     return dbusMessageHandled;
 }

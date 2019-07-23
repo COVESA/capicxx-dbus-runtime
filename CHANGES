@@ -1,5 +1,13 @@
 Changes
 =======
+v3.1.12.11
+- Prevent crash when deregistering managed service (via 'deregisterManagedStub*') and
+  another service (via 'unregisterService') in parallel with same DBus connection 
+
+v3.1.12.10
+- Unregister mappings in DBusAddressTranslator (to free memory again) when
+  services/stubs are unregistered
+
 v3.1.12.9
 - Unregister mappings in DBusAddressTranslator (to free memory again) when
   proxies are destroyed
