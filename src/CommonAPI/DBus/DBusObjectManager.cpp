@@ -267,6 +267,15 @@ bool DBusObjectManager::removeDBusInterfaceHandler(const DBusInterfaceHandlerPat
                 dbusRegisteredObjectsTable_.erase(dbusRegisteredObjectsTableIter);
             }
         }
+        if(dbusInterfaceHandler->hasFreedesktopProperties())
+        {
+            const auto& dbusRegisteredObjectsTableIter = dbusRegisteredObjectsTable_.find({dbusInterfaceHandlerPath.first, "org.freedesktop.DBus.Properties"});
+            const bool isDBusInterfaceHandlerAdded = (dbusRegisteredObjectsTableIter != dbusRegisteredObjectsTable_.end());
+            if(isDBusInterfaceHandlerAdded)
+            {
+                dbusRegisteredObjectsTable_.erase(dbusRegisteredObjectsTableIter);
+            }
+        }
     }
 
     return isDBusInterfaceHandlerAdded;
