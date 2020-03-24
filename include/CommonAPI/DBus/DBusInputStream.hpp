@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <memory>
 
 #include <CommonAPI/Export.hpp>
 #include <CommonAPI/InputStream.hpp>
@@ -518,7 +519,7 @@ private:
     char *begin_;
     size_t current_;
     size_t size_;
-    CommonAPI::DBus::DBusError* exception_;
+    std::unique_ptr<CommonAPI::DBus::DBusError> exception_;
     CommonAPI::DBus::DBusMessage message_;
 
     std::vector<uint32_t> sizes_;
