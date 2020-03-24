@@ -63,8 +63,12 @@ public:
 
     COMMONAPI_EXPORT OutputStream &writeValue(const bool &_value, const EmptyDeployment *_depl) {
         (void)_depl;
-        uint32_t tmp = (_value ? 1 : 0);
-        return _writeValue(tmp);
+        volatile uint32_t tmp = 0;
+        if(_value)
+        {
+            tmp = 1;
+        }
+        return _writeValue(static_cast<uint32_t>(tmp));
     }
 
     COMMONAPI_EXPORT OutputStream &writeValue(const int8_t &_value, const EmptyDeployment *_depl) {
