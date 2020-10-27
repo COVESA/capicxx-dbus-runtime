@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -98,16 +98,13 @@ class DBusMainLoop {
 
     struct DispatchSourceToDispatchStruct {
         DispatchSource* dispatchSource_;
-        std::mutex* mutex_;
-        bool isExecuted_; /* execution flag: indicates, whether the dispatchSource is dispatched currently */
-        bool deleteObject_; /* delete flag: indicates, whether the dispatchSource can be deleted*/
+        std::atomic<bool> isExecuted_; /* execution flag: indicates, whether the dispatchSource is dispatched currently */
+        std::atomic<bool> deleteObject_; /* delete flag: indicates, whether the dispatchSource can be deleted*/
 
         DispatchSourceToDispatchStruct(DispatchSource* _dispatchSource,
-            std::mutex* _mutex,
             bool _isExecuted,
             bool _deleteObject) {
                 dispatchSource_ = _dispatchSource;
-                mutex_ = _mutex;
                 isExecuted_ = _isExecuted;
                 deleteObject_ = _deleteObject;
         }
@@ -115,18 +112,15 @@ class DBusMainLoop {
 
     struct TimeoutToDispatchStruct {
         Timeout* timeout_;
-        std::mutex* mutex_;
-        bool isExecuted_; /* execution flag: indicates, whether the timeout is dispatched currently */
-        bool deleteObject_; /* delete flag: indicates, whether the timeout can be deleted*/
-        bool timeoutElapsed_; /* timeout elapsed flag: indicates, whether the timeout is elapsed*/
+        std::atomic<bool> isExecuted_; /* execution flag: indicates, whether the timeout is dispatched currently */
+        std::atomic<bool> deleteObject_; /* delete flag: indicates, whether the timeout can be deleted*/
+        std::atomic<bool> timeoutElapsed_; /* timeout elapsed flag: indicates, whether the timeout is elapsed*/
 
         TimeoutToDispatchStruct(Timeout* _timeout,
-            std::mutex* _mutex,
             bool _isExecuted,
             bool _deleteObject,
             bool _timeoutElapsed) {
                 timeout_ = _timeout;
-                mutex_ = _mutex;
                 isExecuted_ = _isExecuted;
                 deleteObject_ = _deleteObject;
                 timeoutElapsed_ = _timeoutElapsed;
@@ -136,18 +130,15 @@ class DBusMainLoop {
     struct WatchToDispatchStruct {
         int fd_;
         Watch* watch_;
-        std::mutex* mutex_;
-        bool isExecuted_; /* execution flag: indicates, whether the watch is dispatched currently */
-        bool deleteObject_; /* delete flag: indicates, whether the watch can be deleted*/
+        std::atomic<bool> isExecuted_; /* execution flag: indicates, whether the watch is dispatched currently */
+        std::atomic<bool> deleteObject_; /* delete flag: indicates, whether the watch can be deleted*/
 
         WatchToDispatchStruct(int _fd,
             Watch* _watch,
-            std::mutex* _mutex,
             bool _isExecuted,
             bool _deleteObject) {
                 fd_ = _fd;
                 watch_ = _watch;
-                mutex_ = _mutex;
                 isExecuted_ = _isExecuted;
                 deleteObject_ = _deleteObject;
         }
@@ -157,7 +148,7 @@ class DBusMainLoop {
     std::multimap<DispatchPriority, WatchToDispatchStruct*> registeredWatches_;
     std::multimap<DispatchPriority, TimeoutToDispatchStruct*> registeredTimeouts_;
 
-    std::mutex dispatchSourcesMutex_;
+    std::recursive_mutex dispatchSourcesMutex_;
     std::mutex watchesMutex_;
     std::mutex timeoutsMutex_;
 
@@ -179,7 +170,7 @@ class DBusMainLoop {
 #endif
 
     std::atomic<bool> hasToStop_;
-    bool isBroken_;
+    std::atomic<bool> isBroken_;
 };
 
 } // namespace DBus

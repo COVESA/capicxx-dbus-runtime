@@ -1,4 +1,4 @@
-// Copyright (C) 2015-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2015-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -44,8 +44,8 @@ public:
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::GetStubFunctor GetStubFunctor;
 
-    DBusGetFreedesktopAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, AttributeDepl_ *_depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl) {
+    DBusGetFreedesktopAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, const bool _isImplemented, AttributeDepl_ *_depl = nullptr)
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _isImplemented, _depl) {
     }
 
     virtual ~DBusGetFreedesktopAttributeStubDispatcher() {};
@@ -93,15 +93,13 @@ public:
     typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, AttributeType_);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
 
-    DBusSetFreedesktopAttributeStubDispatcher(
-            LockStubFunctor _lockStubFunctor,
-            GetStubFunctor _getStubFunctor,
-            OnRemoteSetFunctor _onRemoteSetFunctor,
-            OnRemoteChangedFunctor _onRemoteChangedFunctor,
+    DBusSetFreedesktopAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor,
+            OnRemoteSetFunctor _onRemoteSetFunctor, OnRemoteChangedFunctor _onRemoteChangedFunctor,
+            const bool _isImplemented,
             AttributeDepl_ * _depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl),
-          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _depl),
-          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl) {
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _isImplemented, _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _isImplemented, _depl),
+          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _isImplemented, _depl) {
     }
 
     virtual ~DBusSetFreedesktopAttributeStubDispatcher() {};
@@ -133,18 +131,16 @@ public:
     typedef typename StubClass_::StubAdapterType StubAdapterType;
     typedef void (StubAdapterType::*FireChangedFunctor)(const AttributeType_&);
 
-    DBusSetFreedesktopObservableAttributeStubDispatcher(
-            LockStubFunctor _lockStubFunctor,
-            GetStubFunctor _getStubFunctor,
-            OnRemoteSetFunctor _onRemoteSetFunctor,
-            OnRemoteChangedFunctor _onRemoteChangedFunctor,
+    DBusSetFreedesktopObservableAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor,
+            OnRemoteSetFunctor _onRemoteSetFunctor, OnRemoteChangedFunctor _onRemoteChangedFunctor,
             FireChangedFunctor _fireChangedFunctor,
+            const bool _isImplemented,
             AttributeDepl_ *_depl = nullptr)
-        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _depl),
-          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _depl),
-          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _depl),
-          DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _depl),
-          DBusSetObservableAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v", _depl) {
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, "v", _isImplemented, _depl),
+          DBusGetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _isImplemented, _depl),
+          DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, "v", _isImplemented, _depl),
+          DBusSetFreedesktopAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _isImplemented, _depl),
+          DBusSetObservableAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _onRemoteSetFunctor, _onRemoteChangedFunctor, _fireChangedFunctor, "v", _isImplemented, _depl) {
     }
 };
 

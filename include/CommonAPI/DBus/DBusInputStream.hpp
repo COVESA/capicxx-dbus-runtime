@@ -107,6 +107,19 @@ public:
         return (*this);
     }
 
+    template<int minimum, int maximum>
+    COMMONAPI_EXPORT InputStream &readValue(RangedInteger<minimum, maximum> &_value, const EmptyDeployment *) {
+        int tmpValue;
+        readValue(tmpValue, static_cast<EmptyDeployment *>(nullptr));
+        if(!_value.validate()) {
+            setError();
+        }
+        if (!hasError()) {
+            _value = tmpValue;
+        }
+        return (*this);
+    }
+
     template<class Deployment_, typename Base_>
     COMMONAPI_EXPORT InputStream &readValue(Enumeration<Base_> &_value, const Deployment_ *_depl) {
         Base_ tmpValue;
@@ -479,40 +492,51 @@ private:
         _readRaw(length + 1);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<!std::is_class<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_vector<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_unordered_map<Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(!std::is_class<Type_>::value &&
+                                 !is_std_vector<Type_>::value &&
+                                 !is_std_unordered_map<Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         if (4 < sizeof(Type_)) align(8);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<!std::is_same<Type_, std::string>::value>::type * = nullptr,
-                     typename std::enable_if<std::is_class<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_vector<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_unordered_map<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!std::is_base_of<Enumeration<int32_t>, Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(!std::is_same<Type_, std::string>::value &&
+                                std::is_class<Type_>::value && 
+                                !is_std_vector<Type_>::value &&
+                                !is_std_unordered_map<Type_>::value &&
+                                !std::is_base_of<Enumeration<uint8_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<uint16_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<uint32_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int8_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int16_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int32_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         align(8);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<std::is_same<Type_, std::string>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(std::is_same<Type_, std::string>::value ||
+                                 is_std_vector<Type_>::value ||
+                                 std::is_base_of<Enumeration<uint8_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int8_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         // Intentionally do nothing
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<is_std_vector<Type_>::value>::type * = nullptr) {
-        // Intentionally do nothing
-    }
-
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<is_std_unordered_map<Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(is_std_unordered_map<Type_>::value ||
+                                 std::is_base_of<Enumeration<uint32_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int32_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         align(4);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<std::is_base_of<Enumeration<int32_t>, Type_>::value>::type * = nullptr) {
-        align(4);
+    template<typename Type_,
+        typename std::enable_if<(std::is_base_of<Enumeration<uint16_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int16_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
+        align(2);
     }
 
     char *begin_;

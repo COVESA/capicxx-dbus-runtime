@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -380,6 +380,11 @@ struct DBusStubSignalHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>> 
             DBusOutputStream outputStream(dbusMessage);
             const bool success = DBusSerializableArguments<InArgs_...>::serialize(outputStream, inArgs...);
             if (!success) {
+                COMMONAPI_ERROR("DBusStubSignalHelper (dbus): serialization failed! [",
+                                dbusMessage.getObjectPath(), " ",
+                                dbusMessage.getInterface(), ".",
+                                dbusMessage.getMember(), " ",
+                                dbusMessage.getSerial());
                 return false;
             }
             outputStream.flush();
@@ -422,6 +427,11 @@ struct DBusStubSignalHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>> 
                DBusOutputStream outputStream(dbusMessage);
                const bool success = DBusSerializableArguments<InArgs_...>::serialize(outputStream, inArgs...);
                if (!success) {
+                   COMMONAPI_ERROR("DBusStubSignalHelper 2 (dbus): serialization failed! [",
+                                   dbusMessage.getObjectPath(), " ",
+                                   dbusMessage.getInterface(), ".",
+                                   dbusMessage.getMember(), " ",
+                                   dbusMessage.getSerial());
                    return false;
                }
                outputStream.flush();
@@ -445,8 +455,8 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef void (StubClass_::*StubFunctor_)(std::shared_ptr<CommonAPI::ClientId>, InArgs_...);
 
-    DBusMethodStubDispatcher(StubFunctor_ stubFunctor, std::tuple<DeplIn_Args*...> _in):
-            stubFunctor_(stubFunctor) {
+    DBusMethodStubDispatcher(StubFunctor_ stubFunctor, const bool _isImplemented, std::tuple<DeplIn_Args*...> _in):
+            stubFunctor_(stubFunctor), isImplemented_(_isImplemented) {
             initialize(typename make_sequence_range<sizeof...(DeplIn_Args), 0>::type(), _in);
     }
 
@@ -455,16 +465,20 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
           std::weak_ptr<DBusProxyConnection> _connection) {
             (void) _remoteEventHandler;
             (void) _connection;
+
+        if (!this->isImplemented_)
+            return false;
+
         return handleDBusMessage(dbusMessage, stub, typename make_sequence_range<sizeof...(InArgs_), 0>::type());
     }
 
  private:
-    template <int... DeplIn_ArgIndices>
+    template <size_t... DeplIn_ArgIndices>
     inline void initialize(index_sequence<DeplIn_ArgIndices...>, std::tuple<DeplIn_Args*...> &_in) {
         in_ = std::make_tuple(std::get<DeplIn_ArgIndices>(_in)...);
     }
 
-    template <int... InArgIndices_>
+    template <size_t... InArgIndices_>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<StubClass_>& stub,
                                   index_sequence<InArgIndices_...>) {
@@ -472,8 +486,14 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
         if (sizeof...(InArgs_) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);
             const bool success = DBusSerializableArguments<CommonAPI::Deployable<InArgs_, DeplIn_Args>...>::deserialize(dbusInputStream, std::get<InArgIndices_>(in_)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusMethodStubDispatcher (dbus): deserialization failed! [",
+                                dbusMessage.getObjectPath(), " ",
+                                dbusMessage.getInterface(), ".",
+                                dbusMessage.getMember(), " ",
+                                dbusMessage.getSerial());
                 return false;
+            }
         }
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
@@ -484,6 +504,7 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
     }
 
     StubFunctor_ stubFunctor_;
+    const bool isImplemented_;
     std::tuple<CommonAPI::Deployable<InArgs_, DeplIn_Args>...> in_;
 };
 
@@ -512,13 +533,15 @@ class DBusMethodWithReplyStubDispatcher<
                 std::shared_ptr<CommonAPI::ClientId>, InArgs_..., ReplyType_t);
 
     DBusMethodWithReplyStubDispatcher(StubFunctor_ _stubFunctor,
-        const char* _dbusReplySignature,
-        const std::tuple<DeplIn_Args*...>& _inDepArgs,
-        const std::tuple<DeplOutArgs_*...>& _outDepArgs):
-            out_(_outDepArgs),
-            currentCall_(0),
-            stubFunctor_(_stubFunctor),
-            dbusReplySignature_(_dbusReplySignature) {
+            const char* _dbusReplySignature,
+            const bool _isImplemented,
+            const std::tuple<DeplIn_Args*...> &_inDepArgs,
+            const std::tuple<DeplOutArgs_*...> &_outDepArgs)
+        : out_(_outDepArgs),
+          currentCall_(0),
+          isImplemented_(_isImplemented),
+          stubFunctor_(_stubFunctor),
+          dbusReplySignature_(_dbusReplySignature) {
 
         initialize(typename make_sequence_range<sizeof...(DeplIn_Args), 0>::type(), _inDepArgs);
     }
@@ -528,6 +551,10 @@ class DBusMethodWithReplyStubDispatcher<
                              RemoteEventHandlerType* _remoteEventHandler,
                              std::weak_ptr<DBusProxyConnection> _connection) {
         (void) _remoteEventHandler;
+
+        if (!this->isImplemented_)
+            return false;
+
         connection_ = _connection;
         return handleDBusMessage(
                 _dbusMessage,
@@ -560,15 +587,16 @@ protected:
     std::mutex mutex_; // protects pending_
 
     std::weak_ptr<DBusProxyConnection> connection_;
+    const bool isImplemented_;
 
 private:
 
-    template <int... DeplIn_ArgIndices>
+    template <size_t... DeplIn_ArgIndices>
     inline void initialize(index_sequence<DeplIn_ArgIndices...>, const std::tuple<DeplIn_Args*...>& _in) {
         in_ = std::make_tuple(std::get<DeplIn_ArgIndices>(_in)...);
     }
 
-    template <int... InArgIndices_, int... OutArgIndices_>
+    template <size_t... InArgIndices_, size_t... OutArgIndices_>
     inline bool handleDBusMessage(const DBusMessage& _dbusMessage,
                                   const std::shared_ptr<StubClass_>& _stub,
                                   index_sequence<InArgIndices_...>,
@@ -576,8 +604,14 @@ private:
         if (sizeof...(DeplIn_Args) > 0) {
             DBusInputStream dbusInputStream(_dbusMessage);
             const bool success = DBusSerializableArguments<CommonAPI::Deployable<InArgs_, DeplIn_Args>...>::deserialize(dbusInputStream, std::get<InArgIndices_>(in_)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusMethodWithReplyStubDispatcher (dbus): deserialization failed! [",
+                                _dbusMessage.getObjectPath(), " ",
+                                _dbusMessage.getInterface(), ".",
+                                _dbusMessage.getMember(), " ",
+                                _dbusMessage.getSerial());
                 return false;
+            }
         }
 
         std::shared_ptr<DBusClientId> clientId
@@ -603,7 +637,7 @@ private:
         return true;
     }
 
-    template<int... OutArgIndices_>
+    template<size_t... OutArgIndices_>
     bool sendReplyInternal(const CommonAPI::CallId_t _call,
                            index_sequence<OutArgIndices_...>,
                            const std::tuple<CommonAPI::Deployable<OutArgs_, DeplOutArgs_>...>& _args) {
@@ -616,6 +650,11 @@ private:
                         output, std::get<OutArgIndices_>(_args)...)) {
                     (void)_args;
                     pending_.erase(_call);
+                    COMMONAPI_ERROR("DBusMethodWithReplyStubDispatcher (dbus): serialization failed! [",
+                                    reply->second.getObjectPath(), " ",
+                                    reply->second.getInterface(), ".",
+                                    reply->second.getMember(), " ",
+                                    reply->second.getSerial());
                     return false;
                 }
                 output.flush();
@@ -664,29 +703,26 @@ class DBusMethodWithReplyStubDispatcher<
     typedef void (StubClass_::*StubFunctor_)(
                 std::shared_ptr<CommonAPI::ClientId>, CommonAPI::CallId_t, InArgs_..., ReplyType_t, ErrorReplies_...);
 
-    DBusMethodWithReplyStubDispatcher(StubFunctor_ _stubFunctor,
-                                      const char* _dbusReplySignature,
-                                      const std::tuple<DeplIn_Args*...>& _inDepArgs,
-                                      const std::tuple<DeplOutArgs_*...>& _outDepArgs,
-                                      const ErrorReplies_... _errorReplies) :
-                                          DBusMethodWithReplyStubDispatcher<
-                                              StubClass_,
-                                              In_<InArgs_...>,
-                                              Out_<OutArgs_...>,
-                                              DeplIn_<DeplIn_Args...>,
-                                              DeplOut_<DeplOutArgs_...>>(
-                                                      NULL,
-                                                      _dbusReplySignature,
-                                                      _inDepArgs,
-                                                      _outDepArgs),
-                                          stubFunctor_(_stubFunctor),
-                                          errorReplies_(std::make_tuple(_errorReplies...)) { }
+    DBusMethodWithReplyStubDispatcher(StubFunctor_ _stubFunctor, const char* _dbusReplySignature,
+            const bool _isImplemented,
+            const std::tuple<DeplIn_Args*...> &_inDepArgs,
+            const std::tuple<DeplOutArgs_*...> &_outDepArgs,
+            const ErrorReplies_... _errorReplies)
+        : DBusMethodWithReplyStubDispatcher<StubClass_, In_<InArgs_...>, Out_<OutArgs_...>,
+              DeplIn_<DeplIn_Args...>, DeplOut_<DeplOutArgs_...>>(NULL,
+                      _dbusReplySignature, _isImplemented, _inDepArgs, _outDepArgs),
+          stubFunctor_(_stubFunctor),
+          errorReplies_(std::make_tuple(_errorReplies...)) { }
 
     bool dispatchDBusMessage(const DBusMessage& _dbusMessage,
                              const std::shared_ptr<StubClass_>& _stub,
                              RemoteEventHandlerType* _remoteEventHandler,
                              std::weak_ptr<DBusProxyConnection> _connection) {
         (void) _remoteEventHandler;
+
+        if (!this->isImplemented_)
+            return false;
+
         this->connection_ = _connection;
         return handleDBusMessage(
                 _dbusMessage,
@@ -716,7 +752,7 @@ class DBusMethodWithReplyStubDispatcher<
 
 private:
 
-    template <int... InArgIndices_, int... OutArgIndices_, int... ErrorRepliesIndices_>
+    template <size_t... InArgIndices_, size_t... OutArgIndices_, size_t... ErrorRepliesIndices_>
     inline bool handleDBusMessage(const DBusMessage& _dbusMessage,
                                   const std::shared_ptr<StubClass_>& _stub,
                                   index_sequence<InArgIndices_...>,
@@ -725,8 +761,14 @@ private:
         if (sizeof...(DeplIn_Args) > 0) {
             DBusInputStream dbusInputStream(_dbusMessage);
             const bool success = DBusSerializableArguments<CommonAPI::Deployable<InArgs_, DeplIn_Args>...>::deserialize(dbusInputStream, std::get<InArgIndices_>(this->in_)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusMethodWithReplyStubDispatcher w/ error replies (dbus): deserialization failed! [",
+                                _dbusMessage.getObjectPath(), " ",
+                                _dbusMessage.getInterface(), ".",
+                                _dbusMessage.getMember(), " ",
+                                _dbusMessage.getSerial());
                 return false;
+            }
         }
 
         std::shared_ptr<DBusClientId> clientId
@@ -754,7 +796,7 @@ private:
         return true;
     }
 
-    template<int... ErrorReplyOutArgIndices_, class... ErrorReplyOutArgs_, class ...ErrorReplyDeplOutArgs_>
+    template<size_t... ErrorReplyOutArgIndices_, class... ErrorReplyOutArgs_, class ...ErrorReplyDeplOutArgs_>
     bool sendErrorReplyInternal(CommonAPI::CallId_t _call,
                            index_sequence<ErrorReplyOutArgIndices_...>,
                            const std::tuple<CommonAPI::Deployable<ErrorReplyOutArgs_, ErrorReplyDeplOutArgs_>...>& _args) {
@@ -767,6 +809,11 @@ private:
                         output, std::get<ErrorReplyOutArgIndices_>(_args)...)) {
                     (void)_args;
                     this->pending_.erase(_call);
+                    COMMONAPI_ERROR("DBusMethodWithReplyStubDispatcher w/ error replies 2 (dbus): serialization failed! [",
+                                    reply->second.getObjectPath(), " ",
+                                    reply->second.getInterface(), ".",
+                                    reply->second.getMember(), " ",
+                                    reply->second.getSerial());
                     return false;
                 }
                 output.flush();
@@ -795,23 +842,26 @@ template <
     typename StubAdapterClass_,
     template <class...> class In_, class... InArgs_,
     template <class...> class Out_, class... OutArgs_>
-class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<InArgs_...>, Out_<OutArgs_...> >:
-            public StubDispatcher<StubClass_> {
+class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<InArgs_...>, Out_<OutArgs_...> >
+    : public StubDispatcher<StubClass_> {
  public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef void (StubAdapterClass_::*StubFunctor_)(std::shared_ptr<CommonAPI::ClientId>, InArgs_..., OutArgs_&...);
     typedef typename CommonAPI::Stub<typename StubClass_::StubAdapterType, typename StubClass_::RemoteEventType> StubType;
 
-    DBusMethodWithReplyAdapterDispatcher(StubFunctor_ stubFunctor, const char* dbusReplySignature):
-            stubFunctor_(stubFunctor),
-            dbusReplySignature_(dbusReplySignature) {
+    DBusMethodWithReplyAdapterDispatcher(StubFunctor_ stubFunctor, const char* dbusReplySignature, const bool _isImplemented)
+        : stubFunctor_(stubFunctor),
+          dbusReplySignature_(dbusReplySignature),
+          isImplemented_(_isImplemented) {
     }
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<StubClass_>& stub,
-        RemoteEventHandlerType* _remoteEventHandler,
-        std::weak_ptr<DBusProxyConnection> _connection) {
+        RemoteEventHandlerType *_remoteEventHandler, std::weak_ptr<DBusProxyConnection> _connection) {
 
         (void)_remoteEventHandler;
+
+        if (!this->isImplemented_)
+            return false;
 
         std::tuple<InArgs_..., OutArgs_...> argTuple;
         return handleDBusMessage(
@@ -823,7 +873,7 @@ class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<In
     }
 
  private:
-    template <int... InArgIndices_, int... OutArgIndices_>
+    template <size_t... InArgIndices_, size_t... OutArgIndices_>
     inline bool handleDBusMessage(const DBusMessage& dbusMessage,
                                   const std::shared_ptr<StubClass_>& stub,
                                   std::weak_ptr<DBusProxyConnection> _connection,
@@ -835,8 +885,14 @@ class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<In
         if (sizeof...(InArgs_) > 0) {
             DBusInputStream dbusInputStream(dbusMessage);
             const bool success = DBusSerializableArguments<InArgs_...>::deserialize(dbusInputStream, std::get<InArgIndices_>(argTuple)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusMethodWithReplyAdapterDispatcher (dbus): deserialization failed! [",
+                                dbusMessage.getObjectPath(), " ",
+                                dbusMessage.getInterface(), ".",
+                                dbusMessage.getMember(), " ",
+                                dbusMessage.getSerial());
                 return false;
+            }
         }
 
         std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
@@ -847,8 +903,14 @@ class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<In
         if (sizeof...(OutArgs_) > 0) {
             DBusOutputStream dbusOutputStream(dbusMessageReply);
             const bool success = DBusSerializableArguments<OutArgs_...>::serialize(dbusOutputStream, std::get<OutArgIndices_>(argTuple)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusMethodWithReplyAdapterDispatcher (dbus): serialization failed! [",
+                                dbusMessageReply.getObjectPath(), " ",
+                                dbusMessageReply.getInterface(), ".",
+                                dbusMessageReply.getMember(), " ",
+                                dbusMessageReply.getSerial());
                 return false;
+            }
 
             dbusOutputStream.flush();
         }
@@ -863,6 +925,7 @@ class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<In
 
     StubFunctor_ stubFunctor_;
     const char* dbusReplySignature_;
+    const bool isImplemented_;
 };
 
 
@@ -875,19 +938,25 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
     typedef typename StubClass_::StubAdapterType StubAdapterType;
     typedef typename CommonAPI::Stub<StubAdapterType, typename StubClass_::RemoteEventType> StubType;
 
-    DBusGetAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, const char *_signature, AttributeDepl_ *_depl = nullptr):
-        lockStubFunctor_(_lockStubFunctor),
-        getStubFunctor_(_getStubFunctor),
-        signature_(_signature),
-        depl_(_depl) {
+    DBusGetAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor, const char *_signature,
+            const bool _isImplemented,
+            AttributeDepl_ *_depl = nullptr)
+        : lockStubFunctor_(_lockStubFunctor), 
+          getStubFunctor_(_getStubFunctor),
+          signature_(_signature),
+          isImplemented_(_isImplemented),
+          depl_(_depl) {
     }
 
     virtual ~DBusGetAttributeStubDispatcher() {};
 
     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<StubClass_>& stub,
-      RemoteEventHandlerType* _remoteEventHandler,
-      std::weak_ptr<DBusProxyConnection> _connection) {
+            RemoteEventHandlerType* _remoteEventHandler, std::weak_ptr<DBusProxyConnection> _connection) {
         (void) _remoteEventHandler;
+
+        if (!this->isImplemented_)
+            return false;
+
         return sendAttributeValueReply(dbusMessage, stub, _connection);
     }
 
@@ -929,6 +998,7 @@ class DBusGetAttributeStubDispatcher: public virtual StubDispatcher<StubClass_> 
     LockStubFunctor lockStubFunctor_;
     GetStubFunctor getStubFunctor_;
     const char* signature_;
+    const bool isImplemented_;
     AttributeDepl_ *depl_;
 };
 
@@ -942,25 +1012,26 @@ class DBusSetAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatc
     typedef bool (RemoteEventHandlerType::*OnRemoteSetFunctor)(std::shared_ptr<CommonAPI::ClientId>, AttributeType_);
     typedef void (RemoteEventHandlerType::*OnRemoteChangedFunctor)();
 
-    DBusSetAttributeStubDispatcher(LockStubFunctor lockStubFunctor,
-                                   GetStubFunctor getStubFunctor,
-                                   OnRemoteSetFunctor onRemoteSetFunctor,
-                                   OnRemoteChangedFunctor onRemoteChangedFunctor,
-                                   const char* dbusSignature,
-                                   AttributeDepl_ *_depl = nullptr) :
-                    DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(lockStubFunctor, getStubFunctor, dbusSignature, _depl),
-                    onRemoteSetFunctor_(onRemoteSetFunctor),
-                    onRemoteChangedFunctor_(onRemoteChangedFunctor) {
+    DBusSetAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor,
+            OnRemoteSetFunctor onRemoteSetFunctor, OnRemoteChangedFunctor onRemoteChangedFunctor,
+            const char *_signature,
+            const bool _isImplemented,
+            AttributeDepl_ *_depl = nullptr)
+        : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(_lockStubFunctor, _getStubFunctor, _signature, _isImplemented, _depl),
+          onRemoteSetFunctor_(onRemoteSetFunctor),
+          onRemoteChangedFunctor_(onRemoteChangedFunctor) {
     }
 
     virtual ~DBusSetAttributeStubDispatcher() {};
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<StubClass_>& stub,
-      RemoteEventHandlerType* _remoteEventHandler,
-      std::weak_ptr<DBusProxyConnection> _connection) {
+    bool dispatchDBusMessage(const DBusMessage &_message, const std::shared_ptr<StubClass_> &_stub,
+            RemoteEventHandlerType *_remoteEventHandler, std::weak_ptr<DBusProxyConnection> _connection) {
         bool attributeValueChanged;
 
-        if (!setAttributeValue(dbusMessage, stub, _remoteEventHandler, _connection, attributeValueChanged))
+        if (!this->isImplemented_)
+            return false;
+
+        if (!setAttributeValue(_message, _stub, _remoteEventHandler, _connection, attributeValueChanged))
             return false;
 
         if (attributeValueChanged)
@@ -970,46 +1041,47 @@ class DBusSetAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatc
     }
 
  protected:
-    virtual AttributeType_ retrieveAttributeValue(const DBusMessage& dbusMessage, bool& errorOccured) {
-        errorOccured = false;
+    virtual AttributeType_ retrieveAttributeValue(const DBusMessage &_message, bool &_errorOccured) {
+        _errorOccured = false;
 
-        DBusInputStream dbusInputStream(dbusMessage);
-        CommonAPI::Deployable<AttributeType_, AttributeDepl_> attributeValue(this->depl_);
-        dbusInputStream >> attributeValue;
+        DBusInputStream itsInput(_message);
+        CommonAPI::Deployable<AttributeType_, AttributeDepl_> itsValue(this->depl_);
+        itsInput >> itsValue;
 
-        if (dbusInputStream.hasError()) {
-            errorOccured = true;
+        if (itsInput.hasError()) {
+            _errorOccured = true;
         }
 
-        return attributeValue.getValue();
+        return itsValue.getValue();
     }
 
-    inline bool setAttributeValue(const DBusMessage& dbusMessage,
-                                  const std::shared_ptr<StubClass_>& stub,
-                                  RemoteEventHandlerType* _remoteEventHandler,
-                                  std::weak_ptr<DBusProxyConnection> _connection,
-                                  bool& attributeValueChanged) {
+    inline bool setAttributeValue(const DBusMessage &_message,
+            const std::shared_ptr<StubClass_> &_stub,
+            RemoteEventHandlerType *_remoteEventHandler,
+            std::weak_ptr<DBusProxyConnection> _connection,
+            bool &_hasChanged) {
         bool errorOccured;
-        CommonAPI::Deployable<AttributeType_, AttributeDepl_> attributeValue(
-             retrieveAttributeValue(dbusMessage, errorOccured), this->depl_);
+        CommonAPI::Deployable<AttributeType_, AttributeDepl_> itsValue(
+             retrieveAttributeValue(_message, errorOccured), this->depl_);
 
-        if(errorOccured) {
+        if (errorOccured) {
             return false;
         }
 
-        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
+        std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(_message.getSender()));
 
-        attributeValueChanged = (_remoteEventHandler->*onRemoteSetFunctor_)(clientId, std::move(attributeValue.getValue()));
+        _hasChanged = (_remoteEventHandler->*onRemoteSetFunctor_)(clientId, std::move(itsValue.getValue()));
 
-        return this->sendAttributeValueReply(dbusMessage, stub, _connection);
+        return this->sendAttributeValueReply(_message, _stub, _connection);
     }
 
-    inline void notifyOnRemoteChanged(RemoteEventHandlerType* _remoteEventHandler) {
+    inline void notifyOnRemoteChanged(RemoteEventHandlerType *_remoteEventHandler) {
         (_remoteEventHandler->*onRemoteChangedFunctor_)();
     }
 
-    inline const AttributeType_& getAttributeValue(std::shared_ptr<CommonAPI::ClientId> clientId, const std::shared_ptr<StubClass_>& stub) {
-        return (stub.get()->*(this->getStubFunctor_))(clientId);
+    inline AttributeType_ getAttributeValue(std::shared_ptr<CommonAPI::ClientId> _client,
+            const std::shared_ptr<StubClass_> &_stub) {
+        return (_stub.get()->*(this->getStubFunctor_))(_client);
     }
 
     const OnRemoteSetFunctor onRemoteSetFunctor_;
@@ -1018,7 +1090,7 @@ class DBusSetAttributeStubDispatcher: public virtual DBusGetAttributeStubDispatc
 
 template <typename StubClass_, typename AttributeType_, typename AttributeDepl_ = EmptyDeployment>
 class DBusSetObservableAttributeStubDispatcher: public virtual DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_> {
- public:
+public:
     typedef typename StubClass_::RemoteEventHandlerType RemoteEventHandlerType;
     typedef typename StubClass_::StubAdapterType StubAdapterType;
     typedef typename DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::LockStubFunctor LockStubFunctor;
@@ -1028,42 +1100,43 @@ class DBusSetObservableAttributeStubDispatcher: public virtual DBusSetAttributeS
     typedef typename CommonAPI::Stub<StubAdapterType, typename StubClass_::RemoteEventType> StubType;
     typedef void (StubAdapterType::*FireChangedFunctor)(const AttributeType_&);
 
-    DBusSetObservableAttributeStubDispatcher(LockStubFunctor lockStubFunctor,
-                                             GetStubFunctor getStubFunctor,
-                                             OnRemoteSetFunctor onRemoteSetFunctor,
-                                             OnRemoteChangedFunctor onRemoteChangedFunctor,
-                                             FireChangedFunctor fireChangedFunctor,
-                                             const char* dbusSignature,
-                                             AttributeDepl_ *_depl = nullptr)
+    DBusSetObservableAttributeStubDispatcher(LockStubFunctor _lockStubFunctor, GetStubFunctor _getStubFunctor,
+            OnRemoteSetFunctor onRemoteSetFunctor, OnRemoteChangedFunctor onRemoteChangedFunctor,
+            FireChangedFunctor fireChangedFunctor,
+            const char* dbusSignature,
+            const bool _isImplemented,
+            AttributeDepl_ *_depl = nullptr)
         : DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(
-                lockStubFunctor, getStubFunctor, dbusSignature, _depl),
+                _lockStubFunctor, _getStubFunctor, dbusSignature, _isImplemented, _depl),
           DBusSetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>(
-                lockStubFunctor, getStubFunctor, onRemoteSetFunctor, onRemoteChangedFunctor, dbusSignature, _depl),
+                _lockStubFunctor, _getStubFunctor, onRemoteSetFunctor, onRemoteChangedFunctor, dbusSignature, _depl),
           fireChangedFunctor_(fireChangedFunctor) {
     }
 
     virtual ~DBusSetObservableAttributeStubDispatcher() {};
 
-    bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<StubClass_>& stub,
-        RemoteEventHandlerType* _remoteEventHandler,
-        std::weak_ptr<DBusProxyConnection> _connection) {
-        bool attributeValueChanged;
-        if (!this->setAttributeValue(dbusMessage, stub, _remoteEventHandler, _connection, attributeValueChanged))
+    bool dispatchDBusMessage(const DBusMessage &_message, const std::shared_ptr<StubClass_> &_stub,
+        RemoteEventHandlerType *_remoteEventHandler, std::weak_ptr<DBusProxyConnection> _connection) {
+
+        if (!this->isImplemented_)
             return false;
 
-        if (attributeValueChanged) {
-            std::shared_ptr<DBusClientId> clientId = std::make_shared<DBusClientId>(std::string(dbusMessage.getSender()));
-            fireAttributeValueChanged(clientId, _remoteEventHandler, stub);
+        bool hasChanged;
+        if (!this->setAttributeValue(_message, _stub, _remoteEventHandler, _connection, hasChanged))
+            return false;
+
+        if (hasChanged) {
+            std::shared_ptr<DBusClientId> itsClient = std::make_shared<DBusClientId>(std::string(_message.getSender()));
+            fireAttributeValueChanged(itsClient, _remoteEventHandler, _stub);
             this->notifyOnRemoteChanged(_remoteEventHandler);
         }
         return true;
     }
+
 protected:
     virtual void fireAttributeValueChanged(std::shared_ptr<CommonAPI::ClientId> _client,
-                                           RemoteEventHandlerType* _remoteEventHandler,
-                                           const std::shared_ptr<StubClass_> _stub) {
+            RemoteEventHandlerType *_remoteEventHandler, const std::shared_ptr<StubClass_> _stub) {
         (void)_remoteEventHandler;
-
 
         auto stubAdapter = _stub->StubType::getStubAdapter();
         (_stub.get()->*DBusGetAttributeStubDispatcher<StubClass_, AttributeType_, AttributeDepl_>::lockStubFunctor_)(true);

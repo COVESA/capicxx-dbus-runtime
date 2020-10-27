@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -23,7 +23,7 @@
 namespace CommonAPI {
 namespace DBus {
 
-DBusDispatchSource::DBusDispatchSource(DBusConnection* dbusConnection):
+DBusDispatchSource::DBusDispatchSource(std::weak_ptr<DBusConnection> dbusConnection):
     dbusConnection_(dbusConnection) {
 }
 
@@ -32,15 +32,24 @@ DBusDispatchSource::~DBusDispatchSource() {
 
 bool DBusDispatchSource::prepare(int64_t &_timeout) {
     _timeout = -1;
-    return dbusConnection_->isDispatchReady();
+    if(auto itsConnection = dbusConnection_.lock()) {
+        return itsConnection->isDispatchReady();
+    }
+    return false;
 }
 
 bool DBusDispatchSource::check() {
-    return dbusConnection_->isDispatchReady();
+    if(auto itsConnection = dbusConnection_.lock()) {
+        return itsConnection->isDispatchReady();
+    }
+    return false;
 }
 
 bool DBusDispatchSource::dispatch() {
-    return dbusConnection_->singleDispatch();
+    if(auto itsConnection = dbusConnection_.lock()) {
+        return itsConnection->singleDispatch();
+    }
+    return false;
 }
 
 DBusQueueDispatchSource::DBusQueueDispatchSource(DBusQueueWatch* watch) :
@@ -465,78 +474,6 @@ void DBusQueueWatch::processQueueEntry(std::shared_ptr<QueueEntry> _queueEntry) 
     if(itsConnection) {
         _queueEntry->process(itsConnection);
     }
-}
-
-#ifdef _WIN32
-__declspec(thread) DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
-#else
-thread_local DBusTimeout* DBusTimeout::currentTimeout_ = NULL;
-#endif
-
-DBusTimeout::DBusTimeout(::DBusTimeout* libdbusTimeout, std::weak_ptr<MainLoopContext>& mainLoopContext,
-                         std::weak_ptr<DBusConnection>& dbusConnection) :
-                dueTimeInMs_(TIMEOUT_INFINITE),
-                libdbusTimeout_(libdbusTimeout),
-                mainLoopContext_(mainLoopContext),
-                dbusConnection_(dbusConnection),
-                pendingCall_(NULL) {
-    currentTimeout_ = this;
-}
-
-bool DBusTimeout::isReadyToBeMonitored() {
-    return 0 != dbus_timeout_get_enabled(libdbusTimeout_);
-}
-
-void DBusTimeout::startMonitoring() {
-    auto lockedContext = mainLoopContext_.lock();
-    if (NULL == lockedContext) {
-        COMMONAPI_ERROR(std::string(__FUNCTION__) + " lockedContext == NULL");
-    } else {
-        recalculateDueTime();
-        lockedContext->registerTimeoutSource(this);
-    }
-}
-
-void DBusTimeout::stopMonitoring() {
-    dueTimeInMs_ = TIMEOUT_INFINITE;
-    auto lockedContext = mainLoopContext_.lock();
-    if (lockedContext) {
-        lockedContext->deregisterTimeoutSource(this);
-    }
-}
-
-bool DBusTimeout::dispatch() {
-    std::shared_ptr<DBusConnection> itsConnection = dbusConnection_.lock();
-    if(itsConnection) {
-        if(itsConnection->setDispatching(true)) {
-            recalculateDueTime();
-            itsConnection->setPendingCallTimedOut(pendingCall_, libdbusTimeout_);
-            itsConnection->setDispatching(false);
-            return true;
-        }
-    }
-    return false;
-}
-
-int64_t DBusTimeout::getTimeoutInterval() const {
-    return dbus_timeout_get_interval(libdbusTimeout_);
-}
-
-int64_t DBusTimeout::getReadyTime() const {
-    return dueTimeInMs_;
-}
-
-void DBusTimeout::recalculateDueTime() {
-    if(dbus_timeout_get_enabled(libdbusTimeout_)) {
-        int intervalInMs = dbus_timeout_get_interval(libdbusTimeout_);
-        dueTimeInMs_ = getCurrentTimeInMs() + intervalInMs;
-    } else {
-        dueTimeInMs_ = TIMEOUT_INFINITE;
-    }
-}
-
-void DBusTimeout::setPendingCall(DBusPendingCall* _pendingCall) {
-    pendingCall_ = _pendingCall;
 }
 
 } // namespace DBus

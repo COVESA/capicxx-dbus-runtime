@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -55,7 +55,7 @@ class DBusDaemonProxy : public DBusProxyBase,
     typedef std::function<void(const CommonAPI::CallStatus&, std::string)> GetNameOwnerAsyncCallback;
 
     COMMONAPI_EXPORT DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbusConnection);
-    COMMONAPI_EXPORT virtual ~DBusDaemonProxy() {}
+    COMMONAPI_EXPORT virtual ~DBusDaemonProxy();
 
     COMMONAPI_EXPORT virtual bool isAvailable() const;
     COMMONAPI_EXPORT virtual bool isAvailableBlocking() const;
@@ -112,7 +112,7 @@ class DBusDaemonProxy : public DBusProxyBase,
         const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
         if (!success) {
             std::promise<CallStatus> promise;
-            promise.set_value(CallStatus::OUT_OF_MEMORY);
+            promise.set_value(CallStatus::SERIALIZATION_ERROR);
             return promise.get_future();
         }
         outputStream.flush();
@@ -170,7 +170,7 @@ class DBusDaemonProxy : public DBusProxyBase,
         const bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
         if (!success) {
             std::promise<CallStatus> promise;
-            promise.set_value(CallStatus::OUT_OF_MEMORY);
+            promise.set_value(CallStatus::SERIALIZATION_ERROR);
             return promise.get_future();
         }
         outputStream.flush();

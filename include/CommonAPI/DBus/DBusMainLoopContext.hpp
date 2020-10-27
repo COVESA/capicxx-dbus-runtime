@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -28,7 +28,7 @@ class DBusConnection;
 
 class DBusDispatchSource: public DispatchSource {
  public:
-    DBusDispatchSource(DBusConnection* dbusConnection);
+    DBusDispatchSource(std::weak_ptr<DBusConnection> dbusConnection);
     ~DBusDispatchSource();
 
     bool prepare(int64_t& timeout);
@@ -36,7 +36,7 @@ class DBusDispatchSource: public DispatchSource {
     bool dispatch();
 
  private:
-    DBusConnection* dbusConnection_;
+    std::weak_ptr<DBusConnection> dbusConnection_;
 };
 
 class DBusQueueWatch;
@@ -145,41 +145,6 @@ private:
 #endif
 
 };
-
-
-class DBusTimeout: public Timeout {
- public:
-    DBusTimeout(::DBusTimeout* libdbusTimeout,
-                std::weak_ptr<MainLoopContext>& mainLoopContext,
-                std::weak_ptr<DBusConnection>& dbusConnection);
-
-    bool isReadyToBeMonitored();
-    void startMonitoring();
-    void stopMonitoring();
-
-    bool dispatch();
-
-    int64_t getTimeoutInterval() const;
-    int64_t getReadyTime() const;
-
-    void setPendingCall(DBusPendingCall* _pendingCall);
-
-#ifdef _WIN32
-    __declspec(thread) static DBusTimeout *currentTimeout_;
-#else
-    thread_local static DBusTimeout *currentTimeout_;
-#endif
-
- private:
-    void recalculateDueTime();
-
-    std::atomic<int64_t> dueTimeInMs_;
-    ::DBusTimeout* libdbusTimeout_;
-    std::weak_ptr<MainLoopContext> mainLoopContext_;
-    std::weak_ptr<DBusConnection> dbusConnection_;
-    DBusPendingCall *pendingCall_;
-};
-
 
 } // namespace DBus
 } // namespace CommonAPI

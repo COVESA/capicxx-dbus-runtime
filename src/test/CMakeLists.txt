@@ -23,53 +23,6 @@ if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
     )
 endif()
 
-set(VERSION "v1")
-
-set(TestInterfaceSources src-gen/core/commonapi/tests/DerivedTypeCollection.cpp
-                         src-gen/core/${VERSION}/commonapi/tests/TestInterfaceStubDefault.cpp)
-
-set(TestInterfaceDBusSources ${TestInterfaceSources}
-                             src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusProxy.cpp
-                             src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceDBusStubAdapter.cpp
-                             src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceDBusProxy.cpp
-	                         src-gen/dbus/${VERSION}/fake/legacy/service/LegacyInterfaceNoObjectManagerDBusProxy.cpp)
-
-set(TestInterfaceManagerSources src-gen/core/${VERSION}/commonapi/tests/TestInterfaceManagerStubDefault.cpp)
-
-set(TestInterfaceManagerDBusSources ${TestInterfaceManagerSources}
-                                    src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceManagerDBusProxy.cpp
-                                    src-gen/dbus/${VERSION}/commonapi/tests/TestInterfaceManagerDBusStubAdapter.cpp)
-
-set(FreedesktopPropertiesSources src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopInterfaceStubDefault.cpp
-                                 src-gen/core/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceStubDefault.cpp)
-
-set(FreedesktopPropertiesDBusSources ${FreedesktopPropertiesSources}
-                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusProxy.cpp
-                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopInterfaceDBusStubAdapter.cpp
-                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusProxy.cpp
-                                     src-gen/dbus/${VERSION}/commonapi/tests/TestFreedesktopDerivedInterfaceDBusStubAdapter.cpp)
-
-set(ManagedSources src-gen/core/${VERSION}/commonapi/tests/managed/LeafInterfaceStubDefault.cpp
-                   src-gen/core/${VERSION}/commonapi/tests/managed/BranchInterfaceStubDefault.cpp
-                   src-gen/core/${VERSION}/commonapi/tests/managed/RootInterfaceStubDefault.cpp
-                   src-gen/core/${VERSION}/commonapi/tests/managed/SecondRootStubDefault.cpp)
-
-set(ManagedDBusSources ${ManagedSources}
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/RootInterfaceDBusProxy.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/RootInterfaceDBusStubAdapter.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusProxy.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/LeafInterfaceDBusStubAdapter.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusProxy.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/BranchInterfaceDBusStubAdapter.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusProxy.cpp
-                       src-gen/dbus/${VERSION}/commonapi/tests/managed/SecondRootDBusStubAdapter.cpp)
-
-set(ExtendedInterfaceSources src-gen/core/${VERSION}/commonapi/tests/ExtendedInterfaceStubDefault.cpp)
-
-set(ExtendedInterfaceDBusSources ${ExtendedInterfaceSources}
-                                 src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusProxy.cpp
-                                 src-gen/dbus/${VERSION}/commonapi/tests/ExtendedInterfaceDBusStubAdapter.cpp)
-
 if (MSVC)
  set(TEST_LINK_LIBRARIES ${DBus_LDFLAGS} CommonAPI-DBus CommonAPI gtest )
 else()

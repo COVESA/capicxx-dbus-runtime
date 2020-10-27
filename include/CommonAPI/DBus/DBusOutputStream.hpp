@@ -1,4 +1,4 @@
-// Copyright (C) 2014-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2014-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -135,6 +135,15 @@ public:
         align(8);
         writeValue(_value.Major, _depl);
         writeValue(_value.Minor, _depl);
+        return (*this);
+    }
+
+    template<int minimum, int maximum>
+    COMMONAPI_EXPORT OutputStream &writeValue(const RangedInteger<minimum, maximum> &_value, const EmptyDeployment *) {
+        if (_value.validate())
+            writeValue(_value.value_, static_cast<EmptyDeployment *>(nullptr));
+        else
+            setError();
         return (*this);
     }
 
@@ -359,40 +368,51 @@ private:
     COMMONAPI_EXPORT void pushPosition();
     COMMONAPI_EXPORT size_t popPosition();
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<!std::is_class<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_vector<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_unordered_map<Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(!std::is_class<Type_>::value &&
+                                 !is_std_vector<Type_>::value &&
+                                 !is_std_unordered_map<Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         if (4 < sizeof(Type_)) align(8);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<!std::is_same<Type_, std::string>::value>::type * = nullptr,
-                     typename std::enable_if<std::is_class<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_vector<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!is_std_unordered_map<Type_>::value>::type * = nullptr,
-                     typename std::enable_if<!std::is_base_of<Enumeration<int32_t>, Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(!std::is_same<Type_, std::string>::value &&
+                                std::is_class<Type_>::value && 
+                                !is_std_vector<Type_>::value &&
+                                !is_std_unordered_map<Type_>::value &&
+                                !std::is_base_of<Enumeration<uint8_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<uint16_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<uint32_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int8_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int16_t>, Type_>::value &&
+                                !std::is_base_of<Enumeration<int32_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         align(8);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<std::is_same<Type_, std::string>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(std::is_same<Type_, std::string>::value ||
+                                 is_std_vector<Type_>::value ||
+                                 std::is_base_of<Enumeration<uint8_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int8_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         // Intentionally do nothing
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<is_std_vector<Type_>::value>::type * = nullptr) {
-        // Intentionally do nothing
-    }
-
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<is_std_unordered_map<Type_>::value>::type * = nullptr) {
+    template<typename Type_,
+        typename std::enable_if<(is_std_unordered_map<Type_>::value ||
+                                 std::is_base_of<Enumeration<uint32_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int32_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
         align(4);
     }
 
-    template<typename Type_>
-    COMMONAPI_EXPORT void alignVector(typename std::enable_if<std::is_base_of<Enumeration<int32_t>, Type_>::value>::type * = nullptr) {
-        align(4);
+    template<typename Type_,
+        typename std::enable_if<(std::is_base_of<Enumeration<uint16_t>, Type_>::value ||
+                                 std::is_base_of<Enumeration<int16_t>, Type_>::value), int>::type = 0>
+    COMMONAPI_EXPORT void alignVector() {
+        align(2);
     }
 
     COMMONAPI_EXPORT void setError();
@@ -459,7 +479,7 @@ private:
 
     COMMONAPI_EXPORT size_t getCurrentStreamPosition();
 
-    DBusError dbusError_;
+    bool errorOccurred_;
     DBusMessage dbusMessage_;
 
     std::vector<size_t> positions_;

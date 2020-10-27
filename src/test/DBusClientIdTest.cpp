@@ -36,7 +36,12 @@ public:
     std::size_t hashCode() {
         return 0;
     }
-
+    CommonAPI::uid_t getUid() const {
+        return 0;
+    }
+    CommonAPI::gid_t getGid() const {
+        return 0;
+    }
 };
 
 TEST_F(DBusClientIdTest, TestClientIdImplementation) {

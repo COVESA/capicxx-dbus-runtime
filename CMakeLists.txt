@@ -9,8 +9,8 @@ PROJECT(libcommonapi-dbus)
 
 # version of CommonAPI-DBus
 SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
-SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 1 )
-SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 12 )
+SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 2 )
+SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 0 )
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 
@@ -59,10 +59,14 @@ message(STATUS "DBUS_DAEMON_PROXY_DEFAULT_SEND_TIMEOUT is set to value: ${DBUS_D
 
 SET(RPM_PACKAGE_VERSION "r0" CACHE STRING "rpm packet version") # used in e.g. commonapi-dbus.spec.in
 
+# Set a default build type if none was specified
+set(default_build_type "RelWithDebInfo")
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-       "Choose the type of build, options are: Debug Release." FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 set(CMAKE_BUILD_TYPE_FOR_SPEC_IN "") # used in *.cmake.in
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_FOR_SPEC_IN)
@@ -123,9 +127,9 @@ message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
 FIND_PACKAGE(PkgConfig)
 FIND_PACKAGE(Threads REQUIRED)
 if ("${USE_INSTALLED_COMMONAPI}" STREQUAL "ON")
-    FIND_PACKAGE(CommonAPI 3.1.12 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    FIND_PACKAGE(CommonAPI 3.2.0 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    FIND_PACKAGE(CommonAPI 3.1.12 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    FIND_PACKAGE(CommonAPI 3.2.0 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
@@ -164,7 +168,7 @@ if (MSVC)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /EHsc /wd4503")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /wd4503")
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wformat -Wformat-security -Wconversion -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wformat -Wformat-security -Wconversion -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP -fvisibility=hidden")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")

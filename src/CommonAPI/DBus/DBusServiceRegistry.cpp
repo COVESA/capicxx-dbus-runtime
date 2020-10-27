@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -23,7 +23,7 @@ std::mutex DBusServiceRegistry::registriesMutex_;
 static CommonAPI::CallInfo serviceRegistryInfo(10000);
 
 std::shared_ptr<DBusServiceRegistry>
-DBusServiceRegistry::get(std::shared_ptr<DBusProxyConnection> _connection, bool _insert) {
+DBusServiceRegistry::get(const std::shared_ptr<DBusProxyConnection> &_connection, bool _insert) {
     std::unique_lock<std::mutex> itsGuard(registriesMutex_);
     auto registries = getRegistryMap();
     auto registryIterator = registries->find(_connection.get());
@@ -43,7 +43,7 @@ DBusServiceRegistry::get(std::shared_ptr<DBusProxyConnection> _connection, bool 
 }
 
 void
-DBusServiceRegistry::remove(std::shared_ptr<DBusProxyConnection> _connection) {
+DBusServiceRegistry::remove(const std::shared_ptr<DBusProxyConnection> &_connection) {
     std::lock_guard<std::mutex> itsGuard(registriesMutex_);
     auto registries = getRegistryMap();
     registries->erase(_connection.get());
@@ -759,6 +759,7 @@ bool DBusServiceRegistry::getManagedObjects(const std::string& dbusServiceName,
         DBusInputStream input(reply);
         if (!DBusSerializableArguments<DBusObjectManagerStub::DBusObjectPathAndInterfacesDict>::deserialize(
                 input, availableServiceInstances) || error)
+            COMMONAPI_ERROR("DBusServiceRegistry::", __func__, ": deserialization failed!");
             return false;
     }
     return true;

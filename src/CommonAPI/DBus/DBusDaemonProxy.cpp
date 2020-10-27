@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -46,6 +46,9 @@ DBusDaemonProxy::DBusDaemonProxy(const std::shared_ptr<DBusProxyConnection>& dbu
                                        "NameOwnerChanged", "sss",
                                        std::tuple<std::string, std::string, std::string>()),
                 interfaceVersionAttribute_(1, 0) {
+}
+
+DBusDaemonProxy::~DBusDaemonProxy() {
 }
 
 void DBusDaemonProxy::init() {
@@ -100,7 +103,8 @@ void DBusDaemonProxy::listNames(CommonAPI::CallStatus& callStatus, std::vector<s
     DBusInputStream inputStream(dbusMessageReply);
     const bool success = DBusSerializableArguments<std::vector<std::string>>::deserialize(inputStream, busNames);
     if (!success) {
-        callStatus = CallStatus::REMOTE_ERROR;
+        COMMONAPI_ERROR("DBusDaemonProxy::", __func__, ": deserialization failed!");
+        callStatus = CallStatus::SERIALIZATION_ERROR;
         return;
     }
 
@@ -113,7 +117,8 @@ void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallSt
     DBusOutputStream outputStream(dbusMethodCall);
     bool success = DBusSerializableArguments<std::string>::serialize(outputStream, busName);
     if (!success) {
-        callStatus = CallStatus::OUT_OF_MEMORY;
+        COMMONAPI_ERROR("DBusDaemonProxy::", __func__, ": serialization failed!");
+        callStatus = CallStatus::SERIALIZATION_ERROR;
         return;
     }
     outputStream.flush();
@@ -131,7 +136,8 @@ void DBusDaemonProxy::nameHasOwner(const std::string& busName, CommonAPI::CallSt
     DBusInputStream inputStream(dbusMessageReply);
     success = DBusSerializableArguments<bool>::deserialize(inputStream, hasOwner);
     if (!success) {
-        callStatus = CallStatus::REMOTE_ERROR;
+        COMMONAPI_ERROR("DBusDaemonProxy::", __func__, ": deserialization failed!");
+        callStatus = CallStatus::SERIALIZATION_ERROR;
         return;
     }
     callStatus = CallStatus::SUCCESS;

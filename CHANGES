@@ -1,29 +1,8 @@
 Changes
 =======
-v3.1.12.11
-- Prevent crash when deregistering managed service (via 'deregisterManagedStub*') and
-  another service (via 'unregisterService') in parallel with same DBus connection 
 
-v3.1.12.10
-- Unregister mappings in DBusAddressTranslator (to free memory again) when
-  services/stubs are unregistered
-
-v3.1.12.9
-- Unregister mappings in DBusAddressTranslator (to free memory again) when
-  proxies are destroyed
-
-v3.1.12.8
-- Fixed crash in DBusConnectionTest
-
-v3.1.12.7
-- Adapted 'capi-dbus-add-support-for-custom-marshalling.patch' to be compatible with dbus version 1.12.x
-
-v3.1.12.6
-- Removed concurrent timeout handling
-
-v3.1.12.5
-- Ensure availability listeners are unregistered properly (to free memory) when
-  proxies are being destroyed in callback invoking the availability listener(s)
+v3.2.0
+- adapt to CommonAPI v3.2.0
 
 v3.1.12.4
 - support 'lock functors' in AttributeDispatcher(s)

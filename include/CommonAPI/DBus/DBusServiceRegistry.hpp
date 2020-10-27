@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -46,7 +46,7 @@ class DBusAddress;
 class DBusAddressTranslator;
 class DBusDaemonProxy;
 
-class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegistry>,
+class COMMONAPI_EXPORT DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegistry>,
                            public DBusProxyConnection::DBusSignalHandler {
  public:
     enum class DBusRecordState {
@@ -73,8 +73,8 @@ class DBusServiceRegistry: public std::enable_shared_from_this<DBusServiceRegist
 
     typedef std::function<void(const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict)> GetAvailableServiceInstancesCallback;
 
-    static std::shared_ptr<DBusServiceRegistry> get(std::shared_ptr<DBusProxyConnection> _connection, bool _insert=true);
-    static void remove(std::shared_ptr<DBusProxyConnection> _connection);
+    static std::shared_ptr<DBusServiceRegistry> get(const std::shared_ptr<DBusProxyConnection> &_connection, bool _insert=true);
+    static void remove(const std::shared_ptr<DBusProxyConnection> &_connection);
 
     DBusServiceRegistry(std::shared_ptr<DBusProxyConnection> dbusProxyConnection);
 

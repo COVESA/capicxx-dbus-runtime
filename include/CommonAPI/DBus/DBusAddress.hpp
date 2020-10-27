@@ -1,4 +1,4 @@
-// Copyright (C) 2015-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2015-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,6 +25,8 @@ public:
                 const std::string &_interface = "");
     COMMONAPI_EXPORT DBusAddress(const DBusAddress &_source);
     COMMONAPI_EXPORT virtual ~DBusAddress();
+
+    COMMONAPI_EXPORT DBusAddress &operator=(const DBusAddress &_other);
 
     COMMONAPI_EXPORT bool operator==(const DBusAddress &_other) const;
     COMMONAPI_EXPORT bool operator!=(const DBusAddress &_other) const;

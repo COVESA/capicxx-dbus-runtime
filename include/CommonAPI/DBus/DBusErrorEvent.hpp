@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -73,19 +73,21 @@ public:
 
 private:
 
-    template <int... DeplIn_ArgIndices>
+    template <size_t... DeplIn_ArgIndices>
     inline void initialize(index_sequence<DeplIn_ArgIndices...>, const std::tuple<DeplIn_Args*...> &_in) {
         in_ = std::make_tuple(std::get<DeplIn_ArgIndices>(_in)...);
     }
 
-    template <int... InArgIndices_>
+    template <size_t... InArgIndices_>
     void deserialize(const DBusMessage &_reply,
                      index_sequence<InArgIndices_...>) {
         if (sizeof...(InArgs_) > 0) {
             DBusInputStream dbusInputStream(_reply);
             const bool success = DBusSerializableArguments<CommonAPI::Deployable<InArgs_, DeplIn_Args>...>::deserialize(dbusInputStream, std::get<InArgIndices_>(in_)...);
-            if (!success)
+            if (!success) {
+                COMMONAPI_ERROR("DBusErrorEvent::", __func__, "(", errorName_, "): deserialization failed!");
                 return;
+            }
             this->notifyListeners(errorName_, std::move(std::get<InArgIndices_>(in_).getValue())...);
         }
     }
@@ -96,7 +98,7 @@ private:
 
 class DBusErrorEventHelper {
 public:
-    template <int... ErrorEventsIndices_, class... ErrorEvents_>
+    template <size_t... ErrorEventsIndices_, class... ErrorEvents_>
     static void notifyListeners(const DBusMessage &_reply,
                                 const std::string &_errorName,
                                 index_sequence<ErrorEventsIndices_...>,

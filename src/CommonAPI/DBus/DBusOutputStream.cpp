@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -16,7 +16,8 @@ namespace CommonAPI {
 namespace DBus {
 
 DBusOutputStream::DBusOutputStream(DBusMessage dbusMessage)
-    : dbusMessage_(dbusMessage) {
+    : errorOccurred_(false),
+      dbusMessage_(dbusMessage) {
 }
 
 // Internal
@@ -36,7 +37,7 @@ size_t DBusOutputStream::popPosition() {
 
 // TODO Check where dbusError_ is set
 bool DBusOutputStream::hasError() const {
-    return dbusError_;
+    return errorOccurred_;
 }
 
 // Writes the data that was buffered within this #DBusOutputMessageStream to
@@ -52,6 +53,7 @@ void DBusOutputStream::flush() {
 }
 
 void DBusOutputStream::setError() {
+    errorOccurred_ = true;
 }
 
 /**

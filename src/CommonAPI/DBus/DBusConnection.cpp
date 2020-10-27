@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -231,7 +231,7 @@ bool DBusConnection::attachMainLoopContext(std::weak_ptr<MainLoopContext> mainLo
         lockedContext->registerDispatchSource(queueDispatchSource_);
         lockedContext->registerWatch(queueWatch_);
 
-        dispatchSource_ = new DBusDispatchSource(this);
+        dispatchSource_ = new DBusDispatchSource(shared_from_this());
         watchContext_ = new WatchContext(mainLoopContext_, dispatchSource_, shared_from_this());
         lockedContext->registerDispatchSource(dispatchSource_);
 
@@ -620,6 +620,8 @@ void DBusConnection::onLibdbusPendingCall(::DBusPendingCall* _libdbusPendingCall
         delete _dbusMessageReplyAsyncHandler;
     } else {
         _dbusMessageReplyAsyncHandler->unlock();
+        std::lock_guard<std::recursive_mutex> enforcerLock(enforcerThreadMutex_);
+        enforceTimeoutCondition_.notify_one();
     }
 }
 
@@ -1373,9 +1375,12 @@ bool DBusConnection::removeLibdbusSignalMatchRule(const std::string& dbusMatchRu
 
     dbus_bus_remove_match(connection_, dbusMatchRule.c_str(), NULL);
 
-    libdbusSignalMatchRulesCount_--;
-    if (libdbusSignalMatchRulesCount_ == 0) {
-        dbus_connection_remove_filter(connection_, &onLibdbusSignalFilterThunk, this);
+    {
+        std::unique_lock<std::recursive_mutex> dbusConnectionLock(connectionGuard_);
+        libdbusSignalMatchRulesCount_--;
+        if (libdbusSignalMatchRulesCount_ == 0) {
+            dbus_connection_remove_filter(connection_, &onLibdbusSignalFilterThunk, this);
+        }
     }
 
     return true;
@@ -1493,7 +1498,6 @@ void DBusConnection::addLibdbusSignalMatchRule(const std::string& objectPath,
 
         // add the libdbus message signal filter
         if (isFirstMatchRule) {
-
             libdbusSuccess = 0 != dbus_connection_add_filter(
                                 connection_,
                                 &onLibdbusSignalFilterThunk,
@@ -1793,19 +1797,6 @@ void DBusConnection::pushDBusMessageReplyToMainLoop(const DBusMessage& _reply,
     std::shared_ptr<MsgReplyQueueEntry> msgReplyQueueEntry = std::make_shared<MsgReplyQueueEntry>(
             replyAsyncHandler, _reply);
     queueWatch_->pushQueue(msgReplyQueueEntry);
-}
-
-void DBusConnection::setPendingCallTimedOut(DBusPendingCall* _pendingCall, ::DBusTimeout* _timeout) const {
-    std::lock_guard<std::mutex> lock(enforceTimeoutMutex_);
-    auto it = timeoutMap_.find(_pendingCall);
-    if(it != timeoutMap_.end()) {
-        auto replyAsyncHandler = std::get<1>(it->second);
-        replyAsyncHandler->lock();
-        if(!replyAsyncHandler->getTimeoutOccurred()) {
-            dbus_timeout_handle(_timeout);
-        }
-        replyAsyncHandler->unlock();
-    }
 }
 
 void DBusConnection::deleteAsyncHandlers() {

@@ -1,4 +1,4 @@
-// Copyright (C) 2014-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2014-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -119,7 +119,7 @@ class DBusProxyAsyncCallbackHandler :
     std::tuple<ArgTypes_...> args_;
 
  private:
-    template <int... ArgIndices_>
+    template <size_t... ArgIndices_>
     inline CallStatus handleDBusMessageReply(
             const CallStatus _dbusMessageCallStatus,
             const DBusMessage& _dbusMessage,
@@ -132,10 +132,9 @@ class DBusProxyAsyncCallbackHandler :
 
         if (_dbusMessageCallStatus == CallStatus::SUCCESS) {
             DBusInputStream dbusInputStream(_dbusMessage);
-            if(DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
+            if(!DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
                     std::get<ArgIndices_>(_argTuple)...)) {
-            } else {
-                callStatus = CallStatus::REMOTE_ERROR;
+                callStatus = CallStatus::SERIALIZATION_ERROR;
             }
         }
 
@@ -195,7 +194,7 @@ public:
 
 private:
 
-    template <int... ArgIndices_>
+    template <size_t... ArgIndices_>
     inline CallStatus handleDBusMessageReply(
             const CallStatus _dbusMessageCallStatus,
             const DBusMessage& _dbusMessage,
@@ -208,10 +207,9 @@ private:
 
         if (_dbusMessageCallStatus == CallStatus::SUCCESS) {
             DBusInputStream dbusInputStream(_dbusMessage);
-            if(DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
+            if (!DBusSerializableArguments<ArgTypes_...>::deserialize(dbusInputStream,
                     std::get<ArgIndices_>(_argTuple)...)) {
-            } else {
-                callStatus = CallStatus::REMOTE_ERROR;
+                callStatus = CallStatus::SERIALIZATION_ERROR;
             }
         } else {
             if(_dbusMessage.isErrorType()) {

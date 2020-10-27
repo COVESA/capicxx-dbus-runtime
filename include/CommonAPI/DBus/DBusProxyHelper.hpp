@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,8 @@
 #include <future>
 #include <memory>
 #include <string>
+
+#include <CommonAPI/Logger.hpp>
 
 #include <CommonAPI/DBus/DBusAddress.hpp>
 #include <CommonAPI/DBus/DBusConfig.hpp>
@@ -62,7 +64,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
             if (sizeof...(InArgs_) > 0) {
                 DBusOutputStream output(message);
                 if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
-                    _status = CallStatus::OUT_OF_MEMORY;
+                    COMMONAPI_ERROR("MethodSync(dbus): serialization failed: [",
+                                    message.getObjectPath(), " ",
+                                    message.getInterface(), " ",
+                                    message.getMember(), " ",
+                                    message.getSerial(), "]");
+
+                    _status = CallStatus::SERIALIZATION_ERROR;
                     return;
                 }
                 output.flush();
@@ -87,7 +95,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         if (sizeof...(InArgs_) > 0) {
             DBusOutputStream output(_message);
             if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
-                _status = CallStatus::OUT_OF_MEMORY;
+                COMMONAPI_ERROR("MethodSync w/ reply (dbus): serialization failed: [",
+                                _message.getObjectPath(), " ",
+                                _message.getInterface(), " ",
+                                _message.getMember(), " ",
+                                _message.getSerial(), "]");
+
+                _status = CallStatus::SERIALIZATION_ERROR;
                 return;
             }
             output.flush();
@@ -103,7 +117,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         if (sizeof...(OutArgs_) > 0) {
             DBusInputStream input(reply);
             if (!DBusSerializableArguments<OutArgs_...>::deserialize(input, _out...)) {
-                _status = CallStatus::REMOTE_ERROR;
+                COMMONAPI_ERROR("MethodSync w/ reply (dbus): reply deserialization failed: [",
+                                reply.getObjectPath(), " ",
+                                reply.getInterface(), " ",
+                                reply.getMember(), " ",
+                                reply.getSerial(), "]");
+
+                _status = CallStatus::SERIALIZATION_ERROR;
                 return;
             }
         }
@@ -188,8 +208,14 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                                     InArgs_...
                                  >::serialize(output, _in...);
             if (!success) {
+                COMMONAPI_ERROR("MethodAsync (dbus): serialization failed: [",
+                                _message.getObjectPath(), " ",
+                                _message.getInterface(), " ",
+                                _message.getMember(), " ",
+                                _message.getSerial(), "]");
+
                 std::promise<CallStatus> promise;
-                promise.set_value(CallStatus::OUT_OF_MEMORY);
+                promise.set_value(CallStatus::SERIALIZATION_ERROR);
                 return promise.get_future();
             }
             output.flush();
@@ -206,7 +232,11 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         try {
             callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
         } catch (std::exception& e) {
-            COMMONAPI_ERROR("MethodAsync(dbus): messageReplyAsyncHandler future failed(", e.what(), ")");
+            COMMONAPI_ERROR("MethodAsync(dbus): messageReplyAsyncHandler future failed(",
+                            e.what(), ") [", _message.getObjectPath(), " ",
+                            _message.getInterface(), " ",
+                            _message.getMember(), " ",
+                            _message.getSerial(), "]");
         }
 
         if(_proxy.isAvailable()) {
@@ -317,7 +347,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         return callMethodAsync(_proxy, message, _info, _in..., _function, _out);
     }
 
-    template <int... ArgIndices_>
+    template <size_t... ArgIndices_>
     static void callCallbackOnNotAvailable(std::function<void(CallStatus, OutArgs_&...)> _callback,
                                            index_sequence<ArgIndices_...>, std::tuple<OutArgs_...> _out) {
         const CallStatus status(CallStatus::NOT_AVAILABLE);
@@ -347,7 +377,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         if (sizeof...(InArgs_) > 0) {
             DBusOutputStream output(_message);
             if (!DBusSerializableArguments<InArgs_...>::serialize(output, _in...)) {
-                _status = CallStatus::OUT_OF_MEMORY;
+                COMMONAPI_ERROR("MethodSync w/ reply and error events (dbus): serialization failed: [",
+                                _message.getObjectPath(), " ",
+                                _message.getInterface(), " ",
+                                _message.getMember(), " ",
+                                _message.getSerial(), "]");
+
+                _status = CallStatus::SERIALIZATION_ERROR;
                 return;
             }
             output.flush();
@@ -367,7 +403,13 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         if (sizeof...(OutArgs_) > 0) {
             DBusInputStream input(reply);
             if (!DBusSerializableArguments<OutArgs_...>::deserialize(input, _out...)) {
-                _status = CallStatus::REMOTE_ERROR;
+                COMMONAPI_ERROR("MethodSync w/ reply and error events (dbus): reply deserialization failed: [",
+                                reply.getObjectPath(), " ",
+                                reply.getInterface(), " ",
+                                reply.getMember(), " ",
+                                reply.getSerial(), "]");
+
+                _status = CallStatus::SERIALIZATION_ERROR;
                 return;
             }
         }
@@ -413,8 +455,14 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                                     InArgs_...
                                  >::serialize(output, _in...);
             if (!success) {
+                COMMONAPI_ERROR("MethodAsync w/ reply and error events (dbus): serialization failed: [",
+                                _message.getObjectPath(), " ",
+                                _message.getInterface(), " ",
+                                _message.getMember(), " ",
+                                _message.getSerial(), "]");
+
                 std::promise<CallStatus> promise;
-                promise.set_value(CallStatus::OUT_OF_MEMORY);
+                promise.set_value(CallStatus::SERIALIZATION_ERROR);
                 return promise.get_future();
             }
             output.flush();
@@ -431,7 +479,11 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
         try {
             callStatusFuture = dbusMessageReplyAsyncHandler->getFuture();
         } catch (std::exception& e) {
-            COMMONAPI_ERROR("MethodAsync(dbus): messageReplyAsyncHandler future failed(", e.what(), ")");
+            COMMONAPI_ERROR("MethodAsync(dbus): messageReplyAsyncHandler future failed(",
+                            e.what(), ") [", _message.getObjectPath(), " ",
+                            _message.getInterface(), " ",
+                            _message.getMember(), " ",
+                            _message.getSerial(), "]");
         }
 
         if(_proxy.isAvailable()) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2017 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
+// Copyright (C) 2013-2020 Bayerische Motoren Werke Aktiengesellschaft (BMW AG)
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -38,6 +38,10 @@ public:
     COMMONAPI_EXPORT const char * getDBusId();
 
     COMMONAPI_EXPORT DBusMessage createMessage(const std::string objectPath, const std::string interfaceName, const std::string signalName) const;
+
+    COMMONAPI_EXPORT uid_t getUid() const;
+    COMMONAPI_EXPORT gid_t getGid() const;
+
 protected:
     std::string dbusId_;
 };
