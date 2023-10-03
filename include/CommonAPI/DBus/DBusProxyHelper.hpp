@@ -274,8 +274,6 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     }
                 } else {
                     //create error message and push it directly to the connection
-                    unsigned int dummySerial = 999;
-                    _message.setSerial(dummySerial);   //set dummy serial
                     if (*sharedDbusMessageReplyAsyncHandler) {
                         DBusMessage errorMessage = _message.createMethodError(DBUS_ERROR_UNKNOWN_METHOD);
                         _proxy.getDBusConnection()->pushDBusMessageReplyToMainLoop(errorMessage,
@@ -521,8 +519,6 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
                     }
                 } else {
                     //create error message and push it directly to the connection
-                    unsigned int dummySerial = 999;
-                    _message.setSerial(dummySerial);   //set dummy serial
                     if (*sharedDbusMessageReplyAsyncHandler) {
                         DBusMessage errorMessage = _message.createMethodError(DBUS_ERROR_UNKNOWN_METHOD);
                         _proxy.getDBusConnection()->pushDBusMessageReplyToMainLoop(errorMessage,

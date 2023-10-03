@@ -474,13 +474,35 @@ void DBusServiceRegistry::getAvailableServiceInstances(const std::string& dbusSe
 void DBusServiceRegistry::getAvailableServiceInstancesAsync(GetAvailableServiceInstancesCallback callback,
                                                    const std::string& dbusServiceName,
                                                    const std::string& dbusObjectPath) {
-    getManagedObjectsAsync(dbusServiceName, dbusObjectPath, [callback](const CallStatus& callStatus,
+    getManagedObjectsAsync(dbusServiceName, dbusObjectPath, [this, callback](const CallStatus& callStatus,
             const DBusObjectManagerStub::DBusObjectPathAndInterfacesDict availableServiceInstances,
             const std::string& dbusServiceName,
             const std::string& dbusObjectPath) {
-        (void)callStatus;
-        (void)dbusServiceName;
-        (void)dbusObjectPath;
+
+        // Update the cache
+        std::string dbusServiceUniqueName;
+        {
+            std::lock_guard<std::recursive_mutex> itsLock(dbusServicesMutex_);
+            auto dbusServiceListenersMapIterator = dbusServiceListenersMap.find(dbusServiceName);
+            if (dbusServiceListenersMapIterator != dbusServiceListenersMap.end()) {
+                dbusServiceUniqueName = dbusServiceListenersMapIterator->second.uniqueBusName;
+                auto dbusServiceUniqueNameIterator = dbusUniqueNamesMap_.find(dbusServiceUniqueName);
+                const bool isDBusServiceUniqueNameFound = (dbusServiceUniqueNameIterator != dbusUniqueNamesMap_.end());
+                if (isDBusServiceUniqueNameFound) {
+                    auto& dbusUniqueNameRecord = dbusServiceUniqueNameIterator->second;
+                    DBusObjectPathCache *dbusObjectPathRecord;
+                    auto dbusObjectPathCacheIterator = dbusUniqueNameRecord.dbusObjectPathsCache.find(dbusObjectPath);
+                    if(dbusObjectPathCacheIterator != dbusUniqueNameRecord.dbusObjectPathsCache.end()) {
+                        dbusObjectPathRecord = &(dbusObjectPathCacheIterator->second);
+                        dbusObjectPathRecord->state = DBusRecordState::RESOLVING;
+                        dbusObjectPathRecord->pendingObjectManagerCalls++;
+                        onGetManagedObjectsCallbackResolve(callStatus, availableServiceInstances, dbusServiceUniqueName, dbusObjectPath);
+                    }
+                }
+            }
+        }
+
+        // Forward the dictionary
         callback(availableServiceInstances);
     });
 }
@@ -758,10 +780,12 @@ bool DBusServiceRegistry::getManagedObjects(const std::string& dbusServiceName,
 
         DBusInputStream input(reply);
         if (!DBusSerializableArguments<DBusObjectManagerStub::DBusObjectPathAndInterfacesDict>::deserialize(
-                input, availableServiceInstances) || error)
+                input, availableServiceInstances) || error) {
             COMMONAPI_ERROR("DBusServiceRegistry::", __func__, ": deserialization failed!");
             return false;
+        }
     }
+
     return true;
 }
 

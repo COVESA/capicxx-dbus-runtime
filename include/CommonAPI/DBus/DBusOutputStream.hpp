@@ -373,7 +373,8 @@ private:
                                  !is_std_vector<Type_>::value &&
                                  !is_std_unordered_map<Type_>::value), int>::type = 0>
     COMMONAPI_EXPORT void alignVector() {
-        if (4 < sizeof(Type_)) align(8);
+        if (4 < sizeof(Type_) || std::is_same<Type_, float>::value)
+            align(8);
     }
 
     template<typename Type_,

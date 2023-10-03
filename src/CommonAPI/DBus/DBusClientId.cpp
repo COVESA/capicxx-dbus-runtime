@@ -55,15 +55,15 @@ DBusMessage DBusClientId::createMessage(const std::string objectPath, const std:
     DBusMessage returnMessage = DBusMessage::createSignal(objectPath, interfaceName, signalName);
     returnMessage.setDestination(dbusId_.c_str());
 
-    return(returnMessage);
+    return (returnMessage);
 }
 
 uid_t DBusClientId::getUid() const {
-    return (0);
+    return (0xFFFFFFFF);
 }
 
 gid_t DBusClientId::getGid() const {
-    return (0);
+    return (0xFFFFFFFF);
 }
 
 } // namespace DBus

@@ -1,15 +1,25 @@
 Changes
 =======
 
+v3.2.3
+- Fixed crash in dbus_message_set_reply_serial()
+- Update the object cache on the result of getManagedObjectsAsync
+
+v3.2.2
+- Adapt to CommonAPI v3.2.2
+
+v3.2.1
+- Fix float array serialization
+
 v3.2.0
-- adapt to CommonAPI v3.2.0
+- Adapt to CommonAPI v3.2.0
 
 v3.1.12.4
-- support 'lock functors' in AttributeDispatcher(s)
+- Support 'lock functors' in AttributeDispatcher(s)
 
 v3.1.12.3
 - Fixed data race in generated StubDefault when using attributes
-- use eventfd instead of pipe in Watch
+- Use eventfd instead of pipe in Watch
 
 v3.1.12.2
 - Fixed hang-up in proxy destruction when async method call was done and proxy is not available
