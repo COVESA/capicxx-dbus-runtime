@@ -7,26 +7,22 @@ cmake_minimum_required (VERSION 2.8.1)
 
 pkg_check_modules(GLIB glib-2.0)
 
+# Do not put the build path into RPATH as we are going to install the tests
+# Correct soulution would be to provide an install target
+set(CMAKE_SKIP_BUILD_RPATH TRUE)
+
 include_directories(.
        ./src-gen/core
        ./src-gen/dbus
        ${COMMONAPI_INCLUDE_DIRS}
-       ${DBus_INCLUDE_DIRS}
        ${gtest_SOURCE_DIR}/include
        ${GLIB_INCLUDE_DIRS}
 )
 
-if ("${USE_INSTALLED_DBUS}" STREQUAL "OFF")
-    set(DBus_LDFLAGS dbus-1)
-    link_directories(
-        ${DBus_INCLUDE_DIRS}/dbus/.libs
-    )
-endif()
-
 if (MSVC)
- set(TEST_LINK_LIBRARIES ${DBus_LDFLAGS} CommonAPI-DBus CommonAPI gtest )
+ set(TEST_LINK_LIBRARIES CommonAPI-DBus CommonAPI gtest )
 else()
- set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DBus_LDFLAGS} ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
+ set(TEST_LINK_LIBRARIES -Wl,--no-as-needed CommonAPI-DBus -Wl,--as-needed CommonAPI ${DL_LIBRARY} gtest ${PTHREAD_LIBRARY})
 endif()
 
 ##############################################################################

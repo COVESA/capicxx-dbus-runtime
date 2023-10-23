@@ -10,7 +10,7 @@ PROJECT(libcommonapi-dbus)
 # version of CommonAPI-DBus
 SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
 SET( LIBCOMMONAPI_DBUS_MINOR_VERSION 2 )
-SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 0 )
+SET( LIBCOMMONAPI_DBUS_PATCH_VERSION 3 )
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 
@@ -127,9 +127,9 @@ message(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
 FIND_PACKAGE(PkgConfig)
 FIND_PACKAGE(Threads REQUIRED)
 if ("${USE_INSTALLED_COMMONAPI}" STREQUAL "ON")
-    FIND_PACKAGE(CommonAPI 3.2.0 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    FIND_PACKAGE(CommonAPI 3.2 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    FIND_PACKAGE(CommonAPI 3.2.0 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    FIND_PACKAGE(CommonAPI 3.2 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
 message(STATUS "CommonAPI_CONSIDERED_CONFIGS: ${CommonAPI_CONSIDERED_CONFIGS}")
@@ -156,7 +156,11 @@ if (MSVC)
       message(SEND_ERROR "Set DBus_INCLUDE_DIRS and DBus_LIBRARIES to your D-Bus installation (e.g. cmake -DDBus_INCLUDE_DIRS=C:\\D-Bus\\include -DDBus_LIBRARIES=C:\\DBus\\lib\\dbus-1.lib")
     endif()
 else()
-    pkg_check_modules(DBus REQUIRED dbus-1>=1.4)
+    if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
+        FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
+    else()
+        FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    endif()
 endif()
 
 ##############################################################################
@@ -168,7 +172,7 @@ if (MSVC)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /EHsc /wd4503")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /wd4503")
 else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wformat -Wformat-security -Wconversion -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wformat -Wformat-security -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP -fvisibility=hidden")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")
@@ -178,19 +182,7 @@ message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}")
 include_directories(
     include
     ${COMMONAPI_INCLUDE_DIRS}
-    ${DBus_INCLUDE_DIRS}
 )
-
-if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
-    link_directories(
-        ${DBus_LIBRARY_DIRS}
-    )
-else()
-    set (DBus_LIBRARIES dbus-1)
-    link_directories(
-        ${DBus_INCLUDE_DIRS}/dbus/.libs
-    )
-endif()
 
 # DBus source files
 file(GLOB CAPIDB_SRCS "src/CommonAPI/DBus/*.cpp")
@@ -206,14 +198,19 @@ list(SORT MMHASH_SRCS)
 
 # CommonAPI-DBus library
 add_library(CommonAPI-DBus SHARED ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
-
-target_link_libraries(CommonAPI-DBus CommonAPI ${DBus_LIBRARIES})
+target_include_directories(CommonAPI-DBus INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>)
+target_link_libraries(CommonAPI-DBus PUBLIC CommonAPI dbus-1)
 
 if (MSVC)
     target_link_libraries(CommonAPI-DBus ws2_32 Rpcrt4)
 endif()
 
-set_target_properties(CommonAPI-DBus PROPERTIES VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} LINKER_LANGUAGE C)
+set_target_properties(CommonAPI-DBus PROPERTIES
+    VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION}
+    SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION}
+    LINKER_LANGUAGE C)
 
 ##############################################################################
 
@@ -254,25 +251,14 @@ export(TARGETS CommonAPI-DBus
 export(PACKAGE CommonAPI-DBus)
 
 # Create the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion files ...
-file(RELATIVE_PATH REL_INCLUDE_DIR "${ABSOLUTE_INSTALL_CMAKE_DIR}" "${ABSOLUTE_INSTALL_INCLUDE_DIR}")
-
-# ... for the build tree
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfig.cmake" @ONLY)
-
-# ... for the install tree
-set(CONF_INCLUDE_DIRS "\${COMMONAPI_DBUS_CMAKE_DIR}/${REL_INCLUDE_DIR}")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake" @ONLY)
-
-# ... for both
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfigVersion.cmake.in
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake" @ONLY)
 
 # Install the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion.cmake
 install(FILES
-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake"
+  "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfig.cmake"
   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake"
   DESTINATION "${INSTALL_CMAKE_DIR}")
 

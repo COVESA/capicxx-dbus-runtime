@@ -115,6 +115,10 @@ DBusMessage
 DBusMessage::createMethodError(
     const std::string &_code, const std::string &_signature, const std::string &_info) const {
 
+    if (getSerial() == 0) {
+        COMMONAPI_WARNING(std::string(__FUNCTION__), " getSerial() is 0, setting dummy serial to: ", UINT32_MAX);
+        setSerial(UINT32_MAX);
+    }
     ::DBusMessage *methodError
           = dbus_message_new_error(message_, _code.c_str(), _info.c_str());
     if (NULL == methodError) {
