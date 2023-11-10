@@ -20,7 +20,7 @@ jobs:
         repository: COVESA/capicxx-core-runtime
         path: 'capicxx-core-runtime'
 
-    - name: "Install dbus"
+    - name: "Install dbus and googletest"
       run: |
         wget http://dbus.freedesktop.org/releases/dbus/dbus-1.13.6.tar.gz
         tar -xzf dbus-1.13.6.tar.gz
@@ -32,13 +32,29 @@ jobs:
         cmake -B build-dbus/libdbus -D DBUS_BUILD_TESTS=N -D CMAKE_INSTALL_PREFIX=install -S dbus-1.13.6/cmake
         cmake --build build-dbus/libdbus
         cmake --install build-dbus/libdbus --strip
+      
+        sudo apt-get install libgtest-dev
+        cd /usr/src/gtest
+        sudo cmake CMakeLists.txt
+        sudo make
+        sudo cp lib/*.a /usr/lib
+        sudo ln -s /usr/lib/libgtest.a /usr/local/lib/libgtest.a
+        sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/libgtest_main.a
 
     - name: "Build capicxx-core-runtime"
       run: |
-        cmake -S capicxx-core-runtime -B build-core-runtime -DCMAKE_INSTALL_PREFIX=install
+        cmake -S capicxx-core-runtime -B build-core-runtime -D CMAKE_INSTALL_PREFIX=install
         cmake --build build-core-runtime --target install      
 
     - name: "Build capicxx-dbus-runtime"
       run: |
-          cmake -S . -B build-dbus-runtime -DCMAKE_PREFIX_PATH=install
-          cmake --build build-dbus-runtime
+          cmake -S . -B build-dbus-runtime -D GTEST_ROOT=/usr/src/googletest -D CMAKE_PREFIX_PATH=install -D CMAKE_INSTALL_PREFIX=install
+          cmake --build build-dbus-runtime --target build_tests
+          cmake --install build-dbus-runtime --strip
+
+    - name: "Run tests"
+      run: |
+        ls -l ${{ github.workspace }}/install/lib
+        export LD_LIBRARY_PATH=${{ github.workspace }}/install/lib
+        export COMMONAPI_CONFIG=${{ github.workspace }}/src/test/commonapi-dbus.ini
+        env -C build-dbus-runtime ctest -V
