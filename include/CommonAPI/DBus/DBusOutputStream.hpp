@@ -123,12 +123,14 @@ public:
 
     COMMONAPI_EXPORT OutputStream &writeValue(const std::string &_value, const EmptyDeployment *_depl = nullptr) {
         (void)_depl;
-        return writeString(_value.c_str(), uint32_t(_value.length()));
+        uint32_t length = static_cast<uint32_t>(strnlen(_value.c_str(), _value.length()));
+        return writeString(_value.c_str(), length);
     }
 
     COMMONAPI_EXPORT OutputStream &writeValue(const std::string &_value, const CommonAPI::DBus::StringDeployment* _depl) {
         (void)_depl;
-        return writeString(_value.c_str(), uint32_t(_value.length()));
+        uint32_t length = static_cast<uint32_t>(strnlen(_value.c_str(), _value.length()));
+        return writeString(_value.c_str(), length);
     }
 
     COMMONAPI_EXPORT OutputStream &writeValue(const Version &_value, const EmptyDeployment *_depl = nullptr) {
