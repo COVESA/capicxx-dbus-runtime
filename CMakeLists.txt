@@ -164,6 +164,21 @@ else()
 endif()
 
 ##############################################################################
+# Check for correct dbus version (with patches)
+
+try_compile(DBUS_WITH_PATCHES ${CMAKE_BINARY_DIR}/cmake_checks 
+    SOURCES ${CMAKE_SOURCE_DIR}/cmake/check_dbus_connection_send_with_reply_and_block.cpp
+    CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${DBus_INCLUDE_DIRS}"
+    CMAKE_FLAGS "-DLINK_DIRECTORIES=${DBus_LIBRARY_DIRS}"
+    LINK_LIBRARIES ${DBus_LIBRARIES}
+    OUTPUT_VARIABLE dbus_out
+)
+
+if(NOT ${DBUS_WITH_PATCHES})
+    message(FATAL_ERROR "DBus library: ${DBus_LIBRARY_DIRS}/${DBus_LIBRARIES} is not patched")
+endif()
+
+##############################################################################
 
 # CommonAPI-DBus build section
 
