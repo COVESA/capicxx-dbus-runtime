@@ -448,15 +448,23 @@ bool DBusAddressTranslator::isValidVersion(const std::string& _version) const {
     return true;
 }
 
-void DBusAddressTranslator::remove(const CommonAPI::Address &_address) {
+void DBusAddressTranslator::remove(const CommonAPI::Address &_address, bool remove_persistent) {
     std::lock_guard<std::mutex> itsLock(mutex_);
 
     DBusAddress dbusAddress;
 
-    // don't remove persisent addresses
     auto persistent_it = persistentAddresses_.find(_address);
-    if(persistent_it != persistentAddresses_.end()) {
-        return;
+    if(persistent_it != persistentAddresses_.end())
+    {
+        if(remove_persistent)
+        {
+            persistentAddresses_.erase(persistent_it->first);
+        }
+        else
+        {
+            // don't remove persisent addresses, so return here
+            return;
+        }
     }
 
     auto forwards_it = forwards_.find(_address);

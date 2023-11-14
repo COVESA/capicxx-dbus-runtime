@@ -47,7 +47,7 @@ public:
      */
     COMMONAPI_EXPORT bool isOrgFreedesktopDBusPeerMapped() const;
 
-    COMMONAPI_EXPORT void remove(const CommonAPI::Address &_address);
+    COMMONAPI_EXPORT void remove(const CommonAPI::Address &_address, bool remove_persistent = false);
 
 private:
     COMMONAPI_EXPORT bool readConfiguration();
