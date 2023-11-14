@@ -49,7 +49,7 @@ char *DBusInputStream::_readRaw(const size_t _size) {
 }
 
 void DBusInputStream::setError() {
-    exception_ = new CommonAPI::DBus::DBusError();
+    exception_ = std::unique_ptr<CommonAPI::DBus::DBusError>(new CommonAPI::DBus::DBusError());
 }
 
 void DBusInputStream::pushPosition() {
