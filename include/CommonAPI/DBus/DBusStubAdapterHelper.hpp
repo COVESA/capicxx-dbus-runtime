@@ -76,6 +76,12 @@ public:
     (void) _isManaging;
     (void) _stub;
   }
+
+  bool appendGetAllReply(const DBusMessage& dbusMessage, DBusOutputStream& dbusOutputStream) {
+    (void) dbusMessage;
+    (void) dbusOutputStream;
+    return true;
+  }
 protected:
   bool findDispatcherAndHandle(const DBusMessage& dbusMessage, DBusInterfaceMemberPath& dbusInterfaceMemberPath) {
     (void) dbusMessage;
@@ -93,11 +99,6 @@ protected:
     (void) attributeName;
     (void) _message;
     return false;
-  }
-  bool appendGetAllReply(const DBusMessage& dbusMessage, DBusOutputStream& dbusOutputStream) {
-    (void) dbusMessage;
-    (void) dbusOutputStream;
-    return true;
   }
 public:
   template <typename Stub_>
@@ -160,6 +161,27 @@ class DBusStubAdapterHelper<StubClass_, Stubs_...>:
     inline RemoteEventHandlerType* getRemoteEventHandler() {
         return remoteEventHandler_;
     }
+
+
+    bool appendGetAllReply(const DBusMessage& dbusMessage, DBusOutputStream& dbusOutputStream)
+    {
+        for(auto attributeDispatcherIterator = stubAttributeTable_.begin(); attributeDispatcherIterator != stubAttributeTable_.end(); attributeDispatcherIterator++) {
+
+            //To prevent the destruction of the stub whilst still handling a message
+            if (stub_) {
+                StubDispatcher<StubClass_>* getterDispatcher = attributeDispatcherIterator->second.getter;
+                if (NULL == getterDispatcher) { // all attributes have at least a getter
+                    COMMONAPI_ERROR(std::string(__FUNCTION__), "getterDispatcher == NULL");
+                    return false;
+                } else {
+                    dbusOutputStream.align(8);
+                    dbusOutputStream << attributeDispatcherIterator->first;
+                    getterDispatcher->appendGetAllReply(dbusMessage, stub_, dbusOutputStream);
+                }
+            }
+        }
+        return DBusStubAdapterHelper<Stubs_...>::appendGetAllReply(dbusMessage, dbusOutputStream);
+     }
 
  protected:
 
@@ -283,26 +305,6 @@ protected:
 
         return setterDispatcher->dispatchDBusMessage(dbusMessage, stub_, getRemoteEventHandler(), getDBusConnection());
     }
-
-    bool appendGetAllReply(const DBusMessage& dbusMessage, DBusOutputStream& dbusOutputStream)
-    {
-        for(auto attributeDispatcherIterator = stubAttributeTable_.begin(); attributeDispatcherIterator != stubAttributeTable_.end(); attributeDispatcherIterator++) {
-
-            //To prevent the destruction of the stub whilst still handling a message
-            if (stub_) {
-                StubDispatcher<StubClass_>* getterDispatcher = attributeDispatcherIterator->second.getter;
-                if (NULL == getterDispatcher) { // all attributes have at least a getter
-                    COMMONAPI_ERROR(std::string(__FUNCTION__), "getterDispatcher == NULL");
-                    return false;
-                } else {
-                    dbusOutputStream.align(8);
-                    dbusOutputStream << attributeDispatcherIterator->first;
-                    getterDispatcher->appendGetAllReply(dbusMessage, stub_, dbusOutputStream);
-                }
-            }
-        }
-        return DBusStubAdapterHelper<Stubs_...>::appendGetAllReply(dbusMessage, dbusOutputStream);
-     }
 
  private:
 

@@ -307,43 +307,59 @@ bool DBusObjectManagerStub::onInterfaceDBusMessage(const DBusMessage& dbusMessag
     }
 
     std::lock_guard<std::mutex> dbusObjectManagerStubLock(dbusObjectManagerStubLock_);
-    DBusObjectPathAndInterfacesDict dbusObjectPathAndInterfacesDict;
 
-    for (const auto& registeredDBusObjectPathIterator : registeredDBusObjectPathsMap_) {
+    DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{oa{sa{sv}}}");
+    DBusOutputStream dbusOutputStream(dbusMessageReply);
+	dbusOutputStream.beginWriteMap();
+
+    for (const auto& registeredDBusObjectPathIterator : registeredDBusObjectPathsMap_)
+    {
         const std::string& registeredDBusObjectPath = registeredDBusObjectPathIterator.first;
         const auto& registeredDBusInterfacesMap = registeredDBusObjectPathIterator.second;
-        DBusInterfacesAndPropertiesDict dbusInterfacesAndPropertiesDict;
 
         if (0 == registeredDBusObjectPath.length()) {
             COMMONAPI_ERROR(std::string(__FUNCTION__), " empty object path");
         } else {
+
             if (0 == registeredDBusInterfacesMap.size()) {
                 COMMONAPI_ERROR(std::string(__FUNCTION__), " empty interfaces map for ", registeredDBusObjectPath);
             }
 
-            for (const auto& registeredDBusInterfaceIterator : registeredDBusInterfacesMap) {
+            dbusOutputStream.align(8);
+            dbusOutputStream << registeredDBusObjectPath;
+            dbusOutputStream.beginWriteMap();
+
+            for (const auto& registeredDBusInterfaceIterator : registeredDBusInterfacesMap)
+            {
                 const std::string& registeredDBusInterfaceName = registeredDBusInterfaceIterator.first;
                 const auto& registeredDBusStubAdapter = registeredDBusInterfaceIterator.second.begin();
 
                 if (0 == registeredDBusInterfaceName.length()) {
                     COMMONAPI_ERROR(std::string(__FUNCTION__), " empty interface name for ", registeredDBusObjectPath);
                 } else {
-                    dbusInterfacesAndPropertiesDict.insert({ registeredDBusInterfaceName, DBusPropertiesChangedDict() });
+                    dbusOutputStream.align(8);
+                    dbusOutputStream << registeredDBusInterfaceName;
+                    dbusOutputStream.beginWriteMap();
+
+					(*registeredDBusStubAdapter)->appendGetAllReply(dbusMessage, dbusOutputStream);
+
+                    dbusOutputStream.endWriteMap();
                 }
 
-                if ((*registeredDBusStubAdapter)->isManaging()) {
-                    dbusInterfacesAndPropertiesDict.insert({ getInterfaceName(), DBusPropertiesChangedDict() });
+                if ((*registeredDBusStubAdapter)->isManaging())
+                {
+//                	dbusOutputStream.align(8);
+//                    dbusOutputStream << std::string(getInterfaceName());
+//                    dbusOutputStream << DBusPropertiesChangedDict();
+
                 }
             }
 
-            dbusObjectPathAndInterfacesDict.insert({ registeredDBusObjectPath, std::move(dbusInterfacesAndPropertiesDict) });
+            dbusOutputStream.endWriteMap();
         }
     }
 
-    DBusMessage dbusMessageReply = dbusMessage.createMethodReturn("a{oa{sa{sv}}}");
-    DBusOutputStream dbusOutputStream(dbusMessageReply);
-
-    dbusOutputStream << dbusObjectPathAndInterfacesDict;
+    dbusOutputStream.endWriteMap();
     dbusOutputStream.flush();
 
     const bool dbusMessageReplySent = dbusConnection->sendDBusMessage(dbusMessageReply);
