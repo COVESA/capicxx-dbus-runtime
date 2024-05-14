@@ -2,59 +2,131 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
-  build:
+  build_on_ubuntu_22_04:
     runs-on: [ubuntu-22.04]
-    
-    steps: 
-    - name: "Checkout"
-      uses: actions/checkout@v3
 
-    - name: "Checkout capicxx-core-runtime"
-      uses: actions/checkout@v3 
-      with:
-        repository: COVESA/capicxx-core-runtime
-        path: 'capicxx-core-runtime'
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
 
-    - name: "Install dbus and googletest"
-      run: |
-        wget http://dbus.freedesktop.org/releases/dbus/dbus-1.13.6.tar.gz
-        tar -xzf dbus-1.13.6.tar.gz
-        for patch in src/dbus-patches/*.patch
-        do
-        	patch -d dbus-1.13.6 -Np1 -i "$PWD/$patch" || continue
-        done
-        
-        cmake -B build-dbus/libdbus -D DBUS_BUILD_TESTS=N -D CMAKE_INSTALL_PREFIX=install -S dbus-1.13.6/cmake
-        cmake --build build-dbus/libdbus
-        cmake --install build-dbus/libdbus --strip
-      
-        sudo apt-get install libgtest-dev
-        cd /usr/src/gtest
-        sudo cmake CMakeLists.txt
-        sudo make
-        sudo cp lib/*.a /usr/lib
-        sudo ln -s /usr/lib/libgtest.a /usr/local/lib/libgtest.a
-        sudo ln -s /usr/lib/libgtest_main.a /usr/local/lib/libgtest_main.a
+      - name: "Checkout capicxx-core-runtime"
+        uses: actions/checkout@v4
+        with:
+          repository: COVESA/capicxx-core-runtime
+          path: "capicxx-core-runtime"
 
-    - name: "Build capicxx-core-runtime"
-      run: |
-        cmake -S capicxx-core-runtime -B build-core-runtime -D CMAKE_INSTALL_PREFIX=install
-        cmake --build build-core-runtime --target install      
+      - name: "Install dbus"
+        run: |
+          wget http://dbus.freedesktop.org/releases/dbus/dbus-1.13.6.tar.gz
+          tar -xzf dbus-1.13.6.tar.gz
+          for patch in src/dbus-patches/*.patch
+          do
+          	patch -d dbus-1.13.6 -Np1 -i "$PWD/$patch" || continue
+          done
 
-    - name: "Build capicxx-dbus-runtime"
-      run: |
-          cmake -S . -B build-dbus-runtime -D GTEST_ROOT=/usr/src/googletest -D CMAKE_PREFIX_PATH=install -D CMAKE_INSTALL_PREFIX=install
+          cmake -B build-dbus/libdbus -D DBUS_BUILD_TESTS=N -D CMAKE_INSTALL_PREFIX=install -S dbus-1.13.6/cmake
+          cmake --build build-dbus/libdbus
+          cmake --install build-dbus/libdbus --strip
+
+      - name: "Checkout googletest"
+        uses: actions/checkout@v4
+        with:
+          repository: google/googletest
+          ref: v1.12.0
+          path: "googletest"
+
+      - name: "Build capicxx-core-runtime"
+        run: |
+          cmake -S capicxx-core-runtime -B build-core-runtime -D CMAKE_INSTALL_PREFIX=install
+          cmake --build build-core-runtime --target install
+
+      - name: "Build capicxx-dbus-runtime"
+        run: |
+          cmake -S . -B build-dbus-runtime -D GTEST_ROOT=${{ github.workspace }}/googletest -D CMAKE_PREFIX_PATH=install -D CMAKE_INSTALL_PREFIX=install
           cmake --build build-dbus-runtime --target build_tests
           cmake --install build-dbus-runtime --strip
 
-    - name: "Run tests"
-      run: |
-        ls -l ${{ github.workspace }}/install/lib
-        export LD_LIBRARY_PATH=${{ github.workspace }}/install/lib
-        export COMMONAPI_CONFIG=${{ github.workspace }}/src/test/commonapi-dbus.ini
-        env -C build-dbus-runtime ctest -V
+      - name: "Run tests"
+        run: |
+          ls -l ${{ github.workspace }}/install/lib
+          export LD_LIBRARY_PATH=${{ github.workspace }}/install/lib
+          export COMMONAPI_CONFIG=${{ github.workspace }}/src/test/commonapi-dbus.ini
+          env -C build-dbus-runtime ctest -V
+
+  build_on_windows_latest:
+    runs-on: windows-latest
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Checkout capicxx-core-runtime"
+        uses: actions/checkout@v4
+        with:
+          repository: COVESA/capicxx-core-runtime
+          path: "capicxx-core-runtime"
+
+      - name: "Checkout googletest"
+        uses: actions/checkout@v4
+        with:
+          repository: google/googletest
+          ref: v1.12.0
+          path: "googletest"
+
+      - name: "Checkout expat"
+        uses: actions/checkout@v4
+        with:
+          repository: libexpat/libexpat
+          ref: R_2_2_9
+          path: "libexpat"
+
+      - name: "Build expat"
+        run: |
+          cmake -A x64 -B build-expat -D CMAKE_INSTALL_PREFIX=${{ runner.workspace }}\install -S ${{ github.workspace }}\libexpat\expat
+          cmake --build build-expat --config Release --target install
+
+      - name: "Install dbus"
+        run: |
+          curl -L -o dbus-1.13.6.tar.gz http://dbus.freedesktop.org/releases/dbus/dbus-1.13.6.tar.gz
+          tar -zxvf dbus-1.13.6.tar.gz
+          $dbus = "${{ github.workspace }}\dbus-1.13.6"
+          $patches = Get-ChildItem -Path src\dbus-patches -Filter "*.patch"
+
+          foreach ($patch in $patches) {
+          patch -d $dbus -Np1 -i $patch.FullName
+          }
+
+          cmake -A x64 -B build-dbus\libdbus -D DBUS_BUILD_TESTS=N -D CMAKE_INSTALL_PREFIX=${{ runner.workspace }}\install -S ${{ github.workspace }}\dbus-1.13.6\cmake
+          cmake --build build-dbus\libdbus --config Release --target install
+
+      - name: "Build capicxx-core-runtime"
+        run: |
+          cmake -S capicxx-core-runtime -B build-core-runtime -DCMAKE_INSTALL_PREFIX=${{ runner.workspace }}\install
+          cmake --build build-core-runtime --target install
+
+      - name: "Build capicxx-dbus-runtime"
+        run: |
+          cmake -B build-dbus-runtime -D GTEST_ROOT=${{ github.workspace }}\googletest -D CMAKE_PREFIX_PATH=${{ runner.workspace }}\install -D CMAKE_INSTALL_PREFIX=${{ runner.workspace }}\install .
+          cmake --build build-dbus-runtime --target build_tests
+
+      - name: "Run tests"
+        run: |
+          $env:PATH += ";${{ runner.workspace }}\install\bin"
+          $env:PATH += ";${{ github.workspace }}\build-core-runtime\Debug"
+          $env:PATH += ";${{ github.workspace }}\build-dbus-runtime\Debug"
+          $dbus_daemon = Start-Job -ScriptBlock {
+            & ${{ runner.workspace }}\install\bin\dbus-daemon --config-file=${{ runner.workspace }}\install\share\dbus-1\session.conf --nofork --print-address
+          }
+          Start-Sleep -Seconds 1
+          $env:DBUS_SESSION_BUS_ADDRESS = Receive-Job $dbus_daemon
+          try {
+            ctest -C Debug --test-dir ${{ github.workspace }}\build-dbus-runtime -V
+            exit $LASTEXITCODE
+          } finally {
+            Stop-Job $dbus_daemon
+          }

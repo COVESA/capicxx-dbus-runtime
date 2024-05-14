@@ -138,31 +138,13 @@ message(STATUS "CommonAPI Version: ${CommonAPI_VERSION}")
 
 ###############################################################################
 # find DBus by using the 'pkg-config' tool
-if (MSVC)
-    #Not beautiful, but it works
-    if (DBus_DIR)
-        if (DBus_BUILD_DIR)
-            set(DBus_INCLUDE_DIRS "${DBus_DIR};${DBus_BUILD_DIR};")
-            set(DBus_LIBRARY_RELEASE "${DBus_BUILD_DIR}/bin/Release/dbus-1.lib")
-            set(DBus_LIBRARY_DEBUG "${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib")
-        endif()
-    endif()
-
-    if (NOT DBus_LIBRARIES)
-        include(SelectLibraryConfigurations)
-        select_library_configurations(DBus)
-    endif()
-    if (NOT DBus_INCLUDE_DIRS OR NOT DBus_LIBRARIES)
-      message(SEND_ERROR "Set DBus_INCLUDE_DIRS and DBus_LIBRARIES to your D-Bus installation (e.g. cmake -DDBus_INCLUDE_DIRS=C:\\D-Bus\\include -DDBus_LIBRARIES=C:\\DBus\\lib\\dbus-1.lib")
-    endif()
+if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
+    FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
 else()
-    if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
-        FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_CMAKE_PACKAGE_REGISTRY)
-    else()
-        FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-    endif()
+    FIND_PACKAGE(DBus1 1.4 REQUIRED CONFIG NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
 endif()
 
+message(STATUS "DBus1_INCLUDE_DIRS: ${DBus1_INCLUDE_DIRS}")
 ##############################################################################
 
 # CommonAPI-DBus build section
@@ -182,6 +164,7 @@ message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}")
 include_directories(
     include
     ${COMMONAPI_INCLUDE_DIRS}
+    ${DBus1_INCLUDE_DIRS}
 )
 
 # DBus source files
