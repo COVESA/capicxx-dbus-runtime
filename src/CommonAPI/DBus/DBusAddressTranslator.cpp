@@ -18,11 +18,20 @@
 #include <CommonAPI/Runtime.hpp>
 #include <CommonAPI/DBus/DBusAddressTranslator.hpp>
 
+#if defined __cpp_lib_filesystem
+#include <filesystem>
+namespace fs_ns = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs_ns = std::experimental::filesystem;
+#endif
+
 namespace CommonAPI {
 namespace DBus {
 
 const char *COMMONAPI_DBUS_DEFAULT_CONFIG_FILE = "commonapi-dbus.ini";
 const char *COMMONAPI_DBUS_DEFAULT_CONFIG_FOLDER = "/etc/";
+const char *COMMONAPI_DBUS_DEFAULT_MULTIPLE_CONFIGS_FOLDER = "/etc/commonapi-dbus.d";
 
 
 std::shared_ptr<DBusAddressTranslator> DBusAddressTranslator::get() {
@@ -39,19 +48,37 @@ DBusAddressTranslator::DBusAddressTranslator()
 
 void
 DBusAddressTranslator::init() {
-    // Determine default configuration file
+    // Determine default configuration file/folder
+    defaultConfig_ = COMMONAPI_DBUS_DEFAULT_MULTIPLE_CONFIGS_FOLDER;
+
     const char *config = getenv("COMMONAPI_DBUS_CONFIG");
     if (config) {
         defaultConfig_ = config;
-        struct stat s;
-        if (stat(defaultConfig_.c_str(), &s) != 0) {
-            COMMONAPI_ERROR("Failed to load ini file passed via "
+    }
+
+    // Check if there is a configuration folder:
+    if (fs_ns::exists(defaultConfig_)
+        && fs_ns::is_directory(defaultConfig_)
+        && !fs_ns::is_empty(defaultConfig_))
+    {
+
+    }
+    else
+    {
+        if (config)
+        {
+            struct stat s;
+            if (stat(defaultConfig_.c_str(), &s) != 0) {
+                COMMONAPI_ERROR("Failed to load ini file passed via "
                     "COMMONAPI_DBUS_CONFIG environment: ", defaultConfig_);
+            }
         }
-    } else {
-        defaultConfig_ = COMMONAPI_DBUS_DEFAULT_CONFIG_FOLDER;
-        defaultConfig_ += "/";
-        defaultConfig_ += COMMONAPI_DBUS_DEFAULT_CONFIG_FILE;
+        else
+        {
+            defaultConfig_ = COMMONAPI_DBUS_DEFAULT_CONFIG_FOLDER;
+            defaultConfig_ += "/";
+            defaultConfig_ += COMMONAPI_DBUS_DEFAULT_CONFIG_FILE;
+        }
     }
 
     (void)readConfiguration();
@@ -230,31 +257,45 @@ DBusAddressTranslator::insert(
 
 bool
 DBusAddressTranslator::readConfiguration() {
-#define MAX_PATH_LEN 255
-    std::string config;
-    bool tryLoadConfig(true);
-    char currentDirectory[MAX_PATH_LEN];
-#ifdef _WIN32
-    if (GetCurrentDirectory(MAX_PATH_LEN, currentDirectory)) {
-#else
-    if (getcwd(currentDirectory, MAX_PATH_LEN)) {
-#endif
-        config = currentDirectory;
-        config += "/";
-        config += COMMONAPI_DBUS_DEFAULT_CONFIG_FILE;
-
-        struct stat s;
-        if (stat(config.c_str(), &s) != 0) {
-            config = defaultConfig_;
-            if (stat(config.c_str(), &s) != 0) {
-                tryLoadConfig = false;
+    IniFileReader reader;
+    // Reading a complete folder:
+    if (fs_ns::is_directory(defaultConfig_))
+    {
+        for (auto &dirEntry : fs_ns::directory_iterator(defaultConfig_))
+        {
+            if (!fs_ns::is_directory(dirEntry.path().string()))
+            {
+                reader.load(dirEntry.path().string());
             }
         }
     }
+    else
+    {
+#define MAX_PATH_LEN 255
+        std::string config;
+        bool tryLoadConfig(true);
+        char currentDirectory[MAX_PATH_LEN];
+#ifdef _WIN32
+        if (GetCurrentDirectory(MAX_PATH_LEN, currentDirectory)) {
+#else
+        if (getcwd(currentDirectory, MAX_PATH_LEN)) {
+#endif
+            config = currentDirectory;
+            config += "/";
+            config += COMMONAPI_DBUS_DEFAULT_CONFIG_FILE;
 
-    IniFileReader reader;
-    if (tryLoadConfig && !reader.load(config))
-        return false;
+            struct stat s;
+            if (stat(config.c_str(), &s) != 0) {
+                config = defaultConfig_;
+                if (stat(config.c_str(), &s) != 0) {
+                    tryLoadConfig = false;
+                }
+            }
+        }
+
+        if (tryLoadConfig && !reader.load(config))
+            return false;
+    }
 
     for (auto itsMapping : reader.getSections()) {
         if(itsMapping.first == "segments") {
